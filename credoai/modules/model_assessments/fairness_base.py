@@ -3,7 +3,7 @@ from credoai.utils.metric_constants import (
 )
 from credoai.utils.metric_utils import standardize_metric_name, METRIC_EQUIVALENTS
 from credoai.integration import record_metrics, export_record, ModelRecord
-from credoai.modules._module import Module
+from credoai.modules.credo_module import CredoModule
 from fairlearn.metrics import MetricFrame
 from scipy.stats import norm
 from sklearn.utils import check_consistent_length
@@ -12,7 +12,7 @@ import pandas as pd
 
 DEFAULT_BOUNDS = (float('-inf'), float('inf'))
 
-class FairnessModule(Module):
+class FairnessModule(CredoModule):
     """
     Fairness module for Credo AI. Handles any metric that can be
     calculated on a set of ground truth labels and predictions, 

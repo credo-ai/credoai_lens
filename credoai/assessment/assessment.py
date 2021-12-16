@@ -1,9 +1,26 @@
+"""
+Defines abstract base class for all CredoAssessments
+"""
+
 from abc import ABC, abstractmethod
 from credoai.utils.common import ValidationError
 from typing import List, Union
 import pandas as pd
 
 class CredoAssessment(ABC):
+    """Abstract base class for all CredoAssessments
+
+    Parameters
+    ----------
+    name : str
+        Label of the assessment
+    module : CredoModule
+        CredoModule the Assessment builds
+    requirements : AssessmentRequirements, optional
+        Instantiation of funtionality CredoModel and/or CredoData
+        must define to run this asssesment. If defined, enables
+        automated validation and selection of asssessment
+    """    
     def __init__(self, name, module, requirements=None):
         self.name = name
         self.module = module

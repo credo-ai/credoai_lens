@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class Module(ABC):
+class CredoModule(ABC):
     """
     Base Class to build other modules off of.
     

@@ -8,22 +8,15 @@ from pathlib import Path
 class ValidationError(Exception):
     pass
 
+class SupressSettingWithCopyWarning:
+    def __enter__(self):
+        pd.options.mode.chained_assignment = None
+
+    def __exit__(self, *args):
+        pd.options.mode.chained_assignment = 'warn'
+    
 def get_project_root() -> Path:
     return Path(__file__).parent.parent
-
-def get_data_path(filename=None):
-    data_dir = os.path.join(get_project_root(), 'data')
-    if filename:
-        data_dir = os.path.join(data_dir, filename)
-    return data_dir
-
-def get_local_credo_path(filename=None):
-    data_dir = os.path.join(os.path.expanduser('~'), '.credo')
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-    if filename:
-        data_dir = os.path.join(data_dir, filename)
-    return data_dir
 
 def wrap_list(obj):
     if type(obj) == str:

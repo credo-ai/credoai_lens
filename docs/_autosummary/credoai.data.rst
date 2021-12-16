@@ -1,7 +1,7 @@
-﻿credoai
-=======
+credoai.data
+============
 
-.. automodule:: credoai
+.. automodule:: credoai.data
 
    
    
@@ -26,9 +26,5 @@
    :template: custom-module-template.rst
    :recursive:
 
-   credoai.assessment
-   credoai.data
-   credoai.integration
-   credoai.lens
-   credoai.modules
+   credoai.data.utils
 

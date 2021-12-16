@@ -1,4 +1,4 @@
-credoai.assessment
+﻿credoai.assessment
 ==================
 
 .. automodule:: credoai.assessment
@@ -26,6 +26,7 @@ credoai.assessment
    :template: custom-module-template.rst
    :recursive:
 
+   credoai.assessment.assessment
    credoai.assessment.assessments
    credoai.assessment.utils
 

@@ -1,4 +1,4 @@
-from credoai.assessment._assessment import CredoAssessment
+from credoai.assessment.assessment import CredoAssessment
 from credoai.assessment.utils import get_usable_assessments
 from credoai.integration import record_metrics, ModelRecord
 from credoai.utils.common import ValidationError
@@ -46,10 +46,9 @@ class CredoGovernance:
     To make use of the governance platform a .credo_config file must
     also be set up (see README)
     """
-    ai_solution_id: str
-    model_id: str
-    data_id: str
-
+    ai_solution_id: str = None
+    model_id: str = None
+    data_id: str = None
 
 class CredoModel:
     """Class wrapper around model-to-be-assessed
@@ -191,6 +190,7 @@ class Lens:
     def __init__(        
         self,
         governance: CredoGovernance = None,
+        scope: dict = None,
         assessments: Union[List[CredoAssessment], str] = 'auto',
         model: CredoModel = None,
         data: CredoData = None,
@@ -239,7 +239,9 @@ class Lens:
         # if governance is defined, pull down scope for
         # solution / model
         if self.gov:
-            self.scope = self.get_scope()
+            self.scope = self.get_scope_from_gov()
+        if scope:
+            self.scope.update(scope)
             
         # initialize
         self.init_assessments()
@@ -300,7 +302,7 @@ class Lens:
                 self._export_results(prepared_results, to_model=True)
         return assessment_results
 
-    def get_scope(self):
+    def get_scope_from_gov(self):
         scope = {}
         metrics = self._get_aligned_metrics()
         scope['metrics'] = list(metrics.keys())
