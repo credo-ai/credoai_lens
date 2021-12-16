@@ -42,6 +42,8 @@ PACKAGES = [
     'credoai.utils',
     'credoai.reporting',
     'credoai.assessment',
+    'credoai.data',
+    'credoai.data.static',
     'credoai.modules',
     'credoai.modules.model_assessments',
     'credoai.modules.dataset_assessments'
