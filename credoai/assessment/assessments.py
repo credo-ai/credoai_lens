@@ -1,4 +1,9 @@
-from credoai.assessment._assessment import CredoAssessment, AssessmentRequirements
+"""
+Module containing all CredoAssessmsents
+"""
+
+
+from credoai.assessment.assessment import CredoAssessment, AssessmentRequirements
 import credoai.modules as mod
 
 class FairnessAssessment(CredoAssessment):

@@ -1,4 +1,4 @@
-from credoai.assessment._assessment import CredoAssessment
+from credoai.assessment.assessment import CredoAssessment
 from credoai.assessment.utils import get_usable_assessments
 from credoai.integration import record_metrics, ModelRecord
 from credoai.utils.common import ValidationError

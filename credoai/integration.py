@@ -206,6 +206,7 @@ def create_records(record_class, record_args):
                    'value': [0.5, 0.6],
                    'value_range': [None, (0, 1)]}
     record_list = create_records(Metric, record_args)
+    
     """
     n_records = len(list(record_args.values())[0])
     all_records = []
@@ -237,8 +238,8 @@ def create_metric_records(metric_args):
                    'value': [0.5, 0.6],
                    'description': ["A description of metric1", ""]}
     metric_list = create_metric_records(metric_args)
-    """
     
+    """
     return create_records(Metric, metric_args)
 
 
