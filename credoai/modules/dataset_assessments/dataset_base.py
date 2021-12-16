@@ -45,12 +45,8 @@ class DatasetModule(CredoModule):
         return results
     
     def _make_pipe(self):
-        model_fun = get_gradient_boost_model()
-        if model_fun.__module__ == 'xgboost.sklearn':
-            model = model_fun(use_label_encoder=False,
-                              eval_metric='logloss')
-        else:
-            model = model_fun()
+        model = get_gradient_boost_model()
+        
         pipe = Pipeline(steps = 
                [('scaler', StandardScaler()),
                 ('model', model)])

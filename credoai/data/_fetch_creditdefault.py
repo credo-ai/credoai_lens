@@ -84,10 +84,9 @@ def fetch_creditdefault(*, cache=True, data_home=None,
     if as_frame:
         dataset = output['data']
         dataset.columns = FEATURES
-        if type(output['target']) == pd.Series:
-            output['target'].name = TARGET[0]
-        else:
-            output['target'].columns = TARGET
+        output['target'].name = TARGET[0]
+        output['target'] = output['target'].cat.rename_categories([0,1])
+        from credoai.assessment.assessments import FairnessAssessment
         
         with SupressSettingWithCopyWarning():
             for col in CATEGORICAL_FEATURES:
