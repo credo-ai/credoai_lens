@@ -1,4 +1,4 @@
-<img src="docs/_static/images/credo_ai-lens.png" width="250" alt="Credo AI Lens"><br>
+<img src="https://raw.githubusercontent.com/credo-ai/credoai_lens/develop/docs/_static/images/credo_ai-lens.png" width="250" alt="Credo AI Lens"><br>
 
 --------------------------------------
 
