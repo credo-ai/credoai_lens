@@ -18,7 +18,7 @@ URL = ''
 LICENSE = ''
 DOWNLOAD_URL = 'https://github.com/Credo-AI/credo_toolkit'
 VERSION = __version__
-PYTHON_REQUIRES = ">=3.7"
+PYTHON_REQUIRES = ">=3.8"
 
 # Use requirements.txt to set the install_requires
 with open('requirements.txt') as f:
