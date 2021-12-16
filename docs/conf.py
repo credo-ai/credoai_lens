@@ -36,7 +36,6 @@ extensions = [
     'sphinx_autodoc_typehints', # needs to be AFTER napoleon
     'nbsphinx'
 ]
-autosummary_generate = True  # Turn on sphinx.ext.autosummary
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -52,17 +51,25 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-#html_theme = 'pydata_sphinx_theme'
+
+
+
+# Readthedocs theme
+# on_rtd is whether on readthedocs.org, this line of code grabbed from docs.readthedocs.org...
+on_rtd = os.environ.get("READTHEDOCS", None) == "True"
+if not on_rtd:  # only import and set the theme if we're building docs locally
+    html_theme = 'pydata_sphinx_theme'
+html_css_files = ["readthedocs-custom.css"] # Override some CSS settings
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_css_files = ['css/custom.css']
-
 # Auto-Doc Options
 # ----------------
 # Change the ordering of the member documentation
 autodoc_member_order = 'groupwise'
 autoclass_content = 'both'
+autosummary_generate = True  # Turn on sphinx.ext.autosummary
+set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints

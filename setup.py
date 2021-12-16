@@ -28,14 +28,7 @@ with open('requirements.txt') as f:
 with open("requirements-extras.txt") as f:
     extras_requirements = [line.strip() for line in f]
 
-with open("requirements-dev.txt") as f:
-    dev_requirements = [line.strip() for line in f]
-
-all_requirements = extras_requirements + dev_requirements
-
-EXTRAS_REQUIRES = {'extras' : extras_requirements,
-                   'dev': dev_requirements,
-                   'all': all_requirements}
+EXTRAS_REQUIRES = {'extras' : extras_requirements}
 
 PACKAGES = [
     'credoai',
