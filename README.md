@@ -2,9 +2,9 @@
 
 --------------------------------------
 
-# Credo AI Lens - Responsible AI Assessment Framework
+# Lens by Credo AI - Responsible AI Assessment Framework
 
-Credo AI Lens is a comprehensive assessment framework for AI systems. 
+Lens is a comprehensive assessment framework for AI systems. 
 Lens standardizes model and data assessment, and acts as a central gateway to assessments 
 created in the open source community. In short, Lens connects arbitrary AI models and datasets
 with Responsible AI tools throughout the ecosystem.
