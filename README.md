@@ -1,0 +1,63 @@
+<img src="docs/_static/images/credo_ai-lens.png" width="250" alt="Credo AI Lens"><br>
+
+--------------------------------------
+
+# Credo AI Lens - Responsible AI Assessment Framework
+
+Credo AI Lens is a comprehensive assessment framework for AI systems. 
+Lens standardizes model and data assessment, and acts as a central gateway to assessments 
+created in the open source community. In short, Lens connects arbitrary AI models and datasets
+with Responsible AI tools throughout the ecosystem.
+
+Lens can be run in a notebook, a CI/CD pipeline, or anywhere else you do your ML analytics.
+It is extensible, and easily customized to your organizations assessments if they are not 
+supported by default. 
+
+Though it can be used alone, Lens shows its full value when connected to your organization's 
+[Credo AI Platform](https://www.credo.ai/product). Credo AI is an end-to-end AI Governance
+platform that supports multi-stakeholder alignment, AI assessment (via Lens) and AI risk assesssment.
+
+
+
+## Dependencies
+
+- Credo AI Lens supports Python 3.7+
+- Sphinx (optional for local docs site)
+
+
+## Installation
+
+The latest stable release (and required dependencies) can be installed from PyPI:
+
+```
+pip install credoai
+```
+
+It include optional dependencies (used for demos and some assessments):
+
+```
+pip install credoai[extras]
+```
+    
+
+## Getting Started
+
+To get started, we suggest running the binary classification fairness demo: `credo/demos/fairness_demo.ipynb`.
+
+## Documentation
+
+To build the documentation locally, run `make html` from the `/docs` directory and the docs site will build to: `docs/build/html/index.html`, which can be opened in the browser.
+
+> Make sure you have [Sphinx installed](https://www.sphinx-doc.org/en/master/usage/installation.html) if you are building the docs site locally.
+
+## Configuration
+
+To connect to [Credo AI's Governance Platform](https://www.credo.ai/product), enter your connection info in `~/.credoconfig` (in the root directory). You can copy and rename `credoconfig.example` to `.credoconfig`.
+
+
+```
+TENANT={tenant name} # Example: credoai
+CREDO_URL=<your credo url>  # Example: https://api.credo.ai 
+API_KEY=<your api key> # Example: JSMmd26...
+```
+ 
