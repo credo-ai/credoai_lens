@@ -4,16 +4,16 @@ from json_api_doc import serialize
 from credoai.utils.common import NumpyEncoder, wrap_list
   
 import base64
+import credoai
 import json
 import io 
 import matplotlib
 import numpy as np
-import pkg_resources  # part of setuptools
 import pprint
 
 META = {
   'source': 'credoai_ml_library',
-  'version': pkg_resources.require("credoai")[0].version
+  'version': credoai.__version__
 }
 
     

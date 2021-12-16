@@ -12,15 +12,15 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../..'))  # Source code dir relative to this file
+sys.path.insert(0, os.path.abspath('..'))  # Source code dir relative to this file
 
-
+import credoai
 # -- Project information -----------------------------------------------------
 
-project = 'CredoLens'
+project = 'CredoAILens'
 copyright = '2021, Credo AI Development Team'
 author = 'Credo AI Development Team'
-release = '0.0.1'
+release = credoai.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -45,6 +45,14 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# Auto-Doc Options
+# ----------------
+# Change the ordering of the member documentation
+autodoc_member_order = 'groupwise'
+autoclass_content = 'both'
+autosummary_generate = True  # Turn on sphinx.ext.autosummary
+set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -57,8 +65,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # Readthedocs theme
 # on_rtd is whether on readthedocs.org, this line of code grabbed from docs.readthedocs.org...
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-if not on_rtd:  # only import and set the theme if we're building docs locally
-    html_theme = 'pydata_sphinx_theme'
 html_css_files = ["readthedocs-custom.css"] # Override some CSS settings
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -66,10 +72,3 @@ html_css_files = ["readthedocs-custom.css"] # Override some CSS settings
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-# Auto-Doc Options
-# ----------------
-# Change the ordering of the member documentation
-autodoc_member_order = 'groupwise'
-autoclass_content = 'both'
-autosummary_generate = True  # Turn on sphinx.ext.autosummary
-set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
