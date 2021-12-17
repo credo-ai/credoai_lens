@@ -2,12 +2,15 @@ import os
 import requests
 import time
 from collections import defaultdict
+from credoai.utils.common import get_project_root
 from dotenv import dotenv_values
 from json_api_doc import deserialize
 
 def read_config():
     config_file = os.path.join(os.path.expanduser('~'), 
                                '.credoconfig')
+    if not os.path.exists(config_file):
+        config_file = os.path.join(get_project_root(), '..', 'credoconfig.example')
     config = dotenv_values(config_file)
     config['API_URL'] = os.path.join(config['CREDO_URL'], "api/v1/credoai")
     return config
