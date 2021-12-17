@@ -2,6 +2,8 @@ import joblib
 import json
 import numpy as np
 import pandas as pd
+import tensorflow_hub as hub
+from absl import logging
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import wrap_list
 from credoai.data.utils import get_data_path
@@ -170,7 +172,7 @@ class NLPEmbeddingAnalyzer(CredoModule):
         return normalized_bias
 
 
-class NLPGeneratorAnalyzer:
+class NLPGeneratorAnalyzer(CredoModule):
     """
     NLP generation analyzer for Credo AI
 
@@ -191,10 +193,8 @@ class NLPGeneratorAnalyzer:
             ):
         self.generation_fun = generation_fun
         self.toxicity_fun = toxicity_fun
-
-        religious_prompts_path = get_data_path('nlp_generation_analyzer/prompts/religious_ideology_prompt.json')
-        with open(religious_prompts_path, "r") as read_file:
-            self.religious_prompts = json.load(read_file)
+        self.raw_results = None
+        self.religious_prompts = None
 
         # Load the built-in text toxicity rater and Universal Sentence Encoder if user has not provided one
         if toxicity_fun is None:
@@ -203,10 +203,22 @@ class NLPGeneratorAnalyzer:
             self.use_encoder = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
     def prepare_results(self):
-        pass
+        if self.raw_results is not None:
+            # Calcualte statistics across groups
+            results = self.raw_results[['group','toxicity']].groupby('group', as_index=False).mean()
+            results.loc[len(results)] = ['overall', self.raw_results['toxicity'].mean()] 
+            results['protected_attribute'] = self.raw_results.iloc[0]['protected_attribute']
+            results.rename(columns={'toxicity':'value'}, inplace=True)
+            results['metric'] = 'toxicity'
+            results = results[['metric', 'group', 'protected_attribute', 'value']]
+            return results
+        else:
+            raise Exception(
+                "This NLPGeneratorAnalyzer instance is not run yet. Call 'run' with appropriate arguments before using this module."
+            )
 
-    def run(self, protected_attribute='religion', n_iterations=1, subgroups='all', aggregate=True):
-        """Analyze a text generation model for toxicity across subgroups of a protected attribute
+    def run(self, protected_attribute='religion', n_iterations=1, groups='all'):
+        """Analyze a text generation model for toxicity across groups of a protected attribute
 
         Parameters
         ----------
@@ -216,13 +228,10 @@ class NLPGeneratorAnalyzer:
         n_iterations : int
             number of times to generate responses for a prompt
             set to 1 if the generatioin model is not stochastic
-        subgroups : list or 'all'
-            protected attribute subgroups to include in the analysis
+        groups : list or 'all'
+            protected attribute groups to include in the analysis
             Possible values:
             protected_attribute='religion': ['judaism', 'christianity', 'islam', 'hinduism', 'buddhism', 'sikhism', 'atheism']
-        aggregate : bool
-            aggregate and return the assessments across subgroups if True.
-            Otherwise, return the assessments across all the prompts and iterations
 
         Returns
         -------
@@ -231,16 +240,18 @@ class NLPGeneratorAnalyzer:
             aggregate=False: toxicities for all the prompts and iterations
         """        
         if protected_attribute == 'religion':
-            res = self._analyze_religion(n_iterations, subgroups, aggregate)
+            res = self._analyze_religion(n_iterations, groups)
+            res['protected_attribute'] = 'religion'
 
-        return res
+        self.raw_results = res
+
+        return self
 
     def _rate_toxicity(self, text):
         """Rate a text for toxicity using a pretrained birnary classification model
         Model: logistic regression
         Encoder: Universal Sentence Encoder
         Dataset: Davidson et al. 2017 & Zampieri et al 2019
-        Build notebook: https://github.com/credo-ai/customer_demos/blob/text_generation_assessment/text_generation_assessment/toxic_text_classification.ipynb
 
         Parameters
         ----------
@@ -259,53 +270,68 @@ class NLPGeneratorAnalyzer:
 
 
     def _generation_fun_robust(self, prompt):
+        """Makes process robust to when generation_fun fails for a prompt
+        Failed cases are tracked and excluded from the assessment
+
+        Parameters
+        ----------
+        prompt : str
+            prompt text
+
+        Returns
+        -------
+        str
+            response text
+        """        
         try:
             return self.generation_fun(prompt)
         except:
             return 'e'
 
 
-    def _analyze_religion(self, n_iterations, subgroups, aggregate):
-        """Analyze a text generation model for toxicity across religion subgroups
+    def _analyze_religion(self, n_iterations, groups):
+        """Analyze a text generation model for toxicity across religion groups
 
         Parameters
         ----------
         n_iterations : int
             number of times to generate responses for a prompt
             set to 1 if the generatioin model is not stochastic
-        subgroups : list or 'all'
-            religion subgroups to include in the analysis
+        groups : list or 'all'
+            religion groups to include in the analysis
             Possible values: ['judaism', 'christianity', 'islam', 'hinduism', 'buddhism', 'sikhism', 'atheism']
-        aggregate : bool
-            aggregate and return the toxicity across subgroups if True.
-            Otherwise, return toxicities for all the prompts and iterations
 
         Returns
         -------
         pandas.dataframe
-            aggregate=True: toxicity means overall and across religion subgroups
-            aggregate=False: toxicities for all the prompts and iterations
-        """        
+            toxicity scores for all the religion prompts and iterations
+        """
+        # read prompts
+        if self.religious_prompts is None:
+            religious_prompts_path = get_data_path('nlp_generator_analyzer/prompts/religious_ideology_prompt.json')
+            with open(religious_prompts_path, "r") as read_file:
+                self.religious_prompts = json.load(read_file)
+
         # convert the prompts json to a dataframe for better handling
-        df = pd.DataFrame(columns=['religion', 'branch', 'prompt'])
+        df = pd.DataFrame(columns=['group', 'subgroup', 'prompt'])
         for k,v in self.religious_prompts.items():
             for k2,v2 in v.items():
                 temp = pd.DataFrame.from_dict(v2)
                 temp.rename(columns={0: "prompt" }, inplace = True)
-                temp['religion'] = k
-                temp['branch'] = k2
+                temp['group'] = k
+                temp['subgroup'] = k2
                 df = df.append(temp)
 
         # Generate and record responses for the prompts n_iterations times
         # Each run may take several minutes to complete
-        dfruns = pd.DataFrame(columns=['religion', 'branch', 'prompt', 'run'])
-        if subgroups != 'all':
-            df = df[df['religion'].isin(subgroups)]
+        dfruns = pd.DataFrame(columns=['group', 'subgroup', 'prompt', 'run'])
+        if groups != 'all':
+            df = df[df['group'].isin(groups)]
         
         for i in range(n_iterations):
-            logging.info('Performing Iteration ' + str(i+1) + ' of ' + str(n_iterations))
+            logging.info('Performing Iteration ' + str(i+1) + ' of ' + str(n_iterations) + ' for religion') 
             df['response'] = df['prompt'].apply(self._generation_fun_robust)
-            df['run'] = i
+            df['run'] = i+1
             dfruns = dfruns.append(df)
 
         # Assess the responses for toxicity
@@ -315,13 +341,7 @@ class NLPGeneratorAnalyzer:
         else:
             dfrunst['toxicity'] = dfrunst['response'].apply(self._rate_toxicity)
     
-        if aggregate:
-            # Calcualte statistics across religions
-            statistics = dfrunst[['religion','toxicity']].groupby('religion', as_index=False).mean()
-            statistics.loc[len(statistics)] = ['overall', dfrunst['toxicity'].mean()] 
-            return statistics
-        else:
-            return dfrunst
+        return dfrunst
             
 
 
