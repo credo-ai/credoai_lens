@@ -13,7 +13,6 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('../credoai'))
 import credoai
 
 # -- Project information -----------------------------------------------------
@@ -53,6 +52,13 @@ autodoc_member_order = 'groupwise'
 autoclass_content = 'both'
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
+autodoc_mock_imports = [
+    'dotenv', 'fairlearn',
+    'joblib', 'json_api_doc',
+    'matplotlib',
+    'numpy', 'pandas', 
+    'scipy', 'sklearn', 'tensorflow_hub'
+]
 
 
 # -- Options for HTML output -------------------------------------------------
