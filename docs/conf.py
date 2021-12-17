@@ -12,15 +12,16 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../..'))  # Source code dir relative to this file
-
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../credoai'))
+import credoai
 
 # -- Project information -----------------------------------------------------
 
-project = 'CredoLens'
+project = 'CredoAILens'
 copyright = '2021, Credo AI Development Team'
 author = 'Credo AI Development Team'
-release = '0.0.1'
+release = credoai.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -36,7 +37,6 @@ extensions = [
     'sphinx_autodoc_typehints', # needs to be AFTER napoleon
     'nbsphinx'
 ]
-autosummary_generate = True  # Turn on sphinx.ext.autosummary
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -46,23 +46,29 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# Auto-Doc Options
+# ----------------
+# Change the ordering of the member documentation
+autodoc_member_order = 'groupwise'
+autoclass_content = 'both'
+autosummary_generate = True  # Turn on sphinx.ext.autosummary
+set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
+
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-#html_theme = 'pydata_sphinx_theme'
+
+
+
+# Readthedocs theme
+# on_rtd is whether on readthedocs.org, this line of code grabbed from docs.readthedocs.org...
+on_rtd = os.environ.get("READTHEDOCS", None) == "True"
+html_css_files = ["readthedocs-custom.css"] # Override some CSS settings
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
-html_css_files = ['css/custom.css']
-
-# Auto-Doc Options
-# ----------------
-# Change the ordering of the member documentation
-autodoc_member_order = 'groupwise'
-autoclass_content = 'both'

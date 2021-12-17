@@ -2,13 +2,22 @@ import os
 import requests
 import time
 from collections import defaultdict
+from credoai.utils.common import get_project_root
 from dotenv import dotenv_values
 from json_api_doc import deserialize
 
 def read_config():
     config_file = os.path.join(os.path.expanduser('~'), 
                                '.credoconfig')
-    config = dotenv_values(config_file)
+    if not os.path.exists(config_file):
+        # return example
+        config = {
+            'TENANT': 'empty',
+            'CREDO_URL': 'empty',
+            'API_KEY': 'empty'
+        }
+    else:
+        config = dotenv_values(config_file)
     config['API_URL'] = os.path.join(config['CREDO_URL'], "api/v1/credoai")
     return config
 
@@ -49,8 +58,8 @@ def submit_request(request, end_point, **kwargs):
     response = SESSION.request(request, end_point, **kwargs)
     return response
 
-def get_solution_scope(ai_solution_id, version='latest'):
-    """Get solution scope for an AI solution from credoai.Governance Platform
+def get_solution_manifest(ai_solution_id, version='latest'):
+    """Get solution manifest for an AI solution from credoai.Governance Platform
     
     Parameters
     ----------
@@ -60,9 +69,9 @@ def get_solution_scope(ai_solution_id, version='latest'):
     Returns
     -------
     dict
-        The scope for the AI solution
+        The manifest for the AI solution
     """
-    end_point = get_end_point(f"ai_solutions/{ai_solution_id}/scopes")
+    end_point = get_end_point(f"ai_solutions/{ai_solution_id}/manifests")
     if version is not None:
         end_point = os.path.join(end_point, version)
     return deserialize(submit_request('get', end_point).json())
@@ -110,13 +119,13 @@ def get_aligned_metrics(ai_solution_id, version='latest'):
         The aligned metrics for each model contained in the AI solution.
         Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
     """
-    scope = get_solution_scope(ai_solution_id, version=version)
+    manifest = get_solution_manifest(ai_solution_id, version=version)
     try:
-        models = scope['model_ids']
+        models = manifest['model_ids']
     except KeyError:
-        return scope
+        return manifest
     metric_dict = {m: defaultdict(dict) for m in models}
-    metrics = scope['metrics']
+    metrics = manifest['metrics']
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
         metric_dict[metric['model_id']][metric['name']] = bounds

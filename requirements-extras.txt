@@ -1,0 +1,11 @@
+# Required for notebooks
+jupyterlab
+xlrd
+pytorch-transformers>=1.2.0
+
+# required for modules.model_assessments.fairness_nlp.NLPGeneratorAnalyzer
+joblib>=0.14.1
+tensorflow_hub>=0.12.0
+
+# required for modules.data_assessments.dataset_base.DatasetModule
+xgboost >= 1.5.1

@@ -2,11 +2,9 @@ import joblib
 import json
 import numpy as np
 import pandas as pd
-import tensorflow_hub as hub
-
-from absl import logging
-from credoai.modules._module import Module
-from credoai.utils.common import wrap_list, get_data_path
+from credoai.modules.credo_module import CredoModule
+from credoai.utils.common import wrap_list
+from credoai.data.utils import get_data_path
 from ._nlp_constants import (
     COMPETENCE, FAMILY, STEM, OUTSIDER,
     MALE, FEMALE
@@ -19,7 +17,7 @@ DEFAULT_CATEGORIES = {'competence': COMPETENCE,
                       'STEM': STEM,
                       'outsider': OUTSIDER}
 
-class NLPEmbeddingAnalyzer(Module):
+class NLPEmbeddingAnalyzer(CredoModule):
     """
     NLP embedding analyzer for Credo AI
 
@@ -172,7 +170,7 @@ class NLPEmbeddingAnalyzer(Module):
         return normalized_bias
 
 
-class NLPGeneratorAnalyzer(Module):
+class NLPGeneratorAnalyzer(CredoModule):
     """
     NLP generation analyzer for Credo AI
 

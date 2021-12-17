@@ -1,4 +1,8 @@
-from credoai.assessment._assessment import CredoAssessment, AssessmentRequirements
+"""
+Module containing all CredoAssessmsents
+"""
+
+from credoai.assessment.assessment import CredoAssessment, AssessmentRequirements
 from credoai.utils.common import get_data_path
 import credoai.modules as mod
 import joblib
@@ -15,8 +19,8 @@ class FairnessAssessment(CredoAssessment):
             )
         )
     
-    def init_module(self, scope, model, data, additional_metrics=None, replace=False):
-        bounds = scope.get('bounds', {})
+    def init_module(self, manifest, model, data, additional_metrics=None, replace=False):
+        bounds = manifest.get('bounds', {})
         y_pred = None
         y_prob = None
         if getattr(model, 'pred_fun'):
@@ -24,7 +28,7 @@ class FairnessAssessment(CredoAssessment):
         if getattr(model, 'prob_fun'):
             y_prob = model.prob_fun(data.X)
         module = self.module(
-            scope['metrics'],
+            manifest['metrics'],
             data.sensitive_features,
             data.y,
             y_pred,
@@ -44,7 +48,7 @@ class NLPEmbeddingAssessment(CredoAssessment):
                 model_requirements=['embedding_fun'])
             )
         
-    def init_module(self, scope, model, data=None, 
+    def init_module(self, manifest, model, data=None, 
               group_embeddings=None, 
               comparison_categories=None, 
               include_default=True):
@@ -73,7 +77,7 @@ class NLPGeneratorAssessment(CredoAssessment):
 
         # Load the built-in text toxicity rater and Universal Sentence Encoder if user has not provided one
         if toxicity_fun is None:
-            toxicity_rater_path = get_data_path('nlp_generation_analyzer/persisted_models/lr_toxicity.joblib')
+            toxicity_rater_path = get_data_path('static/nlp_generation_analyzer/persisted_models/lr_toxicity.joblib')
             self.toxicity_rater = joblib.load(toxicity_rater_path)
             self.use_encoder = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
@@ -89,7 +93,7 @@ class DatasetAssessment(CredoAssessment):
             )
         )
 
-    def init_module(self, *, scope, data, model=None):
+    def init_module(self, *, manifest, data, model=None):
         self.initialized_module = self.module(
             data.X, 
             data.y,

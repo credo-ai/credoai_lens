@@ -2,6 +2,7 @@
 #
 # Copyright (C) 2021-2021 Credo AI
 from credoai import __version__
+import setuptools
 
 DESCRIPTION = "credoai: AI governance tools"
 LONG_DESCRIPTION = """\
@@ -28,24 +29,8 @@ with open('requirements.txt') as f:
 with open("requirements-extras.txt") as f:
     extras_requirements = [line.strip() for line in f]
 
-with open("requirements-dev.txt") as f:
-    dev_requirements = [line.strip() for line in f]
+EXTRAS_REQUIRES = {'extras' : extras_requirements}
 
-all_requirements = extras_requirements + dev_requirements
-
-EXTRAS_REQUIRES = {'extras' : extras_requirements,
-                   'dev': dev_requirements,
-                   'all': all_requirements}
-
-PACKAGES = [
-    'credoai',
-    'credoai.utils',
-    'credoai.reporting',
-    'credoai.assessment',
-    'credoai.modules',
-    'credoai.modules.model_assessments',
-    'credoai.modules.dataset_assessments'
-]
 
 CLASSIFIERS = [
     'Intended Audience :: Information Technology',
@@ -90,7 +75,7 @@ if __name__ == "__main__":
         python_requires=PYTHON_REQUIRES,
         install_requires=INSTALL_REQUIRES,
         extras_require=EXTRAS_REQUIRES,
-        packages=PACKAGES,
+        packages=setuptools.find_packages(),
         classifiers=CLASSIFIERS,
         include_package_data=True,
         package_data=PACKAGE_DATA
