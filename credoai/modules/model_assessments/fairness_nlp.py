@@ -2,6 +2,7 @@ import joblib
 import json
 import numpy as np
 import pandas as pd
+import tensorflow_hub as hub
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import wrap_list
 from credoai.data.utils import get_data_path
