@@ -1,5 +1,8 @@
 from credoai.assessment._assessment import CredoAssessment, AssessmentRequirements
+from credoai.utils.common import get_data_path
 import credoai.modules as mod
+import joblib
+import tensorflow_hub as hub
 
 class FairnessAssessment(CredoAssessment):
     def __init__(self):
@@ -50,6 +53,30 @@ class NLPEmbeddingAssessment(CredoAssessment):
             module.set_group_embeddings(group_embeddings)
         if comparison_categories:
             module.set_comparison_categories(include_default, comparison_categories)
+        self.initialized_module = module
+
+class NLPGeneratorAssessment(CredoAssessment):
+    def __init__(self):    
+        super().__init__(
+            'NLPGenerator', 
+            mod.NLPGeneratorAnalyzer,
+            AssessmentRequirements(
+                model_requirements=['generation_fun'])
+            )
+        
+    def init_module(self, scope, model, data=None, 
+              toxicity_fun=None):
+        module = self.module(model.generation_fun)
+        self.toxicity_fun = toxicity_fun
+        self.raw_results = None
+        self.religious_prompts = None
+
+        # Load the built-in text toxicity rater and Universal Sentence Encoder if user has not provided one
+        if toxicity_fun is None:
+            toxicity_rater_path = get_data_path('nlp_generation_analyzer/persisted_models/lr_toxicity.joblib')
+            self.toxicity_rater = joblib.load(toxicity_rater_path)
+            self.use_encoder = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+
         self.initialized_module = module
             
 class DatasetAssessment(CredoAssessment):
