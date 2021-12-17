@@ -3,6 +3,7 @@ import json
 import numpy as np
 import pandas as pd
 import tensorflow_hub as hub
+from absl import logging
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import wrap_list
 from credoai.data.utils import get_data_path
@@ -203,21 +204,21 @@ class NLPGeneratorAnalyzer(CredoModule):
 
     def prepare_results(self):
         if self.raw_results is not None:
-            # Calcualte statistics across subgroups
-            results = self.raw_results[['subgroup','toxicity']].groupby('subgroup', as_index=False).mean()
+            # Calcualte statistics across groups
+            results = self.raw_results[['group','toxicity']].groupby('group', as_index=False).mean()
             results.loc[len(results)] = ['overall', self.raw_results['toxicity'].mean()] 
             results['protected_attribute'] = self.raw_results.iloc[0]['protected_attribute']
             results.rename(columns={'toxicity':'value'}, inplace=True)
             results['metric'] = 'toxicity'
-            results = results[['metric', 'subgroup', 'protected_attribute', 'value']]
+            results = results[['metric', 'group', 'protected_attribute', 'value']]
             return results
         else:
             raise Exception(
                 "This NLPGeneratorAnalyzer instance is not run yet. Call 'run' with appropriate arguments before using this module."
             )
 
-    def run(self, protected_attribute='religion', n_iterations=1, subgroups='all'):
-        """Analyze a text generation model for toxicity across subgroups of a protected attribute
+    def run(self, protected_attribute='religion', n_iterations=1, groups='all'):
+        """Analyze a text generation model for toxicity across groups of a protected attribute
 
         Parameters
         ----------
@@ -227,13 +228,10 @@ class NLPGeneratorAnalyzer(CredoModule):
         n_iterations : int
             number of times to generate responses for a prompt
             set to 1 if the generatioin model is not stochastic
-        subgroups : list or 'all'
-            protected attribute subgroups to include in the analysis
+        groups : list or 'all'
+            protected attribute groups to include in the analysis
             Possible values:
             protected_attribute='religion': ['judaism', 'christianity', 'islam', 'hinduism', 'buddhism', 'sikhism', 'atheism']
-        aggregate : bool
-            aggregate and return the assessments across subgroups if True.
-            Otherwise, return the assessments across all the prompts and iterations
 
         Returns
         -------
@@ -242,7 +240,7 @@ class NLPGeneratorAnalyzer(CredoModule):
             aggregate=False: toxicities for all the prompts and iterations
         """        
         if protected_attribute == 'religion':
-            res = self._analyze_religion(n_iterations, subgroups)
+            res = self._analyze_religion(n_iterations, groups)
             res['protected_attribute'] = 'religion'
 
         self.raw_results = res
@@ -291,16 +289,16 @@ class NLPGeneratorAnalyzer(CredoModule):
             return 'e'
 
 
-    def _analyze_religion(self, n_iterations, subgroups):
-        """Analyze a text generation model for toxicity across religion subgroups
+    def _analyze_religion(self, n_iterations, groups):
+        """Analyze a text generation model for toxicity across religion groups
 
         Parameters
         ----------
         n_iterations : int
             number of times to generate responses for a prompt
             set to 1 if the generatioin model is not stochastic
-        subgroups : list or 'all'
-            religion subgroups to include in the analysis
+        groups : list or 'all'
+            religion groups to include in the analysis
             Possible values: ['judaism', 'christianity', 'islam', 'hinduism', 'buddhism', 'sikhism', 'atheism']
 
         Returns
@@ -315,20 +313,20 @@ class NLPGeneratorAnalyzer(CredoModule):
                 self.religious_prompts = json.load(read_file)
 
         # convert the prompts json to a dataframe for better handling
-        df = pd.DataFrame(columns=['subgroup', 'subsubgroup', 'prompt'])
+        df = pd.DataFrame(columns=['group', 'subgroup', 'prompt'])
         for k,v in self.religious_prompts.items():
             for k2,v2 in v.items():
                 temp = pd.DataFrame.from_dict(v2)
                 temp.rename(columns={0: "prompt" }, inplace = True)
-                temp['subgroup'] = k
-                temp['subsubgroup'] = k2
+                temp['group'] = k
+                temp['subgroup'] = k2
                 df = df.append(temp)
 
         # Generate and record responses for the prompts n_iterations times
         # Each run may take several minutes to complete
-        dfruns = pd.DataFrame(columns=['subgroup', 'subsubgroup', 'prompt', 'run'])
-        if subgroups != 'all':
-            df = df[df['subgroup'].isin(subgroups)]
+        dfruns = pd.DataFrame(columns=['group', 'subgroup', 'prompt', 'run'])
+        if groups != 'all':
+            df = df[df['group'].isin(groups)]
         
         for i in range(n_iterations):
             logging.info('Performing Iteration ' + str(i+1) + ' of ' + str(n_iterations) + ' for religion') 
