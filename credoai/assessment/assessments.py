@@ -2,8 +2,8 @@
 Module containing all CredoAssessmsents
 """
 
-
 from credoai.assessment.assessment import CredoAssessment, AssessmentRequirements
+from credoai.utils.common import get_data_path
 import credoai.modules as mod
 
 class FairnessAssessment(CredoAssessment):
@@ -55,6 +55,23 @@ class NLPEmbeddingAssessment(CredoAssessment):
             module.set_group_embeddings(group_embeddings)
         if comparison_categories:
             module.set_comparison_categories(include_default, comparison_categories)
+        self.initialized_module = module
+
+class NLPGeneratorAssessment(CredoAssessment):
+    def __init__(self):    
+        super().__init__(
+            'NLPGenerator', 
+            mod.NLPGeneratorAnalyzer,
+            AssessmentRequirements(
+                model_requirements=['generation_fun'])
+            )
+        
+    def init_module(self, scope, model, data=None, 
+              toxicity_fun=None):
+        module = self.module(
+            model.generation_fun,
+            toxicity_fun=toxicity_fun)
+
         self.initialized_module = module
             
 class DatasetAssessment(CredoAssessment):
