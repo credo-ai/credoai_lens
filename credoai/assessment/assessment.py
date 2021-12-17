@@ -31,18 +31,18 @@ class CredoAssessment(ABC):
         self.requirements = requirements
 
     @abstractmethod
-    def init_module(self, *, scope=None, model=None, data=None):
+    def init_module(self, *, manifest=None, model=None, data=None):
         """ Initializes the assessment module
 
-        Transforms the scope, CredoModel and CredoData into the proper form
+        Transforms the manifest, CredoModel and CredoData into the proper form
         to create a runnable assessment.
 
         See the lens_customization notebook for examples
 
         Parameters
         ------------
-        scope : dict
-            dictionary containing kwargs for the module defined by the scope
+        manifest : dict
+            dictionary containing kwargs for the module defined by the manifest
         model : CredoModel, optional
         data : CredoData, optional
 

@@ -190,7 +190,7 @@ class Lens:
     def __init__(        
         self,
         governance: CredoGovernance = None,
-        scope: dict = None,
+        manifest: dict = None,
         assessments: Union[List[CredoAssessment], str] = 'auto',
         model: CredoModel = None,
         data: CredoData = None,
@@ -226,7 +226,7 @@ class Lens:
         self.gov = governance
         self.model = model
         self.data = data
-        self.scope = {}
+        self.manifest = {}
 
         if assessments == 'auto':
             assessments = self._select_assessments()
@@ -236,12 +236,12 @@ class Lens:
         self.assessments = {a.name: a for a in assessments}
         self.user_id = user_id
 
-        # if governance is defined, pull down scope for
+        # if governance is defined, pull down manifest for
         # solution / model
         if self.gov:
-            self.scope = self.get_scope_from_gov()
-        if scope:
-            self.scope.update(scope)
+            self.manifest = self.get_manifest_from_gov()
+        if manifest:
+            self.manifest.update(manifest)
             
         # initialize
         self.init_assessments()
@@ -264,7 +264,7 @@ class Lens:
         assessment_kwargs = assessment_kwargs or {}
         for assessment in self.assessments.values():
             kwargs = assessment_kwargs.get(assessment.name, {})
-            assessment.init_module(scope=self.scope,
+            assessment.init_module(manifest=self.manifest,
                                    model=self.model,
                                    data=self.data,
                                    **kwargs)
@@ -302,12 +302,12 @@ class Lens:
                 self._export_results(prepared_results, to_model=True)
         return assessment_results
 
-    def get_scope_from_gov(self):
-        scope = {}
+    def get_manifest_from_gov(self):
+        manifest = {}
         metrics = self._get_aligned_metrics()
-        scope['metrics'] = list(metrics.keys())
-        scope['bounds'] = metrics
-        return scope
+        manifest['metrics'] = list(metrics.keys())
+        manifest['bounds'] = metrics
+        return manifest
 
     def get_assessments(self):
         return self.assessments
