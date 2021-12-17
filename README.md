@@ -42,18 +42,19 @@ pip install credoai[extras]
 
 ## Getting Started
 
-To get started, we suggest running the binary classification fairness demo: `credo/demos/fairness_demo.ipynb`.
+To get started, we suggest running the quickstart demo: `demos/quickstart.ipynb`.
+For a more detailed example, see `demos/binaryclassification.ipynb`
 
 ## Documentation
 
-To build the documentation locally, run `make html` from the `/docs` directory and the docs site will build to: `docs/build/html/index.html`, which can be opened in the browser.
+To build the documentation locally, run `make html` from the `/docs` directory and the docs site will build to: `docs/_build/html/index.html`, which can be opened in the browser.
 
 > Make sure you have [Sphinx installed](https://www.sphinx-doc.org/en/master/usage/installation.html) if you are building the docs site locally.
 
 ## Configuration
 
-To connect to [Credo AI's Governance Platform](https://www.credo.ai/product), enter your connection info in `~/.credoconfig` (in the root directory). You can copy and rename `credoconfig.example` to `.credoconfig`.
-
+To connect to [Credo AI's Governance Platform](https://www.credo.ai/product), enter your connection info in `~/.credoconfig` (in the root directory) using
+the below format. 
 
 ```
 TENANT={tenant name} # Example: credoai

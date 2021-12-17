@@ -1,4 +1,9 @@
-from credoai.assessment._assessment import CredoAssessment, AssessmentRequirements
+"""
+Module containing all CredoAssessmsents
+"""
+
+
+from credoai.assessment.assessment import CredoAssessment, AssessmentRequirements
 import credoai.modules as mod
 
 class FairnessAssessment(CredoAssessment):
@@ -12,8 +17,8 @@ class FairnessAssessment(CredoAssessment):
             )
         )
     
-    def init_module(self, scope, model, data, additional_metrics=None, replace=False):
-        bounds = scope.get('bounds', {})
+    def init_module(self, manifest, model, data, additional_metrics=None, replace=False):
+        bounds = manifest.get('bounds', {})
         y_pred = None
         y_prob = None
         if getattr(model, 'pred_fun'):
@@ -21,7 +26,7 @@ class FairnessAssessment(CredoAssessment):
         if getattr(model, 'prob_fun'):
             y_prob = model.prob_fun(data.X)
         module = self.module(
-            scope['metrics'],
+            manifest['metrics'],
             data.sensitive_features,
             data.y,
             y_pred,
@@ -41,7 +46,7 @@ class NLPEmbeddingAssessment(CredoAssessment):
                 model_requirements=['embedding_fun'])
             )
         
-    def init_module(self, scope, model, data=None, 
+    def init_module(self, manifest, model, data=None, 
               group_embeddings=None, 
               comparison_categories=None, 
               include_default=True):
@@ -62,7 +67,7 @@ class DatasetAssessment(CredoAssessment):
             )
         )
 
-    def init_module(self, *, scope, data, model=None):
+    def init_module(self, *, manifest, data, model=None):
         self.initialized_module = self.module(
             data.X, 
             data.y,
