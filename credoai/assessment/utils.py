@@ -1,7 +1,6 @@
-from credoai.assessment.assessments import list_classes
+from credoai.assessment.assessments import list_usable_assessments
 
-ASSESSMENTS = list_classes()
-
+ASSESSMENTS = list_usable_assessments()
 
 def get_assessment_names():
     return {name: assessment_class().name
