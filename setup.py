@@ -29,7 +29,14 @@ with open('requirements.txt') as f:
 with open("requirements-extras.txt") as f:
     extras_requirements = [line.strip() for line in f]
 
-EXTRAS_REQUIRES = {'extras' : extras_requirements}
+# Fetch dev requirements files (including documentation)
+with open("docs/requirements.txt") as f:
+    doc_requirements = [line.strip() for line in f]
+
+dev_requirements = extras_requirements + doc_requirements
+
+EXTRAS_REQUIRES = {'extras' : extras_requirements,
+                   'dev' : dev_requirements}
 
 
 CLASSIFIERS = [

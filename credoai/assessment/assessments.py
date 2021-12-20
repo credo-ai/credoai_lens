@@ -98,8 +98,7 @@ def list_assessments():
 
 def list_usable_assessments():
     """List subset of all defined assessments where the module is importable"""
-    assessments = inspect.getmembers(sys.modules[__name__], 
-                              lambda member: inspect.isclass(member) and member.__module__ == __name__)
+    assessments = list_assessments()
     usable_assessments = []
     for assessment in assessments:
         try:
