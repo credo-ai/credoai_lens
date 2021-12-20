@@ -91,14 +91,14 @@ class DatasetAssessment(CredoAssessment):
             data.y,
             data.sensitive_features)
         
-def list_assessments():
+def list_assessments_exhaustive():
     """List all defined assessments"""
     return inspect.getmembers(sys.modules[__name__], 
                               lambda member: inspect.isclass(member) and member.__module__ == __name__)
 
-def list_usable_assessments():
+def list_assessments():
     """List subset of all defined assessments where the module is importable"""
-    assessments = list_assessments()
+    assessments = list_assessments_exhaustive()
     usable_assessments = []
     for assessment in assessments:
         try:
