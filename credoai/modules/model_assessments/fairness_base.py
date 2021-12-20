@@ -90,7 +90,7 @@ class FairnessModule(CredoModule):
         self.performance_bounds = {standardize_metric_name(k): v
                                    for k, v in (performance_bounds or {}).items()}
 
-    def run(self, calculate_risk=True, method='between_groups', desired_mass=0.8):
+    def run(self, calculate_risk=False, method='between_groups', desired_mass=0.8):
         """
         Run fairness base module
         

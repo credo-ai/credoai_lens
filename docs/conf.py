@@ -52,6 +52,7 @@ autodoc_member_order = 'groupwise'
 autoclass_content = 'both'
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
+nbsphinx_allow_errors = True  # Continue through Jupyter errors
 autodoc_mock_imports = [
     'dotenv', 'fairlearn',
     'joblib', 'json_api_doc',

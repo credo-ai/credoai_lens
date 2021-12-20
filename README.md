@@ -27,13 +27,15 @@ platform that supports multi-stakeholder alignment, AI assessment (via Lens) and
 
 ## Installation
 
-The latest stable release (and required dependencies) can be installed from PyPI:
+The latest stable release (and required dependencies) can be installed from PyPI.
+Note this installation only includes dependencies needed for a small set of modules
 
 ```
 pip install credoai
 ```
 
-It include optional dependencies (used for demos and some assessments):
+To include additional dependencies needed for some modules and demos, use the 
+following installation command:
 
 ```
 pip install credoai[extras]

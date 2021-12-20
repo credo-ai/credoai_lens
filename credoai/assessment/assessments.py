@@ -3,8 +3,9 @@ Module containing all CredoAssessmsents
 """
 
 from credoai.assessment.assessment import CredoAssessment, AssessmentRequirements
-from credoai.utils.common import get_data_path
+from credoai.data.utils import get_data_path
 import credoai.modules as mod
+import sys, inspect
 
 class FairnessAssessment(CredoAssessment):
     def __init__(self):
@@ -90,7 +91,19 @@ class DatasetAssessment(CredoAssessment):
             data.y,
             data.sensitive_features)
         
-import sys, inspect
-def list_classes():
+def list_assessments_exhaustive():
+    """List all defined assessments"""
     return inspect.getmembers(sys.modules[__name__], 
                               lambda member: inspect.isclass(member) and member.__module__ == __name__)
+
+def list_assessments():
+    """List subset of all defined assessments where the module is importable"""
+    assessments = list_assessments_exhaustive()
+    usable_assessments = []
+    for assessment in assessments:
+        try:
+            _ = assessment[1]()
+            usable_assessments.append(assessment)
+        except AttributeError:
+            pass
+    return usable_assessments
