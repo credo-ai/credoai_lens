@@ -5,7 +5,7 @@ from credoai.utils.common import ValidationError
 from credoai.utils.credo_api_utils import get_aligned_metrics, patch_metrics
 from credoai import __version__
 from dataclasses import dataclass
-from os import path
+from os import makedirs, path
 from sklearn.utils import check_consistent_length
 from typing import List, Union
 
@@ -194,7 +194,8 @@ class Lens:
         assessments: Union[List[CredoAssessment], str] = 'auto',
         model: CredoModel = None,
         data: CredoData = None,
-        user_id: str = None
+        user_id: str = None,
+        init_assessment_kwargs = None
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance
 
@@ -221,6 +222,12 @@ class Lens:
             CredoData to assess, or be used by CredoModel for assessment, by default None
         user_id : str, optional
             Label for user running assessments, by default None
+        init_assessment_kwargs : dict, optional
+            key word arguments passed to each assessments `init_module` 
+            function using `Lens.init_module`. Each key must correspond to
+            an assessment name (CredoAssessment.name). The assessments
+            loaded by an instance of Lens can be accessed by calling
+            `get_assessments`. 
         """    
 
         self.gov = governance
@@ -244,7 +251,7 @@ class Lens:
             self.manifest.update(manifest)
             
         # initialize
-        self.init_assessments()
+        self.init_assessments(init_assessment_kwargs)
     
     def init_assessments(self, assessment_kwargs=None):
         """Initializes modules in each assessment
@@ -252,11 +259,11 @@ class Lens:
         Parameters
         ----------
         assessment_kwargs : dict, optional
-        key word arguments passed to each assessments `init_module` 
-        function. Each key must correspond to
-        an assessment name (CredoAssessment.name). The assessments
-        loaded by an instance of Lens can be accessed by calling
-        `get_assessments`. 
+            key word arguments passed to each assessments `init_module` 
+            function. Each key must correspond to
+            an assessment name (CredoAssessment.name). The assessments
+            loaded by an instance of Lens can be accessed by calling
+            `get_assessments`. 
 
         Example: {'FairnessBase': {'method': 'to_overall'}}
         by default None
@@ -326,6 +333,8 @@ class Lens:
         patch_metrics(destination_id, model_record)
     
     def _export_to_file(self, results, output_directory):
+        if not path.exists(output_directory):
+            makedirs(output_directory, exist_ok=False)
         model_record = self._to_record(results)
         assessment_name = results.assessment.unique()[0]
         output_file = path.join(output_directory, f'{assessment_name}.json')
