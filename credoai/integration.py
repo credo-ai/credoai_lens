@@ -25,14 +25,14 @@ class Record:
     def _struct(self):
         pass
     
-    def _credoify(self):
+    def credoify(self):
         return json.dumps(serialize(data=self._struct()), cls=NumpyEncoder)
     
     def jsonify(self, filename=None):
         data = self._struct()
         if '$type' in data:
             del data['$type']
-        return json.dumps({'data': data}, cls=NumpyEncoder)
+        return json.dumps({'metrics': data}, cls=NumpyEncoder)
     
     def __str__(self):
         return pprint.pformat(self._struct())

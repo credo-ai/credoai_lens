@@ -1,13 +1,13 @@
-from credoai.assessment.assessment import CredoAssessment
+from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment.utils import get_usable_assessments
 from credoai.integration import record_metrics, ModelRecord
 from credoai.utils.common import ValidationError
 from credoai.utils.credo_api_utils import get_aligned_metrics, patch_metrics
-from typing import List, Union
-
 from credoai import __version__
 from dataclasses import dataclass
+from os import path
 from sklearn.utils import check_consistent_length
+from typing import List, Union
 
 
 BASE_CONFIGS = ('sklearn')
@@ -274,9 +274,10 @@ class Lens:
 
         Parameters
         ----------
-        export : bool, optional
-            If true, export to Credo AI Governance Platform (if CredoGovernance defined)
-            or to json string if not, by default False
+        export : bool or str, optional
+            If a boolean, and true, export to Credo AI Governance Platform.
+            If a string, save as a json to the output_directory indicated by the string.
+            If False, do not export, by default False
         assessment_kwargs : dict, optional
             key word arguments passed to each assessments `run` or 
             `prepare_results` function. Each key must correspond to
@@ -299,7 +300,10 @@ class Lens:
             assessment_results[name] = assessment.run(**kwargs)
             if export:
                 prepared_results = self._prepare_results(assessment, **kwargs)
-                self._export_results(prepared_results, to_model=True)
+                if type(export) == str:
+                    self._export_to_file(prepared_results, export)
+                else:
+                    self._export_to_credo(prepared_results, to_model=True)
         return assessment_results
 
     def get_manifest_from_gov(self):
@@ -311,12 +315,22 @@ class Lens:
 
     def get_assessments(self):
         return self.assessments
-
-    def _export_results(self, results, to_model=True):
-        destination_id = self.gov.model_id if to_model else self.gov.data_id
+    
+    def _to_record(self, results):
         recorded_metrics = record_metrics(results)
-        model_record = ModelRecord(recorded_metrics)
+        return ModelRecord(recorded_metrics)
+            
+    def _export_to_credo(self, results, to_model=True):
+        model_record = self._to_record(results)
+        destination_id = self.gov.model_id if to_model else self.gov.data_id
         patch_metrics(destination_id, model_record)
+    
+    def _export_to_file(self, results, output_directory):
+        model_record = self._to_record(results)
+        assessment_name = results.assessment.unique()[0]
+        output_file = path.join(output_directory, f'{assessment_name}.json')
+        with open(output_file, 'w') as f:
+            f.write(model_record.jsonify())
 
     def _gather_meta(self, assessment_name):
         model_name = self.model.name if self.model else 'NA'

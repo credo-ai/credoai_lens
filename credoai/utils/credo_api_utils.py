@@ -92,19 +92,6 @@ def get_model_name(model_id):
     end_point = get_end_point(f"models/{model_id}")
     return deserialize(submit_request('get', end_point).json())['name']
 
-def patch_metrics(model_id, model_record):
-    """Send a model record object to Credo's Governance Platform
-    
-    Parameters
-    ----------
-    model_id : string
-        Identifier for Model on Credo AI Governance Platform
-    model_record : Record
-        Model Record object, see credo.integration.ModelRecord
-    """
-    end_point = get_end_point(f"models/{model_id}/relationships/metrics")
-    return submit_request('patch', end_point, data=model_record._credoify(), headers={"content-type": "application/vnd.api+json"})
-    
 def get_aligned_metrics(ai_solution_id, version='latest'):
     """Get aligned metrics frmo Credo's Governance Platform
     
@@ -131,8 +118,21 @@ def get_aligned_metrics(ai_solution_id, version='latest'):
         metric_dict[metric['model_id']][metric['name']] = bounds
     return metric_dict
 
-from credoai.utils.credo_api_utils import *
 
+def patch_metrics(model_id, model_record):
+    """Send a model record object to Credo's Governance Platform
+    
+    Parameters
+    ----------
+    model_id : string
+        Identifier for Model on Credo AI Governance Platform
+    model_record : Record
+        Model Record object, see credo.integration.ModelRecord
+    """
+    end_point = get_end_point(f"models/{model_id}/relationships/metrics")
+    return submit_request('patch', end_point, data=model_record.credoify(), headers={"content-type": "application/vnd.api+json"})
+    
+    
 def post_figure(model_id, figure_record):
     """Send a figure record object to Credo's Governance Platform
     
@@ -144,4 +144,4 @@ def post_figure(model_id, figure_record):
         Figure Record object, see credo.integration.FigureRecord
     """
     end_point = get_end_point(f"models/{model_id}/model_assets")
-    return submit_request('post', end_point, data=figure_record._credoify(), headers={"content-type": "application/vnd.api+json"})
+    return submit_request('post', end_point, data=figure_record.credoify(), headers={"content-type": "application/vnd.api+json"})

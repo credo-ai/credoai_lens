@@ -2,7 +2,7 @@
 Module containing all CredoAssessmsents
 """
 
-from credoai.assessment.assessment import CredoAssessment, AssessmentRequirements
+from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
 import credoai.modules as mod
 import sys, inspect
