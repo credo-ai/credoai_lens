@@ -71,7 +71,7 @@ def get_solution_manifest(ai_solution_id, version='latest'):
     dict
         The manifest for the AI solution
     """
-    end_point = get_end_point(f"ai_solutions/{ai_solution_id}/manifests")
+    end_point = get_end_point(f"ai_solutions/{ai_solution_id}/scopes")
     if version is not None:
         end_point = os.path.join(end_point, version)
     return deserialize(submit_request('get', end_point).json())
@@ -115,7 +115,7 @@ def get_aligned_metrics(ai_solution_id, version='latest'):
     metrics = manifest['metrics']
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        metric_dict[metric['model_id']][metric['name']] = bounds
+        metric_dict[metric['model_id']][metric['type']] = bounds
     return metric_dict
 
 
