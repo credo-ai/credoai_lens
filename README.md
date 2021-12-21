@@ -40,7 +40,16 @@ following installation command:
 ```
 pip install credoai[extras]
 ```
-    
+
+Installation sometimes fails on newer M1 macbooks. Specifically, pandas, scipy, and scikit-learn 
+may fail to build. Installing these packages with the anaconda package manager seems to be
+the easiest way to circumvent this issue. 
+
+For development, the easiest way to interact with Lens is to use anaconda.
+
+```
+conda create --file environment.yml
+```
 
 ## Getting Started
 
