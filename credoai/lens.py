@@ -186,7 +186,6 @@ class CredoData:
 
 
 class Lens:
-    
     def __init__(        
         self,
         governance: CredoGovernance = None,
@@ -251,30 +250,7 @@ class Lens:
             self.manifest.update(manifest)
             
         # initialize
-        self.init_assessments(init_assessment_kwargs)
-    
-    def init_assessments(self, assessment_kwargs=None):
-        """Initializes modules in each assessment
-        
-        Parameters
-        ----------
-        assessment_kwargs : dict, optional
-            key word arguments passed to each assessments `init_module` 
-            function. Each key must correspond to
-            an assessment name (CredoAssessment.name). The assessments
-            loaded by an instance of Lens can be accessed by calling
-            `get_assessments`. 
-
-        Example: {'FairnessBase': {'method': 'to_overall'}}
-        by default None
-        """
-        assessment_kwargs = assessment_kwargs or {}
-        for assessment in self.assessments.values():
-            kwargs = assessment_kwargs.get(assessment.name, {})
-            assessment.init_module(manifest=self.manifest,
-                                   model=self.model,
-                                   data=self.data,
-                                   **kwargs)
+        self._init_assessments(init_assessment_kwargs)
             
     def run_assessments(self, export=False, assessment_kwargs=None):
         """Runs assessments on the associated model and/or data
@@ -364,6 +340,29 @@ class Lens:
             self.gov.model_id]
         return aligned_metrics
 
+    def _init_assessments(self, assessment_kwargs=None):
+        """Initializes modules in each assessment
+        
+        Parameters
+        ----------
+        assessment_kwargs : dict, optional
+            key word arguments passed to each assessments `init_module` 
+            function. Each key must correspond to
+            an assessment name (CredoAssessment.name). The assessments
+            loaded by an instance of Lens can be accessed by calling
+            `get_assessments`. 
+
+        Example: {'FairnessBase': {'method': 'to_overall'}}
+        by default None
+        """
+        assessment_kwargs = assessment_kwargs or {}
+        for assessment in self.assessments.values():
+            kwargs = assessment_kwargs.get(assessment.name, {})
+            assessment.init_module(manifest=self.manifest,
+                                   model=self.model,
+                                   data=self.data,
+                                   **kwargs)
+            
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment.name)
         return assessment.prepare_results(metadata, **kwargs)
@@ -376,3 +375,5 @@ class Lens:
             if not assessment.check_requirements(self.model, self.data):
                 raise ValidationError(
                     f"Model or Data does not conform to {assessment.name} assessment's requirements")
+
+

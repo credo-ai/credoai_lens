@@ -7,7 +7,7 @@ from credoai.data.utils import get_data_path
 import credoai.modules as mod
 import sys, inspect
 
-class FairnessAssessment(CredoAssessment):
+class FairnessBaseAssessment(CredoAssessment):
     def __init__(self):
         super().__init__(
             'FairnessBase', 
@@ -18,7 +18,32 @@ class FairnessAssessment(CredoAssessment):
             )
         )
     
-    def init_module(self, manifest, model, data, additional_metrics=None, replace=False):
+    def init_module(self, *, manifest, model, data, additional_metrics=None, replace=False):
+        """ Initializes the assessment module
+
+        Transforms the manifest, CredoModel and CredoData into the proper form
+        to create a runnable assessment.
+
+        See the lens_customization notebook for examples
+
+        Parameters
+        ------------
+        manifest : dict
+            dictionary containing kwargs for the module defined by the manifest
+        model : CredoModel, optional
+        data : CredoData, optional
+        additional_metrics : list-like, optional
+            passed to mod.FairnessModule.update_metrics
+        replace : bool, optional
+            passed to mod.FAirnessModule.update_metrics
+
+        Example:
+        def build(self, ...):
+            y_pred = CredoModel.pred_fun(CredoData.X)
+            y = CredoData.y
+            self.initialized_module = self.module(y_pred, y)
+
+        """
         bounds = manifest.get('bounds', {})
         y_pred = None
         y_prob = None
@@ -38,10 +63,10 @@ class FairnessAssessment(CredoAssessment):
             module.update_metrics(additional_metrics, replace)
         self.initialized_module = module
             
-class NLPEmbeddingAssessment(CredoAssessment):
+class NLPEmbeddingBiasAssessment(CredoAssessment):
     def __init__(self):    
         super().__init__(
-            'NLPEmbeddingFairness', 
+            'NLPEmbeddingBias', 
             mod.NLPEmbeddingAnalyzer,
             AssessmentRequirements(
                 model_requirements=['embedding_fun'])
