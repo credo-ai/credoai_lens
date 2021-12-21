@@ -53,8 +53,8 @@ PACKAGE_DATA = {
     'credoai':
         [
         'data/*',
-        'data/nlp_generation_analyzer/persisted_models/*',
-        'data/nlp_generation_analyzer/prompts/*'
+        'data/static/nlp_generator_analyzer/persisted_models/*',
+        'data/static/nlp_generator_analyzer/prompts/*',
         ]
 }
 
