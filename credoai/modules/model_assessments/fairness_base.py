@@ -1,7 +1,8 @@
 from credoai.utils.metric_constants import (
-    BINARY_CLASSIFICATION_METRICS, FAIRNESS_METRICS, PROBABILITY_METRICS,
+    BINARY_CLASSIFICATION_METRICS, FAIRNESS_METRICS, 
+    PROBABILITY_METRICS, METRIC_EQUIVALENTS
 )
-from credoai.utils.metric_utils import standardize_metric_name, METRIC_EQUIVALENTS
+from credoai.utils.metric_utils import standardize_metric_name 
 from credoai.integration import record_metrics, export_record, ModelRecord
 from credoai.modules.credo_module import CredoModule
 from fairlearn.metrics import MetricFrame
@@ -29,9 +30,8 @@ class FairnessModule(CredoModule):
     ----------
     metrics : List-like
         list of metric names as string or list of FairnessFunctions.
-        Metric strings should be included in ALL_METRICS or STANDARD_CONVERSIONS
-        found in credo.utils.metric_constants. Use credo.fairness.list_metrics
-        for full list. Note for performance parity metrics like 
+        Metric strings should in list returned by credoai.utils.list_metrics.
+        Note for performance parity metrics like 
         "false negative rate parity" just list "false negative rate". Partiy metrics
         are calculated automatically.
     sensitive_features :  (List, pandas.Series, numpy.ndarray)
@@ -580,15 +580,3 @@ class FairnessFunction:
         self.func = func
         self.takes_sensitive_attributes = takes_sensitive_attributes
         self.takes_prob = takes_prob
-
-def list_metrics():
-    metrics = {'performance': list(BINARY_CLASSIFICATION_METRICS.keys()) ,
-               'fairness': list(FAIRNESS_METRICS.keys())}
-    for key in metrics.keys():
-        names = metrics[key]
-        for val in names:
-            equivalents = METRIC_EQUIVALENTS.get(val)
-            if equivalents is not None:
-                metrics[key] += equivalents
-    metrics = {k: sorted(v) for k, v in metrics.items()}
-    return metrics
