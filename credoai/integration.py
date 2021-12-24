@@ -46,8 +46,9 @@ class Metric(Record):
 
     Parameters
     ----------
-    name : string
-        short identifier for metric
+    metric_type : string
+        short identifier for metric. credoai.utils.list_metrics provides
+        a list of standard metric families.
     value : float
         metric value
     model_label : string
@@ -56,33 +57,28 @@ class Metric(Record):
         of model is obvious (e.g., 1.2)
     dataset_label : string
         label of dataset
-    user_id : str, optional
-        identifier of metric creator
     metadata : dict, optional
         Appended keyword arguments to append to metric as metadata
 
     Example
     ---------
-    metric = Metric('precision', 0.5)
+    metric = Metric('precision_score', 0.5)
     """
     def __init__(self,
-            name,
-            metric_family,
+            metric_type,
             value,
             model_label,
             dataset_label,
             **metadata):
         super().__init__(**metadata)
-        self.name = name
-        self.metric_family = metric_family
+        self.metric_type = metric_type
         self.value = value
         self.model_label = model_label
         self.dataset_label = dataset_label
     
     def _struct(self):
         return {
-            'family': self.metric_family,
-            'name': self.name,
+            'type': self.metric_type,
             'value': self.value,
             'model_version': self.model_label,
             'dataset': self.dataset_label,
@@ -234,7 +230,7 @@ def create_metric_records(metric_args):
         
     Example
     ---------
-    metric_args = {'name': ['metric1', 'metric2'], 
+    metric_args = {'metric_type': ['metric1', 'metric2'], 
                    'value': [0.5, 0.6],
                    'description': ["A description of metric1", ""]}
     metric_list = create_metric_records(metric_args)
@@ -243,13 +239,14 @@ def create_metric_records(metric_args):
     return create_records(Metric, metric_args)
 
 
-def record_metric(name, metric_family, value, model_label, dataset_label, **metadata):
+def record_metric(metric_type, value, model_label, dataset_label, **metadata):
     """Convenience function to create a metric json object
 
     Parameters
     ----------
-    name : string
-        short identifier for metric
+    metric_type : string
+        short identifier for metric. credoai.utils.list_metrics provides
+        a list of standard metric families.
     value : float
         metric value
     model_label : string
@@ -258,26 +255,19 @@ def record_metric(name, metric_family, value, model_label, dataset_label, **meta
         of model is obvious (e.g., 1.2)
     dataset_label : string
         label of dataset
-    user_id : str, optional
-        identifier of metric creator
 
     Returns
     -------
     Metric object
     """    
 
-    return Metric(name, metric_family, 
-                  value, model_label, \
+    return Metric(metric_type, 
+                  value, model_label,
                   dataset_label,  **metadata)
 
 def record_metrics(metrics):
     """
     Convenience function to create a list of metric json objects
-    
-    ** ATTENTION **
-    Note this function cannot supply different
-    models, datasets, user_ids or metadata for different metrics.
-    For those use cases, use create_metric_records
     
     Parameters
     ------------
@@ -287,7 +277,7 @@ def record_metrics(metrics):
     """
     records = []
     for metric, row in metrics.iterrows():
-        records.append(record_metric(name=metric, **row))
+        records.append(record_metric(metric_type=metric, **row))
     return records
 
 def export_record(record, filename):

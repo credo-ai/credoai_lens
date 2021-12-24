@@ -320,8 +320,7 @@ class Lens:
     def _gather_meta(self, assessment_name):
         model_name = self.model.name if self.model else 'NA'
         data_name = self.data.name if self.data else 'NA'
-        return {'metric_family': 'Other',
-                'model_label': model_name,
+        return {'model_label': model_name,
                 'dataset_label': data_name,
                 'user_id': self.user_id,
                 'assessment': assessment_name,
