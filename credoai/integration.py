@@ -1,14 +1,16 @@
 from collections import ChainMap
 from datetime import datetime
 from json_api_doc import serialize
-from credoai.utils.common import NumpyEncoder, wrap_list
-  
+from credoai.utils.common import NumpyEncoder, wrap_list, ValidationError
+from credoai.utils.credo_api_utils import patch_metrics
+
 import base64
 import credoai
 import json
 import io 
 import matplotlib
 import numpy as np
+import pandas as pd
 import pprint
 
 META = {
@@ -18,7 +20,8 @@ META = {
 
     
 class Record:
-    def __init__(self, **metadata):
+    def __init__(self, json_header, **metadata):
+        self.json_header = json_header
         self.metadata = metadata
         self.creation_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         
@@ -32,7 +35,7 @@ class Record:
         data = self._struct()
         if '$type' in data:
             del data['$type']
-        return json.dumps({'metrics': data}, cls=NumpyEncoder)
+        return json.dumps({self.json_header: data}, cls=NumpyEncoder)
     
     def __str__(self):
         return pprint.pformat(self._struct())
@@ -58,7 +61,7 @@ class Metric(Record):
     dataset_label : string
         label of dataset
     metadata : dict, optional
-        Appended keyword arguments to append to metric as metadata
+        Arbitrary keyword arguments to append to metric as metadata
 
     Example
     ---------
@@ -70,7 +73,7 @@ class Metric(Record):
             model_label,
             dataset_label,
             **metadata):
-        super().__init__(**metadata)
+        super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
         self.model_label = model_label
@@ -110,11 +113,10 @@ class Figure(Record):
     f = plt.figure()
     figure = Figure('Figure 1', fig=f, description='A matplotlib figure')
     """
-    def __init__(self, name, figure, description=None, metadata=None):
-        super().__init__(metadata)
+    def __init__(self, name, figure, description=None, **metadata):
+        super().__init__('figures', **metadata)
         self.name = name
         self.description = description
-        self.metadata = {} if metadata is None else metadata
         if type(figure) == matplotlib.figure.Figure:
             self._encode_matplotlib_figure(figure)
         else:
@@ -139,105 +141,28 @@ class Figure(Record):
                 'metadata': {'type': 'chart', **self.metadata},
                 '$type': 'model_assets'}
     
-class ModelRecord(Record):
+class MultiRecord(Record):
     """
-    A model record
+    A Multi-record object
 
-    Stores metrics, figures, inputs, and outputs associated with a model
+    Stores multiple records of the same type
 
     Example
     ---------
     metric = Metric('recall', 0.6)
-    features = [Input('categorical feature 1', None, 'The first categorical feature'),
-                Input('categorical feature 2', None, 'The second categorical feature')]
-    model_record = ModelRecord(metric, io_reocrds=features)
+    model_record = MutliRecord(metric)
     """
     
-    def __init__(self, metric_records=None, figure_records=None, io_records=None):
-        super().__init__()
-        self.metrics = []
-        self.figures = []
-        if metric_records:
-            self.record_metrics(metric_records)
-        if figure_records:
-            self.record_figures(figure_records)
+    def __init__(self, records):
+        self.records = wrap_list(records)
+        if len(set(type(r) for r in self.records)) != 1:
+            raise ValidationError
+        super().__init__(self.records[0].json_header)
     
-    def record_metrics(self, metric_records):
-        """Records a metric record, or list of metric records"""
-        self.metrics = wrap_list(metric_records)
-        
-    def record_figures(self, figure_records):
-        """Records a figure record, or list of figure records"""
-        self.figures = wrap_list(figure_records)
-        
     def _struct(self):
-        # metrics
-        data = [m._struct() for m in self.metrics] 
-        
-        # other attributes that aren't incorporated yet
-        extras = [f._struct() for f in self.figures] # figures
+        data = [m._struct() for m in self.records] 
         return data
     
-def create_records(record_class, record_args):
-    """
-    Convenience function to create a list of records
-    
-    Parameters
-    ----------
-    record_class : a Record class
-    record_args : dict
-        Of the form {kwarg1: list1, kwarg2: list2, ...}
-        Each kwarg corresponds to an argument for the record_class.
-        Each list should be the same length. Use None if an argument
-        doesn't apply to a metric
-        
-    Returns
-    ---------
-    record_list : list
-        list of record objects
-        
-    Example
-    ---------
-    record_args = {'name': ['metric1', 'metric2'], 
-                   'value': [0.5, 0.6],
-                   'value_range': [None, (0, 1)]}
-    record_list = create_records(Metric, record_args)
-    
-    """
-    n_records = len(list(record_args.values())[0])
-    all_records = []
-    for i in range(n_records):
-        record_kwargs = {k: v[i] for k, v in record_args.items()}
-        all_records.append(record_class(**record_kwargs))
-    return all_records  
-
-def create_metric_records(metric_args): 
-    """
-    Convenience function to create a list of metric records
-    
-    Parameters
-    ----------
-    record_args : dict
-        Of the form {kwarg1: list1, kwarg2: list2, ...}
-        Each kwarg corresponds to an argument for a Metric.
-        Each list should be the same length. Use None if an argument
-        doesn't apply to a metric
-        
-    Returns
-    ---------
-    record_list : list
-        list of record objects
-        
-    Example
-    ---------
-    metric_args = {'metric_type': ['metric1', 'metric2'], 
-                   'value': [0.5, 0.6],
-                   'description': ["A description of metric1", ""]}
-    metric_list = create_metric_records(metric_args)
-    
-    """
-    return create_records(Metric, metric_args)
-
 
 def record_metric(metric_type, value, model_label, dataset_label, **metadata):
     """Convenience function to create a metric json object
@@ -255,6 +180,8 @@ def record_metric(metric_type, value, model_label, dataset_label, **metadata):
         of model is obvious (e.g., 1.2)
     dataset_label : string
         label of dataset
+    metadata : dict, optional
+        Arbitrary keyword arguments to append to metric as metadata
 
     Returns
     -------
@@ -265,31 +192,74 @@ def record_metric(metric_type, value, model_label, dataset_label, **metadata):
                   value, model_label,
                   dataset_label,  **metadata)
 
-def record_metrics(metrics):
+def record_metrics(metric_df):
     """
-    Convenience function to create a list of metric json objects
+    Function to create a list of metric json objects
+    
+    Metrics must be properly formatted in a pandas dataframe
     
     Parameters
     ------------
-    metrics : pd.DataFrame
+    metric_df : pd.DataFrame
         dataframe where the index is the metric name and the columns
         are passed to record_metric
+    metadata : dict, optional
+        Arbitrary keyword arguments to append to metric as metadata
     """
     records = []
-    for metric, row in metrics.iterrows():
+    for metric, row in metric_df.iterrows():
         records.append(record_metric(metric_type=metric, **row))
-    return records
+    return MultiRecord(records)
 
-def export_record(record, filename):
-    """Exports record as json object to filename
+def record_metrics_from_dict(metrics, model_label, dataset_label, **metadata):
+    """
+    Function to create a list of metric json objects from dictionary
+    
+    All metrics will have the same metadata (including model_label
+    and dataset_label) using this function. To assign unique metadata
+    to each metric use `credoai.integration.record_metrics`
+    
+    Parameters
+    ------------
+    metrics : dict
+        dictionary of metric_type : value pairs
+    model_label : string
+        label of model version. Could indicate a specific model class,
+        e.g., logistic_regression_1.0, or simply a version if the type
+        of model is obvious (e.g., 1.2)
+    dataset_label : string
+        label of dataset
+    metadata : dict, optional
+        Arbitrary keyword arguments to append to metric as metadata
+    """
+    metric_df = pd.Series(metrics, name='value').to_frame()
+    metadata.update({'model_label': model_label, 'dataset_label': dataset_label})
+    metric_df = metric_df.assign(**metadata)
+    return record_metrics(metric_df)
+    
+def export_to_file(multi_record, filename):
+    """Saves record as json object to filename
 
     Parameters
     ----------
-    record : credo.integration.Record
-        A Record object
+    record : credo.integration.MutliRecord
+        A MutliRecord object
     filename : str
         file to write Record json object
     """    
-    json_out = record.jsonify()
+    json_out = multi_record.jsonify()
     with open(filename, 'w') as f:
         f.write(json_out)
+        
+def export_to_credo(multi_record, credo_id):
+    """Sends record to Credo AI's Governance Platform
+
+    Parameters
+    ----------
+    record : credo.integration.MutliRecord
+        A MutliRecord object
+    credo_id : str
+        The destination id for the model or data on 
+        Credo AI's Governance platform.
+    """    
+    patch_metrics(credo_id, multi_record)

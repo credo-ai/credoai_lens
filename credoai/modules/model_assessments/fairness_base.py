@@ -3,7 +3,6 @@ from credoai.utils.metric_constants import (
     PROBABILITY_METRICS, METRIC_EQUIVALENTS
 )
 from credoai.utils.metric_utils import standardize_metric_name 
-from credoai.integration import record_metrics, export_record, ModelRecord
 from credoai.modules.credo_module import CredoModule
 from fairlearn.metrics import MetricFrame
 from scipy.stats import norm

@@ -1,6 +1,5 @@
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment.utils import get_usable_assessments
-from credoai.integration import record_metrics, ModelRecord
 from credoai.utils.common import ValidationError
 from credoai.utils.credo_api_utils import get_aligned_metrics, patch_metrics
 from credoai import __version__
@@ -9,6 +8,7 @@ from os import makedirs, path
 from sklearn.utils import check_consistent_length
 from typing import List, Union
 
+import credoai.integration as ci
 
 BASE_CONFIGS = ('sklearn')
 
@@ -300,22 +300,20 @@ class Lens:
         return self.assessments
     
     def _to_record(self, results):
-        recorded_metrics = record_metrics(results)
-        return ModelRecord(recorded_metrics)
+        return ci.record_metrics(results)
             
     def _export_to_credo(self, results, to_model=True):
-        model_record = self._to_record(results)
+        metric_records = self._to_record(results)
         destination_id = self.gov.model_id if to_model else self.gov.data_id
-        patch_metrics(destination_id, model_record)
+        ci.export_to_credo(metric_records, destination_id)
     
     def _export_to_file(self, results, output_directory):
         if not path.exists(output_directory):
             makedirs(output_directory, exist_ok=False)
-        model_record = self._to_record(results)
+        metric_records = self._to_record(results)
         assessment_name = results.assessment.unique()[0]
         output_file = path.join(output_directory, f'{assessment_name}.json')
-        with open(output_file, 'w') as f:
-            f.write(model_record.jsonify())
+        ci.export_to_file(metric_records, output_file)
 
     def _gather_meta(self, assessment_name):
         model_name = self.model.name if self.model else 'NA'

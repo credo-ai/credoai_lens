@@ -127,7 +127,7 @@ def patch_metrics(model_id, model_record):
     model_id : string
         Identifier for Model on Credo AI Governance Platform
     model_record : Record
-        Model Record object, see credo.integration.ModelRecord
+        Model Record object, see credo.integration.MutliRecord
     """
     end_point = get_end_point(f"models/{model_id}/relationships/metrics")
     return submit_request('patch', end_point, data=model_record.credoify(), headers={"content-type": "application/vnd.api+json"})
