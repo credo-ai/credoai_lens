@@ -54,7 +54,7 @@ conda create --file environment.yml
 ## Getting Started
 
 To get started, we suggest running the quickstart demo: `demos/quickstart.ipynb`.
-For a more detailed example, see `demos/binaryclassification.ipynb`
+For a more detailed example, see `demos/lens_demos/binaryclassification.ipynb`
 
 ## Documentation
 

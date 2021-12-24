@@ -1,4 +1,4 @@
-from credoai.assessment.assessments import list_assessments
+from credoai.assessment import list_assessments
 
 ASSESSMENTS = list_assessments()
 
