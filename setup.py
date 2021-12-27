@@ -4,22 +4,19 @@
 from credoai import __version__
 import setuptools
 
-DESCRIPTION = "credoai: AI governance tools"
-LONG_DESCRIPTION = """\
-Credo is a library that supports AI Governance using the Credo AI governance platform.
-Here is some of the functionality that Credo offers:
-- A set of integration tools to send data easily to Credo's governance platform
-Credo aims to make interacting with Credo's governance platform as seamless as possible. 
-"""
-
-DISTNAME = 'credoai'
+DESCRIPTION = "Lens: comprehensive assessment framework for AI systems"
+DISTNAME = 'credoai-lens'
 MAINTAINER = 'Ian Eisenberg'
 MAINTAINER_EMAIL = 'ian@credo.com'
 URL = ''
 LICENSE = ''
-DOWNLOAD_URL = 'https://github.com/Credo-AI/credo_toolkit'
+DOWNLOAD_URL = 'https://github.com/credo-ai/credoai_lens'
 VERSION = __version__
 PYTHON_REQUIRES = ">=3.7"
+
+# Fetch ReadMe
+with open("README.rst", "r") as fh:
+    LONG_DESCRIPTION = fh.read()
 
 # Use requirements.txt to set the install_requires
 with open('requirements.txt') as f:
@@ -48,15 +45,6 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
     'Operating System :: OS Independent',
 ]
-
-PACKAGE_DATA = {
-    'credoai':
-        [
-        'data/*',
-        'data/nlp_generation_analyzer/persisted_models/*',
-        'data/nlp_generation_analyzer/prompts/*'
-        ]
-}
 
 
 if __name__ == "__main__":
