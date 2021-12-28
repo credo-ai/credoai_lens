@@ -15,7 +15,7 @@ VERSION = __version__
 PYTHON_REQUIRES = ">=3.7"
 
 # Fetch ReadMe
-with open("README.rst", "r") as fh:
+with open("README.md", "r") as fh:
     LONG_DESCRIPTION = fh.read()
 
 # Use requirements.txt to set the install_requires
@@ -46,6 +46,15 @@ CLASSIFIERS = [
     'Operating System :: OS Independent',
 ]
 
+PACKAGE_DATA = {
+    'credoai':
+        [
+        'data/*',
+        'data/nlp_generation_analyzer/persisted_models/*',
+        'data/nlp_generation_analyzer/prompts/*'
+        ]
+}
+
 
 if __name__ == "__main__":
 
@@ -63,6 +72,7 @@ if __name__ == "__main__":
         maintainer_email=MAINTAINER_EMAIL,
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
+        long_description_content_type='text/markdown',
         license=LICENSE,
         url=URL,
         version=VERSION,
