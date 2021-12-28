@@ -7,7 +7,7 @@ from credoai.utils.common import wrap_list
 from credoai.data.utils import get_data_path
 from ._nlp_constants import (
     COMPETENCE, FAMILY, STEM, OUTSIDER,
-    MALE, FEMALE
+    MALE, FEMALE, PROMPTS_PATHS
 )
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -175,8 +175,9 @@ class NLPGeneratorAnalyzer(CredoModule):
     NLP generation analyzer for Credo AI
 
     This module takes in a function that generates and returns a text response
-    for a text prompt. Using this function, it calculates
-    toxicity and bias metrics similar to Dhamala et al. (2021).
+    for a text prompt. It then uses an assessment_fun, 
+    like one that calculates toxicity and bias metrics similar 
+    to Dhamala et al. (2021), to assess the generator's behavior.
 
     Parameters
     ----------
@@ -241,7 +242,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         try:
             return self.generation_fun(prompt)
         except:
-            return 'e'
+            return 'nlp generator error'
     
     def run(self, protected_attribute, n_iterations=1, groups='all'):
         """Analyze a text generation model for assessment attribute across groups of a protected attribute
@@ -262,34 +263,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         pandas.dataframe
             Assessment attribute values for all the prompts and iterations
         """
-        prompts_paths = {
-            'gender': 'nlp_generator_analyzer/prompts/gender_prompt.json',
-            'politics': 'nlp_generator_analyzer/prompts/political_ideology_prompt.json',
-            'profession': 'nlp_generator_analyzer/prompts/profession_prompt.json',
-            'race': 'nlp_generator_analyzer/prompts/race_prompt.json',
-            'religion': 'nlp_generator_analyzer/prompts/religious_ideology_prompt.json',
-        }
-
-        if protected_attribute not in prompts_paths:
-            raise Exception(
-                "Possible protected_attribute values are: 'gender', 'politics', 'profession', 'race', 'religion'. You provided "
-                 + protected_attribute
-            )
-
-        # read prompts
-        prompts_path = get_data_path(prompts_paths[protected_attribute])
-        with open(prompts_path, "r") as read_file:
-            prompts = json.load(read_file)
-
-        # convert the prompts json to a dataframe for better handling
-        df = pd.DataFrame(columns=['group', 'subgroup', 'prompt'])
-        for k,v in prompts.items():
-            for k2,v2 in v.items():
-                temp = pd.DataFrame.from_dict(v2)
-                temp.rename(columns={0: "prompt" }, inplace=True)
-                temp['group'] = k
-                temp['subgroup'] = k2
-                df = df.append(temp)
+        df = self._get_prompts(protected_attribute)
 
         # Generate and record responses for the prompts n_iterations times
         # Each run may take several minutes to complete
@@ -304,7 +278,7 @@ class NLPGeneratorAnalyzer(CredoModule):
             dfruns = dfruns.append(df)
 
         # Assess the responses
-        dfrunst = dfruns[dfruns['response'] != 'e'].copy()  # exclude cases where generator failed to generate a response
+        dfrunst = dfruns[dfruns['response'] != 'nlp generator error'].copy()  # exclude cases where generator failed to generate a response
         dfrunst[self.assessment_attribute] = dfrunst['response'].apply(self.assessment_fun)
     
         dfrunst['protected_attribute'] = protected_attribute
@@ -312,3 +286,26 @@ class NLPGeneratorAnalyzer(CredoModule):
         self.raw_results = dfrunst
 
         return self
+    
+    def _get_prompts(self, protected_attribute):
+        if protected_attribute not in PROMPTS_PATHS:
+            raise Exception(
+                "Possible protected_attribute values are: 'gender', 'politics', 'profession', 'race', 'religion'. You provided "
+                 + protected_attribute
+            )
+
+        # read prompts
+        prompts_path = get_data_path(PROMPTS_PATHS[protected_attribute])
+        with open(prompts_path, "r") as read_file:
+            prompts = json.load(read_file)
+
+        # convert the prompts json to a dataframe for better handling
+        df = pd.DataFrame(columns=['group', 'subgroup', 'prompt'])
+        for group, subgroups in prompts.items():
+            for subgroup, values in subgroups.items():
+                temp = pd.DataFrame.from_dict(values)
+                temp.rename(columns={0: "prompt" }, inplace=True)
+                temp['group'] = group
+                temp['subgroup'] = subgroup
+                df = df.append(temp)
+        return df
