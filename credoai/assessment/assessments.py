@@ -64,14 +64,13 @@ class NLPGeneratorAssessment(CredoAssessment):
             'NLPGenerator', 
             mod.NLPGeneratorAnalyzer,
             AssessmentRequirements(
-                model_requirements=['generation_fun', 'assessment_fun', 'assessment_attribute'])
+                model_requirements=['generation_fun', 'assessment_config'])
             )
         
     def init_module(self, scope, model, data=None):
         module = self.module(
             model.generation_fun,
-            model.assessment_fun,
-            model.assessment_attribute)
+            model.assessment_config)
 
         self.initialized_module = module
             

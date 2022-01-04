@@ -183,19 +183,18 @@ class NLPGeneratorAnalyzer(CredoModule):
     ----------
     generation_fun : callable
         function that takes in a string (prompt) and outputs a string (response)
-    assessment_fun : callable
-        function that assesses a string (prompt) and outputs its score (float between 0 and 1)
-    assessment_attribute : str
-        the attribute of text that is assessed (e.g., toxicity)
+    assessment_config : dict
+        assessment configuration dictionary where keys are assessment_attribute and values are assessment_fun
+        assessment_attribute (str) : the attribute of text that is assessed (e.g., toxicity)
+        assessment_fun (callable) : function that assesses a string (prompt) and outputs its score (float between 0 and 1)
+
     """
     def __init__(self,
             generation_fun,
-            assessment_fun,
-            assessment_attribute
+            assessment_config,
             ):
         self.generation_fun = generation_fun
-        self.assessment_fun = assessment_fun
-        self.assessment_attribute = assessment_attribute
+        self.assessment_config = assessment_config
         self.raw_results = None
 
     def prepare_results(self):
@@ -205,6 +204,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         -------
         pandas.dataframe
             Summary statistics of assessment results
+            Schema: ['assessment_attribute', 'group', 'protected_attribute', 'value']
 
         Raises
         ------
@@ -212,12 +212,10 @@ class NLPGeneratorAnalyzer(CredoModule):
             Occurs is self.run is not called yet to generate the raw assessment results
         """        
         if self.raw_results is not None:
-            # Calculate statistics across groups
-            results = self.raw_results[['group',self.assessment_attribute]].groupby('group', as_index=False).mean()
-            results.loc[len(results)] = ['overall', self.raw_results[self.assessment_attribute].mean()] 
+            # Calculate statistics across groups and assessment attributes
+            results = self.raw_results[['group', 'assessment_attribute', 'value']].groupby(['group', 'assessment_attribute'], as_index=False).mean()
             results['protected_attribute'] = self.raw_results.iloc[0]['protected_attribute']
-            results.rename(columns={self.assessment_attribute:'value'}, inplace=True)
-            results['assessment_attribute'] = self.assessment_attribute
+            results.sort_values(by=['assessment_attribute', 'group'], inplace=True)
             results = results[['assessment_attribute', 'group', 'protected_attribute', 'value']]
             return results
         else:
@@ -244,8 +242,8 @@ class NLPGeneratorAnalyzer(CredoModule):
         except:
             return 'nlp generator error'
     
-    def run(self, protected_attribute, n_iterations=1, groups='all'):
-        """Analyze a text generation model for assessment attribute across groups of a protected attribute
+    def run(self, protected_attribute, n_iterations=1, groups='all', custom_prompts_path=None):
+        """Analyze a text generation model for input assessment attributes across groups of a protected attribute
 
         Parameters
         ----------
@@ -257,13 +255,21 @@ class NLPGeneratorAnalyzer(CredoModule):
             set to 1 if the generation model is not stochastic
         groups : list or 'all'
             protected attribute groups to include in the analysis
+        custom_prompts_path: str, optional
+            path to a csv file containing custom prompts with schema "group", "subgroup", "prompt"
+            If not provided, the assessment will use own built-in prompts datasets
 
         Returns
         -------
         pandas.dataframe
             Assessment attribute values for all the prompts and iterations
+            Schema: ['group', 'subgroup', 'prompt', 'run', 'response', 'value', 'assessment_attribute', 'protected_attribute']
         """
-        df = self._get_prompts(protected_attribute)
+        if not custom_prompts_path:
+            df = self._get_prompts(protected_attribute)
+        else:
+            df = pd.read_csv(custom_prompts_path)
+
 
         # Generate and record responses for the prompts n_iterations times
         # Each run may take several minutes to complete
@@ -277,13 +283,19 @@ class NLPGeneratorAnalyzer(CredoModule):
             df['run'] = i+1
             dfruns = dfruns.append(df)
 
-        # Assess the responses
+        # Assess the responses for the input assessment attributes
         dfrunst = dfruns[dfruns['response'] != 'nlp generator error'].copy()  # exclude cases where generator failed to generate a response
-        dfrunst[self.assessment_attribute] = dfrunst['response'].apply(self.assessment_fun)
-    
-        dfrunst['protected_attribute'] = protected_attribute
+        
+        dfrunst_assess = pd.DataFrame(data=None, columns=list(dfrunst.columns) + ['value', 'assessment_attribute'])
+        for assessment_attribute, assessment_fun in self.assessment_config.items():
+            temp = dfrunst.copy()
+            temp['value'] = temp['response'].apply(assessment_fun)
+            temp['assessment_attribute'] = assessment_attribute
+            dfrunst_assess = dfrunst_assess.append(temp)
 
-        self.raw_results = dfrunst
+        dfrunst_assess['protected_attribute'] = protected_attribute
+
+        self.raw_results = dfrunst_assess
 
         return self
     
