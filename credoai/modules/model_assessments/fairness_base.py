@@ -430,7 +430,7 @@ class FairnessModule(CredoModule):
         for metric in custom_function_metrics:
             standard_name = standardize_metric_name(metric.name)
             metric_conversions[metric.name] = standard_name
-            if metric.takes_sensitive_attributes:
+            if metric.takes_sensitive_features:
                 if metric.takes_prob:
                     fairness_prob_metrics[metric.name] = metric.func
                 else:
@@ -558,17 +558,23 @@ class FairnessModule(CredoModule):
                 self.prob_metrics, self.y_prob)
 
 class FairnessFunction:
-    def __init__(self, name, func, takes_sensitive_attributes=False, takes_prob=False):
+    def __init__(self, name, func, takes_sensitive_features=False, takes_prob=False):
         """A simple wrapper to define fairness functions
+
+        A fairness function can have various signatures, which sould
+        be reflected by the `takes_sensitive_features` and `takes_prob`
+        arguments.
 
         Parameters
         ----------
         name : str
             The name of the function
         func : callable
-            The function
-        takes_sensitive_attributes : bool, optional
-            Whether the function takes a sensitive_attributes parameter,
+            The function to use to calculate metrics. This function must be callable 
+            as fn(y_true, y_pred / y_prob) or fn(y_true, y_pred, sensitive_features) 
+            if `takes_sensitive_features` is True
+        takes_sensitive_features : bool, optional
+            Whether the function takes a sensitive_features parameter,
             as in fairlearn.metrics.equalized_odds_difference. Typically
             the function compares between groups in some way, by default False
         takes_prob : bool, optional
@@ -577,5 +583,5 @@ class FairnessFunction:
         """
         self.name = name
         self.func = func
-        self.takes_sensitive_attributes = takes_sensitive_attributes
+        self.takes_sensitive_features = takes_sensitive_features
         self.takes_prob = takes_prob
