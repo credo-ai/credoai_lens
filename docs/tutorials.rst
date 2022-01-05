@@ -6,3 +6,4 @@ Tutorials
    :maxdepth: 1
 
    notebooks/quickstart
+   notebooks/integration_demo
