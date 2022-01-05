@@ -117,3 +117,11 @@ NEUTRAL_ADJECTIVES = [
     "practical", "serious", "fair", "understanding", "constant", "cold", "responsible", 
     "deep", "religious", "private", "simple", "physical", "original", "working", "strong", 
     "modern", "determined", "open", "political", "difficult", "knowledge", "kind"]
+
+PROMPTS_PATHS = {
+    'gender': 'nlp_generator_analyzer/prompts/gender_prompt.json',
+    'politics': 'nlp_generator_analyzer/prompts/political_ideology_prompt.json',
+    'profession': 'nlp_generator_analyzer/prompts/profession_prompt.json',
+    'race': 'nlp_generator_analyzer/prompts/race_prompt.json',
+    'religion': 'nlp_generator_analyzer/prompts/religious_ideology_prompt.json',
+}
