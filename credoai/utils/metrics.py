@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.stats as st
-from credoai.utils.metric_utils import standardize_metric_name
 from fairlearn.metrics._disparities import _get_eo_frame
 from fairlearn.metrics import make_derived_metric, true_positive_rate
 
@@ -71,7 +70,6 @@ def confusion_wilson(y_true, y_pred, metric='tpr', confidence=0.95):
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
     negatives = tn + fp
     positives = tp + fn
-    metric = standardize_metric_name(metric)
     if metric == 'true_positive_rate':
         numer = tp
         denom = positives
@@ -85,7 +83,13 @@ def confusion_wilson(y_true, y_pred, metric='tpr', confidence=0.95):
         numer = fn
         denom = positives
     else:
-        raise ValueError
+        raise ValueError("""
+        Metric must be one of the following:
+            -true_positive_rate
+            -true_negative_rate
+            -false_positive_rate
+            -false_negative_rate
+        """)
 
     bounds = wilson_ci(numer, denom, confidence)
     return bounds

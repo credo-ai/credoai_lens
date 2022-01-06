@@ -28,7 +28,7 @@ class DatasetModule(CredoModule):
     
     def _group_differences(self):
         group_means = self.X.groupby(self.sensitive_features).mean()
-        std = self.X.std()
+        std = self.X.std(numeric_only=True)
         diffs = {}
         for group1, group2 in combinations(group_means.index, 2):
             diff = (group_means.loc[group1]-group_means.loc[group2])/std

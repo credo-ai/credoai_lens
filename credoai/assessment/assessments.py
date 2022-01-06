@@ -2,12 +2,12 @@
 Module containing all CredoAssessmsents
 """
 
-from credoai.assessment.assessment import CredoAssessment, AssessmentRequirements
+from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
 import credoai.modules as mod
 import sys, inspect
 
-class FairnessAssessment(CredoAssessment):
+class FairnessBaseAssessment(CredoAssessment):
     def __init__(self):
         super().__init__(
             'FairnessBase', 
@@ -18,8 +18,35 @@ class FairnessAssessment(CredoAssessment):
             )
         )
     
-    def init_module(self, manifest, model, data, additional_metrics=None, replace=False):
-        bounds = manifest.get('bounds', {})
+    def init_module(self, *, model, data, metrics, bounds=None, additional_metrics=None, replace=False):
+        """ Initializes the assessment module
+
+        Transforms the spec, CredoModel and CredoData into the proper form
+        to create a runnable assessment.
+
+        See the lens_customization notebook for examples
+
+        Parameters
+        ------------
+        spec : dict
+            assessment spec: dictionary containing kwargs 
+            for the module defined by the spec. Other kwargs
+            can be passed at run time.
+        model : CredoModel, optional
+        data : CredoData, optional
+        additional_metrics : list-like, optional
+            passed to mod.FairnessModule.update_metrics
+        replace : bool, optional
+            passed to mod.FAirnessModule.update_metrics
+
+        Example:
+        def build(self, ...):
+            y_pred = CredoModel.pred_fun(CredoData.X)
+            y = CredoData.y
+            self.initialized_module = self.module(y_pred, y)
+
+        """
+        bounds = bounds or {}
         y_pred = None
         y_prob = None
         if getattr(model, 'pred_fun'):
@@ -27,7 +54,7 @@ class FairnessAssessment(CredoAssessment):
         if getattr(model, 'prob_fun'):
             y_prob = model.prob_fun(data.X)
         module = self.module(
-            manifest['metrics'],
+            metrics,
             data.sensitive_features,
             data.y,
             y_pred,
@@ -38,16 +65,16 @@ class FairnessAssessment(CredoAssessment):
             module.update_metrics(additional_metrics, replace)
         self.initialized_module = module
             
-class NLPEmbeddingAssessment(CredoAssessment):
+class NLPEmbeddingBiasAssessment(CredoAssessment):
     def __init__(self):    
         super().__init__(
-            'NLPEmbeddingFairness', 
+            'NLPEmbeddingBias', 
             mod.NLPEmbeddingAnalyzer,
             AssessmentRequirements(
                 model_requirements=['embedding_fun'])
             )
         
-    def init_module(self, manifest, model, data=None, 
+    def init_module(self, model, data=None, 
               group_embeddings=None, 
               comparison_categories=None, 
               include_default=True):
@@ -67,7 +94,7 @@ class NLPGeneratorAssessment(CredoAssessment):
                 model_requirements=['generation_fun', 'assessment_config'])
             )
         
-    def init_module(self, scope, model, data=None):
+    def init_module(self, *, model, data=None):
         module = self.module(
             model.generation_fun,
             model.assessment_config)
@@ -84,7 +111,7 @@ class DatasetAssessment(CredoAssessment):
             )
         )
 
-    def init_module(self, *, manifest, data, model=None):
+    def init_module(self, *, data, model=None):
         self.initialized_module = self.module(
             data.X, 
             data.y,

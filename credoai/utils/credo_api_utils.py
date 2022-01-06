@@ -58,8 +58,8 @@ def submit_request(request, end_point, **kwargs):
     response = SESSION.request(request, end_point, **kwargs)
     return response
 
-def get_solution_manifest(ai_solution_id, version='latest'):
-    """Get solution manifest for an AI solution from credoai.Governance Platform
+def get_alignment_spec(ai_solution_id, version='latest'):
+    """Get solution spec for an AI solution from credoai.Governance Platform
     
     Parameters
     ----------
@@ -69,9 +69,9 @@ def get_solution_manifest(ai_solution_id, version='latest'):
     Returns
     -------
     dict
-        The manifest for the AI solution
+        The spec for the AI solution
     """
-    end_point = get_end_point(f"ai_solutions/{ai_solution_id}/manifests")
+    end_point = get_end_point(f"ai_solutions/{ai_solution_id}/scopes")
     if version is not None:
         end_point = os.path.join(end_point, version)
     return deserialize(submit_request('get', end_point).json())
@@ -92,19 +92,6 @@ def get_model_name(model_id):
     end_point = get_end_point(f"models/{model_id}")
     return deserialize(submit_request('get', end_point).json())['name']
 
-def patch_metrics(model_id, model_record):
-    """Send a model record object to Credo's Governance Platform
-    
-    Parameters
-    ----------
-    model_id : string
-        Identifier for Model on Credo AI Governance Platform
-    model_record : Record
-        Model Record object, see credo.integration.ModelRecord
-    """
-    end_point = get_end_point(f"models/{model_id}/relationships/metrics")
-    return submit_request('patch', end_point, data=model_record._credoify(), headers={"content-type": "application/vnd.api+json"})
-    
 def get_aligned_metrics(ai_solution_id, version='latest'):
     """Get aligned metrics frmo Credo's Governance Platform
     
@@ -119,20 +106,33 @@ def get_aligned_metrics(ai_solution_id, version='latest'):
         The aligned metrics for each model contained in the AI solution.
         Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
     """
-    manifest = get_solution_manifest(ai_solution_id, version=version)
+    spec = get_alignment_spec(ai_solution_id, version=version)
     try:
-        models = manifest['model_ids']
+        models = spec['model_ids']
     except KeyError:
-        return manifest
+        return spec
     metric_dict = {m: defaultdict(dict) for m in models}
-    metrics = manifest['metrics']
+    metrics = spec['metrics']
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        metric_dict[metric['model_id']][metric['name']] = bounds
+        metric_dict[metric['model_id']][metric['type']] = bounds
     return metric_dict
 
-from credoai.utils.credo_api_utils import *
 
+def patch_metrics(model_id, model_record):
+    """Send a model record object to Credo's Governance Platform
+    
+    Parameters
+    ----------
+    model_id : string
+        Identifier for Model on Credo AI Governance Platform
+    model_record : Record
+        Model Record object, see credo.integration.MutliRecord
+    """
+    end_point = get_end_point(f"models/{model_id}/relationships/metrics")
+    return submit_request('patch', end_point, data=model_record.credoify(), headers={"content-type": "application/vnd.api+json"})
+    
+    
 def post_figure(model_id, figure_record):
     """Send a figure record object to Credo's Governance Platform
     
@@ -144,4 +144,4 @@ def post_figure(model_id, figure_record):
         Figure Record object, see credo.integration.FigureRecord
     """
     end_point = get_end_point(f"models/{model_id}/model_assets")
-    return submit_request('post', end_point, data=figure_record._credoify(), headers={"content-type": "application/vnd.api+json"})
+    return submit_request('post', end_point, data=figure_record.credoify(), headers={"content-type": "application/vnd.api+json"})

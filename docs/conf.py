@@ -17,7 +17,7 @@ import credoai
 
 # -- Project information -----------------------------------------------------
 
-project = 'CredoAILens'
+project = 'Credo AI | Lens'
 copyright = '2021, Credo AI Development Team'
 author = 'Credo AI Development Team'
 release = credoai.__version__
