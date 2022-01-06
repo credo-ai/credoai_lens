@@ -19,9 +19,21 @@ To see how to configure Sphinx to do this, see this [Github repo README](https:/
 python setup.py sdist bdist_wheel
 ```
 
-Follow instructions [here](https://packaging.python.org/en/latest/tutorials/packaging-projects/) to upload to PyPi.
+# Testing Package
+## Upload to TestPyPI
+After creating the required files in `dist` and installing twine, run:
+```
+python -m twine upload --repository testpypi dist/*
+```
+For more info, follow instructions [here](https://packaging.python.org/en/latest/tutorials/packaging-projects/) to upload to PyPi.
 
+## Installating from test server
 To install from the test PyPi server (useful before full deployment) run:
 ```
 pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple credoai-lens
+```
+
+# Upload to Pypi
+```
+python -m twine upload dist/*
 ```
