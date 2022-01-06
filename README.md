@@ -46,7 +46,7 @@ Modules that require extras include:
 
 ### Failed pip installation - use conda
 
-Installation sometimes fails on newer M1 macbooks. Specifically, pandas, scipy, and scikit-learn 
+Installation sometimes fails on M1 macbooks. Specifically, pandas, scipy, and scikit-learn 
 may fail to build. Installing these packages with the anaconda package manager seems to be
 the easiest way to circumvent this issue. 
 
@@ -58,14 +58,12 @@ conda env create --file environment.yml
 
 ## Getting Started
 
-To get started, we suggest running the quickstart demo: `demos/quickstart.ipynb`.
-For a more detailed example, see `demos/lens_demos/binaryclassification.ipynb`
+To get started, see the quickstart demo: `docs/notebooks/quickstart.ipynb`.
+For a more detailed example, see `docs/notebooks/lens_demos/binaryclassification.ipynb`
 
 ## Documentation
 
-To build the documentation locally, run `make html` from the `/docs` directory and the docs site will build to: `docs/_build/html/index.html`, which can be opened in the browser.
-
-> Make sure you have [Sphinx installed](https://www.sphinx-doc.org/en/master/usage/installation.html) if you are building the docs site locally.
+Documentation is hosted by [readthedocs](https://credoai-lens.readthedocs.io/en/latest/index.html).
 
 ## Configuration
 
