@@ -1,5 +1,5 @@
 from credoai.assessment.credo_assessment import CredoAssessment
-from credoai.assessment.utils import get_usable_assessments
+from credoai.assessment import get_usable_assessments
 from credoai.utils.common import ValidationError
 from credoai.utils.credo_api_utils import get_aligned_metrics, patch_metrics
 from credoai import __version__
@@ -115,7 +115,7 @@ class CredoModel:
 
     def _build_functionality(self):
         for key, val in self.config.items():
-            if key[-4:] == '_fun' and val is not None:
+            if val is not None:
                 self.__dict__[key] = val
 
     def _init_config(self, model):
@@ -189,7 +189,7 @@ class Lens:
     def __init__(        
         self,
         governance: CredoGovernance = None,
-        manifest: dict = None,
+        spec: dict = None,
         assessments: Union[List[CredoAssessment], str] = 'auto',
         model: CredoModel = None,
         data: CredoData = None,
@@ -211,6 +211,12 @@ class Lens:
         governance : CredoGovernance, optional
             CredoGovernance object connecting
             Lens with Governance platform, by default None
+        spec : dict
+            key word arguments passed to each assessments `init_module` 
+            function using `Lens.init_module`. Each key must correspond to
+            an assessment name (CredoAssessment.name), with each value
+            being a dictionary of kwargs. Passed to the init_module function
+            as kwargs for each assessment
         assessments : Union[List[CredoAssessment], str], optional
             List of assessments to run. If "auto", runs all assessments
             CredoModel and CredoData support from the standard
@@ -221,18 +227,12 @@ class Lens:
             CredoData to assess, or be used by CredoModel for assessment, by default None
         user_id : str, optional
             Label for user running assessments, by default None
-        init_assessment_kwargs : dict, optional
-            key word arguments passed to each assessments `init_module` 
-            function using `Lens.init_module`. Each key must correspond to
-            an assessment name (CredoAssessment.name). The assessments
-            loaded by an instance of Lens can be accessed by calling
-            `get_assessments`. 
         """    
 
         self.gov = governance
         self.model = model
         self.data = data
-        self.manifest = {}
+        self.spec = {}
 
         if assessments == 'auto':
             assessments = self._select_assessments()
@@ -242,15 +242,15 @@ class Lens:
         self.assessments = {a.name: a for a in assessments}
         self.user_id = user_id
 
-        # if governance is defined, pull down manifest for
+        # if governance is defined, pull down spec for
         # solution / model
         if self.gov:
-            self.manifest = self.get_manifest_from_gov()
-        if manifest:
-            self.manifest.update(manifest)
+            self.spec = self.get_spec_from_gov()
+        if spec:
+            self.spec.update(spec)
             
         # initialize
-        self._init_assessments(init_assessment_kwargs)
+        self._init_assessments()
             
     def run_assessments(self, export=False, assessment_kwargs=None):
         """Runs assessments on the associated model and/or data
@@ -289,12 +289,12 @@ class Lens:
                     self._export_to_credo(prepared_results, to_model=True)
         return assessment_results
 
-    def get_manifest_from_gov(self):
-        manifest = {}
+    def get_spec_from_gov(self):
+        spec = {}
         metrics = self._get_aligned_metrics()
-        manifest['metrics'] = list(metrics.keys())
-        manifest['bounds'] = metrics
-        return manifest
+        spec['metrics'] = list(metrics.keys())
+        spec['bounds'] = metrics
+        return spec
 
     def get_assessments(self):
         return self.assessments
@@ -337,7 +337,7 @@ class Lens:
             self.gov.model_id]
         return aligned_metrics
 
-    def _init_assessments(self, assessment_kwargs=None):
+    def _init_assessments(self):
         """Initializes modules in each assessment
         
         Parameters
@@ -352,11 +352,9 @@ class Lens:
         Example: {'FairnessBase': {'method': 'to_overall'}}
         by default None
         """
-        assessment_kwargs = assessment_kwargs or {}
         for assessment in self.assessments.values():
-            kwargs = assessment_kwargs.get(assessment.name, {})
-            assessment.init_module(manifest=self.manifest,
-                                   model=self.model,
+            kwargs = self.spec.get(assessment.name, {})
+            assessment.init_module(model=self.model,
                                    data=self.data,
                                    **kwargs)
             
@@ -365,7 +363,7 @@ class Lens:
         return assessment.prepare_results(metadata, **kwargs)
 
     def _select_assessments(self):
-        return get_usable_assessments(self.model, self.data)
+        return list(get_usable_assessments(self.model, self.data).values())
 
     def _validate_assessments(self, assessments):
         for assessment in assessments:

@@ -58,8 +58,8 @@ def submit_request(request, end_point, **kwargs):
     response = SESSION.request(request, end_point, **kwargs)
     return response
 
-def get_solution_manifest(ai_solution_id, version='latest'):
-    """Get solution manifest for an AI solution from credoai.Governance Platform
+def get_alignment_spec(ai_solution_id, version='latest'):
+    """Get solution spec for an AI solution from credoai.Governance Platform
     
     Parameters
     ----------
@@ -69,7 +69,7 @@ def get_solution_manifest(ai_solution_id, version='latest'):
     Returns
     -------
     dict
-        The manifest for the AI solution
+        The spec for the AI solution
     """
     end_point = get_end_point(f"ai_solutions/{ai_solution_id}/scopes")
     if version is not None:
@@ -106,13 +106,13 @@ def get_aligned_metrics(ai_solution_id, version='latest'):
         The aligned metrics for each model contained in the AI solution.
         Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
     """
-    manifest = get_solution_manifest(ai_solution_id, version=version)
+    spec = get_alignment_spec(ai_solution_id, version=version)
     try:
-        models = manifest['model_ids']
+        models = spec['model_ids']
     except KeyError:
-        return manifest
+        return spec
     metric_dict = {m: defaultdict(dict) for m in models}
-    metrics = manifest['metrics']
+    metrics = spec['metrics']
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
         metric_dict[metric['model_id']][metric['type']] = bounds

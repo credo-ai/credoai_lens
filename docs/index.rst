@@ -34,21 +34,21 @@ Lens is a single interface that allows easy assessment of your models and data.
 Within the framework we have provided interfaces to well known responsible AI tools
 as well as to Credo AI's own custom modules.
 
-An "Alignment Manifest" must be supplied to Lens. The manifest articulates
+An "Alignment Spec" must be supplied to Lens. The spec articulates
 how different assessments should be run at a high level. Essentially, 
 it is a partial parameterization of the assessment.
 
-The manifest makes most sense as part of Credo AI's overall governance platform. In 
-this context the Manifest is the output of a multi-stakeholder articulation of
+The spec makes most sense as part of Credo AI's overall governance platform. In 
+this context the Spec is the output of a multi-stakeholder articulation of
 how the AI system should be assessed. Lens actually takes care of automatically
-retrieving the Alignment Manifest from the governance platform, connecting 
+retrieving the Alignment Spec from the governance platform, connecting 
 your technical team to compliance, product, and other stakeholders.
 
-Of course, a single person can also defined the Manifest. 
-In this case, the Alignment Manifest still serves as an initial decision
+Of course, a single person can also defined the Spec. 
+In this case, the Alignment Spec still serves as an initial decision
 as to how assessments should be run, and summary of the assessments run.
 
-Beyond the Alignment Manifest, each module has other parameters that can be customized.
+Beyond the Alignment Spec, each module has other parameters that can be customized.
 In addition, the set of modules are easily customized and extended. Lens strives to give
 you sensible defaults without placing unnecessary restrictions. The `lens customization` tutorial
 goes through these aspects.

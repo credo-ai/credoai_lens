@@ -13,9 +13,9 @@ def get_assessment_requirements():
 
 
 def get_usable_assessments(credo_model, credo_data):
-    assessments = []
+    assessments = {}
     for name, assessment_class in ASSESSMENTS:
         assessment = assessment_class()
         if assessment.check_requirements(credo_model, credo_data):
-            assessments.append(assessment)
+            assessments[assessment.name] = assessment
     return assessments

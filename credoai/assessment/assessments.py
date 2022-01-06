@@ -18,18 +18,20 @@ class FairnessBaseAssessment(CredoAssessment):
             )
         )
     
-    def init_module(self, *, manifest, model, data, additional_metrics=None, replace=False):
+    def init_module(self, *, model, data, metrics, bounds=None, additional_metrics=None, replace=False):
         """ Initializes the assessment module
 
-        Transforms the manifest, CredoModel and CredoData into the proper form
+        Transforms the spec, CredoModel and CredoData into the proper form
         to create a runnable assessment.
 
         See the lens_customization notebook for examples
 
         Parameters
         ------------
-        manifest : dict
-            dictionary containing kwargs for the module defined by the manifest
+        spec : dict
+            assessment spec: dictionary containing kwargs 
+            for the module defined by the spec. Other kwargs
+            can be passed at run time.
         model : CredoModel, optional
         data : CredoData, optional
         additional_metrics : list-like, optional
@@ -44,7 +46,7 @@ class FairnessBaseAssessment(CredoAssessment):
             self.initialized_module = self.module(y_pred, y)
 
         """
-        bounds = manifest.get('bounds', {})
+        bounds = bounds or {}
         y_pred = None
         y_prob = None
         if getattr(model, 'pred_fun'):
@@ -52,7 +54,7 @@ class FairnessBaseAssessment(CredoAssessment):
         if getattr(model, 'prob_fun'):
             y_prob = model.prob_fun(data.X)
         module = self.module(
-            manifest['metrics'],
+            metrics,
             data.sensitive_features,
             data.y,
             y_pred,
@@ -72,7 +74,7 @@ class NLPEmbeddingBiasAssessment(CredoAssessment):
                 model_requirements=['embedding_fun'])
             )
         
-    def init_module(self, manifest, model, data=None, 
+    def init_module(self, model, data=None, 
               group_embeddings=None, 
               comparison_categories=None, 
               include_default=True):
@@ -92,7 +94,7 @@ class NLPGeneratorAssessment(CredoAssessment):
                 model_requirements=['generation_fun', 'assessment_config'])
             )
         
-    def init_module(self, scope, model, data=None):
+    def init_module(self, *, model, data=None):
         module = self.module(
             model.generation_fun,
             model.assessment_config)
@@ -109,7 +111,7 @@ class DatasetAssessment(CredoAssessment):
             )
         )
 
-    def init_module(self, *, manifest, data, model=None):
+    def init_module(self, *, data, model=None):
         self.initialized_module = self.module(
             data.X, 
             data.y,
