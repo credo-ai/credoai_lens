@@ -8,6 +8,17 @@ import credoai.modules as mod
 import sys, inspect
 
 class FairnessBaseAssessment(CredoAssessment):
+    """
+    FairnessBase Assessment
+    
+    Runs the FairnessModule.
+    
+    Requires that the CredoModel defines either `pred_fun` or `prob_fun` (or both).
+    
+    - `pred_fun` should return the model's predictions.
+    - `prob_fun` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
+       Only applicable in classification scenarios.
+    """
     def __init__(self):
         super().__init__(
             'FairnessBase', 
@@ -18,7 +29,7 @@ class FairnessBaseAssessment(CredoAssessment):
             )
         )
     
-    def init_module(self, *, model, data, metrics, bounds=None, additional_metrics=None, replace=False):
+    def init_module(self, *, model, data, metrics, bounds=None):
         """ Initializes the assessment module
 
         Transforms the spec, CredoModel and CredoData into the proper form
@@ -34,12 +45,9 @@ class FairnessBaseAssessment(CredoAssessment):
             can be passed at run time.
         model : CredoModel, optional
         data : CredoData, optional
-        additional_metrics : list-like, optional
-            passed to mod.FairnessModule.update_metrics
-        replace : bool, optional
-            passed to mod.FAirnessModule.update_metrics
 
-        Example:
+        Example
+        ---------
         def build(self, ...):
             y_pred = CredoModel.pred_fun(CredoData.X)
             y = CredoData.y
@@ -47,12 +55,15 @@ class FairnessBaseAssessment(CredoAssessment):
 
         """
         bounds = bounds or {}
-        y_pred = None
-        y_prob = None
-        if getattr(model, 'pred_fun'):
+        try:
             y_pred = model.pred_fun(data.X)
-        if getattr(model, 'prob_fun'):
+        except AttributeError:
+            y_pred = None
+        try:
             y_prob = model.prob_fun(data.X)
+        except AttributeError:
+            y_prob = None
+            
         module = self.module(
             metrics,
             data.sensitive_features,
@@ -61,11 +72,14 @@ class FairnessBaseAssessment(CredoAssessment):
             y_prob,
             bounds,
             bounds)
-        if additional_metrics:
-            module.update_metrics(additional_metrics, replace)
         self.initialized_module = module
             
 class NLPEmbeddingBiasAssessment(CredoAssessment):
+    """
+    NLP Embedding-Bias Assessments
+    
+    Runs the NLPEmbeddingAnalyzer module.
+    """
     def __init__(self):    
         super().__init__(
             'NLPEmbeddingBias', 
@@ -86,6 +100,11 @@ class NLPEmbeddingBiasAssessment(CredoAssessment):
         self.initialized_module = module
 
 class NLPGeneratorAssessment(CredoAssessment):
+    """
+    NLP Generator Assessment
+    
+    Runs the NLPGenerator module.
+    """
     def __init__(self):    
         super().__init__(
             'NLPGenerator', 
@@ -102,6 +121,11 @@ class NLPGeneratorAssessment(CredoAssessment):
         self.initialized_module = module
             
 class DatasetAssessment(CredoAssessment):
+    """
+    Dataset Assessment
+    
+    Runs the Dataset module.
+    """
     def __init__(self):
         super().__init__(
             'Dataset', 

@@ -44,8 +44,9 @@ class CredoAssessment(ABC):
         model : CredoModel, optional
         data : CredoData, optional
 
-        Example:
-        def build(self, ...):
+        Example
+        -----------
+        def init_module(self, ...):
             y_pred = CredoModel.pred_fun(CredoData.X)
             y = CredoData.y
             self.initialized_module = self.module(y_pred, y)
