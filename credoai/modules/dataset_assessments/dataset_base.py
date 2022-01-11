@@ -7,12 +7,15 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score, make_scorer
 
+import pandas as pd
+
 class DatasetModule(CredoModule):
+    
     def __init__(self,
                  X,
                  y,
-                 sensitive_features):
-        self.X = X
+                 sensitive_features):                
+        self.X = pd.DataFrame(X)
         self.y = y
         self.sensitive_features = sensitive_features
     
