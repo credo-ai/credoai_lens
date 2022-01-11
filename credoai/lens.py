@@ -267,14 +267,10 @@ class Lens:
             an assessment name (CredoAssessment.name). The assessments
             loaded by an instance of Lens can be accessed by calling
             `get_assessments`. 
-            
-            Example: {'FairnessBase': {'method': 'to_overall'}}
-            by default None
 
         Returns
         -------
-        [type]
-            [description]
+        assessment_results
         """        
         assessment_kwargs = assessment_kwargs or {}
         assessment_results = {}
@@ -338,20 +334,7 @@ class Lens:
         return aligned_metrics
 
     def _init_assessments(self):
-        """Initializes modules in each assessment
-        
-        Parameters
-        ----------
-        assessment_kwargs : dict, optional
-            key word arguments passed to each assessments `init_module` 
-            function. Each key must correspond to
-            an assessment name (CredoAssessment.name). The assessments
-            loaded by an instance of Lens can be accessed by calling
-            `get_assessments`. 
-
-        Example: {'FairnessBase': {'method': 'to_overall'}}
-        by default None
-        """
+        """Initializes modules in each assessment"""
         for assessment in self.assessments.values():
             kwargs = self.spec.get(assessment.name, {})
             assessment.init_module(model=self.model,

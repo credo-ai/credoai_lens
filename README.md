@@ -38,7 +38,7 @@ To include additional dependencies needed for some modules and demos, use the
 following installation command. 
 
 ```
-pip install credoai-lens[extras]
+pip install 'credoai-lens[extras]'
 ```
 
 Modules that require extras include:
