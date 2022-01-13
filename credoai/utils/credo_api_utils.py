@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import requests
 import time
 from collections import defaultdict
@@ -75,6 +76,20 @@ def get_alignment_spec(ai_solution_id, version='latest'):
     if version is not None:
         end_point = os.path.join(end_point, version)
     return deserialize(submit_request('get', end_point).json())
+
+def get_survey_results(ai_solution_id, survey_key='FAIR'):
+    survey_end_point = get_end_point(f"ai_solutions/{ai_solution_id}/surveys")
+    answer_end_point = get_end_point(f"ai_solutions/{ai_solution_id}" \
+                                     "/scopes/draft/final_survey_answers")
+    all_surveys = deserialize(submit_request('get', survey_end_point).json())
+    all_answers = deserialize(submit_request('get', answer_end_point).json())
+    # filter
+    survey = [s for s in all_surveys if s['id'] == survey_key][0]['questions']
+    answers = [a for a in all_answers if a['survey_key'] == survey_key][0]['answers']
+    # combine
+    survey = pd.DataFrame(survey).set_index('id')
+    survey = pd.concat([survey, pd.Series(answers, name='answer')], axis=1)
+    return survey
 
 def get_model_name(model_id):
     """Get model name form a model ID from credoai.Governance Platform

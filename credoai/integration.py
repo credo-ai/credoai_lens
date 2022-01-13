@@ -1,7 +1,8 @@
 from collections import ChainMap
 from datetime import datetime
 from json_api_doc import serialize
-from credoai.utils.common import NumpyEncoder, wrap_list, ValidationError
+from credoai.utils.common import (NumpyEncoder, wrap_list, 
+                                  ValidationError, dict_hash)
 from credoai.utils.credo_api_utils import patch_metrics
 
 import base64
@@ -70,20 +71,20 @@ class Metric(Record):
     def __init__(self,
             metric_type,
             value,
-            model_label,
             dataset_label,
             **metadata):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
-        self.model_label = model_label
         self.dataset_label = dataset_label
+        self.config_hash = dict_hash({k:v for k,v in self.__dict__.items() 
+                                      if k!='value'})
     
     def _struct(self):
         return {
+            'metric_id': self.config_hash,
             'type': self.metric_type,
             'value': self.value,
-            'model_version': self.model_label,
             'dataset': self.dataset_label,
             'metadata': {'creation_time': self.creation_time,
                         **self.metadata},
@@ -117,26 +118,27 @@ class Figure(Record):
         super().__init__('figures', **metadata)
         self.name = name
         self.description = description
+        self.figure_string = None
         if type(figure) == matplotlib.figure.Figure:
             self._encode_matplotlib_figure(figure)
         else:
-            self._encode_image_file(figure)
+            self._encode_figure(figure)
             
 
-    def _encode_image_file(self, image_file):
-        with open(image_file, "rb") as image2string:
-            self.image_string = base64.b64encode(image2string.read()).decode('ascii')
+    def _encode_figure(self, figure_file):
+        with open(figure_file, "rb") as figure2string:
+            self.figure_string = base64.b64encode(figure2string.read()).decode('ascii')
             
     def _encode_matplotlib_figure(self, fig):
         pic_IObytes = io.BytesIO()
         fig.savefig(pic_IObytes,  format='png')
         pic_IObytes.seek(0)
-        self.image_string = base64.b64encode(pic_IObytes.read()).decode('ascii')
+        self.figure_string = base64.b64encode(pic_IObytes.read()).decode('ascii')
         
     def _struct(self):
         return {'name': self.name,
                 'description': self.description,
-                'file': self.image_string,
+                'file': self.figure_string,
                 'creation_time': self.creation_time,
                 'metadata': {'type': 'chart', **self.metadata},
                 '$type': 'model_assets'}
