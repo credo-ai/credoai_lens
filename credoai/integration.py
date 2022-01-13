@@ -1,7 +1,8 @@
 from collections import ChainMap
 from datetime import datetime
 from json_api_doc import serialize
-from credoai.utils.common import NumpyEncoder, wrap_list, ValidationError
+from credoai.utils.common import (NumpyEncoder, wrap_list, 
+                                  ValidationError, dict_hash)
 from credoai.utils.credo_api_utils import patch_metrics
 
 import base64
@@ -70,20 +71,20 @@ class Metric(Record):
     def __init__(self,
             metric_type,
             value,
-            model_label,
             dataset_label,
             **metadata):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
-        self.model_label = model_label
         self.dataset_label = dataset_label
+        self.config_hash = dict_hash({k:v for k,v in self.__dict__.items() 
+                                      if k!='value'})
     
     def _struct(self):
         return {
+            'metric_id': self.config_hash,
             'type': self.metric_type,
             'value': self.value,
-            'model_version': self.model_label,
             'dataset': self.dataset_label,
             'metadata': {'creation_time': self.creation_time,
                         **self.metadata},

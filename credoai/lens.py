@@ -328,7 +328,7 @@ class Lens:
                 'dataset_label': names['data'],
                 'user_id': self.user_id,
                 'assessment': assessment_name,
-                'lens_version': f'CredoAILens_v{__version__}'}
+                'lens_version': f'Lens_v{__version__}'}
 
     def _get_aligned_metrics(self):
         """Get aligned metrics from credoai.s Governance Platform
