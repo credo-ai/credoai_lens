@@ -93,7 +93,7 @@ class FairnessBaseAssessment(CredoAssessment):
         """        
         if type_of_target(self.initialized_module.y_true) == 'binary':
             report = FairnessReport(self.initialized_module)
-            report.create_report(filename, include_fairness, include_disaggregation)
+            return report.create_report(filename, include_fairness, include_disaggregation)
             
 class NLPEmbeddingBiasAssessment(CredoAssessment):
     """

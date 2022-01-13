@@ -37,12 +37,13 @@ class FairnessReport:
         if include_disaggregation:
             for group, sub_df in df.groupby('sensitive'):
                 figs.append(self.plot_performance(sub_df['true'], sub_df['pred'], group))
-            
+        # save
         if filename is not None:
             pdf = matplotlib.backends.backend_pdf.PdfPages(f"{filename}.pdf")
             for fig in figs: ## will open an empty extra figure :(
                 pdf.savefig(fig, bbox_inches='tight', pad_inches=1)
             pdf.close()
+        return figs
             
     def plot_fairness(self):
         """Plots fairness for binary classification

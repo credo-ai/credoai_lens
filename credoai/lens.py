@@ -285,8 +285,10 @@ class Lens:
                     self._export_to_credo(prepared_results, to_model=True)
         return assessment_results
     
-    def create_reports(self, report_directory=None, report_kwargs=None):
+    def create_reports(self, export=False, 
+                       report_directory=None, report_kwargs=None):
         assessment_kwargs = report_kwargs or {}
+        reports = {}
         for name, assessment in self.assessments.items():
             kwargs = assessment_kwargs.get(name, {})
             if report_directory:
@@ -294,7 +296,8 @@ class Lens:
                 report_name = f"model-{names['model']}_data-{names['data']}_assessment-{name}"
                 filename = path.join(report_directory, report_name)
                 kwargs['filename'] = filename
-            assessment.create_report(**kwargs)
+            reports[name] = assessment.create_report(**kwargs)
+        return reports
 
     def get_spec_from_gov(self):
         spec = {}
