@@ -8,12 +8,12 @@ import seaborn as sns
 import sklearn.metrics as sk_metrics
 
 class FairnessReport:
-    def __init__(self, toolkit, infographic_shape=(3,5), size=5):
-        self.toolkit = toolkit
+    def __init__(self, module, infographic_shape=(3,5), size=5):
+        self.module = module
         self.size = size
         self.infographic_shape = infographic_shape
     
-    def create_report(self, include_fairness=True, include_disaggregation=True, filename=None):
+    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
         """Creates a fairness report for binary classification model
 
         Parameters
@@ -26,7 +26,7 @@ class FairnessReport:
         filename : string, optional
             If given, the location where the generated pdf report will be saved, by default None
         """        
-        df = self.toolkit.get_df()
+        df = self.module.get_df()
         # plot
         figs = []
         # comparison plots
@@ -218,8 +218,8 @@ class FairnessReport:
     
     def _plot_disaggregated_metrics(self, ax, size):
         # create df
-        sensitive_feature = self.toolkit.sensitive_features.name
-        df =  self.toolkit.get_disaggregated_results(False) \
+        sensitive_feature = self.module.sensitive_features.name
+        df =  self.module.get_disaggregated_results(False) \
                     .reset_index() \
                     .melt(id_vars=sensitive_feature,
                           var_name='Metric',

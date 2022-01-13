@@ -212,8 +212,11 @@ class FairnessModule(CredoModule):
         """
         df = pd.DataFrame({'sensitive': self.sensitive_features,
                            'true': self.y_true,
-                           'pred': self.y_pred,
-                           'prob': self.y_prob})
+                           'pred': self.y_pred})
+        if self.y_prob is not None:
+            y_prob_df = pd.DataFrame(self.y_prob)
+            y_prob_df.columns = [f'y_prob_{i}' for i in range(y_prob_df.shape[1])]
+            df = pd.concat([df, y_prob_df], axis=1)
         return df
     
     def get_overall_metrics(self):

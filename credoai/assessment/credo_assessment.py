@@ -66,7 +66,10 @@ class CredoAssessment(ABC):
         metadata['assessment'] = self.name
         results = results.assign(**metadata)
         return results
-
+    
+    def create_report(self, filename=None):
+        pass
+    
     def _standardize_results(self, results):
         if type(results) == dict:
             results = pd.Series(results, name='value').to_frame()

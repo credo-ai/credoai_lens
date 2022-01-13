@@ -284,6 +284,17 @@ class Lens:
                 else:
                     self._export_to_credo(prepared_results, to_model=True)
         return assessment_results
+    
+    def create_reports(self, report_directory=None, report_kwargs=None):
+        assessment_kwargs = report_kwargs or {}
+        for name, assessment in self.assessments.items():
+            kwargs = assessment_kwargs.get(name, {})
+            if report_directory:
+                names = self._get_names()
+                report_name = f"model-{names['model']}_data-{names['data']}_assessment-{name}"
+                filename = path.join(report_directory, report_name)
+                kwargs['filename'] = filename
+            assessment.create_report(**kwargs)
 
     def get_spec_from_gov(self):
         spec = {}
@@ -312,10 +323,9 @@ class Lens:
         ci.export_to_file(metric_records, output_file)
 
     def _gather_meta(self, assessment_name):
-        model_name = self.model.name if self.model else 'NA'
-        data_name = self.data.name if self.data else 'NA'
-        return {'model_label': model_name,
-                'dataset_label': data_name,
+        names = self._get_names()
+        return {'model_label': names['model'],
+                'dataset_label': names['data'],
                 'user_id': self.user_id,
                 'assessment': assessment_name,
                 'lens_version': f'CredoAILens_v{__version__}'}
@@ -340,7 +350,12 @@ class Lens:
             assessment.init_module(model=self.model,
                                    data=self.data,
                                    **kwargs)
-            
+    
+    def _get_names(self):
+        model_name = self.model.name if self.model else 'NA'
+        data_name = self.data.name if self.data else 'NA'
+        return {'model': model_name, 'data': data_name}
+    
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment.name)
         return assessment.prepare_results(metadata, **kwargs)

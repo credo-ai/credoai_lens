@@ -4,6 +4,8 @@ Module containing all CredoAssessmsents
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
+from credoai.reporting.fairness_binaryclassification import FairnessReport
+from sklearn.utils.multiclass import type_of_target
 import credoai.modules as mod
 import sys, inspect
 
@@ -73,6 +75,25 @@ class FairnessBaseAssessment(CredoAssessment):
             bounds,
             bounds)
         self.initialized_module = module
+    
+    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
+        """Creates a fairness report 
+        
+        Currently only supports binary classification models
+
+        Parameters
+        ----------
+        include_fairness : bool, optional
+            Whether to include fairness plots, by default True
+        include_disaggregation : bool, optional
+            Whether to include performance plots broken down by
+            subgroup. Overall performance are always reported, by default True
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
+        """        
+        if type_of_target(self.initialized_module.y_true) == 'binary':
+            report = FairnessReport(self.initialized_module)
+            report.create_report(filename, include_fairness, include_disaggregation)
             
 class NLPEmbeddingBiasAssessment(CredoAssessment):
     """
