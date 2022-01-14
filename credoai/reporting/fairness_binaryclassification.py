@@ -12,39 +12,46 @@ class FairnessReport:
         self.module = module
         self.size = size
         self.infographic_shape = infographic_shape
+        self.figs = []
     
     def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
         """Creates a fairness report for binary classification model
 
         Parameters
         ----------
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
         include_fairness : bool, optional
             Whether to include fairness plots, by default True
         include_disaggregation : bool, optional
             Whether to include performance plots broken down by
             subgroup. Overall performance are always reported, by default True
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
+            
+        Returns
+        -------
+        array of figures
         """        
         df = self.module.get_df()
         # plot
-        figs = []
         # comparison plots
         if include_fairness:
-            figs.append(self.plot_fairness())
+            self.figs.append(self.plot_fairness())
         # individual group performance plots
-        figs.append(self.plot_performance(df['true'], df['pred'], 'Overall'))
+        self.figs.append(self.plot_performance(df['true'], df['pred'], 'Overall'))
         if include_disaggregation:
             for group, sub_df in df.groupby('sensitive'):
-                figs.append(self.plot_performance(sub_df['true'], sub_df['pred'], group))
+                self.figs.append(self.plot_performance(sub_df['true'], sub_df['pred'], group))
         # save
         if filename is not None:
-            pdf = matplotlib.backends.backend_pdf.PdfPages(f"{filename}.pdf")
-            for fig in figs: ## will open an empty extra figure :(
-                pdf.savefig(fig, bbox_inches='tight', pad_inches=1)
-            pdf.close()
-        return figs
-            
+            self.export_report(filename)
+        return self.figs
+    
+    def export_report(self, filename):
+        pdf = matplotlib.backends.backend_pdf.PdfPages(f"{filename}.pdf")
+        for fig in self.figs: ## will open an empty extra figure :(
+            pdf.savefig(fig, bbox_inches='tight', pad_inches=1)
+        pdf.close()
+
     def plot_fairness(self):
         """Plots fairness for binary classification
 
@@ -112,7 +119,7 @@ class FairnessReport:
         true_data = np.reshape([1]*true_pos_n + [0]*(n-true_pos_n), self.infographic_shape)
         pred_data = np.reshape([1]*pred_pos_n + [0]*(n-pred_pos_n), self.infographic_shape)
         return true_data, pred_data
-    
+
     def _plot_circles(self,
                       data, 
                       ax, colors, marker='o'):
