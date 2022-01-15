@@ -345,9 +345,10 @@ class Lens:
 
     def get_spec_from_gov(self):
         spec = {}
-        metrics = self._get_aligned_metrics()
-        spec['metrics'] = list(metrics.keys())
-        spec['bounds'] = metrics
+        if self.gov.ai_solution_id != None:
+            metrics = self._get_aligned_metrics()
+            spec['metrics'] = list(metrics.keys())
+            spec['bounds'] = metrics
         return spec
 
     def get_assessments(self):
