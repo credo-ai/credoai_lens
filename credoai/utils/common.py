@@ -51,3 +51,20 @@ def dict_hash(dictionary: Dict[str, Any]) -> str:
     encoded = json.dumps(dictionary, sort_keys=True).encode()
     dhash.update(encoded)
     return dhash.hexdigest()
+
+def to_array(lst):
+    """
+    Converts list-like object to array
+    Parameters
+    ----------
+    lst :  (List, pandas.Series, numpy.ndarray)
+        The list-like to be converted
+    """
+    if type(lst) == pd.Series:
+        return lst.values
+    elif type(lst) == list:
+        return np.array(lst)
+    elif type(lst) == np.ndarray:
+        return lst
+    else:
+        raise TypeError
