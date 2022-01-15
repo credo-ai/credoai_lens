@@ -2,6 +2,7 @@ from credoai.utils.metric_constants import (
     BINARY_CLASSIFICATION_METRICS, FAIRNESS_METRICS, 
     PROBABILITY_METRICS, METRIC_EQUIVALENTS
 )
+from credoai.utils.common import to_array
 from credoai.utils.metric_utils import standardize_metric_name 
 from credoai.modules.credo_module import CredoModule
 from fairlearn.metrics import MetricFrame
@@ -66,12 +67,11 @@ class FairnessModule(CredoModule):
                  performance_bounds=None
                  ):
         # data variables
-        self.y_true = y_true
-        self.y_pred = y_pred
-        self.y_prob = y_prob
+        self.y_true = to_array(y_true)
+        self.y_pred = to_array(y_pred)
+        self.y_prob = to_array(y_prob)
         self.sensitive_features = sensitive_features
-        check_consistent_length(self.y_true, self.y_pred,
-                                self.y_prob, self.sensitive_features)
+        self._validate_inputs()
         
         # assign variables
         self.metrics = metrics
@@ -212,7 +212,7 @@ class FairnessModule(CredoModule):
         """
         df = pd.DataFrame({'sensitive': self.sensitive_features,
                            'true': self.y_true,
-                           'pred': self.y_pred})
+                           'pred': self.y_pred}).reset_index(drop=True)
         if self.y_prob is not None:
             y_prob_df = pd.DataFrame(self.y_prob)
             y_prob_df.columns = [f'y_prob_{i}' for i in range(y_prob_df.shape[1])]
@@ -559,7 +559,11 @@ class FairnessModule(CredoModule):
         if self.y_prob is not None and self.prob_metrics:
             self.metric_frames['prob'] = self._create_metric_frame(
                 self.prob_metrics, self.y_prob)
-
+            
+    def _validate_inputs(self):
+        check_consistent_length(self.y_true, self.y_pred,
+                                self.y_prob, self.sensitive_features)
+        
 class FairnessFunction:
     def __init__(self, name, func, takes_sensitive_features=False, takes_prob=False):
         """A simple wrapper to define fairness functions
@@ -588,3 +592,4 @@ class FairnessFunction:
         self.func = func
         self.takes_sensitive_features = takes_sensitive_features
         self.takes_prob = takes_prob
+        
