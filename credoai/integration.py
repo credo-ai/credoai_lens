@@ -78,8 +78,8 @@ class Metric(Record):
     
     def _struct(self):
         return {
+            'key': self.config_hash,
             'type': self.metric_type,
-            'name': self.config_hash,
             'value': self.value,
             'dataset_variant_id': self.dataset_variant,
             'metadata': {'creation_time': self.creation_time,

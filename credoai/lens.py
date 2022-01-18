@@ -376,6 +376,7 @@ class Lens:
         return {'model_label': names['model'],
                 'dataset_label': names['data'],
                 'user_id': self.user_id,
+                'process': f'Lens-{assessment_name}',
                 'assessment': assessment_name,
                 'lens_version': f'Lens_v{__version__}'}
 
