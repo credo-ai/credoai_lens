@@ -129,8 +129,8 @@ def get_aligned_metrics(ai_solution_id, version='latest'):
     metric_dict = {m: defaultdict(dict) for m in models}
     metrics = spec['metrics']
     for metric in metrics:
-        bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        metric_dict[metric['model_id']][metric['type']] = bounds
+        #bounds = (metric['lower_threshold'], metric['upper_threshold'])
+        metric_dict[metric['model_id']][metric['type']] = {0, 1}
     return metric_dict
 
 
