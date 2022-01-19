@@ -130,7 +130,13 @@ def get_aligned_metrics(ai_solution_id, version='latest'):
     metrics = spec['metrics']
     for metric in metrics:
         #bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        metric_dict[metric['model_id']][metric['type']] = {0, 1}
+        # applies to all models
+        if 'model_id' not in metric:
+            for metric_list in metric_dict.values():
+                metric_list[metric['type']] = {0,1}
+        # otherwise only applies to one model
+        else:
+            metric_dict[metric['model_id']][metric['type']] = {0, 1}
     return metric_dict
 
 
