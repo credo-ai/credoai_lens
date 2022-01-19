@@ -15,8 +15,9 @@ class FairnessBaseAssessment(CredoAssessment):
     
     Runs the FairnessModule.
     
+    Requirements
+    ------------
     Requires that the CredoModel defines either `pred_fun` or `prob_fun` (or both).
-    
     - `pred_fun` should return the model's predictions.
     - `prob_fun` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
        Only applicable in classification scenarios.
