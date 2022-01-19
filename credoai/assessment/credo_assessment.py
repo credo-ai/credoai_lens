@@ -26,6 +26,7 @@ class CredoAssessment(ABC):
         self.name = name
         self.module = module
         self.initialized_module = None
+        self.report = None
         if requirements is None:
             requirements = AssessmentRequirements()
         self.requirements = requirements
@@ -68,6 +69,15 @@ class CredoAssessment(ABC):
         return results
     
     def create_report(self, filename=None):
+        """Creates a report
+        
+        Does nothing if not overwritten
+        
+        Parameters
+        ----------
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
+        """   
         pass
     
     def _standardize_results(self, results):

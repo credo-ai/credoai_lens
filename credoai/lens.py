@@ -4,11 +4,13 @@ from credoai.utils.common import ValidationError
 from credoai.utils.credo_api_utils import get_aligned_metrics, patch_metrics
 from credoai import __version__
 from dataclasses import dataclass
-from os import makedirs, path
+from os import listdir, makedirs, path
 from sklearn.utils import check_consistent_length
 from typing import List, Union
 
 import credoai.integration as ci
+import shutil
+import tempfile
 
 BASE_CONFIGS = ('sklearn')
 
@@ -280,54 +282,99 @@ class Lens:
             if export:
                 prepared_results = self._prepare_results(assessment, **kwargs)
                 if type(export) == str:
-                    self._export_to_file(prepared_results, export)
+                    self._export_results_to_file(prepared_results, export)
                 else:
-                    self._export_to_credo(prepared_results, to_model=True)
+                    self._export_results_to_credo(prepared_results, to_model=True)
         return assessment_results
     
     def create_reports(self, export=False, 
-                       report_directory=None, report_kwargs=None):
-        assessment_kwargs = report_kwargs or {}
+                       report_directory=None, 
+                       report_kwargs=None):
+        """Create reports for assessments that have reports
+
+        Parameters
+        ----------
+        export : bool or str, optional
+            If a boolean, and true, export to Credo AI Governance Platform.
+            If a string, reports to output_directory indicated by the string.
+            If False, do not export, by default False
+        report_kwargs : dict, optional
+            key word arguments passed to each assessments `create_report`
+            Each key must correspond to  an assessment name (CredoAssessment.name). 
+            The assessments loaded by an instance of Lens can be accessed by calling
+            `get_assessments`. 
+
+        Returns
+        -------
+        reports
+        """      
+        report_kwargs = report_kwargs or {}
         reports = {}
         for name, assessment in self.assessments.items():
-            kwargs = assessment_kwargs.get(name, {})
-            if report_directory:
-                names = self._get_names()
-                report_name = f"model-{names['model']}_data-{names['data']}_assessment-{name}"
-                filename = path.join(report_directory, report_name)
-                kwargs['filename'] = filename
+            kwargs = report_kwargs.get(name, {})
             reports[name] = assessment.create_report(**kwargs)
+        if export:
+            self._export_reports(export)
         return reports
+
+    def _export_reports(self, export=False):
+        tmpdir = tempfile.mkdtemp()
+        report_records = []
+        for name, assessment in self.assessments.items():
+            report = assessment.report
+            # get filename
+            meta = self._gather_meta(name)
+            names = self._get_names()
+            report_name = f"model-{names['model']}_data-{names['data']}_assessment-{name}"
+            filename = path.join(tmpdir, report_name)
+            # create report recodr
+            report.export_report(filename)
+            if export is True:
+                report_record = ci.Figure(
+                    name=f"{report_name}.pdf", 
+                    figure=f"{filename}.pdf", 
+                    **meta)
+                self._export_report_to_credo(report_record)
+        if type(export) == str:
+            # move to final location
+            allfiles = listdir(tmpdir)
+            for f in allfiles:
+                shutil.move(path.join(tmpdir, f), 
+                            path.join(export, f))
+        shutil.rmtree(tmpdir)
 
     def get_spec_from_gov(self):
         spec = {}
-        metrics = self._get_aligned_metrics()
-        spec['metrics'] = list(metrics.keys())
-        spec['bounds'] = metrics
+        if self.gov.ai_solution_id != None:
+            metrics = self._get_aligned_metrics()
+            spec['metrics'] = list(metrics.keys())
+            spec['bounds'] = metrics
         return spec
 
     def get_assessments(self):
         return self.assessments
     
-    def _to_record(self, results):
-        return ci.record_metrics(results)
-            
-    def _export_to_credo(self, results, to_model=True):
-        metric_records = self._to_record(results)
+    def _export_results_to_credo(self, results, to_model=True):
+        metric_records = ci.record_metrics(results)
         destination_id = self.gov.model_id if to_model else self.gov.data_id
         ci.export_to_credo(metric_records, destination_id)
     
-    def _export_to_file(self, results, output_directory):
+    def _export_results_to_file(self, results, output_directory):
         if not path.exists(output_directory):
             makedirs(output_directory, exist_ok=False)
-        metric_records = self._to_record(results)
+        metric_records = ci.record_metrics(results)
         assessment_name = results.assessment.unique()[0]
         output_file = path.join(output_directory, f'{assessment_name}.json')
         ci.export_to_file(metric_records, output_file)
 
+    def _export_report_to_credo(self, report_record, to_model=True):
+        destination_id = self.gov.model_id if to_model else self.gov.data_id
+        ci.export_figure_to_credo(report_record, destination_id)
+
     def _gather_meta(self, assessment_name):
         names = self._get_names()
-        return {'model_label': names['model'],
+        return {'process': f'Lens-{assessment_name}',
+                'model_label': names['model'],
                 'dataset_label': names['data'],
                 'user_id': self.user_id,
                 'assessment': assessment_name,

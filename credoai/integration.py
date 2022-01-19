@@ -3,7 +3,7 @@ from datetime import datetime
 from json_api_doc import serialize
 from credoai.utils.common import (NumpyEncoder, wrap_list, 
                                   ValidationError, dict_hash)
-from credoai.utils.credo_api_utils import patch_metrics
+from credoai.utils.credo_api_utils import patch_metrics, post_figure
 
 import base64
 import credoai
@@ -45,8 +45,7 @@ class Metric(Record):
     """
     A metric record
 
-    Records a metric value. Added to a metric table for the relevant
-    control.
+    Record of a metric 
 
     Parameters
     ----------
@@ -55,12 +54,11 @@ class Metric(Record):
         a list of standard metric families.
     value : float
         metric value
-    model_label : string
-        label of model version. Could indicate a specific model class,
-        e.g., logistic_regression_1.0, or simply a version if the type
-        of model is obvious (e.g., 1.2)
-    dataset_label : string
-        label of dataset
+    name : string, optional
+        Specific identifier for particular metric. Default "metric"
+    process : string, optional
+        String reflecting the process used to create the metric. E.g.,
+        name of a particular Lens assessment, or link to code.
     metadata : dict, optional
         Arbitrary keyword arguments to append to metric as metadata
 
@@ -71,25 +69,32 @@ class Metric(Record):
     def __init__(self,
             metric_type,
             value,
-            dataset_label,
+            name = 'metric',
+            process = None,
             **metadata):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
-        self.dataset_label = dataset_label
-        self.config_hash = dict_hash({k:v for k,v in self.__dict__.items() 
-                                      if k!='value'})
+        self.name = name
+        self.process = process
+        self.config_hash = self._generate_config()
     
     def _struct(self):
         return {
-            'metric_id': self.config_hash,
+            'key': self.config_hash,
             'type': self.metric_type,
+            'name': self.name,
             'value': self.value,
-            'dataset': self.dataset_label,
-            'metadata': {'creation_time': self.creation_time,
-                        **self.metadata},
+            'process': self.process,
+            'value_updated_at': self.creation_time,
+            'metadata': self.metadata,
             '$type': 'model_metrics'
         }
+    
+    def _generate_config(self):
+        ignored = ['value', 'creation_time']
+        return dict_hash({k:v for k,v in self.__dict__.items() 
+                                      if k not in ignored})
     
 class Figure(Record):
     """
@@ -166,7 +171,7 @@ class MultiRecord(Record):
         return data
     
 
-def record_metric(metric_type, value, model_label, dataset_label, **metadata):
+def record_metric(metric_type, value,  **metadata):
     """Convenience function to create a metric json object
 
     Parameters
@@ -176,12 +181,6 @@ def record_metric(metric_type, value, model_label, dataset_label, **metadata):
         a list of standard metric families.
     value : float
         metric value
-    model_label : string
-        label of model version. Could indicate a specific model class,
-        e.g., logistic_regression_1.0, or simply a version if the type
-        of model is obvious (e.g., 1.2)
-    dataset_label : string
-        label of dataset
     metadata : dict, optional
         Arbitrary keyword arguments to append to metric as metadata
 
@@ -191,8 +190,8 @@ def record_metric(metric_type, value, model_label, dataset_label, **metadata):
     """    
 
     return Metric(metric_type, 
-                  value, model_label,
-                  dataset_label,  **metadata)
+                  value, 
+                  **metadata)
 
 def record_metrics(metric_df):
     """
@@ -213,29 +212,22 @@ def record_metrics(metric_df):
         records.append(record_metric(metric_type=metric, **row))
     return MultiRecord(records)
 
-def record_metrics_from_dict(metrics, model_label, dataset_label, **metadata):
+def record_metrics_from_dict(metrics, **metadata):
     """
     Function to create a list of metric json objects from dictionary
     
-    All metrics will have the same metadata (including model_label
-    and dataset_label) using this function. To assign unique metadata
-    to each metric use `credoai.integration.record_metrics`
+    All metrics will have the same metadata using this function. 
+    To assign unique metadata to each metric use 
+    `credoai.integration.record_metrics`
     
     Parameters
     ------------
     metrics : dict
         dictionary of metric_type : value pairs
-    model_label : string
-        label of model version. Could indicate a specific model class,
-        e.g., logistic_regression_1.0, or simply a version if the type
-        of model is obvious (e.g., 1.2)
-    dataset_label : string
-        label of dataset
     metadata : dict, optional
         Arbitrary keyword arguments to append to metric as metadata
     """
     metric_df = pd.Series(metrics, name='value').to_frame()
-    metadata.update({'model_label': model_label, 'dataset_label': dataset_label})
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
     
@@ -244,7 +236,7 @@ def export_to_file(multi_record, filename):
 
     Parameters
     ----------
-    record : credo.integration.MutliRecord
+    multi_record : credo.integration.MutliRecord
         A MutliRecord object
     filename : str
         file to write Record json object
@@ -258,10 +250,23 @@ def export_to_credo(multi_record, credo_id):
 
     Parameters
     ----------
-    record : credo.integration.MutliRecord
+    multi_record : credo.integration.MutliRecord
         A MutliRecord object
     credo_id : str
         The destination id for the model or data on 
         Credo AI's Governance platform.
     """    
     patch_metrics(credo_id, multi_record)
+
+def export_figure_to_credo(figure_record, credo_id):
+    """Sends record to Credo AI's Governance Platform
+
+    Parameters
+    ----------
+    figure_record : credo.integration.Figure
+        A Figure record object
+    credo_id : str
+        The destination id for the model or data on 
+        Credo AI's Governance platform.
+    """    
+    post_figure(credo_id, figure_record)

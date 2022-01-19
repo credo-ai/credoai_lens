@@ -83,17 +83,17 @@ class FairnessBaseAssessment(CredoAssessment):
 
         Parameters
         ----------
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
         include_fairness : bool, optional
             Whether to include fairness plots, by default True
         include_disaggregation : bool, optional
             Whether to include performance plots broken down by
             subgroup. Overall performance are always reported, by default True
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
         """        
         if type_of_target(self.initialized_module.y_true) == 'binary':
-            report = FairnessReport(self.initialized_module)
-            return report.create_report(filename, include_fairness, include_disaggregation)
+            self.report = FairnessReport(self.initialized_module)
+            return self.report.create_report(filename, include_fairness, include_disaggregation)
             
 class NLPEmbeddingBiasAssessment(CredoAssessment):
     """
