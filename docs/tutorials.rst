@@ -6,6 +6,7 @@ Tutorials
    :maxdepth: 1
 
    notebooks/quickstart
+   notebooks/governance_integration
    notebooks/lens_customization
    notebooks/integration_demo
 
