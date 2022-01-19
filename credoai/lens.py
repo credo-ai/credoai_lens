@@ -373,10 +373,10 @@ class Lens:
 
     def _gather_meta(self, assessment_name):
         names = self._get_names()
-        return {'model_label': names['model'],
+        return {'process': f'Lens-{assessment_name}',
+                'model_label': names['model'],
                 'dataset_label': names['data'],
                 'user_id': self.user_id,
-                'process': f'Lens-{assessment_name}',
                 'assessment': assessment_name,
                 'lens_version': f'Lens_v{__version__}'}
 
