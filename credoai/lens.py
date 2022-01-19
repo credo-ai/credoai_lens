@@ -378,7 +378,7 @@ class Lens:
                 'dataset_label': names['data'],
                 'user_id': self.user_id,
                 'assessment': assessment_name,
-                'lens_version': f'Lens_v{__version__}'}
+                'lens_version': f'Lens-v{__version__}'}
 
     def _get_aligned_metrics(self):
         """Get aligned metrics from credoai.s Governance Platform
@@ -389,9 +389,11 @@ class Lens:
             The aligned metrics for one Model contained in the AI solution.
             Format: {"Metric1": (lower_bound, upper_bound), ...}
         """
-        aligned_metrics = get_aligned_metrics(self.gov.ai_solution_id)[
-            self.gov.model_id]
-        return aligned_metrics
+        aligned_metrics = get_aligned_metrics(self.gov.ai_solution_id)
+        if self.gov.model_id in aligned_metrics:
+            return aligned_metrics[self.gov.model_id]
+        else:
+            return {}
 
     def _init_assessments(self):
         """Initializes modules in each assessment"""

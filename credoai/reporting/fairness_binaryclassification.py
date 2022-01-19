@@ -1,18 +1,18 @@
+from credoai.reporting.credo_report import CredoReport
 from credoai.reporting.plot_utils import (credo_classification_palette, get_axis_size)
 from numpy import pi
 import matplotlib as mpl
-import matplotlib.backends.backend_pdf
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import sklearn.metrics as sk_metrics
 
-class FairnessReport:
+class FairnessReport(CredoReport):
     def __init__(self, module, infographic_shape=(3,5), size=5):
+        super().__init__()
         self.module = module
         self.size = size
         self.infographic_shape = infographic_shape
-        self.figs = []
     
     def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
         """Creates a fairness report for binary classification model
@@ -45,12 +45,6 @@ class FairnessReport:
         if filename is not None:
             self.export_report(filename)
         return self.figs
-    
-    def export_report(self, filename):
-        pdf = matplotlib.backends.backend_pdf.PdfPages(f"{filename}.pdf")
-        for fig in self.figs: ## will open an empty extra figure :(
-            pdf.savefig(fig, bbox_inches='tight', pad_inches=1)
-        pdf.close()
 
     def plot_fairness(self):
         """Plots fairness for binary classification
