@@ -45,8 +45,7 @@ class Metric(Record):
     """
     A metric record
 
-    Records a metric value. Added to a metric table for the relevant
-    control.
+    Record of a metric 
 
     Parameters
     ----------
@@ -55,8 +54,11 @@ class Metric(Record):
         a list of standard metric families.
     value : float
         metric value
-    dataset_variant : string, optional
-        id of dataset variant on CredoAI Platform 
+    name : string, optional
+        Specific identifier for particular metric. Default "metric"
+    process : string, optional
+        String reflecting the process used to create the metric. E.g.,
+        name of a particular Lens assessment, or link to code.
     metadata : dict, optional
         Arbitrary keyword arguments to append to metric as metadata
 
@@ -67,25 +69,32 @@ class Metric(Record):
     def __init__(self,
             metric_type,
             value,
-            dataset_variant = None,
+            name = 'metric',
+            process = None,
             **metadata):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
-        self.dataset_variant = dataset_variant
-        self.config_hash = dict_hash({k:v for k,v in self.__dict__.items() 
-                                      if k!='value'})
+        self.name = name
+        self.process = process
+        self.config_hash = self._generate_config()
     
     def _struct(self):
         return {
             'key': self.config_hash,
             'type': self.metric_type,
+            'name': self.name,
             'value': self.value,
-            'dataset_variant_id': self.dataset_variant,
-            'metadata': {'creation_time': self.creation_time,
-                        **self.metadata},
+            'process': self.process,
+            'value_updated_at': self.creation_time,
+            'metadata': self.metadata,
             '$type': 'model_metrics'
         }
+    
+    def _generate_config(self):
+        ignored = ['value', 'creation_time']
+        return dict_hash({k:v for k,v in self.__dict__.items() 
+                                      if k not in ignored})
     
 class Figure(Record):
     """
@@ -162,7 +171,7 @@ class MultiRecord(Record):
         return data
     
 
-def record_metric(metric_type, value, dataset_variant=None, **metadata):
+def record_metric(metric_type, value,  **metadata):
     """Convenience function to create a metric json object
 
     Parameters
@@ -172,8 +181,6 @@ def record_metric(metric_type, value, dataset_variant=None, **metadata):
         a list of standard metric families.
     value : float
         metric value
-    dataset_variant : string, optional
-        id of dataset variant on CredoAI Platform 
     metadata : dict, optional
         Arbitrary keyword arguments to append to metric as metadata
 
@@ -184,7 +191,7 @@ def record_metric(metric_type, value, dataset_variant=None, **metadata):
 
     return Metric(metric_type, 
                   value, 
-                  dataset_variant,  **metadata)
+                  **metadata)
 
 def record_metrics(metric_df):
     """
@@ -205,25 +212,22 @@ def record_metrics(metric_df):
         records.append(record_metric(metric_type=metric, **row))
     return MultiRecord(records)
 
-def record_metrics_from_dict(metrics, dataset_variant=None, **metadata):
+def record_metrics_from_dict(metrics, **metadata):
     """
     Function to create a list of metric json objects from dictionary
     
-    All metrics will have the same metadata (including
-    dataset_variant) using this function. To assign unique metadata
-    to each metric use `credoai.integration.record_metrics`
+    All metrics will have the same metadata using this function. 
+    To assign unique metadata to each metric use 
+    `credoai.integration.record_metrics`
     
     Parameters
     ------------
     metrics : dict
         dictionary of metric_type : value pairs
-    dataset_variant : string
-        id of dataset variant on CredoAI Platform 
     metadata : dict, optional
         Arbitrary keyword arguments to append to metric as metadata
     """
     metric_df = pd.Series(metrics, name='value').to_frame()
-    metadata.update({'model_label': model_label, 'dataset_variant': dataset_variant})
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
     
