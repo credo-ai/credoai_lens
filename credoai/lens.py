@@ -412,7 +412,7 @@ class Lens:
     
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment.name)
-        return assessment.prepare_results(metadata, **kwargs)
+        return assessment.prepare_results(metadata, **kwargs).fillna('NA')
 
     def _select_assessments(self):
         return list(get_usable_assessments(self.model, self.data).values())
