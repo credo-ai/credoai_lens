@@ -322,12 +322,14 @@ class Lens:
         report_records = []
         for name, assessment in self.assessments.items():
             report = assessment.report
+            if report is None:
+                continue
             # get filename
             meta = self._gather_meta(name)
             names = self._get_names()
             report_name = f"model-{names['model']}_data-{names['data']}_assessment-{name}"
             filename = path.join(tmpdir, report_name)
-            # create report recodr
+            # create report record
             report.export_report(filename)
             if export is True:
                 report_record = ci.Figure(
