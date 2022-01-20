@@ -299,7 +299,7 @@ class FairnessModule(CredoModule):
             Dataframe with fairness metrics, along with acceptability and risk
             as columns
         """
-        fairness_results = self._get_fairness_metrics(method).to_frame('value')
+        fairness_results = self._get_fairness_metrics(method)
         if calculate_risk:
             risks = []
             for name, value in fairness_results['value'].items():
@@ -506,14 +506,19 @@ class FairnessModule(CredoModule):
                                    y_prob=self.y_prob,
                                    sensitive_features=self.sensitive_features,
                                    method=method)
-        results = pd.Series(results, dtype=float)
+        results = pd.Series(results, dtype=float, name='value')
         # add parity results
         parity_results = pd.Series(dtype=float)
         for metric_frame in self.metric_frames.values():
             parity_results = pd.concat(
                 [parity_results, metric_frame.difference(method=method)])
-        results = pd.concat([results, parity_results]).convert_dtypes()
-        results.name = 'metric'
+        parity_results.name = 'value'
+
+        results = pd.concat([results, parity_results]).convert_dtypes().to_frame()
+        results.index.name = 'metric_type'
+        # add kind
+        results['kind'] = ['fairness'] * len(results)
+        results.loc[results.index[-len(parity_results):], 'kind'] = 'parity'
         return results
 
     def _get_disaggregated_metrics(self, melt=False):
@@ -529,24 +534,16 @@ class FairnessModule(CredoModule):
         pandas.DataFrame
             The disaggregated performance metrics
         """
-        if melt:
-            disaggregated_df = pd.Series(dtype=float)
-        else:
-            disaggregated_df = pd.DataFrame()
+        disaggregated_df = pd.DataFrame()
         for metric_frame in self.metric_frames.values():
             df = metric_frame.by_group.copy().convert_dtypes()
             df.loc['overall', :] = metric_frame.overall
             if melt:
-                melted_df = df.reset_index().melt(id_vars=df.index.name)
-                # create index
-                index = melted_df.loc[:, ['variable', df.index.name]] \
-                    .astype(str) \
-                    .agg(f'_{df.index.name}-'.join, axis=1)
-                # create series
-                df = pd.Series(melted_df['value'].tolist(), index=index)
-                disaggregated_df = pd.concat([disaggregated_df, df])
-            else:
-                disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
+                df = df.reset_index()\
+                    .melt(id_vars=df.index.name, var_name='metric_type')\
+                    .set_index('metric_type')
+                df['kind'] = 'disaggregated'
+            disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
         return disaggregated_df
     
     def _setup_metric_frames(self):
