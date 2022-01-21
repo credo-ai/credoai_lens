@@ -32,7 +32,7 @@ class FairnessBaseAssessment(CredoAssessment):
             )
         )
     
-    def init_module(self, *, model, data, metrics, bounds=None):
+    def init_module(self, *, model, data, metrics):
         """ Initializes the assessment module
 
         Transforms the spec, CredoModel and CredoData into the proper form
@@ -57,7 +57,6 @@ class FairnessBaseAssessment(CredoAssessment):
             self.initialized_module = self.module(y_pred, y)
 
         """
-        bounds = bounds or {}
         try:
             y_pred = model.pred_fun(data.X)
         except AttributeError:
@@ -72,9 +71,7 @@ class FairnessBaseAssessment(CredoAssessment):
             data.sensitive_features,
             data.y,
             y_pred,
-            y_prob,
-            bounds,
-            bounds)
+            y_prob)
         self.initialized_module = module
     
     def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):

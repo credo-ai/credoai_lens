@@ -5,6 +5,7 @@
    :hidden:
 
    Home page <self>
+   Setup <setup>
    Jupyter tutorials <tutorials>
    API reference <_autosummary/credoai>
 
@@ -14,6 +15,11 @@ Lens by Credo AI
 Lens is Credo AI's AI Assessment Framework. It supports assessment
 of AI systems, with a focus on responsible AI assessment. It also
 streamlines integration with the Credo AI governance platform.
+
+Check on the `quickstart tutorial <https://credoai-lens.readthedocs.io/en/latest/notebooks/quickstart.html>`_
+to get started.
+
+If you are connecting to the Credo AI Governance platform, see the `governance integration tutorial <https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html>`_.
 
 Overview
 --------
