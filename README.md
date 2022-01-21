@@ -58,8 +58,9 @@ conda env create --file environment.yml
 
 ## Getting Started
 
-To get started, see the quickstart demo: `docs/notebooks/quickstart.ipynb`.
-For a more detailed example, see `docs/notebooks/lens_demos/binaryclassification.ipynb`
+To get started, see the [quickstart demo](https://credoai-lens.readthedocs.io/en/latest/notebooks/quickstart.html).
+
+If you are using the Credo AI Governance Platform, also check out the [governance integration demo](https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html).
 
 ## Documentation
 
