@@ -377,7 +377,7 @@ class NLPGeneratorAnalyzer(CredoModule):
                 if save_dir:
                     dtstr = datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
                     fpath = os.path.join(save_dir, "lens_histogram_" + assessment_attribute + "_" + dtstr + ".png")
-                    plt.savefig(fpath)
+                    plt.savefig(fpath, bbox_inches='tight')
 
             # Generate assessment attribute distribution parameters plots
             fig = plt.figure(figsize=(8, 4))
@@ -396,7 +396,7 @@ class NLPGeneratorAnalyzer(CredoModule):
             plt.legend(bbox_to_anchor=(1.25, 0.4), loc="center right", frameon=False)
             if save_dir:
                 fpath = os.path.join(save_dir, "lens_barchart_" + dtstr + ".png")
-                plt.savefig(fpath)
+                plt.savefig(fpath, bbox_inches='tight')
 
             # Print the summary table
             stable = self.prepare_results()
