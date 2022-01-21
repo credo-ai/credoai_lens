@@ -3,7 +3,8 @@ jupyterlab
 xlrd
 pytest>=6.2.5
 
-# required for modules.model_assessments.fairness_nlp.NLPGeneratorAnalyzer
+# required for modules.model_assessments.nlp_generator.NLPGeneratorAnalyzer
 joblib>=0.14.1
 tensorflow_hub>=0.12.0
 transformers>=4.0.0
+google-api-python-client>=1.12.8
