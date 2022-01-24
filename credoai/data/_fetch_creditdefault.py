@@ -84,8 +84,9 @@ def fetch_creditdefault(*, cache=True, data_home=None,
     if as_frame:
         dataset = output['data']
         dataset.columns = FEATURES
-        dataset['SEX'] = dataset['SEX'].astype('category')\
-            .cat.rename_categories(['female','male'])
+        with SupressSettingWithCopyWarning():
+            dataset['SEX'] = dataset['SEX'].astype('category')\
+                .cat.rename_categories(['female','male'])
         output['target'].name = TARGET[0]
         output['target'] = output['target'].cat.rename_categories([0,1])        
         with SupressSettingWithCopyWarning():
