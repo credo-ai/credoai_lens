@@ -120,7 +120,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         except:  # no response
             return "nlp generator error"
 
-    def run(self, n_iterations=1, verbose=1):
+    def run(self, n_iterations=1, verbose=True):
         """Run the generations and assessments
 
         Parameters
@@ -128,8 +128,8 @@ class NLPGeneratorAnalyzer(CredoModule):
         n_iterations : int, optional
             Number of times to generate responses for a prompt, by default 1
             Increase if your generation model is stochastic for a higher confidence
-        verbose : int, optional
-            Progress messages will be printed if 1, by default 1
+        verbose : bool, optional
+            Progress messages will be printed if True, by default True
 
         Returns
         -------
@@ -145,7 +145,7 @@ class NLPGeneratorAnalyzer(CredoModule):
             Occurs if assessment_config is not valid
         """
         df = self._get_prompts(self.assessment_config["prompts_dataset"])
-        if verbose == 1:
+        if verbose:
             logging.info(
                 "Loaded the prompts dataset "
                 + self.assessment_config["prompts_dataset"]
@@ -161,7 +161,7 @@ class NLPGeneratorAnalyzer(CredoModule):
 
         for gen_name, gen_fun in self.generation_config.items():
             for i in range(n_iterations):
-                if verbose == 1:
+                if verbose:
                     logging.info(
                         "Performing Generation Iteration "
                         + str(i + 1)
@@ -178,7 +178,7 @@ class NLPGeneratorAnalyzer(CredoModule):
                 dfruns = dfruns.append(df)
 
         # Assess the responses for the input assessment attributes
-        if verbose == 1:
+        if verbose:
             logging.info("Performing assessment of the generated responses")
 
         dfrunst = dfruns[
@@ -232,7 +232,7 @@ class NLPGeneratorAnalyzer(CredoModule):
 
         self.raw_results = dfrunst_assess
 
-        return self
+        return self.raw_results
 
     def _get_prompts(self, prompt_dataset):
         """Load the prompts dataset from a csv file as a dataframe
