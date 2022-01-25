@@ -1,5 +1,7 @@
 from credoai.reporting.credo_report import CredoReport
-from credoai.reporting.plot_utils import (credo_classification_palette, get_axis_size)
+from credoai.reporting.plot_utils import (credo_classification_palette, 
+                                          format_metric, get_axis_size,
+                                          DEFAULT_STYLE)
 from numpy import pi
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -57,9 +59,20 @@ class FairnessReport(CredoReport):
         Returns
         -------
         matplotlib figure
-        """        
-        f, ax = plt.subplots(1,1, figsize=(self.size, self.size))
-        self._plot_disaggregated_metrics(ax, self.size)
+        """
+        plot_disaggregated = False
+        if self.module.metric_frames != {}:
+            plot_disaggregated = True
+        n_plots = 1+plot_disaggregated
+        with sns.plotting_context('talk', font_scale=self.size/7):
+            f, ax = plt.subplots(1, n_plots, figsize=(self.size*n_plots, 
+                                                       self.size))
+        plt.subplots_adjust(wspace=0.5)
+        axes = f.get_axes()
+        # plot fairness
+        self._plot_fairness_metrics(axes[0], self.size)
+        if plot_disaggregated:
+            self._plot_disaggregated_metrics(axes[1], self.size)
         return f
     
     def plot_performance(self, y_true, y_pred, label, **grid_kwargs):
@@ -218,25 +231,51 @@ class FairnessReport(CredoReport):
             ax.text(x, y, s, transform = ax.transAxes, ha='center', **kwargs)
         return ax
     
+    def _plot_fairness_metrics(self, ax, size):
+        # create df
+        df = self.module.get_fairness_results()
+        # add parity to names
+        df.index = [i+'_parity' if row['kind'] == 'parity' else i
+                    for i, row in df.iterrows()]
+        df = df['value']
+        df.index.name = 'Fairness Metric'
+        df.name = 'Value'
+        # plot
+        sns.barplot(data=df.reset_index(), 
+                     y='Fairness Metric', 
+                     x='Value',
+                     edgecolor='w',
+                     color = DEFAULT_STYLE['color'],
+                     ax=ax)
+        self._style_barplot(ax)
+        
     def _plot_disaggregated_metrics(self, ax, size):
         # create df
         sensitive_feature = self.module.sensitive_features.name
         df =  self.module.get_disaggregated_results(False) \
                     .reset_index() \
                     .melt(id_vars=sensitive_feature,
-                          var_name='Metric',
+                          var_name='Performance Metric',
                           value_name='Value')
         # plot
         num_cats = len(df[sensitive_feature].unique())
         palette = sns.color_palette('Purples', num_cats)
         palette[-1] = [.4,.4,.4]
         sns.barplot(data=df, 
-                     y='Metric', 
+                     y='Performance Metric', 
                      x='Value', 
                      hue=sensitive_feature,
                      palette=palette,
                      edgecolor='w',
                      ax=ax)
-
-        sns.despine()
+        self._style_barplot(ax)
         plt.legend(bbox_to_anchor=(1.01, 1.02))
+        
+    def _style_barplot(self, ax):
+        sns.despine()
+        ax.set_xlabel(ax.get_xlabel(), fontweight='bold')
+        ax.set_ylabel(ax.get_xlabel(), fontweight='bold')
+        # format metric labels
+        ax.set_yticklabels([format_metric(label.get_text()) 
+                            for label in ax.get_yticklabels()])
+    

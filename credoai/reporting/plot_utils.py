@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import textwrap
 
 DEFAULT_STYLE = {'lw': 3,
                  'color': '#4937c0'}
@@ -26,7 +27,9 @@ def credo_paired_palette(n_colors):
     credo_colors = ['#a6cee3', '#1f78b4', '#ee1d7a', '#ac0047', '#cab2d6', '#6a3d9a',  '#fdbf6f', '#ff7f00']
     return credo_colors[:n_colors]
 
-
+def format_metric(metric, wrap_length=15):
+    return textwrap.fill(metric.replace('_', ' '), wrap_length) 
+    
 def get_axis_size(ax, fig):
     bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
     return [bbox.width, bbox.height]
