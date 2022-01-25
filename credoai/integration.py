@@ -69,7 +69,7 @@ class Metric(Record):
     def __init__(self,
             metric_type,
             value,
-            name = 'metric',
+            name = 'DEFAULT',
             process = None,
             **metadata):
         super().__init__('metrics', **metadata)

@@ -11,7 +11,7 @@ CATEGORICAL_FEATURES = ['EDUCATION', 'MARRIAGE','PAY_1', 'PAY_2', 'PAY_3', 'PAY_
 TARGET = ['default payment next month']
 
 def fetch_creditdefault(*, cache=True, data_home=None,
-                as_frame=False, return_X_y=False):
+                as_frame=True, return_X_y=False):
     """Load the UCI Adult dataset (binary classification).
     Download it if necessary.
     ==============   ==============
@@ -84,6 +84,9 @@ def fetch_creditdefault(*, cache=True, data_home=None,
     if as_frame:
         dataset = output['data']
         dataset.columns = FEATURES
+        with SupressSettingWithCopyWarning():
+            dataset['SEX'] = dataset['SEX'].astype('category')\
+                .cat.rename_categories(['female','male'])
         output['target'].name = TARGET[0]
         output['target'] = output['target'].cat.rename_categories([0,1])        
         with SupressSettingWithCopyWarning():

@@ -12,7 +12,7 @@ import credoai.integration as ci
 import shutil
 import tempfile
 
-BASE_CONFIGS = ('sklearn')
+BASE_CONFIGS = ('sklearn', 'xgboost')
 
 # *********************************
 # Overview
@@ -64,11 +64,14 @@ class CredoModel:
     An assessment's required CredoModel functionality can be accessed
     using the `get_requirements` function of an assessment instance.
 
-    The simplest way to interact with CredoModel is to pass a model_config:
-    a dictionary where the key/value pairs reflect functions. 
+    The most generic way to interact with CredoModel is to pass a model_config:
+    a dictionary where the key/value pairs reflect functions. This method is
+    agnostic to framework. As long as the functions serve the needs of the
+    assessments, they'll work.
+ 
     E.g. {'prob_fun': model.predict}
 
-    The model_config can also be inferred automatically, well-known packages
+    The model_config can also be inferred automatically, from well-known packages
     (call CredoModel.supported_frameworks for a list.) If supported, a model
     can be passed directly to CredoModel's "model" argument and a model_config
     will be inferred.
@@ -121,18 +124,27 @@ class CredoModel:
                 self.__dict__[key] = val
 
     def _init_config(self, model):
+        config = {}
         framework = self._get_model_type(model)
         if framework == 'sklearn':
             config = self._init_sklearn(model)
+        elif framework == 'xgboost':
+            config = self._init_xgboost(model)
         self.config = config
 
     def _init_sklearn(self, model):
+        return self._sklearn_style_config(model)
+    
+    def _init_xgboost(self, model):
+        return self._sklearn_style_config(model)
+    
+    def _sklearn_style_config(self, model):
         config = {
             'pred_fun': model.predict,
             'prob_fun': model.predict_proba
         }
         return config
-
+    
     def _get_model_type(self, model):
         try:
             framework = model.__module__.split('.')[0]
