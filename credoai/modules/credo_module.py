@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from credoai.utils import NotRunError
 
 class CredoModule(ABC):
     """
@@ -11,7 +12,14 @@ class CredoModule(ABC):
 
     @abstractmethod
     def run(self):
-        pass
+        """
+        Creates self.results object. 
+        
+        Returns
+        -------
+        self
+        """
+        return self
     
     @abstractmethod
     def prepare_results(self):
@@ -29,7 +37,7 @@ class CredoModule(ABC):
             # prepare results code
             pass
         else:
-            raise Exception(
+            raise NotRunError(
                 "Results not created yet. Call 'run' with appropriate arguments before preparing results"
             )
 
@@ -37,7 +45,7 @@ class CredoModule(ABC):
         if self.results is not None:
             return self.results
         else:
-            raise Exception(
+            raise NotRunError(
                 "Results not created yet. Call 'run' to create results"
             )
         

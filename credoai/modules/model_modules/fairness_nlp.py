@@ -1,7 +1,7 @@
 import numpy as np
 
 from credoai.modules.credo_module import CredoModule
-from credoai.utils.common import wrap_list
+from credoai.utils.common import NotRunError, wrap_list
 from ._nlp_constants import (
     COMPETENCE, FAMILY, STEM, OUTSIDER,
     MALE, FEMALE
@@ -79,7 +79,7 @@ class NLPEmbeddingAnalyzer(CredoModule):
         if self.results is not None:
             return self.results
         else:
-            raise Exception(
+            raise NotRunError(
                 "Results not created yet. Call 'run' to create results"
             )
     

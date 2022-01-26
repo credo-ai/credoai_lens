@@ -9,7 +9,7 @@ from absl import logging
 from credoai.data.utils import get_data_path
 from credoai.modules.credo_module import CredoModule
 from credoai.reporting import plot_utils
-from credoai.utils.common import wrap_list
+from credoai.utils.common import NotRunError, wrap_list
 from datetime import datetime
 from googleapiclient import discovery
 from time import sleep
@@ -93,7 +93,7 @@ class NLPGeneratorAnalyzer(CredoModule):
             ]
             return results
         else:
-            raise Exception(
+            raise NotRunError(
                 "Results not created yet. Call 'run' with appropriate arguments before preparing results"
             )
 

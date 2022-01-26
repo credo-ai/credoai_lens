@@ -7,6 +7,9 @@ import requests
 from pathlib import Path
 from typing import Dict, Any
 
+class NotRunError(Exception):
+    pass
+
 class ValidationError(Exception):
     pass
 

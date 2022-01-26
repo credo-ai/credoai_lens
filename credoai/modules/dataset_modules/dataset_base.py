@@ -1,4 +1,5 @@
 from credoai.modules.credo_module import CredoModule
+from credoai.utils.common import NotRunError
 from credoai.utils.model_utils import get_gradient_boost_model
 from itertools import combinations
 from sklearn.pipeline import Pipeline
@@ -31,7 +32,7 @@ class DatasetModule(CredoModule):
         if self.results is not None:
             return self.results
         else:
-            raise Exception(
+            raise NotRunError(
                 "Results not created yet. Call 'run' to create results"
             )
     

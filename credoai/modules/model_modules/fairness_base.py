@@ -2,7 +2,7 @@ from credoai.utils.metric_constants import (
     BINARY_CLASSIFICATION_METRICS, FAIRNESS_METRICS, 
     PROBABILITY_METRICS, METRIC_EQUIVALENTS
 )
-from credoai.utils.common import to_array
+from credoai.utils.common import to_array, NotRunError
 from credoai.utils.metric_utils import standardize_metric_name 
 from credoai.modules.credo_module import CredoModule
 from fairlearn.metrics import MetricFrame
@@ -123,7 +123,7 @@ class FairnessModule(CredoModule):
                 results = results.filter(regex=filter)
             return results
         else:
-            raise Exception(
+            raise NotRunError(
                 "Results not created yet. Call 'run' with appropriate arguments before preparing results"
             )
     
