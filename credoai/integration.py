@@ -3,8 +3,8 @@ from datetime import datetime
 from json_api_doc import serialize
 from credoai.utils.common import (NumpyEncoder, wrap_list, 
                                   ValidationError, dict_hash)
-from credoai.utils.credo_api_utils import patch_metrics, post_figure
-
+from credoai.utils.credo_api_utils import (patch_metrics, post_figure,
+                                          register_project, register_model)
 import base64
 import credoai
 import json
@@ -270,3 +270,4 @@ def export_figure_to_credo(figure_record, credo_id):
         Credo AI's Governance platform.
     """    
     post_figure(credo_id, figure_record)
+
