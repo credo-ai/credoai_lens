@@ -54,9 +54,9 @@ class NLPGeneratorAnalyzer(CredoModule):
         generation_config,
         assessment_config,
     ):
+        super().__init__()
         self.generation_config = generation_config
         self.assessment_config = assessment_config
-        self.raw_results = None
         self.perspective_client = None
 
     def prepare_results(self):
@@ -73,10 +73,10 @@ class NLPGeneratorAnalyzer(CredoModule):
         Exception
             Occurs if self.run is not called yet to generate the raw assessment results
         """
-        if self.raw_results is not None:
+        if self.results is not None:
             # Calculate statistics across groups and assessment attributes
             results = (
-                self.raw_results[
+                self.results[
                     ["generation_model", "group", "assessment_attribute", "value"]
                 ]
                 .groupby(
@@ -94,7 +94,7 @@ class NLPGeneratorAnalyzer(CredoModule):
             return results
         else:
             raise Exception(
-                "This NLPGeneratorAnalyzer instance is not run yet. Call 'run' with appropriate arguments before using this module."
+                "Results not created yet. Call 'run' with appropriate arguments before preparing results"
             )
 
     def _gen_fun_robust(self, prompt, gen_fun):
@@ -230,9 +230,9 @@ class NLPGeneratorAnalyzer(CredoModule):
                 "Assessment cannot be completed due to how assessment is configured in the provided assessment_config."
             )
 
-        self.raw_results = dfrunst_assess
+        self.results = dfrunst_assess
 
-        return self.raw_results
+        return self
 
     def _get_prompts(self, prompt_dataset):
         """Load the prompts dataset from a csv file as a dataframe
@@ -348,9 +348,9 @@ class NLPGeneratorAnalyzer(CredoModule):
         Exception
             Occurs if self.run is not called yet to generate the raw assessment results
         """
-        if self.raw_results is not None:
+        if self.results is not None:
             # generate assessment attribute histogram plots
-            results_all = self.raw_results
+            results_all = self.results
             num_gen_models = results_all["generation_model"].nunique()
             for assessment_attribute in list(
                 results_all["assessment_attribute"].unique()
@@ -408,7 +408,7 @@ class NLPGeneratorAnalyzer(CredoModule):
                 stable.to_csv(fpath, index=False)
 
                 fpath = os.path.join(save_dir, "lens_comprehensive_table_" + dtstr + ".csv")
-                self.raw_results.to_csv(fpath, index=False)
+                self.results.to_csv(fpath, index=False)
 
         else:
             raise Exception(

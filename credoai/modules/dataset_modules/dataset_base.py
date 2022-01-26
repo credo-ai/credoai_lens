@@ -23,11 +23,17 @@ class DatasetModule(CredoModule):
         pipe = self._make_pipe()
         cv_results = self._run_cv(pipe)
         group_differences = self._group_differences()
-        return {'sensitive_feature_roc_auc': cv_results.mean(),
-                'group_diffs': group_differences}    
+        self.results = {'sensitive_feature_roc_auc': cv_results.mean(),
+                        'group_diffs': group_differences}  
+        return self  
     
     def prepare_results(self):
-        return self.run()
+        if self.results is not None:
+            return self.results
+        else:
+            raise Exception(
+                "Results not created yet. Call 'run' to create results"
+            )
     
     def _group_differences(self):
         group_means = self.X.groupby(self.sensitive_features).mean()

@@ -68,6 +68,9 @@ class CredoAssessment(ABC):
         results = results.assign(**metadata)
         return results
     
+    def get_results(self):
+        return self.initialized_module.get_results()
+
     def create_report(self, filename=None):
         """Creates a report
         

@@ -72,10 +72,16 @@ class NLPEmbeddingAnalyzer(CredoModule):
                 self.group_embeddings[group1], 
                 self.group_embeddings[group2], 
                 word_embeddings)
-        return biases
+        self.results = biases
+        return self
 
-    def prepare_results(self, group1='male', group2='female'):
-        return self.run(group1, group2)
+    def prepare_results(self):
+        if self.results is not None:
+            return self.results
+        else:
+            raise Exception(
+                "Results not created yet. Call 'run' to create results"
+            )
     
     def set_group_embeddings(self, group_words=None):
         """Set the group categories

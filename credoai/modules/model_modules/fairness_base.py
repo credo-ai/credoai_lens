@@ -46,10 +46,11 @@ class FairnessModule(CredoModule):
                  y_pred,
                  y_prob=None
                  ):
+        super().__init__()
         # data variables
         self.y_true = to_array(y_true)
         self.y_pred = to_array(y_pred)
-        self.y_prob = to_array(y_prob)
+        self.y_prob = to_array(y_prob) if y_prob is not None else None
         self.sensitive_features = sensitive_features
         self._validate_inputs()
         
@@ -86,8 +87,9 @@ class FairnessModule(CredoModule):
         """
         fairness_results = self.get_fairness_results(method=method)
         disaggregated_results = self.get_disaggregated_results()
-        return {'fairness': fairness_results,
-                'disaggregated_results': disaggregated_results}
+        self.results = {'fairness': fairness_results,
+                        'disaggregated_results': disaggregated_results}
+        return self
         
     def prepare_results(self, method='between_groups', filter=None):
         """prepares fairness and disaggregated results to Credo AI
@@ -108,12 +110,22 @@ class FairnessModule(CredoModule):
         -------
         pd.DataFrame
         """
-        fairness_results = self.get_fairness_results(method=method)
-        disaggregated_results = self.get_disaggregated_results(melt=True)
-        results = pd.concat([fairness_results, disaggregated_results])
-        if filter:
-            results = results.filter(regex=filter)
-        return results
+        if self.results is not None:
+            # melt disaggregated df before combinding
+            disaggregated_df = self.results['disaggregated_results']
+            disaggregated_df = disaggregated_df.reset_index()\
+                .melt(id_vars=disaggregated_df.index.name, var_name='metric_type')\
+                .set_index('metric_type')
+            disaggregated_df['kind'] = 'disaggregated'
+            # combine
+            results = pd.concat([self.results['fairness'], disaggregated_df])
+            if filter:
+                results = results.filter(regex=filter)
+            return results
+        else:
+            raise Exception(
+                "Results not created yet. Call 'run' with appropriate arguments before preparing results"
+            )
     
     def update_metrics(self, metrics, replace=True):
         """replace metrics
