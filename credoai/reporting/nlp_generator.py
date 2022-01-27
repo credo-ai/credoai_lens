@@ -1,4 +1,3 @@
-import matplotlib
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
@@ -6,9 +5,6 @@ import seaborn as sns
 from credoai.reporting.credo_report import CredoReport
 from credoai.reporting import plot_utils
 from datetime import datetime
-
-matplotlib.rcParams.update({"font.size": 12})
-matplotlib.rc("figure", dpi=300)
 
 
 class NLPGeneratorAnalyzerReport(CredoReport):
@@ -36,7 +32,8 @@ class NLPGeneratorAnalyzerReport(CredoReport):
         # results_all = self.results
         num_gen_models = results_all["generation_model"].nunique()
         for assessment_attribute in list(results_all["assessment_attribute"].unique()):
-            f = plt.figure(figsize=(8, 4))
+            f = plt.figure(figsize=(8, 4), dpi=300)
+            plt.rcParams['font.size'] = 12
             results_sub = results_all[
                 (results_all["assessment_attribute"] == assessment_attribute)
             ][["value", "generation_model"]]
@@ -65,7 +62,8 @@ class NLPGeneratorAnalyzerReport(CredoReport):
                 plt.savefig(fpath, bbox_inches="tight", dpi=300)
 
         # Generate assessment attribute distribution parameters plots
-        fig = plt.figure(figsize=(8, 4))
+        fig = plt.figure(figsize=(8, 4), dpi=300)
+        plt.rcParams['font.size'] = 12
         ax = sns.barplot(
             x="assessment_attribute",
             y="value",
