@@ -86,7 +86,6 @@ class Metric(Record):
             'name': self.name,
             'value': self.value,
             'process': self.process,
-            'value_updated_at': self.creation_time,
             'metadata': self.metadata,
             '$type': 'model_metrics'
         }
