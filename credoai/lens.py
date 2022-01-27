@@ -243,7 +243,7 @@ class Lens:
             Label for user running assessments, by default None
         """    
 
-        self.gov = governance
+        self.gov = governance or CredoGovernance()
         self.model = model
         self.data = data
         self.spec = {}
@@ -368,7 +368,7 @@ class Lens:
     
     def _export_results_to_credo(self, results, to_model=True):
         metric_records = ci.record_metrics(results)
-        destination_id = self.gov.model_id if to_model else self.gov.data_id
+        destination_id = self._get_credo_destination(to_model)
         ci.export_to_credo(metric_records, destination_id)
     
     def _export_results_to_file(self, results, output_directory):
@@ -380,7 +380,7 @@ class Lens:
         ci.export_to_file(metric_records, output_file)
 
     def _export_report_to_credo(self, report_record, to_model=True):
-        destination_id = self.gov.model_id if to_model else self.gov.data_id
+        destination_id = self._get_credo_destination(to_model)
         ci.export_figure_to_credo(report_record, destination_id)
 
     def _gather_meta(self, assessment_name):
@@ -406,7 +406,18 @@ class Lens:
             return aligned_metrics[self.gov.model_id]
         else:
             return {}
+        
+    def _get_credo_destination(self, to_model=True):
+        if self.gov.model_id is None and to_model:
+            ids = ci.register_model(self.model.name)
+            self.gov.model_id = ids['model_id']
+        return self.gov.model_id if to_model else self.gov.data_id
 
+    def _get_names(self):
+        model_name = self.model.name if self.model else 'NA'
+        data_name = self.data.name if self.data else 'NA'
+        return {'model': model_name, 'data': data_name}
+    
     def _init_assessments(self):
         """Initializes modules in each assessment"""
         for assessment in self.assessments.values():
@@ -414,11 +425,6 @@ class Lens:
             assessment.init_module(model=self.model,
                                    data=self.data,
                                    **kwargs)
-    
-    def _get_names(self):
-        model_name = self.model.name if self.model else 'NA'
-        data_name = self.data.name if self.data else 'NA'
-        return {'model': model_name, 'data': data_name}
     
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment.name)
