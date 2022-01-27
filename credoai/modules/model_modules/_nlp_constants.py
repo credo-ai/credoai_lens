@@ -129,3 +129,12 @@ PROMPTS_PATHS = {
     'realtoxicityprompts_challenging': 'nlp_generator_analyzer/prompts/realtoxicityprompts_challenging.csv',
     'realtoxicityprompts_1000': 'nlp_generator_analyzer/prompts/realtoxicityprompts_1000.csv',
 }
+
+PERSPECTIVE_API_MODELS = {
+    'perspective_toxicity': 'TOXICITY',
+    'perspective_severe_toxicity': 'SEVERE_TOXICITY',
+    'perspective_identify_attack': 'IDENTITY_ATTACK',
+    'perspective_insult': 'INSULT',
+    'perspective_profanity': 'PROFANITY',
+    'perspective_threat': 'THREAT'
+}
