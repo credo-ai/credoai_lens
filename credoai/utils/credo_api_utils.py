@@ -1,3 +1,4 @@
+import json
 import os
 import pandas as pd
 import requests
@@ -5,7 +6,8 @@ import time
 from collections import defaultdict
 from credoai.utils.common import get_project_root
 from dotenv import dotenv_values
-from json_api_doc import deserialize
+from json_api_doc import deserialize, serialize
+from urllib.error import HTTPError
 
 def read_config():
     config_file = os.path.join(os.path.expanduser('~'), 
@@ -151,18 +153,85 @@ def patch_metrics(model_id, model_record):
         Model Record object, see credo.integration.MutliRecord
     """
     end_point = get_end_point(f"models/{model_id}/relationships/metrics")
-    return submit_request('patch', end_point, data=model_record.credoify(), headers={"content-type": "application/vnd.api+json"})
+    return submit_request('patch', end_point, data=model_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
     
     
 def post_figure(model_id, figure_record):
-    """Send a figure record object to Credo's Governance Platform
+    """Send a figure record object to Credo AI's Governance Platform
     
     Parameters
     ----------
     model_id : string
-        Identifier for Model on Credo AI Governance Platform
+        Identifier for Model on Credo AI's Governance Platform
     figure record : Record
         Figure Record object, see credo.integration.FigureRecord
     """
     end_point = get_end_point(f"models/{model_id}/model_assets")
-    return submit_request('post', end_point, data=figure_record.credoify(), headers={"content-type": "application/vnd.api+json"})
+    return submit_request('post', end_point, data=figure_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
+
+
+def register_project(project_name):
+    """Registers a model project on Credo AI's Governance Platform
+    
+    Parameters
+    ----------
+    project_name : string
+        Name for Project on Credo AI's Governance Platform
+        
+    Returns
+    --------
+    dict : str
+        Dictionary with Identifiers for Project
+        on Credo AI's Governance Platform
+    """
+    end_point = get_end_point(f"model_projects")
+    project = {"name": project_name, "$type": "string"}
+    data = json.dumps(serialize(project))
+    try:
+        response = submit_request('post', end_point, data=data, 
+                       headers={"content-type": "application/vnd.api+json"})
+    except requests.exceptions.HTTPError as err:
+        if err.response.status_code == 422:
+            raise Exception("Failed to register Project. Ensure that project_name is unique")
+        else:
+            raise
+    response = deserialize(json.loads(response.text))
+    return {'name': project_name, 'project_id': response['id']}
+
+def register_model(model_name, project_id=None):
+    """Registers a model project on Credo AI's Governance Platform
+    
+    Parameters
+    ----------
+    model_name : string
+        Name for Model on Credo AI's Governance Platform
+    project_id : string
+        Identifier for Project on Credo AI's Governance Platform.
+        If not provided, a Project will automatically be created
+        with the name {model_name} project.
+        
+    Returns
+    --------
+    dict : str
+        Dictionary with Identifiers for Model and Project
+        on Credo AI's Governance Platform
+    """
+    if project_id is None:
+        project_id = register_project(f'{model_name} project')['project_id']
+    end_point = get_end_point(f"models")
+    model = {"name": model_name, 
+             "version": "1.0",
+             "model_project_id": project_id,
+             "$type": "string"}
+    data = json.dumps(serialize(model))
+    try:
+        response = submit_request('post', end_point, data=data, 
+                       headers={"content-type": "application/vnd.api+json"})
+    except requests.exceptions.HTTPError as err:
+        if err.response.status_code == 422:
+            raise Exception("Failed to register Model. Ensure that model_name is unique")
+        else:
+            raise
+    response = deserialize(json.loads(response.text))
+    return {'name': model_name, 'model_id': response['id'], 'project_id': project_id}
+    

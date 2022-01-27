@@ -3,8 +3,8 @@ from datetime import datetime
 from json_api_doc import serialize
 from credoai.utils.common import (NumpyEncoder, wrap_list, 
                                   ValidationError, dict_hash)
-from credoai.utils.credo_api_utils import patch_metrics, post_figure
-
+from credoai.utils.credo_api_utils import (patch_metrics, post_figure,
+                                          register_project, register_model)
 import base64
 import credoai
 import json
@@ -24,19 +24,13 @@ class Record:
     def __init__(self, json_header, **metadata):
         self.json_header = json_header
         self.metadata = metadata
-        self.creation_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        self.creation_time = datetime.now().isoformat()
         
     def _struct(self):
         pass
-    
-    def credoify(self):
-        return json.dumps(serialize(data=self._struct()), cls=NumpyEncoder)
-    
+
     def jsonify(self, filename=None):
-        data = self._struct()
-        if '$type' in data:
-            del data['$type']
-        return json.dumps({self.json_header: data}, cls=NumpyEncoder)
+        return json.dumps(serialize(data=self._struct()), cls=NumpyEncoder)
     
     def __str__(self):
         return pprint.pformat(self._struct())
@@ -86,8 +80,8 @@ class Metric(Record):
             'name': self.name,
             'value': self.value,
             'process': self.process,
-            'value_updated_at': self.creation_time,
             'metadata': self.metadata,
+            'value_updated_at': self.creation_time,
             '$type': 'model_metrics'
         }
     
@@ -270,3 +264,4 @@ def export_figure_to_credo(figure_record, credo_id):
         Credo AI's Governance platform.
     """    
     post_figure(credo_id, figure_record)
+
