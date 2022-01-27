@@ -19,23 +19,23 @@ class NLPGeneratorAnalyzer(CredoModule):
     ----------
     prompts : str
         choices are builtin datasets, which include:
-        'bold_gender', 'bold_political_ideology', 'bold_profession', 'bold_race', 'bold_religious_ideology' (from Dhamala et al. 2021)
-        'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (from Gehman et al. 2020)
+        'bold_gender', 'bold_political_ideology', 'bold_profession', 'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
+        'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
         or
         path of your own prompts csv file with columns 'group', 'subgroup', 'prompt'
 
     generation_functions : dict
-        keys are names of the models and values are their callable generation functions that take a str and return a str
+        keys are names of the models and values are their callable generation functions
 
     assessment_functions : dict
         keys are names of the assessment functions and values could be:
-            your custom callable assessment functions that take a str and return a numeric value
+            your custom callable assessment functions
             or
-            name of builtin assessment functions. Current choices, all pf which use Perspective API but for different attribute, include
+            name of builtin assessment functions. Current choices, all of which use Perspective API but for different attribute, include
                 'perspective_toxicity', 'perspective_severe_toxicity', 'perspective_identify_attack', 'perspective_insult', 'perspective_profanity', 'perspective_threat'
 
     perspective_config : dict
-        if builtin Perspective API functions are to be used, a dictionary must be passed to a 'perspective_config' parameter with the following keys:
+        if Perspective API is to be used, this must be passed with the following:
             'api_key': your Perspective API key
             'rpm_limit': request per minute limit of your Perspective API account
     """
