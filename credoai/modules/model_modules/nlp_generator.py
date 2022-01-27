@@ -1,62 +1,57 @@
-import matplotlib
-import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import seaborn as sns
 
-from ._nlp_constants import PROMPTS_PATHS
+from ._nlp_constants import PROMPTS_PATHS, PERSPECTIVE_API_MODELS
 from absl import logging
 from credoai.data.utils import get_data_path
 from credoai.modules.credo_module import CredoModule
-from credoai.reporting import plot_utils
 from credoai.utils.common import NotRunError, wrap_list
-from datetime import datetime
 from googleapiclient import discovery
 from time import sleep
-
-matplotlib.rcParams.update({"font.size": 12})
-matplotlib.rc("figure", dpi=200)
 
 
 class NLPGeneratorAnalyzer(CredoModule):
     """
-    NLP generation analyzer for Credo AI
-
     This module assesses language generation models based on various prompts and assessment attributes
 
     Parameters
     ----------
-    generation_config : dict
-        generation models configuration dictionary where keys are names of the models and values are their callable generation functions (input : str, output: str)
-        Example: my_generation_config = {'gpt1': gpt1_text_generator, 'gpt2': gpt2_text_generator}
+    prompts : str
+        choices are builtin datasets, which include:
+        'bold_gender', 'bold_political_ideology', 'bold_profession', 'bold_race', 'bold_religious_ideology' (from Dhamala et al. 2021)
+        'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (from Gehman et al. 2020)
+        or
+        path of your own prompts csv file with columns 'group', 'subgroup', 'prompt'
 
-    assessment_config : dict
-        assessment configuration dictionary
-        Keys:
-        'prompts_dataset': choices are
-                builtin datasets, which include:
-                'bold_gender', 'bold_political_ideology', 'bold_profession', 'bold_race', 'bold_religious_ideology' (from Dhamala et al. 2021)
-                'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (from Gehman et al. 2020)
-                or
-                path of your own prompts csv file with columns 'group', 'subgroup', 'prompt'
-        Other keys if you intend to use the builtin Lens assessment functions:
-            'assess_with_builtin_models': 'perspective'
+    generation_functions : dict
+        keys are names of the models and values are their callable generation functions that take a str and return a str
+
+    assessment_functions : dict
+        keys are names of the assessment functions and values could be:
+            your custom callable assessment functions that take a str and return a numeric value
+            or
+            name of builtin assessment functions. Current choices, all pf which use Perspective API but for different attribute, include
+                'perspective_toxicity', 'perspective_severe_toxicity', 'perspective_identify_attack', 'perspective_insult', 'perspective_profanity', 'perspective_threat'
+
+    perspective_config : dict
+        if builtin Perspective API functions are to be used, a dictionary must be passed to a 'perspective_config' parameter with the following keys:
             'api_key': your Perspective API key
             'rpm_limit': request per minute limit of your Perspective API account
-        Other keys if you intend to use your own assessment functions:
-            assessment_functions : a dictionary where keys are text assessment attributes and values are their callable assessment functions (input: str, output: float)
-        Example 1: my_assessment_config = {'assess_with_builtin_models': 'perspective', 'api_key': 'xyz', 'rpm_limit': 60, 'prompts_dataset': '/Users/ali/erfan_prompts.csv'}
-        Example 2: my_assessment_config = {'assessment_functions': {'toxicity': tox_ann, 'cheerfulness': cheer_xgb}, 'prompts_dataset': 'realtoxicityprompts_challenging_20'}
     """
 
     def __init__(
         self,
-        generation_config,
-        assessment_config,
+        prompts,
+        generation_functions,
+        assessment_functions,
+        perspective_config=None,
     ):
         super().__init__()
-        self.generation_config = generation_config
-        self.assessment_config = assessment_config
+        self.prompts = prompts
+        self.generation_functions = generation_functions
+        self.assessment_functions = assessment_functions
+        self.perspective_config = perspective_config
         self.perspective_client = None
 
     def prepare_results(self):
@@ -97,6 +92,135 @@ class NLPGeneratorAnalyzer(CredoModule):
                 "Results not created yet. Call 'run' with appropriate arguments before preparing results"
             )
 
+    def run(self, n_iterations=1, verbose=True):
+        """Run the generations and assessments
+
+        Parameters
+        ----------
+        n_iterations : int, optional
+            Number of times to generate responses for a prompt, by default 1
+            Increase if your generation model is stochastic for a higher confidence
+        verbose : bool, optional
+            Progress messages will be printed if True, by default True
+
+        Returns
+        -------
+        self
+        """
+        df = self._get_prompts(self.prompts)
+        if verbose:
+            logging.info("Loaded the prompts dataset " + self.prompts)
+
+        # Perform prerun checks
+        self._perform_prerun_checks()
+        if verbose:
+            logging.info(
+                "Performed prerun checks of generation and assessment functions"
+            )
+
+        # Generate and record responses for the prompts with all the generation models n_iterations times
+        dfruns_lst = []
+        for gen_name, gen_fun in self.generation_functions.items():
+            for i in range(n_iterations):
+                temp = df.copy()
+                if verbose:
+                    logging.info(
+                        "Performing Generation Iteration "
+                        + str(i + 1)
+                        + " of "
+                        + str(n_iterations)
+                        + " with Generation Model "
+                        + gen_name
+                    )
+                temp["response"] = temp["prompt"].apply(
+                    lambda x: self._gen_fun_robust(x, gen_fun)
+                )
+                temp["run"] = i + 1
+                temp["generation_model"] = gen_name
+                dfruns_lst.append(temp)
+
+        dfruns = pd.concat(dfruns_lst)
+
+        # Assess the responses for the input assessment attributes
+        if verbose:
+            logging.info("Performing assessment of the generated responses")
+
+        dfrunst = dfruns[
+            dfruns["response"] != "nlp generator error"
+        ].copy()  # exclude cases where generator failed to generate a response
+
+        dfrunst_assess_lst = []
+        for assessment_attribute, assessment_fun in self.assessment_functions.items():
+            temp = dfrunst.copy()
+            temp["assessment_attribute"] = assessment_attribute
+            if assessment_fun in list(PERSPECTIVE_API_MODELS):
+                temp["value"] = temp["response"].apply(
+                    lambda x: self._assess_with_perspective(
+                        x, PERSPECTIVE_API_MODELS[assessment_fun]
+                    )
+                )
+            else:
+                temp["value"] = temp["response"].apply(assessment_fun)
+
+            dfrunst_assess_lst.append(temp)
+
+        dfrunst_assess = pd.concat(dfrunst_assess_lst)
+
+        self.results = dfrunst_assess
+
+        return self
+
+    def get_results(self):
+        if self.results is not None:
+            return self.results
+        else:
+            raise NotRunError(
+                "Results not created yet. Call 'run' with appropriate arguments before preparing results"
+            )
+
+    def _assess_with_perspective(self, txt, assessment_attribute):
+        """Assess a text for a given assessment attribute
+
+        Parameters
+        ----------
+        txt : str
+            Text to be assessed
+        assessment_attribute : str
+            Attribute to be do the assessment based on
+
+        Returns
+        -------
+        float
+            assessment score
+        """
+        if self.perspective_client is None:
+            self._build_perspective_client()
+
+        pause_duration = 60.0 / self.perspective_config["rpm_limit"]
+        sleep(pause_duration)
+        analyze_request = {
+            "comment": {"text": txt},
+            "requestedAttributes": {assessment_attribute: {}},
+            "languages": ["en"],
+        }
+        response = (
+            self.perspective_client.comments().analyze(body=analyze_request).execute()
+        )
+        return response["attributeScores"][assessment_attribute]["summaryScore"][
+            "value"
+        ]
+
+    def _build_perspective_client(self):
+        """Build the self Perspective API client"""
+        if self.perspective_client is None:
+            self.perspective_client = discovery.build(
+                "commentanalyzer",
+                "v1alpha1",
+                developerKey=self.perspective_config["api_key"],
+                discoveryServiceUrl="https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1",
+                cache_discovery=False,
+            )
+
     def _gen_fun_robust(self, prompt, gen_fun):
         """Makes process robust to when generation_fun fails for a prompt
         Failed cases are tracked and excluded from the assessment
@@ -120,126 +244,12 @@ class NLPGeneratorAnalyzer(CredoModule):
         except:  # no response
             return "nlp generator error"
 
-    def run(self, n_iterations=1, verbose=True):
-        """Run the generations and assessments
-
-        Parameters
-        ----------
-        n_iterations : int, optional
-            Number of times to generate responses for a prompt, by default 1
-            Increase if your generation model is stochastic for a higher confidence
-        verbose : bool, optional
-            Progress messages will be printed if True, by default True
-
-        Returns
-        -------
-        pandas.dataframe
-            Complete assessment results for all the prompts and iterations
-            Schema: ['group', 'subgroup', 'prompt', 'run', 'response', 'value', 'assessment_attribute']
-
-        Raises
-        ------
-        Exception
-            Occurs if 'api_key' not provided in assessment_config and it is needed
-        Exception
-            Occurs if assessment_config is not valid
-        """
-        df = self._get_prompts(self.assessment_config["prompts_dataset"])
-        if verbose:
-            logging.info(
-                "Loaded the prompts dataset "
-                + self.assessment_config["prompts_dataset"]
-            )
-
-        # Perform prerun checks
-        self.perform_prerun_checks()
-
-        # Generate and record responses for the prompts with all the generation models n_iterations times
-        dfruns = pd.DataFrame(
-            columns=["generation_model", "group", "subgroup", "prompt", "run"]
-        )
-
-        for gen_name, gen_fun in self.generation_config.items():
-            for i in range(n_iterations):
-                if verbose:
-                    logging.info(
-                        "Performing Generation Iteration "
-                        + str(i + 1)
-                        + " of "
-                        + str(n_iterations)
-                        + " with Generation Model "
-                        + gen_name
-                    )
-                df["response"] = df["prompt"].apply(
-                    lambda x: self._gen_fun_robust(x, gen_fun)
-                )
-                df["run"] = i + 1
-                df["generation_model"] = gen_name
-                dfruns = dfruns.append(df)
-
-        # Assess the responses for the input assessment attributes
-        if verbose:
-            logging.info("Performing assessment of the generated responses")
-
-        dfrunst = dfruns[
-            dfruns["response"] != "nlp generator error"
-        ].copy()  # exclude cases where generator failed to generate a response
-
-        dfrunst_assess = pd.DataFrame(
-            data=None, columns=list(dfrunst.columns) + ["value", "assessment_attribute"]
-        )
-
-        if "assess_with_builtin_models" not in self.assessment_config:
-            # assess with user_provided methods
-            for assessment_attribute, assessment_fun in self.assessment_config[
-                "assessment_functions"
-            ].items():
-                temp = dfrunst.copy()
-                temp["value"] = temp["response"].apply(assessment_fun)
-                temp["assessment_attribute"] = assessment_attribute
-                dfrunst_assess = dfrunst_assess.append(temp)
-
-        elif self.assessment_config["assess_with_builtin_models"] == "perspective":
-            # assess with built-in Perspective API methods
-            if "api_key" in self.assessment_config:
-                self.build_perspective_client(self.assessment_config["api_key"])
-            else:
-                raise Exception(
-                    "No Perspective API key provided in the provided assessment_config dictionary. Add an 'api_key' key with the value to the dictionary."
-                )
-            if "assessment_attributes" in self.assessment_config:
-                assessment_attributes = self.assessment_config["assessment_attributes"]
-            else:
-                assessment_attributes = ["TOXICITY", "THREAT", "PROFANITY", "INSULT"]
-            if "rpm_limit" in self.assessment_config:
-                rpm_limit = self.assessment_config["rpm_limit"]
-            else:
-                rpm_limit = 60  # Perspective API's default request-per-minute limit
-
-            for assessment_attribute in assessment_attributes:
-                temp = dfrunst.copy()
-                temp["value"] = temp["response"].apply(
-                    lambda x: self.assess_with_perspective(
-                        x, assessment_attribute, rpm_limit
-                    )
-                )
-                temp["assessment_attribute"] = assessment_attribute
-                dfrunst_assess = dfrunst_assess.append(temp)
-        else:
-            raise Exception(
-                "Assessment cannot be completed due to how assessment is configured in the provided assessment_config."
-            )
-
-        self.results = dfrunst_assess
-
-        return self
-
-    def _get_prompts(self, prompt_dataset):
+    def _get_prompts(self, prompts):
         """Load the prompts dataset from a csv file as a dataframe
 
         Parameters
         ----------
-        prompt_dataset : str
+        prompts : str
             One of the following:
                 Name of a builtin prompt dataset. Choices are
                     'bold_gender', 'bold_political_ideology', 'bold_profession', 'bold_race', 'bold_religious_ideology' (from Dhamala et al. 2021)
@@ -259,8 +269,12 @@ class NLPGeneratorAnalyzer(CredoModule):
         Exception
             Occurs if the prompts dataset cannot be loaded
         """
-        if prompt_dataset.split(".")[-1] == "csv":
-            df = pd.read_csv(prompt_dataset)
+        if prompts in PROMPTS_PATHS:
+            prompts_path = get_data_path(PROMPTS_PATHS[prompts])
+            df = pd.read_csv(prompts_path)
+
+        elif prompts.split(".")[-1] == "csv":
+            df = pd.read_csv(prompts)
             cols_required = ["group", "subgroup", "prompt"]
             cols_given = list(df.columns)
             if set(cols_given) != set(cols_required):
@@ -270,152 +284,20 @@ class NLPGeneratorAnalyzer(CredoModule):
                     + cols_required_str
                 )
 
-        elif prompt_dataset in PROMPTS_PATHS:
-            prompts_path = get_data_path(PROMPTS_PATHS[prompt_dataset])
-            df = pd.read_csv(prompts_path)
-
         else:
             builtin_prompts_names = list(PROMPTS_PATHS.keys())
             builtin_prompts_names = ", ".join(builtin_prompts_names)
             raise Exception(
-                "The prompts dataset cannot be loaded. Ensure the provided prompt_dataset value is either a path to a valid csv file"
+                "The prompts dataset cannot be loaded. Ensure the provided prompts value is either a path to a valid csv file"
                 + " or name of one of the builtin datasets (i.e."
                 + builtin_prompts_names
                 + "). You provided "
-                + prompt_dataset
+                + prompts
             )
 
         return df
 
-    def build_perspective_client(self, api_key):
-        """Build the self Perspective API client
-
-        Parameters
-        ----------
-        api_key : str
-            Perspective API key
-        """
-        if self.build_perspective_client is not None:
-            self.perspective_client = discovery.build(
-                "commentanalyzer",
-                "v1alpha1",
-                developerKey=api_key,
-                discoveryServiceUrl="https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1",
-                cache_discovery=False,
-            )
-
-    def assess_with_perspective(self, txt, assessment_attribute, rpm_limit=60):
-        """Assess a text for a given assessment attribute
-
-        Parameters
-        ----------
-        txt : str
-            Text to be assessed
-        assessment_attribute : str
-            Attribute to be do the assessment based on
-        rpm_limit : int, optional
-            Request per minute limit, by default 60
-
-        Returns
-        -------
-        float
-            assessment score
-        """
-        pause_duration = 60.0 / rpm_limit
-        sleep(pause_duration)
-        analyze_request = {
-            "comment": {"text": txt},
-            "requestedAttributes": {assessment_attribute: {}},
-            "languages": ["en"],
-        }
-        response = (
-            self.perspective_client.comments().analyze(body=analyze_request).execute()
-        )
-        return response["attributeScores"][assessment_attribute]["summaryScore"][
-            "value"
-        ]
-
-    def create_reports(self, save_dir=None):
-        """Generates reports of assessment results generated by self.run, including graphs and tables
-
-        Parameters
-        ----------
-        save_dir : str, optional
-            If provided, the graphs and tables will be also saved in this directory, by default None
-
-        Raises
-        ------
-        Exception
-            Occurs if self.run is not called yet to generate the raw assessment results
-        """
-        if self.results is not None:
-            # generate assessment attribute histogram plots
-            results_all = self.results
-            num_gen_models = results_all["generation_model"].nunique()
-            for assessment_attribute in list(
-                results_all["assessment_attribute"].unique()
-            ):
-                plt.figure(figsize=(8, 4))
-                results_sub = results_all[
-                    (results_all["assessment_attribute"] == assessment_attribute)
-                ][["value", "generation_model"]]
-                results_sub.reset_index(drop=True, inplace=True)
-                ax = sns.histplot(
-                    data=results_sub,
-                    x="value",
-                    hue="generation_model",
-                    element="step",
-                    stat="density",
-                    common_norm=False,
-                    bins=20,
-                    palette=plot_utils.credo_diverging_palette(num_gen_models),
-                    alpha=0.7,
-                )
-                ax.set_frame_on(False)
-                plt.xlim([0, 1])
-                plt.xlabel(assessment_attribute)
-                if save_dir:
-                    dtstr = datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
-                    fpath = os.path.join(save_dir, "lens_histogram_" + assessment_attribute + "_" + dtstr + ".png")
-                    plt.savefig(fpath, bbox_inches='tight')
-
-            # Generate assessment attribute distribution parameters plots
-            fig = plt.figure(figsize=(8, 4))
-            ax = sns.barplot(
-                x="assessment_attribute",
-                y="value",
-                hue="generation_model",
-                data=results_all,
-                palette=plot_utils.credo_diverging_palette(num_gen_models),
-                alpha=1,
-            )
-            fig.patch.set_facecolor("white")
-            ax.set_frame_on(False)
-            plt.xlabel("")
-            plt.ylabel("mean")
-            plt.legend(bbox_to_anchor=(1.25, 0.4), loc="center right", frameon=False)
-            if save_dir:
-                fpath = os.path.join(save_dir, "lens_barchart_" + dtstr + ".png")
-                plt.savefig(fpath, bbox_inches='tight')
-
-            # Print the summary table
-            stable = self.prepare_results()
-            print(stable)
-            
-            # Save the tables if requested
-            if save_dir:
-                fpath = os.path.join(save_dir, "lens_summary_table_" + dtstr + ".csv")
-                stable.to_csv(fpath, index=False)
-
-                fpath = os.path.join(save_dir, "lens_comprehensive_table_" + dtstr + ".csv")
-                self.results.to_csv(fpath, index=False)
-
-        else:
-            raise Exception(
-                "This NLPGeneratorAnalyzer instance is not run yet. Call 'run' with appropriate arguments before using this module."
-            )
-
-    def perform_prerun_checks(self):
+    def _perform_prerun_checks(self):
         """Checks the provided configurations and the generation and assessment functions
 
         Raises
@@ -423,74 +305,68 @@ class NLPGeneratorAnalyzer(CredoModule):
         Exception
             Occurs if checks are not successfully completed
         """
+        # Check types
+        for item in [self.generation_functions, self.assessment_functions]:
+            if not isinstance(item, dict):
+                raise Exception(
+                    "'generation_functions' and 'assessment_functions' values must be of type dict."
+                )
+
+        # Check the generation functions
         test_prompt = "To be, or not to be, that is"
-        for gen_name, gen_fun in self.generation_config.items():
+        for gen_name, gen_fun in self.generation_functions.items():
             try:
                 response = gen_fun(test_prompt)
                 if not isinstance(response, str):
                     raise Exception(
                         gen_name
-                        + " failed to generate a string response for the test prompt "
+                        + " failed to generate a string response for the test prompt '"
                         + test_prompt
+                        + "'"
                     )
             except:
                 raise Exception(
                     gen_name
-                    + " failed to generate a response for the test prompt "
+                    + " failed to generate a response for the test prompt '"
                     + test_prompt
+                    + "'"
                 )
 
+        # Check the assessment functions
         test_response = "The slings and arrows of outrageous fortune"
-        if "assess_with_builtin_models" not in self.assessment_config:
-            # test the user-provided methods
-            for assessment_attribute, assessment_fun in self.assessment_config[
-                "assessment_functions"
-            ].items():
-                try:
-                    score = assessment_fun(test_response)
-                    if not isinstance(score, (int, float)):
+        for assessment_attribute, assessment_fun in self.assessment_functions.items():
+            if assessment_fun in list(PERSPECTIVE_API_MODELS):
+                if "perspective_config" is None:
+                    raise Exception(
+                        "Requested using '"
+                        + assessment_fun
+                        + "' but 'perspective_config' has not been provided to NLPGeneratorAnalyzer"
+                    )
+                for k in ["api_key", "rpm_limit"]:
+                    if k not in self.perspective_config:
                         raise Exception(
-                            assessment_attribute
-                            + " failed to return an int/float score for the test text "
-                            + test_response
+                            "The provided 'perspective_config' is missing '" + k + "'"
                         )
+                try:
+                    self._assess_with_perspective(
+                        test_response, PERSPECTIVE_API_MODELS[assessment_fun]
+                    )
                 except:
                     raise Exception(
-                        assessment_attribute
-                        + " failed to return a score for the test text "
+                        "Perspective API function '"
+                        + assessment_attribute
+                        + "' failed to return a score for the test text '"
                         + test_response
+                        + "'"
                     )
-        elif self.assessment_config["assess_with_builtin_models"] == "perspective":
-            # test the built-in Perspective API methods
-            if "api_key" in self.assessment_config:
-                self.build_perspective_client(self.assessment_config["api_key"])
             else:
-                raise Exception(
-                    "No Perspective API key provided in the provided assessment_config dictionary. Add an 'api_key' key with the value to the dictionary."
-                )
-            if "assessment_attributes" in self.assessment_config:
-                assessment_attributes = self.assessment_config["assessment_attributes"]
-            else:
-                assessment_attributes = ["TOXICITY", "THREAT", "PROFANITY", "INSULT"]
-            if "rpm_limit" in self.assessment_config:
-                rpm_limit = self.assessment_config["rpm_limit"]
-            else:
-                rpm_limit = 60  # Perspective API's default request-per-minute limit
-            for assessment_attribute in assessment_attributes:
                 try:
-                    score = self.assess_with_perspective(
-                        test_response, assessment_attribute, rpm_limit=rpm_limit
-                    )
-                    if not isinstance(score, (int, float)):
-                        raise Exception(
-                            "Perspective API with your specified configuration failed to return an int/float score for the test text "
-                            + test_response
-                            + " for the assessment attribute "
-                            + assessment_attribute
-                        )
+                    assessment_fun(test_response)
                 except:
                     raise Exception(
-                        "Perspective API with your specified configuration failed to return a score for the test text "
+                        "Assessment function '"
+                        + assessment_attribute
+                        + "' failed to return a score for the test text '"
                         + test_response
+                        + "'"
                     )
-
