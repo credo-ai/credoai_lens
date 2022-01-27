@@ -153,7 +153,7 @@ def patch_metrics(model_id, model_record):
         Model Record object, see credo.integration.MutliRecord
     """
     end_point = get_end_point(f"models/{model_id}/relationships/metrics")
-    return submit_request('patch', end_point, data=model_record.credoify(), headers={"content-type": "application/vnd.api+json"})
+    return submit_request('patch', end_point, data=model_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
     
     
 def post_figure(model_id, figure_record):
@@ -167,7 +167,7 @@ def post_figure(model_id, figure_record):
         Figure Record object, see credo.integration.FigureRecord
     """
     end_point = get_end_point(f"models/{model_id}/model_assets")
-    return submit_request('post', end_point, data=figure_record.credoify(), headers={"content-type": "application/vnd.api+json"})
+    return submit_request('post', end_point, data=figure_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
 
 
 def register_project(project_name):
