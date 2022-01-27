@@ -12,15 +12,13 @@ class NLPGeneratorAnalyzerReport(CredoReport):
         super().__init__()
         self.module = module
 
-    def create_report(self, filename=None, dirname=None):
+    def create_report(self, filename=None):
         """Creates a fairness report for binary classification model
 
         Parameters
         ----------
         filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        dirname : string, optional
-            If given, the directory where the generated images and tables will be saved, by default None
+            If given, the location where the generated pdf report will be saved, by default Non
 
         Returns
         -------
@@ -53,13 +51,6 @@ class NLPGeneratorAnalyzerReport(CredoReport):
             plt.xlim([0, 1])
             plt.xlabel(assessment_attribute)
             self.figs.append(f)
-            if dirname:
-                dtstr = datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
-                fpath = os.path.join(
-                    dirname,
-                    "lens_histogram_" + assessment_attribute + "_" + dtstr + ".png",
-                )
-                plt.savefig(fpath, bbox_inches="tight", dpi=300)
 
         # Generate assessment attribute distribution parameters plots
         fig = plt.figure(figsize=(8, 4), dpi=300)
@@ -78,17 +69,6 @@ class NLPGeneratorAnalyzerReport(CredoReport):
         plt.ylabel("mean")
         plt.legend(bbox_to_anchor=(1.25, 0.4), loc="center right", frameon=False)
         self.figs.append(fig)
-        if dirname:
-            fpath = os.path.join(dirname, "lens_barchart_" + dtstr + ".png")
-            plt.savefig(fpath, bbox_inches="tight", dpi=300)
-
-        # Save the tables if requested
-        if dirname:
-            fpath = os.path.join(dirname, "lens_summary_table_" + dtstr + ".csv")
-            self.module.prepare_results().to_csv(fpath, index=False)
-
-            fpath = os.path.join(dirname, "lens_results_table_" + dtstr + ".csv")
-            results_all.to_csv(fpath, index=False)
 
         # Save to pdf if requested
         if filename:

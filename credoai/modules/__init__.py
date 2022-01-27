@@ -12,7 +12,8 @@ base = 'credoai.modules'
 modules = [
     'dataset_modules.dataset_base',
     'model_modules.fairness_nlp',
-    'model_modules.fairness_base'
+    'model_modules.fairness_base',
+    'model_modules.nlp_generator'
 ]
 
 importable_modules = []
