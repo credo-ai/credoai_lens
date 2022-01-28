@@ -10,9 +10,10 @@ import importlib
 import inspect
 base = 'credoai.modules'
 modules = [
-    'dataset_assessments.dataset_base',
-    'model_assessments.fairness_nlp',
-    'model_assessments.fairness_base'
+    'dataset_modules.dataset_base',
+    'model_modules.fairness_nlp',
+    'model_modules.fairness_base',
+    'model_modules.nlp_generator'
 ]
 
 importable_modules = []

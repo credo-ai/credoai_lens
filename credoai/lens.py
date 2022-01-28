@@ -259,7 +259,7 @@ class Lens:
         # if governance is defined, pull down spec for
         # solution / model
         if self.gov:
-            self.spec = self.get_spec_from_gov()
+            self.spec = self._get_spec_from_gov()
         if spec:
             self.spec.update(spec)
             
@@ -290,7 +290,7 @@ class Lens:
         assessment_results = {}
         for name, assessment in self.assessments.items():
             kwargs = assessment_kwargs.get(name, {})
-            assessment_results[name] = assessment.run(**kwargs)
+            assessment_results[name] = assessment.run(**kwargs).get_results()
             if export:
                 prepared_results = self._prepare_results(assessment, **kwargs)
                 if type(export) == str:
@@ -355,7 +355,7 @@ class Lens:
                             path.join(export, f))
         shutil.rmtree(tmpdir)
 
-    def get_spec_from_gov(self):
+    def _get_spec_from_gov(self):
         spec = {}
         if self.gov.ai_solution_id != None:
             metrics = self._get_aligned_metrics()

@@ -119,9 +119,22 @@ NEUTRAL_ADJECTIVES = [
     "modern", "determined", "open", "political", "difficult", "knowledge", "kind"]
 
 PROMPTS_PATHS = {
-    'gender': 'nlp_generator_analyzer/prompts/gender_prompt.json',
-    'politics': 'nlp_generator_analyzer/prompts/political_ideology_prompt.json',
-    'profession': 'nlp_generator_analyzer/prompts/profession_prompt.json',
-    'race': 'nlp_generator_analyzer/prompts/race_prompt.json',
-    'religion': 'nlp_generator_analyzer/prompts/religious_ideology_prompt.json',
+    'bold_gender': 'nlp_generator_analyzer/prompts/bold_gender.csv',
+    'bold_political_ideology': 'nlp_generator_analyzer/prompts/bold_political_ideology.csv',
+    'bold_profession': 'nlp_generator_analyzer/prompts/bold_profession.csv',
+    'bold_race': 'nlp_generator_analyzer/prompts/bold_race.csv',
+    'bold_religious_ideology': 'nlp_generator_analyzer/prompts/bold_religious_ideology.csv',
+    'realtoxicityprompts_challenging_20': 'nlp_generator_analyzer/prompts/realtoxicityprompts_challenging_20.csv',
+    'realtoxicityprompts_challenging_100': 'nlp_generator_analyzer/prompts/realtoxicityprompts_challenging_100.csv',
+    'realtoxicityprompts_challenging': 'nlp_generator_analyzer/prompts/realtoxicityprompts_challenging.csv',
+    'realtoxicityprompts_1000': 'nlp_generator_analyzer/prompts/realtoxicityprompts_1000.csv',
+}
+
+PERSPECTIVE_API_MODELS = {
+    'perspective_toxicity': 'TOXICITY',
+    'perspective_severe_toxicity': 'SEVERE_TOXICITY',
+    'perspective_identify_attack': 'IDENTITY_ATTACK',
+    'perspective_insult': 'INSULT',
+    'perspective_profanity': 'PROFANITY',
+    'perspective_threat': 'THREAT'
 }

@@ -69,6 +69,9 @@ class CredoAssessment(ABC):
         # return results (and ensure no NaN floats remain)
         return results.fillna('NA')
     
+    def get_results(self):
+        return self.initialized_module.get_results()
+
     def create_report(self, filename=None):
         """Creates a report
         

@@ -1,9 +1,12 @@
 # Required for notebooks
 jupyterlab
-xlrd
-pytest>=6.2.5
+ipywidgets>=7.6.5
 
-# required for modules.model_assessments.fairness_nlp.NLPGeneratorAnalyzer
+# required for modules.model_modules.nlp_generator.NLPGeneratorAnalyzer
 joblib>=0.14.1
-tensorflow_hub>=0.12.0
+sentence-transformers>=2.1.0
 transformers>=4.0.0
+google-api-python-client>=1.12.8
+
+# for dev
+pytest>=6.2.5

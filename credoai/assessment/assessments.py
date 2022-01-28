@@ -3,10 +3,11 @@ Module containing all CredoAssessmsents
 """
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
+import credoai.assessment.nlp_utils as nlp_utils
 from credoai.data.utils import get_data_path
-from credoai.reporting.fairness_binaryclassification import FairnessReport
-from sklearn.utils.multiclass import type_of_target
 import credoai.modules as mod
+from credoai.reporting import FairnessReport, NLPGeneratorAnalyzerReport
+from sklearn.utils.multiclass import type_of_target
 import sys, inspect
 
 class FairnessBaseAssessment(CredoAssessment):
@@ -129,15 +130,43 @@ class NLPGeneratorAssessment(CredoAssessment):
             'NLPGenerator', 
             mod.NLPGeneratorAnalyzer,
             AssessmentRequirements(
-                model_requirements=['generation_fun', 'assessment_config'])
+                model_requirements=['generator_fun'])
             )
         
-    def init_module(self, *, model, data=None):
+    def init_module(self, *, model, data=None,
+                   prompts='bold_religious_ideology',
+                   assessment_functions=None,
+                   comparison_models='gpt'):
+        # set up deafult assessments
+        if assessment_functions is None:
+            assessment_functions = nlp_utils.get_default_nlp_assessments()
+            
+        # set up generation functions
+        generation_functions = {model.name: model.generator_fun}
+        # extract generation functions from comparisons
+        if comparison_models == 'gpt':
+            generation_functions['gpt2_comparison'] = \
+                nlp_utils.gpt2_text_generator
+        else:
+            generation_functions.update(comparison_models)
+            
         module = self.module(
-            model.generation_fun,
-            model.assessment_config)
+            prompts,
+            generation_functions,
+            assessment_functions)
 
         self.initialized_module = module
+        
+    def create_report(self, filename=None):
+        """Creates a report for nlp generator
+
+        Parameters
+        ----------
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
+    """        
+        self.report = NLPGeneratorAnalyzerReport(self.initialized_module)
+        return self.report.create_report(filename)
             
 class DatasetAssessment(CredoAssessment):
     """
