@@ -65,7 +65,7 @@ class NLPGeneratorAnalyzer(CredoModule):
 
         Raises
         ------
-        Exception
+        NotRunError
             Occurs if self.run is not called yet to generate the raw assessment results
         """
         if self.results is not None:
@@ -264,7 +264,7 @@ class NLPGeneratorAnalyzer(CredoModule):
 
         Raises
         ------
-        Exception
+        ValidationError
             Occurs if the provided prompts dataset csv file is not a valid file
         Exception
             Occurs if the prompts dataset cannot be loaded
@@ -302,7 +302,7 @@ class NLPGeneratorAnalyzer(CredoModule):
 
         Raises
         ------
-        Exception
+        ValidationError
             Occurs if checks are not successfully completed
         """
         # Check types
@@ -363,7 +363,7 @@ class NLPGeneratorAnalyzer(CredoModule):
                 try:
                     assessment_fun(test_response)
                 except:
-                    raise Exception(
+                    raise ValidationError(
                         "Assessment function '"
                         + assessment_attribute
                         + "' failed to return a score for the test text '"

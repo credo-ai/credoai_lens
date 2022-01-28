@@ -109,6 +109,11 @@ class FairnessModule(CredoModule):
         Returns
         -------
         pd.DataFrame
+
+        Raises
+        ------
+        NotRunError
+            Occurs if self.run is not called yet to generate the raw assessment results
         """
         if self.results is not None:
             # melt disaggregated df before combinding
