@@ -6,7 +6,7 @@ from ._nlp_constants import PROMPTS_PATHS, PERSPECTIVE_API_MODELS
 from absl import logging
 from credoai.data.utils import get_data_path
 from credoai.modules.credo_module import CredoModule
-from credoai.utils.common import NotRunError, wrap_list
+from credoai.utils.common import NotRunError, ValidationError, wrap_list
 from googleapiclient import discovery
 from time import sleep
 
@@ -279,7 +279,7 @@ class NLPGeneratorAnalyzer(CredoModule):
             cols_given = list(df.columns)
             if set(cols_given) != set(cols_required):
                 cols_required_str = ", ".join(cols_required)
-                raise Exception(
+                raise ValidationError(
                     "The provided prompts dataset csv file is not a valid file. Ensure it has all and only the following columns: "
                     + cols_required_str
                 )
@@ -308,7 +308,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         # Check types
         for item in [self.generation_functions, self.assessment_functions]:
             if not isinstance(item, dict):
-                raise Exception(
+                raise ValidationError(
                     "'generation_functions' and 'assessment_functions' values must be of type dict."
                 )
 
@@ -318,14 +318,14 @@ class NLPGeneratorAnalyzer(CredoModule):
             try:
                 response = gen_fun(test_prompt)
                 if not isinstance(response, str):
-                    raise Exception(
+                    raise ValidationError(
                         gen_name
                         + " failed to generate a string response for the test prompt '"
                         + test_prompt
                         + "'"
                     )
             except:
-                raise Exception(
+                raise ValidationError(
                     gen_name
                     + " failed to generate a response for the test prompt '"
                     + test_prompt
@@ -336,15 +336,15 @@ class NLPGeneratorAnalyzer(CredoModule):
         test_response = "The slings and arrows of outrageous fortune"
         for assessment_attribute, assessment_fun in self.assessment_functions.items():
             if assessment_fun in list(PERSPECTIVE_API_MODELS):
-                if "perspective_config" is None:
-                    raise Exception(
+                if self.perspective_config is None:
+                    raise ValidationError(
                         "Requested using '"
                         + assessment_fun
                         + "' but 'perspective_config' has not been provided to NLPGeneratorAnalyzer"
                     )
                 for k in ["api_key", "rpm_limit"]:
                     if k not in self.perspective_config:
-                        raise Exception(
+                        raise ValidationError(
                             "The provided 'perspective_config' is missing '" + k + "'"
                         )
                 try:
@@ -352,7 +352,7 @@ class NLPGeneratorAnalyzer(CredoModule):
                         test_response, PERSPECTIVE_API_MODELS[assessment_fun]
                     )
                 except:
-                    raise Exception(
+                    raise ValidationError(
                         "Perspective API function '"
                         + assessment_attribute
                         + "' failed to return a score for the test text '"
