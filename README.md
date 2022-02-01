@@ -62,6 +62,8 @@ To get started, see the [quickstart demo](https://credoai-lens.readthedocs.io/en
 
 If you are using the Credo AI Governance Platform, also check out the [governance integration demo](https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html).
 
+A listing and overview of all the demonstration notebooks are available [here](https://github.com/credo-ai/credoai_lens/tree/develop/docs/notebooks).
+
 ## Documentation
 
 Documentation is hosted by [readthedocs](https://credoai-lens.readthedocs.io/en/latest/index.html).
