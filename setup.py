@@ -2,23 +2,21 @@
 #
 # Copyright (C) 2021-2021 Credo AI
 from credoai import __version__
+import setuptools
 
-DESCRIPTION = "credoai: AI governance tools"
-LONG_DESCRIPTION = """\
-Credo is a library that supports AI Governance using the Credo AI governance platform.
-Here is some of the functionality that Credo offers:
-- A set of integration tools to send data easily to Credo's governance platform
-Credo aims to make interacting with Credo's governance platform as seamless as possible. 
-"""
-
-DISTNAME = 'credoai'
+DESCRIPTION = "Lens: comprehensive assessment framework for AI systems"
+DISTNAME = 'credoai-lens'
 MAINTAINER = 'Ian Eisenberg'
 MAINTAINER_EMAIL = 'ian@credo.com'
 URL = ''
 LICENSE = ''
-DOWNLOAD_URL = 'https://github.com/Credo-AI/credo_toolkit'
+DOWNLOAD_URL = 'https://github.com/credo-ai/credoai_lens'
 VERSION = __version__
 PYTHON_REQUIRES = ">=3.7"
+
+# Fetch ReadMe
+with open("README.md", "r") as fh:
+    LONG_DESCRIPTION = fh.read()
 
 # Use requirements.txt to set the install_requires
 with open('requirements.txt') as f:
@@ -28,24 +26,15 @@ with open('requirements.txt') as f:
 with open("requirements-extras.txt") as f:
     extras_requirements = [line.strip() for line in f]
 
-with open("requirements-dev.txt") as f:
-    dev_requirements = [line.strip() for line in f]
+# Fetch dev requirements files (including documentation)
+with open("docs/requirements.txt") as f:
+    doc_requirements = [line.strip() for line in f]
 
-all_requirements = extras_requirements + dev_requirements
+dev_requirements = extras_requirements + doc_requirements
 
 EXTRAS_REQUIRES = {'extras' : extras_requirements,
-                   'dev': dev_requirements,
-                   'all': all_requirements}
+                   'dev' : dev_requirements}
 
-PACKAGES = [
-    'credoai',
-    'credoai.utils',
-    'credoai.reporting',
-    'credoai.assessment',
-    'credoai.modules',
-    'credoai.modules.model_assessments',
-    'credoai.modules.dataset_assessments'
-]
 
 CLASSIFIERS = [
     'Intended Audience :: Information Technology',
@@ -61,8 +50,8 @@ PACKAGE_DATA = {
     'credoai':
         [
         'data/*',
-        'data/nlp_generation_analyzer/persisted_models/*',
-        'data/nlp_generation_analyzer/prompts/*'
+        'data/static/nlp_generator_analyzer/persisted_models/*',
+        'data/static/nlp_generator_analyzer/prompts/*',
         ]
 }
 
@@ -83,6 +72,7 @@ if __name__ == "__main__":
         maintainer_email=MAINTAINER_EMAIL,
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
+        long_description_content_type='text/markdown',
         license=LICENSE,
         url=URL,
         version=VERSION,
@@ -90,7 +80,7 @@ if __name__ == "__main__":
         python_requires=PYTHON_REQUIRES,
         install_requires=INSTALL_REQUIRES,
         extras_require=EXTRAS_REQUIRES,
-        packages=PACKAGES,
+        packages=setuptools.find_packages(),
         classifiers=CLASSIFIERS,
         include_package_data=True,
         package_data=PACKAGE_DATA

@@ -1,49 +1,53 @@
-from credoai.reporting.plot_utils import (credo_classification_palette, get_axis_size)
+from credoai.reporting.credo_report import CredoReport
+from credoai.reporting.plot_utils import (credo_classification_palette, 
+                                          format_metric, get_axis_size,
+                                          DEFAULT_STYLE)
 from numpy import pi
 import matplotlib as mpl
-import matplotlib.backends.backend_pdf
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import sklearn.metrics as sk_metrics
 
-class FairnessReport:
-    def __init__(self, toolkit, infographic_shape=(3,5), size=5):
-        self.toolkit = toolkit
+class FairnessReport(CredoReport):
+    def __init__(self, module, infographic_shape=(3,5), size=5):
+        super().__init__()
+        self.module = module
         self.size = size
         self.infographic_shape = infographic_shape
     
-    def create_report(self, include_fairness=True, include_disaggregation=True, filename=None):
+    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
         """Creates a fairness report for binary classification model
 
         Parameters
         ----------
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
         include_fairness : bool, optional
             Whether to include fairness plots, by default True
         include_disaggregation : bool, optional
             Whether to include performance plots broken down by
             subgroup. Overall performance are always reported, by default True
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
+            
+        Returns
+        -------
+        array of figures
         """        
-        df = self.toolkit.get_df()
+        df = self.module.get_df()
         # plot
-        figs = []
         # comparison plots
         if include_fairness:
-            figs.append(self.plot_fairness())
+            self.figs.append(self.plot_fairness())
         # individual group performance plots
-        figs.append(self.plot_performance(df['true'], df['pred'], 'Overall'))
+        self.figs.append(self.plot_performance(df['true'], df['pred'], 'Overall'))
         if include_disaggregation:
             for group, sub_df in df.groupby('sensitive'):
-                figs.append(self.plot_performance(sub_df['true'], sub_df['pred'], group))
-            
+                self.figs.append(self.plot_performance(sub_df['true'], sub_df['pred'], group))
+        # save
         if filename is not None:
-            pdf = matplotlib.backends.backend_pdf.PdfPages(f"{filename}.pdf")
-            for fig in figs: ## will open an empty extra figure :(
-                pdf.savefig(fig, bbox_inches='tight', pad_inches=1)
-            pdf.close()
-            
+            self.export_report(filename)
+        return self.figs
+
     def plot_fairness(self):
         """Plots fairness for binary classification
 
@@ -55,9 +59,20 @@ class FairnessReport:
         Returns
         -------
         matplotlib figure
-        """        
-        f, ax = plt.subplots(1,1, figsize=(self.size, self.size))
-        self._plot_disaggregated_metrics(ax, self.size)
+        """
+        plot_disaggregated = False
+        if self.module.metric_frames != {}:
+            plot_disaggregated = True
+        n_plots = 1+plot_disaggregated
+        with sns.plotting_context('talk', font_scale=self.size/7):
+            f, ax = plt.subplots(1, n_plots, figsize=(self.size*n_plots, 
+                                                       self.size))
+        plt.subplots_adjust(wspace=0.5)
+        axes = f.get_axes()
+        # plot fairness
+        self._plot_fairness_metrics(axes[0], self.size)
+        if plot_disaggregated:
+            self._plot_disaggregated_metrics(axes[1], self.size)
         return f
     
     def plot_performance(self, y_true, y_pred, label, **grid_kwargs):
@@ -111,7 +126,7 @@ class FairnessReport:
         true_data = np.reshape([1]*true_pos_n + [0]*(n-true_pos_n), self.infographic_shape)
         pred_data = np.reshape([1]*pred_pos_n + [0]*(n-pred_pos_n), self.infographic_shape)
         return true_data, pred_data
-    
+
     def _plot_circles(self,
                       data, 
                       ax, colors, marker='o'):
@@ -216,25 +231,51 @@ class FairnessReport:
             ax.text(x, y, s, transform = ax.transAxes, ha='center', **kwargs)
         return ax
     
+    def _plot_fairness_metrics(self, ax, size):
+        # create df
+        df = self.module.get_fairness_results()
+        # add parity to names
+        df.index = [i+'_parity' if row['kind'] == 'parity' else i
+                    for i, row in df.iterrows()]
+        df = df['value']
+        df.index.name = 'Fairness Metric'
+        df.name = 'Value'
+        # plot
+        sns.barplot(data=df.reset_index(), 
+                     y='Fairness Metric', 
+                     x='Value',
+                     edgecolor='w',
+                     color = DEFAULT_STYLE['color'],
+                     ax=ax)
+        self._style_barplot(ax)
+        
     def _plot_disaggregated_metrics(self, ax, size):
         # create df
-        sensitive_feature = self.toolkit.sensitive_features.name
-        df =  self.toolkit.get_disaggregated_results(False) \
+        sensitive_feature = self.module.sensitive_features.name
+        df =  self.module.get_disaggregated_results(False) \
                     .reset_index() \
                     .melt(id_vars=sensitive_feature,
-                          var_name='Metric',
+                          var_name='Performance Metric',
                           value_name='Value')
         # plot
         num_cats = len(df[sensitive_feature].unique())
         palette = sns.color_palette('Purples', num_cats)
         palette[-1] = [.4,.4,.4]
         sns.barplot(data=df, 
-                     y='Metric', 
+                     y='Performance Metric', 
                      x='Value', 
                      hue=sensitive_feature,
                      palette=palette,
                      edgecolor='w',
                      ax=ax)
-
-        sns.despine()
+        self._style_barplot(ax)
         plt.legend(bbox_to_anchor=(1.01, 1.02))
+        
+    def _style_barplot(self, ax):
+        sns.despine()
+        ax.set_xlabel(ax.get_xlabel(), fontweight='bold')
+        ax.set_ylabel(ax.get_xlabel(), fontweight='bold')
+        # format metric labels
+        ax.set_yticklabels([format_metric(label.get_text()) 
+                            for label in ax.get_yticklabels()])
+    
