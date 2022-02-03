@@ -3,7 +3,7 @@
 To build the documentation locally, run `make html` from the `/docs` directory and the docs site will build to: `docs/_build/html/index.html`, which can be opened in the browser.
 > Make sure you have [Sphinx installed](https://www.sphinx-doc.org/en/master/usage/installation.html) if you are building the docs site locally.
 
-Building the docs requires additional dependencies listed in [`docs/requirements.txt`](docs/requirements.txt).
+Building the docs requires additional dependencies listed in `docs/requirements.txt`.
 
 This directory contains the content relevant to documentation & website
 generation using `sphinx`. The most important resource is `conf.py` which
