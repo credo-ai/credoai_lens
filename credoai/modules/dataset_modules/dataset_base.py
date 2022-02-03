@@ -67,14 +67,17 @@ class DatasetModule(CredoModule):
         return pipe
 
     
-    def _find_categorical_features(self, df):
-        """Estimates categorical features
-        Logic: all non-float-type columns are categorical
+    def _find_categorical_features(self, df, threshold=0.10):
+        """Identifies categorical features
+        Logic: If type is not float and there are relatively few unique values for a feature, the feature is likely categorical.
 
         Parameters
         ----------
         df : pandas.dataframe
             A dataframe
+
+        threshold : float
+            The unique-count over total-count threshold
 
         Returns
         -------
@@ -83,8 +86,15 @@ class DatasetModule(CredoModule):
         """        
         cols = df.columns
         float_cols = df.select_dtypes(include=[np.float]).columns
-        cat_cols = list(set(cols) - set(float_cols))
-        return cat_cols
+        cat_cols = set(cols) - set(float_cols)
+
+        for name, column in df.iteritems():
+            unique_count = column.unique().shape[0]
+            total_count = column.shape[0]
+            if unique_count / total_count < threshold:
+                cat_cols.add(name)
+
+        return list(cat_cols)
 
     def _calculate_mutual_information(self, categorical_features=None, normalize=True):
         """Calculates normalized mutual information between sensitive feature and other features
