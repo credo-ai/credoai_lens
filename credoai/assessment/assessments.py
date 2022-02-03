@@ -3,11 +3,13 @@ Module containing all CredoAssessmsents
 """
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
-import credoai.assessment.nlp_utils as nlp_utils
 from credoai.data.utils import get_data_path
-import credoai.modules as mod
 from credoai.reporting import FairnessReport, NLPGeneratorAnalyzerReport
 from sklearn.utils.multiclass import type_of_target
+
+from credoai.utils import InstallationError
+import credoai.utils as cutils
+import credoai.modules as mod
 import sys, inspect
 
 class FairnessBaseAssessment(CredoAssessment):
@@ -136,17 +138,23 @@ class NLPGeneratorAssessment(CredoAssessment):
     def init_module(self, *, model, data=None,
                    prompts='bold_religious_ideology',
                    assessment_functions=None,
-                   comparison_models='gpt'):
+                   comparison_models='gpt2'):
         # set up deafult assessments
         if assessment_functions is None:
-            assessment_functions = nlp_utils.get_default_nlp_assessments()
+            try:
+                assessment_functions = cutils.nlp_utils.get_default_nlp_assessments()
+            except AttributeError:
+                raise InstallationError("To use default assessment functions requires installing credoai-lens[extras]")
             
         # set up generation functions
         generation_functions = {model.name: model.generator_fun}
         # extract generation functions from comparisons
-        if comparison_models == 'gpt':
-            generation_functions['gpt2_comparison'] = \
-                nlp_utils.gpt2_text_generator
+        if comparison_models == 'gpt2':
+            try:
+                generation_functions['gpt2_comparison'] = \
+                    cutils.nlp_utils.gpt2_text_generator
+            except AttributeError:
+                raise InstallationError("To use gpt2 as a comparison model requires installing credoai-lens[extras]")
         else:
             generation_functions.update(comparison_models)
             
