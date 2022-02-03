@@ -1,3 +1,5 @@
+"""Credo AI Governance Platform Integration Functionality"""
+
 from collections import ChainMap
 from datetime import datetime
 from json_api_doc import serialize
