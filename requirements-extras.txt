@@ -10,3 +10,4 @@ google-api-python-client>=1.12.8
 
 # for dev
 pytest>=6.2.5
+pytest-cov>=3.0.0

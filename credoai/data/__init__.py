@@ -1,3 +1,7 @@
+"""
+Data, models and other static resources needed for CredoAI lens
+"""
+
 from ._fetch_creditdefault import fetch_creditdefault
 
 __all__ = [

@@ -18,7 +18,7 @@ Lens is Credo AI's AI Assessment Framework. It supports assessment
 of AI systems, with a focus on responsible AI assessment. It also
 streamlines integration with the Credo AI governance platform.
 
-Check on the `quickstart tutorial <https://credoai-lens.readthedocs.io/en/latest/notebooks/quickstart.html>`_
+Check out the `quickstart tutorial <https://credoai-lens.readthedocs.io/en/latest/notebooks/quickstart.html>`_
 to get started.
 
 If you are connecting to the Credo AI Governance platform, see the `governance integration tutorial <https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html>`_.
@@ -130,7 +130,7 @@ a risk perspective.
 
 This platform is independent from using Lens for assessments. You can use *any*
 method to assess your AI artifacts and upload the results to the Governance Platform
-smoothly. Check out the `integration demo` to see how that is done.
+smoothly. Check out the `integration demo <https://credoai-lens.readthedocs.io/en/latest/notebooks/integration_demo.html>`_ to see how that is done.
 
 
 
