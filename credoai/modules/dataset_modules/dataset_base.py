@@ -27,7 +27,7 @@ class DatasetModule(CredoModule):
         cv_results = self._run_cv(pipe)
         group_differences = self._group_differences()
         normalized_mutual_information = self._calculate_mutual_information()
-        self.results = {'sensitive_feature_roc_auc': cv_results.mean(),
+        self.results = {'overall_proxy_score': cv_results.mean(),
                         'group_diffs': group_differences,
                         'normalized_mutual_information': normalized_mutual_information}  
         return self  
