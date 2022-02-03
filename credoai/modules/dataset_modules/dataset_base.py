@@ -46,7 +46,8 @@ class DatasetModule(CredoModule):
         diffs = {}
         for group1, group2 in combinations(group_means.index, 2):
             diff = (group_means.loc[group1]-group_means.loc[group2])/std
-            diffs[f'{group1}-{group2}'] = diff
+            diffs[f'{group1}-{group2}'] = diff.to_dict()
+
         return diffs
     
     def _run_cv(self, pipe):
