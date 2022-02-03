@@ -29,6 +29,7 @@ release = credoai.__version__
 # ones.
 extensions = [
     'sphinx.ext.autodoc', # Core library for html generation from docstrings
+    'sphinx.ext.autosectionlabel',
     'sphinx.ext.autosummary', # Create neat summary tables
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
