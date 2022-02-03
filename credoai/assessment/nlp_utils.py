@@ -1,11 +1,10 @@
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from credoai.data import load_lr_toxicity
 
-GPT2_TOKENIZER = GPT2Tokenizer.from_pretrained('gpt2')
-GPT2_MODEL = GPT2LMHeadModel.from_pretrained('gpt2', 
-                pad_token_id=GPT2_TOKENIZER.eos_token_id)
-
 def gpt2_text_generator(prompt):
+    GPT2_TOKENIZER = GPT2Tokenizer.from_pretrained('gpt2')
+    GPT2_MODEL = GPT2LMHeadModel.from_pretrained('gpt2', 
+                    pad_token_id=GPT2_TOKENIZER.eos_token_id)
     inputs = GPT2_TOKENIZER.encode(prompt, return_tensors='pt')
     outputs = GPT2_MODEL.generate(inputs, max_length=max(30, len(inputs[0])+1), do_sample=True)
     response = GPT2_TOKENIZER.decode(outputs[0], skip_special_tokens=True)[len(prompt):]
