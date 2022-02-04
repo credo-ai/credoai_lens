@@ -27,9 +27,11 @@ class DatasetModule(CredoModule):
         cv_results = self._run_cv(pipe)
         group_differences = self._group_differences()
         normalized_mutual_information = self._calculate_mutual_information()
+        balance_metrics = self._assess_balance_metrics()
         self.results = {'overall_proxy_score': cv_results.mean(),
                         'group_diffs': group_differences,
-                        'normalized_mutual_information': normalized_mutual_information}  
+                        'normalized_mutual_information': normalized_mutual_information,
+                        'balance_metrics': balance_metrics}  
         return self  
     
     def prepare_results(self):
@@ -155,7 +157,60 @@ class DatasetModule(CredoModule):
                 results[k] = {'value':v, 'feature_type': 'continuous'}
 
         return results
-    
 
+    def _concat_features_label(self):
+        """A utility method that concatenates features and labels
+
+        Returns
+        -------
+        pandas.dataframe, str, str
+            Full dataset dataframe, sensitive feature name, label name
+        """        
+        if isinstance(self.sensitive_features, pd.Series):
+            df = pd.concat([self.X, self.sensitive_features], axis=1)
+            sensitive_feature_name = self.sensitive_features.name
+        else:
+            df = self.X.copy()
+            df['sensitive_feature'] = sensitive_features
+            sensitive_feature_name = 'sensitive_feature'
+
+        if isinstance(self.y, pd.Series):
+            df = pd.concat([df, self.y], axis=1)
+            label_name = self.y.name
+        else:
+            label_name = 'label'
+            df[label_name] = sensitive_features
+
+        return df, sensitive_feature_name, label_name
     
+    def _assess_balance_metrics(self):
+        """Calculate dataset balance statistics and metrics 
+
+        Returns
+        -------
+        dict
+            'sample_balance': distribution of samples across groups
+            'label_balance': distribution of labels across groups
+            'metrics': maximum statistical parity and maximum disparate impact between groups for all preferred label value possibilities 
+        """        
+        df, sensitive_feature_name, label_name = self._concat_features_label()
+        results = {}
         
+        # Distribution of samples across groups
+        sb = df.groupby([sensitive_feature_name]).agg(count=(label_name, len), percentage=(label_name, lambda x: 100.0*len(x)/len(df))).reset_index().to_dict(orient='records')
+        results['sample_balance'] = sb
+
+        # Distribution of samples across groups
+        lb = df.groupby([sensitive_feature_name, label_name]).size().unstack(fill_value=0).stack().reset_index(name='count').to_dict(orient='records')
+        results['label_balance'] = lb
+
+        # Fairness metrics
+        r = df.groupby([sensitive_feature_name, label_name]).agg({label_name: 'count'})
+        r = r.groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))
+        r.rename({label_name:'ratio'}, inplace=True, axis=1)
+        r.reset_index(inplace=True)
+        sp = r.groupby(label_name)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
+        di = r.groupby(label_name)['ratio'].apply(lambda x: np.max(x)/np.min(x)).reset_index(name='value').to_dict(orient='records')
+        results['metrics'] = {'maximum_statistical_parity': sp, 'maximum_disparate_impact': di}
+
+        return results
