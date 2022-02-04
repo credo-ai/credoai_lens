@@ -16,7 +16,7 @@ Tutorials
    :maxdepth: 1
 
    notebooks/lens_demos/binaryclassification
-   docs/notebooks/module_demos/fairness_nlp
+   notebooks/module_demos/fairness_nlp
    notebooks/module_demos/nlp_generator_demo
 
 
