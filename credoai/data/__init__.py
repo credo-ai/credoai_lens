@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 try:
-    from ._load_pretrained import *
+    from ._load_lr_toxicity import *
     __all__.append("load_lr_toxicity")
 except ModuleNotFoundError:
     pass
