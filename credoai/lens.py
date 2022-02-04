@@ -44,13 +44,15 @@ class CredoGovernance:
     """ Class to store governance data.
 
     This information is used to interact with the CredoAI
-    Governance Platform. Artifacts (AI solutions, models, and datasets)
-    are identified by a unique ID which can be found on the platform.
+    Governance Platform. Artifacts (AI solutions, model projects,
+    models, and datasets) are identified by a unique ID which 
+    can be found on the platform.
 
     To make use of the governance platform a .credo_config file must
     also be set up (see README)
     """
     ai_solution_id: str = None
+    project_id: str = None
     model_id: str = None
     data_id: str = None
 
@@ -141,9 +143,16 @@ class CredoModel:
         return self._sklearn_style_config(model)
     
     def _sklearn_style_config(self, model):
+        # if binary classification, only return
+        # the positive classes probabilities by default
+        if model.n_classes_ == 2:
+            prob_fun = lambda X: model.predict_proba[:,1]
+        else:
+            prob_fun = model.predict_proba
+            
         config = {
             'pred_fun': model.predict,
-            'prob_fun': model.predict_proba
+            'prob_fun': prob_fun
         }
         return config
     
@@ -331,6 +340,12 @@ class Lens:
             self._export_reports(export)
         return reports
 
+    def get_assessments(self):
+        return self.assessments
+    
+    def get_governance(self):
+        return self.gov
+    
     def _export_reports(self, export=False):
         tmpdir = tempfile.mkdtemp()
         report_records = []
@@ -364,9 +379,6 @@ class Lens:
             spec['metrics'] = list(metrics.keys())
             spec['bounds'] = metrics
         return spec
-
-    def get_assessments(self):
-        return self.assessments
     
     def _export_results_to_credo(self, results, to_model=True):
         metric_records = ci.record_metrics(results)
@@ -413,6 +425,7 @@ class Lens:
         if self.gov.model_id is None and to_model:
             ids = ci.register_model(self.model.name)
             self.gov.model_id = ids['model_id']
+            self.gov.project_id = ids['project_id']
         return self.gov.model_id if to_model else self.gov.data_id
 
     def _get_names(self):
