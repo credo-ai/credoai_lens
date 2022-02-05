@@ -3,9 +3,9 @@
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
 from credoai.utils.common import ValidationError
-from credoai.utils.credo_api_utils import get_aligned_metrics, patch_metrics
+from credoai.utils.credo_api_utils import patch_metrics
 from credoai import __version__
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from os import listdir, makedirs, path
 from sklearn.utils import check_consistent_length
 from typing import List, Union
@@ -51,10 +51,80 @@ class CredoGovernance:
     To make use of the governance platform a .credo_config file must
     also be set up (see README)
     """
-    ai_solution_id: str = None
-    project_id: str = None
-    model_id: str = None
-    data_id: str = None
+    def __init__(self, 
+                ai_solution_id: str = None, 
+                project_id: str = None, 
+                model_id: str = None, 
+                data_id: str = None):
+
+        self.ai_solution_id = ai_solution_id
+        self.project_id = project_id
+        self.model_id = model_id
+        self.data_id = data_id
+        self.assessment_spec = {}
+
+    def get_assessment_spec(self):
+        """Get assessment spec
+        
+        If not retrieved yet, attempt to retrieve them from AI Governance platform
+        """
+        if not self.assessment_spec:
+            self.retrieve_assessment_spec()
+        spec = {}
+        metrics = self.assessment_spec
+        if metrics:           
+            spec['metrics'] = list(metrics.keys())
+        return {"FairnessBase": spec}
+
+    def get_info(self):
+        to_return = self.__dict__.copy()
+        del to_return['assessment_spec']
+        return to_return
+
+    def retrieve_assessment_spec(self, spec_path=None):
+        """Retrieve assessment spec
+
+        Either from Credo AI's governance platform or a json file
+
+        Parameters
+        __________
+        spec_path : string, optional
+            The file location for the technical spec json downloaded from
+            the technical requirements of an AI Solution on Credo AI's
+            Governance Platform. If no spec_path is provided,
+            will use the AI Solution ID. Default None
+
+        Returns
+        -------
+        dict
+            The assessment spec for one Model contained in the AI solution.
+            Format: {"Metric1": (lower_bound, upper_bound), ...}
+        """
+        assessment_spec = {}
+        if self.ai_solution_id is not None:
+            assessment_spec = ci.get_assessment_spec(self.ai_solution_id, spec_path)
+        if self.model_id and self.model_id in assessment_spec:
+            assessment_spec = assessment_spec[self.model_id]
+        self.assessment_spec = assessment_spec
+        return self.assessment_spec
+
+    def register_project(self, project_name):
+        """Registers a model project"""
+        if self.project_id is not None:
+            raise ValidationError("Trying to register a project when a project ID ",
+                                  "was already provided to CredoGovernance.")
+        ids = ci.register_project(project_name)
+        self.project_id = ids['project_id']
+
+    def register_model(self, model_name):
+        """Registers a model
+        
+        If a project has not been registered, a new project will be created to
+        register the model under.
+        """
+        ids = ci.register_model(model_name=model_name, project_id=self.project_id)
+        self.model_id = ids['model_id']
+        self.project_id = ids['project_id']
 
 class CredoModel:
     """Class wrapper around model-to-be-assessed
@@ -146,7 +216,7 @@ class CredoModel:
         # if binary classification, only return
         # the positive classes probabilities by default
         if model.n_classes_ == 2:
-            prob_fun = lambda X: model.predict_proba[:,1]
+            prob_fun = lambda X: model.predict_proba(X)[:,1]
         else:
             prob_fun = model.predict_proba
             
@@ -270,7 +340,7 @@ class Lens:
         # if governance is defined, pull down spec for
         # solution / model
         if self.gov:
-            self.spec = self._get_spec_from_gov()
+            self.spec = self.gov.get_assessment_spec()
         if spec:
             self.spec.update(spec)
             
@@ -354,7 +424,7 @@ class Lens:
             # get filename
             meta = self._gather_meta(name)
             names = self._get_names()
-            report_name = f"model-{names['model']}_data-{names['data']}_assessment-{name}"
+            report_name = f"AssessmentReport_assessment-{name}_model-{names['model']}_data-{names['data']}"
             filename = path.join(tmpdir, report_name)
             # create report recodr
             report.export_report(filename)
@@ -371,14 +441,6 @@ class Lens:
                 shutil.move(path.join(tmpdir, f), 
                             path.join(export, f))
         shutil.rmtree(tmpdir)
-
-    def _get_spec_from_gov(self):
-        spec = {}
-        if self.gov.ai_solution_id != None:
-            metrics = self._get_aligned_metrics()
-            spec['metrics'] = list(metrics.keys())
-            spec['bounds'] = metrics
-        return spec
     
     def _export_results_to_credo(self, results, to_model=True):
         metric_records = ci.record_metrics(results)
@@ -389,8 +451,11 @@ class Lens:
         if not path.exists(output_directory):
             makedirs(output_directory, exist_ok=False)
         metric_records = ci.record_metrics(results)
+        # determine save directory
         assessment_name = results.assessment.unique()[0]
-        output_file = path.join(output_directory, f'{assessment_name}.json')
+        names = self._get_names()
+        results_file = f"AssessmentResults_assessment-{name}_model-{names['model']}_data-{names['data']}.json"
+        output_file = path.join(output_directory, results_file)
         ci.export_to_file(metric_records, output_file)
 
     def _export_report_to_credo(self, report_record, to_model=True):
@@ -405,27 +470,10 @@ class Lens:
                 'user_id': self.user_id,
                 'assessment': assessment_name,
                 'lens_version': f'Lens-v{__version__}'}
-
-    def _get_aligned_metrics(self):
-        """Get aligned metrics from credoai.s Governance Platform
-
-        Returns
-        -------
-        dict
-            The aligned metrics for one Model contained in the AI solution.
-            Format: {"Metric1": (lower_bound, upper_bound), ...}
-        """
-        aligned_metrics = get_aligned_metrics(self.gov.ai_solution_id)
-        if self.gov.model_id in aligned_metrics:
-            return aligned_metrics[self.gov.model_id]
-        else:
-            return {}
         
     def _get_credo_destination(self, to_model=True):
         if self.gov.model_id is None and to_model:
-            ids = ci.register_model(self.model.name)
-            self.gov.model_id = ids['model_id']
-            self.gov.project_id = ids['project_id']
+            self.gov.register_model(self.model.name)
         return self.gov.model_id if to_model else self.gov.data_id
 
     def _get_names(self):

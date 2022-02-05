@@ -3,7 +3,6 @@ import os
 import pandas as pd
 import requests
 import time
-from collections import defaultdict
 from credoai.utils.common import get_project_root
 from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
@@ -61,8 +60,8 @@ def submit_request(request, end_point, **kwargs):
     response = SESSION.request(request, end_point, **kwargs)
     return response
 
-def get_alignment_spec(ai_solution_id, version='latest'):
-    """Get solution spec for an AI solution from credoai.Governance Platform
+def get_technical_spec(ai_solution_id, version='latest'):
+    """Get technicalspecifications for an AI solution from credoai.Governance Platform
     
     Parameters
     ----------
@@ -108,39 +107,6 @@ def get_model_name(model_id):
     """
     end_point = get_end_point(f"models/{model_id}")
     return deserialize(submit_request('get', end_point).json())['name']
-
-def get_aligned_metrics(ai_solution_id, version='latest'):
-    """Get aligned metrics frmo Credo's Governance Platform
-    
-    Parameters
-    ----------
-    ai_solution_id : string
-        Identifier for AI solution on Credo AI Governance Platform
-        
-    Returns
-    -------
-    dict
-        The aligned metrics for each model contained in the AI solution.
-        Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
-    """
-    spec = get_alignment_spec(ai_solution_id, version=version)
-    try:
-        models = spec['model_ids']
-    except KeyError:
-        return spec
-    metric_dict = {m: defaultdict(dict) for m in models}
-    metrics = spec['metrics']
-    for metric in metrics:
-        #bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        # applies to all models
-        if 'model_id' not in metric:
-            for metric_list in metric_dict.values():
-                metric_list[metric['type']] = {0,1}
-        # otherwise only applies to one model
-        else:
-            metric_dict[metric['model_id']][metric['type']] = {0, 1}
-    return metric_dict
-
 
 def patch_metrics(model_id, model_record):
     """Send a model record object to Credo's Governance Platform
