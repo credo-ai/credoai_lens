@@ -1,3 +1,5 @@
+"""Credo AI's AI Assessment Framework"""
+
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
 from credoai.utils.common import ValidationError

@@ -1,3 +1,5 @@
+"""Requires installation of requirements-extras.txt"""
+
 import pandas as pd
 import os
 import seaborn as sns

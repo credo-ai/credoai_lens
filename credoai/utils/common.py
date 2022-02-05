@@ -13,6 +13,9 @@ class NotRunError(Exception):
 class ValidationError(Exception):
     pass
 
+class InstallationError(Exception):
+    pass
+
 class SupressSettingWithCopyWarning:
     def __enter__(self):
         pd.options.mode.chained_assignment = None

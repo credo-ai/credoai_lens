@@ -29,6 +29,7 @@ release = credoai.__version__
 # ones.
 extensions = [
     'sphinx.ext.autodoc', # Core library for html generation from docstrings
+    'sphinx.ext.autosectionlabel',
     'sphinx.ext.autosummary', # Create neat summary tables
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
@@ -54,11 +55,19 @@ autosummary_generate = True  # Turn on sphinx.ext.autosummary
 set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
 nbsphinx_allow_errors = True  # Continue through Jupyter errors
 autodoc_mock_imports = [
-    'dotenv', 'fairlearn',
-    'joblib', 'json_api_doc',
+    'absl',
+    'dotenv', 
+    'fairlearn',
+    'googleapiclient',
+    'joblib', 
+    'json_api_doc',
     'matplotlib',
     'numpy', 'pandas', 
-    'scipy', 'sklearn', 'tensorflow_hub'
+    'scipy', 
+    'seaborn',
+    'sklearn', 
+    'sentence_transformers', 
+    'transformers'
 ]
 
 
