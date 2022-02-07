@@ -51,11 +51,12 @@ class CredoGovernance:
     To make use of the governance platform a .credo_config file must
     also be set up (see README)
     """
-    def __init__(self, 
-                ai_solution_id: str = None, 
-                project_id: str = None, 
-                model_id: str = None, 
-                data_id: str = None):
+
+    def __init__(self,
+                 ai_solution_id: str = None,
+                 project_id: str = None,
+                 model_id: str = None,
+                 data_id: str = None):
 
         self.ai_solution_id = ai_solution_id
         self.project_id = project_id
@@ -65,14 +66,14 @@ class CredoGovernance:
 
     def get_assessment_spec(self):
         """Get assessment spec
-        
+
         If not retrieved yet, attempt to retrieve them from AI Governance platform
         """
         if not self.assessment_spec:
             self.retrieve_assessment_spec()
         spec = {}
         metrics = self.assessment_spec
-        if metrics:           
+        if metrics:
             spec['metrics'] = list(metrics.keys())
         return {"FairnessBase": spec}
 
@@ -102,7 +103,8 @@ class CredoGovernance:
         """
         assessment_spec = {}
         if self.ai_solution_id is not None:
-            assessment_spec = ci.get_assessment_spec(self.ai_solution_id, spec_path)
+            assessment_spec = ci.get_assessment_spec(
+                self.ai_solution_id, spec_path)
         if self.model_id and self.model_id in assessment_spec:
             assessment_spec = assessment_spec[self.model_id]
         self.assessment_spec = assessment_spec
@@ -118,13 +120,15 @@ class CredoGovernance:
 
     def register_model(self, model_name):
         """Registers a model
-        
+
         If a project has not been registered, a new project will be created to
         register the model under.
         """
-        ids = ci.register_model(model_name=model_name, project_id=self.project_id)
+        ids = ci.register_model(model_name=model_name,
+                                project_id=self.project_id)
         self.model_id = ids['model_id']
         self.project_id = ids['project_id']
+
 
 class CredoModel:
     """Class wrapper around model-to-be-assessed
@@ -142,14 +146,14 @@ class CredoModel:
     a dictionary where the key/value pairs reflect functions. This method is
     agnostic to framework. As long as the functions serve the needs of the
     assessments, they'll work.
- 
+
     E.g. {'prob_fun': model.predict}
 
     The model_config can also be inferred automatically, from well-known packages
     (call CredoModel.supported_frameworks for a list.) If supported, a model
     can be passed directly to CredoModel's "model" argument and a model_config
     will be inferred.
-    
+
     Note a model or model_config *must* be passed. If both are passed, any 
     functionality specified in the model_config will overwrite and inferences
     made from the model itself.
@@ -170,13 +174,13 @@ class CredoModel:
         and functions (e.g., "model.predict"), by default None
     metadata: dict, optional
         Arbitrary additional data that will be associated with the model
-    """ 
+    """
 
     def __init__(
         self,
         name: str,
         model=None,
-        model_config : dict = None,
+        model_config: dict = None,
         metadata=None
     ):
         self.name = name
@@ -208,24 +212,24 @@ class CredoModel:
 
     def _init_sklearn(self, model):
         return self._sklearn_style_config(model)
-    
+
     def _init_xgboost(self, model):
         return self._sklearn_style_config(model)
-    
+
     def _sklearn_style_config(self, model):
         # if binary classification, only return
         # the positive classes probabilities by default
         if model.n_classes_ == 2:
-            prob_fun = lambda X: model.predict_proba(X)[:,1]
+            def prob_fun(X): return model.predict_proba(X)[:, 1]
         else:
             prob_fun = model.predict_proba
-            
+
         config = {
             'pred_fun': model.predict,
             'prob_fun': prob_fun
         }
         return config
-    
+
     def _get_model_type(self, model):
         try:
             framework = model.__module__.split('.')[0]
@@ -244,7 +248,7 @@ class CredoData:
 
     Passed to Lens for certain assessments. Either will be used
     by a CredoModel to make predictions or analyzed itself. 
-    
+
     Parameters
     -------------
     name : str
@@ -277,11 +281,12 @@ class CredoData:
         try:
             check_consistent_length(self.X, self.sensitive_features)
         except ValueError:
-            raise ValidationError(f"X and sensitive features don't have the same index")
+            raise ValidationError(
+                f"X and sensitive features don't have the same index")
 
 
 class Lens:
-    def __init__(        
+    def __init__(
         self,
         governance: CredoGovernance = None,
         spec: dict = None,
@@ -289,14 +294,14 @@ class Lens:
         model: CredoModel = None,
         data: CredoData = None,
         user_id: str = None,
-        init_assessment_kwargs = None
+        init_assessment_kwargs=None
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance
 
         Lens is the assessment framework component of the broader CredoAI suite.
         It is usable as a standalone gateway to a suite of assessments or in 
         combination with CredoAI's Governance Platform. 
-        
+
         If the latter, Lens handles connecting Governance Alignment
         to assessments as well as exporting assessment results back to the Governance
         Platform.
@@ -322,7 +327,7 @@ class Lens:
             CredoData to assess, or be used by CredoModel for assessment, by default None
         user_id : str, optional
             Label for user running assessments, by default None
-        """    
+        """
 
         self.gov = governance or CredoGovernance()
         self.model = model
@@ -343,10 +348,10 @@ class Lens:
             self.spec = self.gov.get_assessment_spec()
         if spec:
             self.spec.update(spec)
-            
+
         # initialize
         self._init_assessments()
-            
+
     def run_assessments(self, export=False, assessment_kwargs=None):
         """Runs assessments on the associated model and/or data
 
@@ -366,7 +371,7 @@ class Lens:
         Returns
         -------
         assessment_results
-        """        
+        """
         assessment_kwargs = assessment_kwargs or {}
         assessment_results = {}
         for name, assessment in self.assessments.items():
@@ -377,11 +382,12 @@ class Lens:
                 if type(export) == str:
                     self._export_results_to_file(prepared_results, export)
                 else:
-                    self._export_results_to_credo(prepared_results, to_model=True)
+                    self._export_results_to_credo(
+                        prepared_results, to_model=True)
         return assessment_results
-    
-    def create_reports(self, export=False, 
-                       report_directory=None, 
+
+    def create_reports(self, export=False,
+                       report_directory=None,
                        report_kwargs=None):
         """Create reports for assessments that have reports
 
@@ -400,7 +406,7 @@ class Lens:
         Returns
         -------
         reports
-        """      
+        """
         report_kwargs = report_kwargs or {}
         reports = {}
         for name, assessment in self.assessments.items():
@@ -412,10 +418,10 @@ class Lens:
 
     def get_assessments(self):
         return self.assessments
-    
+
     def get_governance(self):
         return self.gov
-    
+
     def _export_reports(self, export=False):
         tmpdir = tempfile.mkdtemp()
         report_records = []
@@ -430,23 +436,23 @@ class Lens:
             report.export_report(filename)
             if export is True:
                 report_record = ci.Figure(
-                    name=f"{report_name}.pdf", 
-                    figure=f"{filename}.pdf", 
+                    name=f"{report_name}.pdf",
+                    figure=f"{filename}.pdf",
                     **meta)
                 self._export_report_to_credo(report_record)
         if type(export) == str:
             # move to final location
             allfiles = listdir(tmpdir)
             for f in allfiles:
-                shutil.move(path.join(tmpdir, f), 
+                shutil.move(path.join(tmpdir, f),
                             path.join(export, f))
         shutil.rmtree(tmpdir)
-    
+
     def _export_results_to_credo(self, results, to_model=True):
         metric_records = ci.record_metrics(results)
         destination_id = self._get_credo_destination(to_model)
         ci.export_to_credo(metric_records, destination_id)
-    
+
     def _export_results_to_file(self, results, output_directory):
         if not path.exists(output_directory):
             makedirs(output_directory, exist_ok=False)
@@ -454,7 +460,8 @@ class Lens:
         # determine save directory
         assessment_name = results.assessment.unique()[0]
         names = self._get_names()
-        results_file = f"AssessmentResults_assessment-{name}_model-{names['model']}_data-{names['data']}.json"
+        results_file = (f"AssessmentResults_assessment-{assessment_name}_"
+                       f"model-{names['model']}_data-{names['data']}.json")
         output_file = path.join(output_directory, results_file)
         ci.export_to_file(metric_records, output_file)
 
@@ -470,7 +477,7 @@ class Lens:
                 'user_id': self.user_id,
                 'assessment': assessment_name,
                 'lens_version': f'Lens-v{__version__}'}
-        
+
     def _get_credo_destination(self, to_model=True):
         if self.gov.model_id is None and to_model:
             self.gov.register_model(self.model.name)
@@ -480,7 +487,7 @@ class Lens:
         model_name = self.model.name if self.model else 'NA'
         data_name = self.data.name if self.data else 'NA'
         return {'model': model_name, 'data': data_name}
-    
+
     def _init_assessments(self):
         """Initializes modules in each assessment"""
         for assessment in self.assessments.values():
@@ -488,7 +495,7 @@ class Lens:
             assessment.init_module(model=self.model,
                                    data=self.data,
                                    **kwargs)
-    
+
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment.name)
         return assessment.prepare_results(metadata, **kwargs)
@@ -501,5 +508,3 @@ class Lens:
             if not assessment.check_requirements(self.model, self.data):
                 raise ValidationError(
                     f"Model or Data does not conform to {assessment.name} assessment's requirements")
-
-
