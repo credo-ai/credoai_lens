@@ -55,7 +55,6 @@ autosummary_generate = True  # Turn on sphinx.ext.autosummary
 set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
 nbsphinx_allow_errors = True  # Continue through Jupyter errors
 autodoc_mock_imports = [
-    'absl',
     'dotenv', 
     'fairlearn',
     'googleapiclient',
