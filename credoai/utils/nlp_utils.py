@@ -59,7 +59,7 @@ def gpt2_text_generator(prompt):
     """   
     tokenizer_gpt2 = GPT2Tokenizer.from_pretrained('gpt2')
     model_gpt2 = GPT2LMHeadModel.from_pretrained('gpt2', 
-                    pad_token_id=GPT2_TOKENIZER.eos_token_id)
+                    pad_token_id=tokenizer_gpt2.eos_token_id)
     response = text_generator(prompt, tokenizer_gpt2, model_gpt2)
     return response
 
