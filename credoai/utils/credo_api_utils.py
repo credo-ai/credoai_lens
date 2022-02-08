@@ -3,10 +3,9 @@ import os
 import pandas as pd
 import requests
 import time
-from credoai.utils.common import get_project_root
+from credoai.utils.common import get_project_root, IntegrationError
 from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
-from urllib.error import HTTPError
 
 def read_config():
     config_file = os.path.join(os.path.expanduser('~'), 
@@ -76,7 +75,10 @@ def get_technical_spec(ai_solution_id, version='latest'):
     end_point = get_end_point(f"ai_solutions/{ai_solution_id}/scopes")
     if version is not None:
         end_point = os.path.join(end_point, version)
-    return deserialize(submit_request('get', end_point).json())
+    try:
+        return deserialize(submit_request('get', end_point).json())
+    except requests.exceptions.HTTPError :
+        raise IntegrationError("Failed to download technical spec. Check that your AI solution ID exists")
 
 def get_survey_results(ai_solution_id, survey_key='FAIR'):
     survey_end_point = get_end_point(f"ai_solutions/{ai_solution_id}/surveys")
@@ -108,6 +110,31 @@ def get_model_name(model_id):
     end_point = get_end_point(f"models/{model_id}")
     return deserialize(submit_request('get', end_point).json())['name']
 
+def get_dataset_by_name(dataset_name):
+    """Returns governance info (ids) for dataset using its name"""
+    returned = _get_by_name(dataset_name, 'models')
+    if returned:
+        return {'name': dataset_name, 
+                'dataset_id': returned['id']}
+    return None
+
+def get_model_by_name(model_name):
+    """Returns governance info (ids) for model using its name"""
+    returned = _get_by_name(model_name, 'models')
+    if returned:
+        return {'name': model_name, 
+                'model_id': returned['id'],
+                'model_project_id': returned['model_project_id']}
+    return None
+
+def get_model_project_by_name(project_name):
+    """Returns governance info (ids) for model_project using its name"""
+    returned = _get_by_name(project_name, 'models')
+    if returned:
+        return {'name': project_name, 
+                'dataset_id': returned['id']}
+    return None
+
 def patch_metrics(model_id, model_record):
     """Send a model record object to Credo's Governance Platform
     
@@ -135,6 +162,54 @@ def post_figure(model_id, figure_record):
     end_point = get_end_point(f"models/{model_id}/model_assets")
     return submit_request('post', end_point, data=figure_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
 
+def register_dataset(dataset_name):
+    """Registers a dataset on Credo AI's Governance Platform
+    
+    Parameters
+    ----------
+    dataset_name : string
+        Name for dataset on Credo AI's Governance Platform
+        
+    Returns
+    --------
+    dict : str
+        Dictionary with Identifiers for dataset
+        on Credo AI's Governance Platform
+    """
+    end_point = get_end_point(f"datasets")
+    project = {"name": dataset_name, "$type": "string"}
+    data = json.dumps(serialize(project))
+    response = _register_artifact(data, end_point)
+    return {'name': dataset_name, 'dataset_id': response['id']}
+
+def register_model(model_name, model_project_id=None):
+    """Registers a model  on Credo AI's Governance Platform
+    
+    Parameters
+    ----------
+    model_name : string
+        Name for Model on Credo AI's Governance Platform
+    model_project_id : string
+        Identifier for Project on Credo AI's Governance Platform.
+        If not provided, a Project will automatically be created
+        with the name {model_name} project.
+        
+    Returns
+    --------
+    dict : str
+        Dictionary with Identifiers for Model and Project
+        on Credo AI's Governance Platform
+    """
+    if model_project_id is None:
+        model_project_id = register_project(f'{model_name} project')['model_project_id']
+    end_point = get_end_point(f"models")
+    model = {"name": model_name, 
+             "version": "1.0",
+             "model_project_id": model_project_id,
+             "$type": "string"}
+    data = json.dumps(serialize(model))
+    response = _register_artifact(data, end_point)
+    return {'name': model_name, 'model_id': response['id'], 'model_project_id': model_project_id}
 
 def register_project(project_name):
     """Registers a model project on Credo AI's Governance Platform
@@ -153,51 +228,25 @@ def register_project(project_name):
     end_point = get_end_point(f"model_projects")
     project = {"name": project_name, "$type": "string"}
     data = json.dumps(serialize(project))
-    try:
-        response = submit_request('post', end_point, data=data, 
-                       headers={"content-type": "application/vnd.api+json"})
-    except requests.exceptions.HTTPError as err:
-        if err.response.status_code == 422:
-            raise Exception("Failed to register Project. Ensure that project_name is unique")
-        else:
-            raise
-    response = deserialize(json.loads(response.text))
-    return {'name': project_name, 'project_id': response['id']}
+    response = _register_artifact(data, end_point)
+    return {'name': project_name, 'model_project_id': response['id']}
 
-def register_model(model_name, project_id=None):
-    """Registers a model project on Credo AI's Governance Platform
-    
-    Parameters
-    ----------
-    model_name : string
-        Name for Model on Credo AI's Governance Platform
-    project_id : string
-        Identifier for Project on Credo AI's Governance Platform.
-        If not provided, a Project will automatically be created
-        with the name {model_name} project.
-        
-    Returns
-    --------
-    dict : str
-        Dictionary with Identifiers for Model and Project
-        on Credo AI's Governance Platform
-    """
-    if project_id is None:
-        project_id = register_project(f'{model_name} project')['project_id']
-    end_point = get_end_point(f"models")
-    model = {"name": model_name, 
-             "version": "1.0",
-             "model_project_id": project_id,
-             "$type": "string"}
-    data = json.dumps(serialize(model))
+def _register_artifact(data, end_point):
     try:
         response = submit_request('post', end_point, data=data, 
                        headers={"content-type": "application/vnd.api+json"})
     except requests.exceptions.HTTPError as err:
         if err.response.status_code == 422:
-            raise Exception("Failed to register Model. Ensure that model_name is unique")
+            raise IntegrationError("Failed to register artifact. Ensure that the name is unique")
         else:
             raise
-    response = deserialize(json.loads(response.text))
-    return {'name': model_name, 'model_id': response['id'], 'project_id': project_id}
-    
+    return deserialize(response.json())
+
+def _get_by_name(name, endpoint):
+    end_point = get_end_point(endpoint)
+    params = {"filter[name][value]": name,
+              "filter[name][type]": "match"}
+    returned = deserialize(submit_request('get', end_point, params=params).json())
+    if len(returned) == 1:
+        return returned[0]
+    return None

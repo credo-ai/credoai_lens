@@ -2,8 +2,10 @@
 
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
-from credoai.utils.common import ValidationError
-from credoai.utils.credo_api_utils import patch_metrics
+from credoai.utils.common import (
+    IntegrationError, ValidationError, raise_or_warn, verbose_print)
+from credoai.utils.credo_api_utils import (get_dataset_by_name, get_model_by_name,
+                                           get_model_project_by_name, patch_metrics)
 from credoai import __version__
 from dataclasses import dataclass, field
 from os import listdir, makedirs, path
@@ -13,6 +15,7 @@ from typing import List, Union
 import credoai.integration as ci
 import shutil
 import tempfile
+import warnings
 
 BASE_CONFIGS = ('sklearn', 'xgboost')
 
@@ -54,15 +57,34 @@ class CredoGovernance:
 
     def __init__(self,
                  ai_solution_id: str = None,
-                 project_id: str = None,
+                 model_project_id: str = None,
                  model_id: str = None,
-                 data_id: str = None):
+                 dataset_id: str = None,
+                 warning_level=1):
+        """[summary]
 
+        Parameters
+        ----------
+        ai_solution_id : str, optional
+            ID of AI Solution on Credo AI Governance Platform, by default None
+        model_project_id : str, optional
+            ID of model project on Credo AI Governance Platform, by default None
+        model_id : str, optional
+            ID of model on Credo AI Governance Platform, by default None
+        dataset_id : str, optional
+            ID of dataset on Credo AI Governance Platform, by default None
+        warning_level : int
+            warning level. 
+                0: warnings are off
+                1: warnings are raised (default)
+                2: warnings are raised as exceptions.
+        """
         self.ai_solution_id = ai_solution_id
-        self.project_id = project_id
+        self.model_project_id = model_project_id
         self.model_id = model_id
-        self.data_id = data_id
+        self.dataset_id = dataset_id
         self.assessment_spec = {}
+        self.warning_level = warning_level
 
     def get_assessment_spec(self):
         """Get assessment spec
@@ -81,6 +103,39 @@ class CredoGovernance:
         to_return = self.__dict__.copy()
         del to_return['assessment_spec']
         return to_return
+
+    def set_governance_info_by_name(self,
+                                    *,
+                                    model_name=None,
+                                    dataset_name=None,
+                                    model_project_name=None):
+        """Sets governance info by name
+
+        Sets model_id, model_project_id and/or dataset_id
+        using names
+
+        Parameters
+        ----------
+        model_name : str
+            name of a model
+        model_name : str
+            name of a dataset
+        model_name : str
+            name of a model project
+        """
+        if model_name:
+            ids = get_model_by_name(model_name)
+            if ids is not None:
+                self.model_id = ids['model_id']
+                self.model_project_id = ids['model_project_id']
+        if dataset_name:
+            ids = get_dataset_by_name(dataset_name)
+            if ids is not None:
+                self.dataset_id = ids['dataset_id']
+        if model_project_name and not model_name:
+            ids = get_model_project_by_name(model_project_name)
+            if ids is not None:
+                self.model_project_id = ids['id']
 
     def retrieve_assessment_spec(self, spec_path=None):
         """Retrieve assessment spec
@@ -110,13 +165,21 @@ class CredoGovernance:
         self.assessment_spec = assessment_spec
         return self.assessment_spec
 
-    def register_project(self, project_name):
-        """Registers a model project"""
-        if self.project_id is not None:
-            raise ValidationError("Trying to register a project when a project ID ",
-                                  "was already provided to CredoGovernance.")
-        ids = ci.register_project(project_name)
-        self.project_id = ids['project_id']
+    def register_dataset(self, dataset_name):
+        """Registers a dataset
+
+        If a project has not been registered, a new project will be created to
+        register the dataset under.
+        """
+        try:
+            ids = ci.register_dataset(dataset_name=dataset_name)
+            self.model_id = ids['dataset_id']
+        except IntegrationError:
+            self.set_governance_info_by_name(dataset_name=dataset_name)
+            raise_or_warn(IntegrationError,
+                          f"The dataset ({dataset_name}) is already registered.",
+                          f"The dataset ({dataset_name}) is already registered. Using registered dataset",
+                          self.warning_level)
 
     def register_model(self, model_name):
         """Registers a model
@@ -124,10 +187,33 @@ class CredoGovernance:
         If a project has not been registered, a new project will be created to
         register the model under.
         """
-        ids = ci.register_model(model_name=model_name,
-                                project_id=self.project_id)
-        self.model_id = ids['model_id']
-        self.project_id = ids['project_id']
+        try:
+            ids = ci.register_model(model_name=model_name,
+                                    model_project_id=self.model_project_id)
+            self.model_id = ids['model_id']
+            self.model_project_id = ids['model_project_id']
+        except IntegrationError:
+            self.set_governance_info_by_name(model_name=model_name)
+            raise_or_warn(IntegrationError,
+                          f"The model ({model_name}) is already registered.",
+                          f"The model ({model_name}) is already registered. Using registered model",
+                          self.warning_level)
+
+    def register_project(self, model_project_name):
+        """Registers a model project"""
+        if self.model_project_id is not None:
+            raise ValidationError("Trying to register a project when a project ID ",
+                                  "was already provided to CredoGovernance.")
+        try:
+            ids = ci.register_project(model_project_name)
+            self.model_project_id = ids['model_project_id']
+        except IntegrationError:
+            self.set_governance_info_by_name(
+                model_project_name=model_project_name)
+            raise_or_warn(IntegrationError,
+                          f"The model project ({model_project_name}) is already registered.",
+                          f"The model project ({model_project_name}) is already registered. Using registered model project",
+                          self.warning_level)
 
 
 class CredoModel:
@@ -294,7 +380,8 @@ class Lens:
         model: CredoModel = None,
         data: CredoData = None,
         user_id: str = None,
-        init_assessment_kwargs=None
+        warning_level=1,
+        verbose=1
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance
 
@@ -327,12 +414,21 @@ class Lens:
             CredoData to assess, or be used by CredoModel for assessment, by default None
         user_id : str, optional
             Label for user running assessments, by default None
+        warning_level : int
+            warning level. 
+                0: warnings are off
+                1: warnings are raised (default)
+                2: warnings are raised as exceptions.
+        verbose : int
+            verbose level, 0 nothing will be printed.
         """
 
-        self.gov = governance or CredoGovernance()
+        self.gov = governance or CredoGovernance(warning_level=warning_level)
         self.model = model
         self.data = data
         self.spec = {}
+        self.warning_level = warning_level
+        self.verbose = verbose
 
         if assessments == 'auto':
             assessments = self._select_assessments()
@@ -375,9 +471,11 @@ class Lens:
         assessment_kwargs = assessment_kwargs or {}
         assessment_results = {}
         for name, assessment in self.assessments.items():
+            verbose_print(f"Running assessment-{name}", self.verbose)
             kwargs = assessment_kwargs.get(name, {})
             assessment_results[name] = assessment.run(**kwargs).get_results()
             if export:
+                verbose_print(f"** Exporting assessment-{name}", self.verbose)
                 prepared_results = self._prepare_results(assessment, **kwargs)
                 if type(export) == str:
                     self._export_results_to_file(prepared_results, export)
@@ -410,9 +508,13 @@ class Lens:
         report_kwargs = report_kwargs or {}
         reports = {}
         for name, assessment in self.assessments.items():
+            verbose_print(
+                f"Creating report for assessment-{name}", self.verbose)
             kwargs = report_kwargs.get(name, {})
             reports[name] = assessment.create_report(**kwargs)
         if export:
+            verbose_print(
+                f"** Exporting report for assessment-{name}", self.verbose)
             self._export_reports(export)
         return reports
 
@@ -461,7 +563,7 @@ class Lens:
         assessment_name = results.assessment.unique()[0]
         names = self._get_names()
         results_file = (f"AssessmentResults_assessment-{assessment_name}_"
-                       f"model-{names['model']}_data-{names['data']}.json")
+                        f"model-{names['model']}_data-{names['data']}.json")
         output_file = path.join(output_directory, results_file)
         ci.export_to_file(metric_records, output_file)
 
@@ -480,8 +582,22 @@ class Lens:
 
     def _get_credo_destination(self, to_model=True):
         if self.gov.model_id is None and to_model:
+            raise_or_warn(ValidationError,
+                          "No model_id supplied to export to Credo AI.")
+            verbose_print(
+                f"**** Registering model ({self.model.name})", self.verbose)
             self.gov.register_model(self.model.name)
-        return self.gov.model_id if to_model else self.gov.data_id
+        if self.gov.model_id is None and not to_model:
+            raise_or_warn(ValidationError,
+                          "No dataset_id supplied to export to Credo AI.")
+            verbose_print(
+                f"**** Registering dataset ({self.dataset.name})", self.verbose)
+            self.gov.register_dataset(self.dataset.name)
+        destination = self.gov.model_id if to_model else self.gov.dataset_id
+        label = 'model' if to_model else 'dataset'
+        verbose_print(
+            f"**** Destination for export: {label} id-{destination}", self.verbose)
+        return destination
 
     def _get_names(self):
         model_name = self.model.name if self.model else 'NA'
