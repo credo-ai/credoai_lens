@@ -112,7 +112,7 @@ class NLPEmbeddingBiasAssessment(CredoAssessment):
                 model_requirements=['embedding_fun'])
             )
         
-    def init_module(self, model, data=None, 
+    def init_module(self, model, 
               group_embeddings=None, 
               comparison_categories=None, 
               include_default=True):
@@ -233,7 +233,7 @@ class DatasetAssessment(CredoAssessment):
             )
         )
 
-    def init_module(self, *, data, model=None):
+    def init_module(self, *, data):
         self.initialized_module = self.module(
             data.X, 
             data.y,
