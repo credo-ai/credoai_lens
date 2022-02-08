@@ -2,8 +2,7 @@
 
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
-from credoai.utils.common import (
-    IntegrationError, ValidationError, raise_or_warn, verbose_print)
+from credoai.utils.common import (IntegrationError, ValidationError, raise_or_warn)
 from credoai.utils.credo_api_utils import (get_dataset_by_name, get_model_by_name,
                                            get_model_project_by_name, patch_metrics)
 from credoai import __version__
@@ -13,9 +12,9 @@ from sklearn.utils import check_consistent_length
 from typing import List, Union
 
 import credoai.integration as ci
+import logging
 import shutil
 import tempfile
-import warnings
 
 BASE_CONFIGS = ('sklearn', 'xgboost')
 
@@ -382,8 +381,7 @@ class Lens:
         model: CredoModel = None,
         data: CredoData = None,
         user_id: str = None,
-        warning_level=1,
-        verbose=1
+        warning_level=1
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance
 
@@ -421,8 +419,6 @@ class Lens:
                 0: warnings are off
                 1: warnings are raised (default)
                 2: warnings are raised as exceptions.
-        verbose : int
-            verbose level, 0 nothing will be printed.
         """
 
         self.gov = governance or CredoGovernance(warning_level=warning_level)
@@ -430,7 +426,6 @@ class Lens:
         self.data = data
         self.spec = {}
         self.warning_level = warning_level
-        self.verbose = verbose
 
         if assessments == 'auto':
             assessments = self._select_assessments()
@@ -473,11 +468,11 @@ class Lens:
         assessment_kwargs = assessment_kwargs or {}
         assessment_results = {}
         for name, assessment in self.assessments.items():
-            verbose_print(f"Running assessment-{name}", self.verbose)
+            logging.info(f"Running assessment-{name}", self.verbose)
             kwargs = assessment_kwargs.get(name, {})
             assessment_results[name] = assessment.run(**kwargs).get_results()
             if export:
-                verbose_print(f"** Exporting assessment-{name}", self.verbose)
+                logging.info(f"** Exporting assessment-{name}", self.verbose)
                 prepared_results = self._prepare_results(assessment, **kwargs)
                 if type(export) == str:
                     self._export_results_to_file(prepared_results, export)
@@ -510,12 +505,12 @@ class Lens:
         report_kwargs = report_kwargs or {}
         reports = {}
         for name, assessment in self.assessments.items():
-            verbose_print(
+            logging.info(
                 f"Creating report for assessment-{name}", self.verbose)
             kwargs = report_kwargs.get(name, {})
             reports[name] = assessment.create_report(**kwargs)
         if export:
-            verbose_print(
+            logging.info(
                 f"** Exporting report for assessment-{name}", self.verbose)
             self._export_reports(export)
         return reports
@@ -586,18 +581,18 @@ class Lens:
         if self.gov.model_id is None and to_model:
             raise_or_warn(ValidationError,
                           "No model_id supplied to export to Credo AI.")
-            verbose_print(
+            logging.info(
                 f"**** Registering model ({self.model.name})", self.verbose)
             self.gov.register_model(self.model.name)
         if self.gov.model_id is None and not to_model:
             raise_or_warn(ValidationError,
                           "No dataset_id supplied to export to Credo AI.")
-            verbose_print(
+            logging.info(
                 f"**** Registering dataset ({self.dataset.name})", self.verbose)
             self.gov.register_dataset(self.dataset.name)
         destination = self.gov.model_id if to_model else self.gov.dataset_id
         label = 'model' if to_model else 'dataset'
-        verbose_print(
+        logging.info(
             f"**** Destination for export: {label} id-{destination}", self.verbose)
         return destination
 
