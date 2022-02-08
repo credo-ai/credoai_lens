@@ -1,5 +1,6 @@
 import json
 import hashlib
+from absl import logging
 import numpy as np
 import pandas as pd
 import os
@@ -15,6 +16,18 @@ class ValidationError(Exception):
 
 class InstallationError(Exception):
     pass
+
+class IntegrationError(Exception):
+    pass
+
+def raise_or_warn(exception, exception_text, warning_text=None, warning_level=1):
+    warning_text = warning_text or exception_text
+    if warning_level >= 2:
+        logging.exception(exception_text)
+        raise exception(exception_text)
+    elif warning_level == 1:
+        logging.warning(warning_text)
+    return
 
 class SupressSettingWithCopyWarning:
     def __enter__(self):

@@ -35,7 +35,7 @@ class CredoAssessment(ABC):
     def init_module(self, *, model=None, data=None):
         """ Initializes the assessment module
 
-        Transforms the assessment spec, CredoModel and CredoData into the proper form
+        Transforms CredoModel and CredoData into the proper form
         to create a runnable assessment.
 
         See the lens_customization notebook for examples
