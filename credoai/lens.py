@@ -100,8 +100,10 @@ class CredoGovernance:
         return {"FairnessBase": spec}
 
     def get_info(self):
+        """Returns Credo AI Governance IDs"""
         to_return = self.__dict__.copy()
         del to_return['assessment_spec']
+        del to_return['warning_level']
         return to_return
 
     def set_governance_info_by_name(self,
