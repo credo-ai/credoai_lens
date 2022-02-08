@@ -66,7 +66,9 @@ A listing and overview of all the demonstration notebooks are available [here](h
 
 ## Documentation
 
-Documentation is hosted by [readthedocs](https://credoai-lens.readthedocs.io/en/latest/index.html).
+Documentation is hosted by [readthedocs](https://credoai-lens.readthedocs.io/en/stable/).
+
+For dev documentation, see [latest](https://credoai-lens.readthedocs.io/en/latest/index.html).
 
 ## Configuration
 
