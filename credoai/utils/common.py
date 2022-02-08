@@ -1,6 +1,6 @@
 import json
 import hashlib
-import logging
+from absl import logging
 import numpy as np
 import pandas as pd
 import os
@@ -22,7 +22,7 @@ class IntegrationError(Exception):
 
 def raise_or_warn(exception, exception_text, warning_text=None, warning_level=1):
     warning_text = warning_text or exception_text
-    if warning_level == 2:
+    if warning_level >= 2:
         logging.exception(exception_text)
         raise exception(exception_text)
     elif warning_level == 1:

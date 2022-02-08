@@ -1,6 +1,6 @@
 """Requires installation of requirements-extras.txt"""
 
-import logging
+from absl import logging
 import pandas as pd
 import os
 import seaborn as sns

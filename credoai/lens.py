@@ -12,7 +12,7 @@ from sklearn.utils import check_consistent_length
 from typing import List, Union
 
 import credoai.integration as ci
-import logging
+from absl import logging
 import shutil
 import tempfile
 
@@ -468,11 +468,11 @@ class Lens:
         assessment_kwargs = assessment_kwargs or {}
         assessment_results = {}
         for name, assessment in self.assessments.items():
-            logging.info(f"Running assessment-{name}", self.verbose)
+            logging.info(f"Running assessment-{name}")
             kwargs = assessment_kwargs.get(name, {})
             assessment_results[name] = assessment.run(**kwargs).get_results()
             if export:
-                logging.info(f"** Exporting assessment-{name}", self.verbose)
+                logging.info(f"** Exporting assessment-{name}")
                 prepared_results = self._prepare_results(assessment, **kwargs)
                 if type(export) == str:
                     self._export_results_to_file(prepared_results, export)
@@ -505,13 +505,11 @@ class Lens:
         report_kwargs = report_kwargs or {}
         reports = {}
         for name, assessment in self.assessments.items():
-            logging.info(
-                f"Creating report for assessment-{name}", self.verbose)
+            logging.info(f"Creating report for assessment-{name}")
             kwargs = report_kwargs.get(name, {})
             reports[name] = assessment.create_report(**kwargs)
         if export:
-            logging.info(
-                f"** Exporting report for assessment-{name}", self.verbose)
+            logging.info(f"** Exporting report for assessment-{name}")
             self._export_reports(export)
         return reports
 
@@ -581,19 +579,16 @@ class Lens:
         if self.gov.model_id is None and to_model:
             raise_or_warn(ValidationError,
                           "No model_id supplied to export to Credo AI.")
-            logging.info(
-                f"**** Registering model ({self.model.name})", self.verbose)
+            logging.info(f"**** Registering model ({self.model.name})")
             self.gov.register_model(self.model.name)
         if self.gov.model_id is None and not to_model:
             raise_or_warn(ValidationError,
                           "No dataset_id supplied to export to Credo AI.")
-            logging.info(
-                f"**** Registering dataset ({self.dataset.name})", self.verbose)
+            logging.info(f"**** Registering dataset ({self.dataset.name})")
             self.gov.register_dataset(self.dataset.name)
         destination = self.gov.model_id if to_model else self.gov.dataset_id
         label = 'model' if to_model else 'dataset'
-        logging.info(
-            f"**** Destination for export: {label} id-{destination}", self.verbose)
+        logging.info(f"**** Destination for export: {label} id-{destination}")
         return destination
 
     def _get_names(self):
