@@ -1,7 +1,7 @@
 from credoai.reporting.credo_report import CredoReport
 from credoai.reporting.plot_utils import (credo_classification_palette, 
                                           format_metric, get_axis_size,
-                                          DEFAULT_STYLE)
+                                          DEFAULT_COLOR)
 from numpy import pi
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -245,7 +245,7 @@ class FairnessReport(CredoReport):
                      y='Fairness Metric', 
                      x='Value',
                      edgecolor='w',
-                     color = DEFAULT_STYLE['color'],
+                     color = DEFAULT_COLOR,
                      ax=ax)
         self._style_barplot(ax)
         

@@ -1,10 +1,18 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import textwrap
 
-DEFAULT_STYLE = {'lw': 3,
-                 'color': '#4937c0'}
+DEFAULT_COLOR = '#4937c0'
+
+def get_style(rc=None, figsize=6, figure_ratio=1):
+    figsize = [figsize, figsize*figure_ratio]
+    style = {'figure.figsize': figsize,
+             'figure.dpi': 200}
+    if rc:
+            style.update(rc)
+    return mpl.rc_context(style)
 
 def credo_classification_palette():
     return [[.5,.5,.5], '#3b07b4']
@@ -52,14 +60,11 @@ def outlier_style_df(s):
 
 def plot_curve(x, y, label, 
                ax=None, legend_loc='auto',
-               context=None,
-              **plot_kwargs):
-    style = DEFAULT_STYLE.copy()
-    style.update(plot_kwargs)
+               context=None):
     if ax is None:
         _, ax = plt.subplots(figsize=(12, 8))
 
-    ax.plot(x, y, label=label, **style)
+    ax.plot(x, y, label=label)
     if label != "":
         ax.legend(loc=legend_loc)
     return ax
