@@ -7,7 +7,7 @@ import setuptools
 DESCRIPTION = "Lens: comprehensive assessment framework for AI systems"
 DISTNAME = 'credoai-lens'
 MAINTAINER = 'Ian Eisenberg'
-MAINTAINER_EMAIL = 'ian@credo.com'
+MAINTAINER_EMAIL = 'ian@credo.ai'
 URL = ''
 LICENSE = ''
 DOWNLOAD_URL = 'https://github.com/credo-ai/credoai_lens'
