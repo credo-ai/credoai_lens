@@ -1,3 +1,5 @@
+"""Requires installation of requirements-extras.txt"""
+
 import joblib
 from credoai.data.utils import get_data_path
 from sentence_transformers import SentenceTransformer

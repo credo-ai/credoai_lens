@@ -1,9 +1,11 @@
+"""Requires installation of requirements-extras.txt"""
+
+from absl import logging
 import pandas as pd
 import os
 import seaborn as sns
 
 from ._nlp_constants import PROMPTS_PATHS, PERSPECTIVE_API_MODELS
-from absl import logging
 from credoai.data.utils import get_data_path
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError, ValidationError, wrap_list

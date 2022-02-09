@@ -24,6 +24,9 @@ def get_module_classes(module):
         and member.__module__ == module.__name__)
     return [c[0] for c in classes]
 
+# try to import each module
+# make the ones that are successful
+# importable with "from credoai.module import {module}"
 for module in modules:
     module_path = f'{base}.{module}'
     try:

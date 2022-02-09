@@ -14,7 +14,21 @@ from sklearn.feature_selection import mutual_info_classif, mutual_info_regressio
 import pandas as pd
 
 class DatasetModule(CredoModule):
-    
+    """Dataset module for Credo AI. 
+
+    This module takes in features and labels and provides functionality to:
+    - perform proxy analysis of features
+    - generate fairness-oriented descriptive information 
+
+    Parameters
+    ----------
+    X : (List, pandas.Series, numpy.ndarray)
+        The features
+    y : (List, pandas.Series, numpy.ndarray)
+        The labels
+    sensitive_features : (List, pandas.Series, numpy.ndarray)
+        The sensitive features which should be used to create subgroups
+    """    
     def __init__(self,
                  X,
                  y,
