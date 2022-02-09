@@ -1,5 +1,6 @@
 """Credo AI's AI Assessment Framework"""
 
+from absl import logging
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
 from credoai.utils.common import (IntegrationError, ValidationError, raise_or_warn)
@@ -12,7 +13,7 @@ from sklearn.utils import check_consistent_length
 from typing import List, Union
 
 import credoai.integration as ci
-from absl import logging
+import pandas as pd
 import shutil
 import tempfile
 
@@ -370,6 +371,32 @@ class CredoData:
         except ValueError:
             raise ValidationError(
                 f"X and sensitive features don't have the same index")
+
+    @staticmethod
+    def _concat_features_label_to_dataframe(X, y, sensitive_features):
+        """A utility method that concatenates all features and labels into a single dataframe
+
+        Returns
+        -------
+        pandas.dataframe, str, str
+            Full dataset dataframe, sensitive feature name, label name
+        """        
+        if isinstance(sensitive_features, pd.Series):
+            df = pd.concat([X, sensitive_features], axis=1)
+            sensitive_feature_name = sensitive_features.name
+        else:
+            df = X.copy()
+            df['sensitive_feature'] = sensitive_features
+            sensitive_feature_name = 'sensitive_feature'
+
+        if isinstance(y, pd.Series):
+            df = pd.concat([df, y], axis=1)
+            label_name = y.name
+        else:
+            label_name = 'label'
+            df[label_name] = sensitive_features
+
+        return df, sensitive_feature_name, label_name
 
 
 class Lens:
