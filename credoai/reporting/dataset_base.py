@@ -29,9 +29,7 @@ class DatasetModuleReport(CredoReport):
         fig, axs = plt.subplots(nrows=2, figsize=(8, 8), dpi=300)
         results = results_all["balance_metrics"]["sample_balance"]
         df = pd.DataFrame(results)
-        sensitive_feature_name = list(df.drop(["count", "percentage"], axis=1).columns)[
-            0
-        ]
+        sensitive_feature_name = list(df.drop(["count", "percentage"], axis=1).columns)[0]
 
         ax = sns.barplot(
             x=sensitive_feature_name,
@@ -39,14 +37,14 @@ class DatasetModuleReport(CredoReport):
             data=df,
             palette=plot_utils.credo_diverging_palette(1),
             alpha=1,
-            ax=axs[0]
+            ax=axs[0],
         )
         fig.patch.set_facecolor("white")
         ax.set_frame_on(False)
         ax.set_title("Data balance across " + sensitive_feature_name + " subgroups")
         ax.set_xlabel("")
         ax.set_ylabel("Number of data samples")
-        ax.set_xticklabels(ax.get_xticklabels(), rotation = 90)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
 
         # Generate label balance barplots
         results = results_all["balance_metrics"]["label_balance"]
@@ -61,7 +59,7 @@ class DatasetModuleReport(CredoReport):
             data=df,
             palette=plot_utils.credo_diverging_palette(num_classes),
             alpha=1,
-            ax=axs[1]
+            ax=axs[1],
         )
         fig.patch.set_facecolor("white")
         ax.set_frame_on(False)
