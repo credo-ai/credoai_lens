@@ -29,7 +29,7 @@ class NLPGeneratorAnalyzerReport(CredoReport):
         array of figures
         """
         # Generate assessment attribute distribution parameters plots
-        self.figs.append(self._plot_boxplots)
+        self.figs.append(self._plot_boxplots())
 
         # Save to pdf if requested
         if filename:
@@ -38,6 +38,7 @@ class NLPGeneratorAnalyzerReport(CredoReport):
         return self.figs
 
     def _plot_boxplots(self):
+        results_all = self.module.get_results()
         with plot_utils.get_style(figure_ratio = 1/self.num_assessment_funs):
             # Generate assessment attribute distribution parameters plots
             fig = plt.figure()
