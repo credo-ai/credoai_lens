@@ -8,7 +8,8 @@ from credoai.utils.common import (NumpyEncoder, wrap_list,
 from credoai.utils.credo_api_utils import (get_technical_spec,
                                            patch_metrics, post_figure,
                                            register_dataset, register_model,
-                                           register_project)
+                                           register_project,
+                                           register_model_to_ai_solution)
 import base64
 import credoai
 import json
