@@ -1,3 +1,4 @@
+import credoai.lens as cl
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
 from credoai.utils.model_utils import get_gradient_boost_model
@@ -123,7 +124,7 @@ class DatasetModule(CredoModule):
             sensitive_feature_name = self.sensitive_features.name
         else:
             df = self.X.copy()
-            df['sensitive_feature'] = sensitive_features
+            df['sensitive_feature'] = self.sensitive_features
             sensitive_feature_name = 'sensitive_feature'
 
         # Estimate categorical features, if not provided
@@ -157,31 +158,6 @@ class DatasetModule(CredoModule):
                 results[k] = {'value':v, 'feature_type': 'continuous'}
 
         return results
-
-    def _concat_features_label(self):
-        """A utility method that concatenates features and labels
-
-        Returns
-        -------
-        pandas.dataframe, str, str
-            Full dataset dataframe, sensitive feature name, label name
-        """        
-        if isinstance(self.sensitive_features, pd.Series):
-            df = pd.concat([self.X, self.sensitive_features], axis=1)
-            sensitive_feature_name = self.sensitive_features.name
-        else:
-            df = self.X.copy()
-            df['sensitive_feature'] = sensitive_features
-            sensitive_feature_name = 'sensitive_feature'
-
-        if isinstance(self.y, pd.Series):
-            df = pd.concat([df, self.y], axis=1)
-            label_name = self.y.name
-        else:
-            label_name = 'label'
-            df[label_name] = sensitive_features
-
-        return df, sensitive_feature_name, label_name
     
     def _assess_balance_metrics(self):
         """Calculate dataset balance statistics and metrics 
@@ -192,10 +168,15 @@ class DatasetModule(CredoModule):
             'sample_balance': distribution of samples across groups
             'label_balance': distribution of labels across groups
             'metrics': maximum statistical parity and maximum disparate impact between groups for all preferred label value possibilities 
-        """        
-        df, sensitive_feature_name, label_name = self._concat_features_label()
+        """
+        credo_data = cl.CredoData(name='dataset',
+                          X=self.X,
+                          y=self.y,
+                          sensitive_features=self.sensitive_features)
+
+        df, sensitive_feature_name, label_name = credo_data._concat_features_label_to_dataframe()
         results = {}
-        
+
         # Distribution of samples across groups
         sb = df.groupby([sensitive_feature_name]).agg(count=(label_name, len), percentage=(label_name, lambda x: 100.0*len(x)/len(df))).reset_index().to_dict(orient='records')
         results['sample_balance'] = sb
@@ -209,8 +190,13 @@ class DatasetModule(CredoModule):
         r = r.groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))
         r.rename({label_name:'ratio'}, inplace=True, axis=1)
         r.reset_index(inplace=True)
+
+        # Compute the maximum difference between any two pairs of groups
         sp = r.groupby(label_name)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
+
+        # Compute the maximum ratio between any two pairs of groups
         di = r.groupby(label_name)['ratio'].apply(lambda x: np.max(x)/np.min(x)).reset_index(name='value').to_dict(orient='records')
-        results['metrics'] = {'maximum_statistical_parity': sp, 'maximum_disparate_impact': di}
+        
+        results['metrics'] = {'demographic_parity_difference': sp, 'demographic_parity_ratio': di}
 
         return results
