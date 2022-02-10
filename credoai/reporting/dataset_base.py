@@ -46,7 +46,7 @@ class DatasetModuleReport(CredoReport):
         """Generates data balance charts including:
         - Data balance across sensitive feature subgroups
         - Data balance across sensitive feature subgroups and label values
-        - Demographic Darity metrics for different preferred label value possibilities
+        - Demographic parity metrics for different preferred label value possibilities
         """
         fig, axs = plt.subplots(nrows=3, figsize=(8, 8), dpi=150)
 
