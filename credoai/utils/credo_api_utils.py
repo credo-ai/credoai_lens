@@ -7,27 +7,25 @@ from credoai.utils.common import get_project_root, IntegrationError
 from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
 
+CREDO_URL = "https://api.credo.ai"
 
 def read_config():
     config_file = os.path.join(os.path.expanduser('~'),
                                '.credoconfig')
     if not os.path.exists(config_file):
         # return example
-        config = {
-            'TENANT': 'empty',
-            'CREDO_URL': 'empty',
-            'API_KEY': 'empty'
-        }
+        config = {'API_KEY': 'empty',
+                  'TENANT': 'empty'}
     else:
         config = dotenv_values(config_file)
-    config['API_URL'] = os.path.join(config['CREDO_URL'], "api/v1/credoai")
+    config['API_URL'] = os.path.join(config.get('CREDO_URL', CREDO_URL), "api/v1/credoai")
     return config
 
 
 def exchange_token():
     data = {"api_token": CONFIG['API_KEY'], "tenant": CONFIG['TENANT']}
     headers = {'content-type': 'application/json', 'charset': 'utf-8'}
-    auth_url = os.path.join(CONFIG['CREDO_URL'], 'auth', 'exchange')
+    auth_url = os.path.join(CONFIG.get('CREDO_URL', CREDO_URL), 'auth', 'exchange')
     r = requests.post(auth_url, json=data, headers=headers)
     return f"Bearer {r.json()['access_token']}"
 
@@ -73,20 +71,26 @@ def get_technical_spec(use_case_id, version='latest'):
     ----------
     use_case_id : string
         identifier for Use Case on Credo AI Governance Platform
+    version : str
+        "latest", for latest published spec, or "draft". If "latest"
+        cannot be found, will look for a draft.
 
     Returns
     -------
     dict
         The spec for the Use Case
     """
-    end_point = get_end_point(f"use_cases/{use_case_id}/scopes")
+    base_end_point = get_end_point(f"use_cases/{use_case_id}/scopes")
     if version is not None:
-        end_point = os.path.join(end_point, version)
+        end_point = os.path.join(base_end_point, version)
     try:
         return deserialize(submit_request('get', end_point).json())
     except requests.exceptions.HTTPError:
-        raise IntegrationError(
-            "Failed to download technical spec. Check that your Use Case ID exists")
+        try: 
+            end_point = os.path.join(base_end_point, 'draft')
+            return deserialize(submit_request('get', end_point).json())
+        except requests.exceptions.HTTPError:
+            raise IntegrationError("Failed to download technical spec. Check that your Use Case ID exists")
 
 
 def get_survey_results(use_case_id, survey_key='FAIR'):
@@ -250,6 +254,19 @@ def register_project(project_name):
     response = _register_artifact(data, end_point)
     return {'name': project_name, 'model_project_id': response['id']}
 
+def register_model_to_use_case(use_case_id, model_id):
+    scope = get_technical_spec(use_case_id, version='draft')
+    model_ids = scope['model_ids']
+    if model_id not in model_ids:
+        model_ids.append(model_id)
+    else:
+        return
+    data = serialize({'model_ids': model_ids, 
+                      'id': 'resource-id',
+                      '$type': 'use_case_id_scopes'})
+    end_point = get_end_point(f"use_case_ids/{use_case_id}/scopes/draft")
+    submit_request('patch', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
+    
 
 def _register_artifact(data, end_point):
     try:

@@ -189,6 +189,9 @@ class CredoGovernance:
 
         If a project has not been registered, a new project will be created to
         register the model under.
+        
+        If an AI solution has been set, the model will be registered to that
+        solution.
         """
         try:
             ids = ci.register_model(model_name=model_name,
@@ -201,6 +204,8 @@ class CredoGovernance:
                           f"The model ({model_name}) is already registered.",
                           f"The model ({model_name}) is already registered. Using registered model",
                           self.warning_level)
+        if self.use_case_id:
+            ci.register_model_to_use_case(self.use_case_id, self.model_id)
 
     def register_project(self, model_project_name):
         """Registers a model project"""

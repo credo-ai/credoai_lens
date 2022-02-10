@@ -72,12 +72,11 @@ For dev documentation, see [latest](https://credoai-lens.readthedocs.io/en/lates
 
 ## Configuration
 
-To connect to [Credo AI's Governance Platform](https://www.credo.ai/product), enter your connection info in `~/.credoconfig` (in the root directory) using
+To connect to [Credo AI's Governance Platform](https://www.credo.ai/product), enter your connection info in `~/.credoconfig` (".credoconfig" in the root directory) using
 the below format. 
 
 ```
 TENANT={tenant name} # Example: credoai
-CREDO_URL=<your credo url>  # Example: https://api.credo.ai 
 API_KEY=<your api key> # Example: JSMmd26...
 ```
  

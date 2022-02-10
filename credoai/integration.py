@@ -8,12 +8,14 @@ from credoai.utils.common import (NumpyEncoder, wrap_list,
 from credoai.utils.credo_api_utils import (get_technical_spec,
                                            patch_metrics, post_figure,
                                            register_dataset, register_model,
-                                           register_project)
+                                           register_project,
+                                           register_model_to_use_case)
 import base64
 import credoai
 import json
 import io
 import matplotlib
+import mimetypes
 import numpy as np
 import pandas as pd
 import pprint
@@ -126,15 +128,18 @@ class Figure(Record):
         self.name = name
         self.description = description
         self.figure_string = None
+        self.content_type = None
         if type(figure) == matplotlib.figure.Figure:
             self._encode_matplotlib_figure(figure)
         else:
             self._encode_figure(figure)
+            
 
     def _encode_figure(self, figure_file):
         with open(figure_file, "rb") as figure2string:
             self.figure_string = base64.b64encode(
                 figure2string.read()).decode('ascii')
+        self.content_type = mimetypes.guess_type(figure_file)[0]
 
     def _encode_matplotlib_figure(self, fig):
         pic_IObytes = io.BytesIO()
@@ -142,10 +147,12 @@ class Figure(Record):
         pic_IObytes.seek(0)
         self.figure_string = base64.b64encode(
             pic_IObytes.read()).decode('ascii')
+        self.content_type = "image/png"
 
     def _struct(self):
         return {'name': self.name,
                 'description': self.description,
+                'content_type': self.content_type,
                 'file': self.figure_string,
                 'creation_time': self.creation_time,
                 'metadata': {'type': 'chart', **self.metadata},
