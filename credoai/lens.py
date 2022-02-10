@@ -4,7 +4,8 @@ from absl import logging
 from copy import deepcopy
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
-from credoai.utils.common import (IntegrationError, ValidationError, raise_or_warn)
+from credoai.utils.common import (
+    IntegrationError, ValidationError, raise_or_warn)
 from credoai.utils.credo_api_utils import (get_dataset_by_name, get_model_by_name,
                                            get_model_project_by_name, patch_metrics)
 from credoai import __version__
@@ -14,6 +15,7 @@ from sklearn.utils import check_consistent_length
 from typing import List, Union
 
 import credoai.integration as ci
+import pandas as pd
 import shutil
 import tempfile
 
@@ -47,7 +49,7 @@ class CredoGovernance:
     """ Class to store governance data.
 
     This information is used to interact with the CredoAI
-    Governance Platform. Artifacts (AI solutions, model projects,
+    Governance Platform. Artifacts (Use Cases, model projects,
     models, and datasets) are identified by a unique ID which 
     can be found on the platform.
 
@@ -56,7 +58,7 @@ class CredoGovernance:
     """
 
     def __init__(self,
-                 ai_solution_id: str = None,
+                 use_case_id: str = None,
                  model_project_id: str = None,
                  model_id: str = None,
                  dataset_id: str = None,
@@ -65,8 +67,8 @@ class CredoGovernance:
 
         Parameters
         ----------
-        ai_solution_id : str, optional
-            ID of AI Solution on Credo AI Governance Platform, by default None
+        use_case_id : str, optional
+            ID of Use Case on Credo AI Governance Platform, by default None
         model_project_id : str, optional
             ID of model project on Credo AI Governance Platform, by default None
         model_id : str, optional
@@ -79,7 +81,7 @@ class CredoGovernance:
                 1: warnings are raised (default)
                 2: warnings are raised as exceptions.
         """
-        self.ai_solution_id = ai_solution_id
+        self.use_case_id = use_case_id
         self.model_project_id = model_project_id
         self.model_id = model_id
         self.dataset_id = dataset_id
@@ -148,20 +150,20 @@ class CredoGovernance:
         __________
         spec_path : string, optional
             The file location for the technical spec json downloaded from
-            the technical requirements of an AI Solution on Credo AI's
+            the technical requirements of an Use Case on Credo AI's
             Governance Platform. If no spec_path is provided,
-            will use the AI Solution ID. Default None
+            will use the Use Case ID. Default None
 
         Returns
         -------
         dict
-            The assessment spec for one Model contained in the AI solution.
+            The assessment spec for one Model contained in the Use Case.
             Format: {"Metric1": (lower_bound, upper_bound), ...}
         """
         assessment_spec = {}
-        if self.ai_solution_id is not None:
+        if self.use_case_id is not None:
             assessment_spec = ci.get_assessment_spec(
-                self.ai_solution_id, spec_path)
+                self.use_case_id, spec_path)
         if self.model_id and self.model_id in assessment_spec:
             assessment_spec = assessment_spec[self.model_id]
         self.assessment_spec = assessment_spec
@@ -188,6 +190,9 @@ class CredoGovernance:
 
         If a project has not been registered, a new project will be created to
         register the model under.
+        
+        If an AI solution has been set, the model will be registered to that
+        solution.
         """
         try:
             ids = ci.register_model(model_name=model_name,
@@ -200,6 +205,8 @@ class CredoGovernance:
                           f"The model ({model_name}) is already registered.",
                           f"The model ({model_name}) is already registered. Using registered model",
                           self.warning_level)
+        if self.use_case_id:
+            ci.register_model_to_use_case(self.use_case_id, self.model_id)
 
     def register_project(self, model_project_name):
         """Registers a model project"""
@@ -372,6 +379,32 @@ class CredoData:
             raise ValidationError(
                 f"X and sensitive features don't have the same index")
 
+    @staticmethod
+    def _concat_features_label_to_dataframe(X, y, sensitive_features):
+        """A utility method that concatenates all features and labels into a single dataframe
+
+        Returns
+        -------
+        pandas.dataframe, str, str
+            Full dataset dataframe, sensitive feature name, label name
+        """
+        if isinstance(sensitive_features, pd.Series):
+            df = pd.concat([X, sensitive_features], axis=1)
+            sensitive_feature_name = sensitive_features.name
+        else:
+            df = X.copy()
+            df['sensitive_feature'] = sensitive_features
+            sensitive_feature_name = 'sensitive_feature'
+
+        if isinstance(y, pd.Series):
+            df = pd.concat([df, y], axis=1)
+            label_name = y.name
+        else:
+            label_name = 'label'
+            df[label_name] = sensitive_features
+
+        return df, sensitive_feature_name, label_name
+
 
 class Lens:
     def __init__(
@@ -437,7 +470,7 @@ class Lens:
         self.user_id = user_id
 
         # if governance is defined, pull down spec for
-        # solution / model
+        # use_case / model
         if self.gov:
             self.spec = self.gov.get_assessment_spec()
         if spec:

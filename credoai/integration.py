@@ -8,12 +8,14 @@ from credoai.utils.common import (NumpyEncoder, wrap_list,
 from credoai.utils.credo_api_utils import (get_technical_spec,
                                            patch_metrics, post_figure,
                                            register_dataset, register_model,
-                                           register_project)
+                                           register_project,
+                                           register_model_to_use_case)
 import base64
 import credoai
 import json
 import io
 import matplotlib
+import mimetypes
 import numpy as np
 import pandas as pd
 import pprint
@@ -126,15 +128,18 @@ class Figure(Record):
         self.name = name
         self.description = description
         self.figure_string = None
+        self.content_type = None
         if type(figure) == matplotlib.figure.Figure:
             self._encode_matplotlib_figure(figure)
         else:
             self._encode_figure(figure)
+            
 
     def _encode_figure(self, figure_file):
         with open(figure_file, "rb") as figure2string:
             self.figure_string = base64.b64encode(
                 figure2string.read()).decode('ascii')
+        self.content_type = mimetypes.guess_type(figure_file)[0]
 
     def _encode_matplotlib_figure(self, fig):
         pic_IObytes = io.BytesIO()
@@ -142,10 +147,12 @@ class Figure(Record):
         pic_IObytes.seek(0)
         self.figure_string = base64.b64encode(
             pic_IObytes.read()).decode('ascii')
+        self.content_type = "image/png"
 
     def _struct(self):
         return {'name': self.name,
                 'description': self.description,
+                'content_type': self.content_type,
                 'file': self.figure_string,
                 'creation_time': self.creation_time,
                 'metadata': {'type': 'chart', **self.metadata},
@@ -281,29 +288,29 @@ def export_figure_to_credo(figure_record, credo_id):
     post_figure(credo_id, figure_record)
 
 
-def get_assessment_spec(ai_solution_id=None, spec_path=None, version='latest'):
+def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
     """Get aligned metrics from Credo's Governance Platform or file
 
-    At least one of the ai_solution_id or spec_path must be provided! If both
+    At least one of the use_case_id or spec_path must be provided! If both
     are provided, the spec_path takes precedence.
 
     Parameters
     ----------
-    ai_solution_id : string, optional
-        Identifier for AI solution on Credo AI's Governance Platform
+    use_case_id : string, optional
+        Identifier for Use Case on Credo AI's Governance Platform
     spec_path : string, optional
         The file location for the technical spec json downloaded from
-        the technical requirements of an AI Solution on Credo AI's
+        the technical requirements of an Use Case on Credo AI's
         Governance Platform
     Returns
     -------
     dict
-        The aligned metrics for each model contained in the AI solution.
+        The aligned metrics for each model contained in the Use Case.
         Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
     """
     spec = {}
-    if ai_solution_id:
-        spec = get_technical_spec(ai_solution_id, version=version)
+    if use_case_id:
+        spec = get_technical_spec(use_case_id, version=version)
     if spec_path:
         spec = json.load(open(spec_path))
     try:
