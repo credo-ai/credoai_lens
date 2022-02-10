@@ -37,14 +37,21 @@ pip install credoai-lens
 To include additional dependencies needed for some modules and demos, use the 
 following installation command. 
 
+On Mac
 ```
 pip install 'credoai-lens[extras]'
 ```
 
-Modules that require extras include:
-* fairness_nlp
+On Windows
+```
+pip install credoai-lens[extras]
+```
 
-### Failed pip installation - use conda
+Modules that require extras include:
+* nlp_generator
+
+
+### ARM Macbook failed pip installation - use conda
 
 Installation sometimes fails on M1 macbooks. Specifically, pandas, scipy, and scikit-learn 
 may fail to build. Installing these packages with the anaconda package manager seems to be
