@@ -7,7 +7,7 @@ from credoai.utils.common import get_project_root, IntegrationError
 from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
 
-CREDO_URL = "https://api.credo-qa.com"
+CREDO_URL = "https://api.credo.ai"
 
 def read_config():
     config_file = os.path.join(os.path.expanduser('~'), 
@@ -17,7 +17,7 @@ def read_config():
         config = {'API_KEY': 'empty'}
     else:
         config = dotenv_values(config_file)
-    config['API_URL'] = os.path.join(CREDO_URL, "api/v1/credoai")
+    config['API_URL'] = os.path.join(config.get('CREDO_URL', CREDO_URL), "api/v1/credoai")
     return config
 
 def exchange_token():
