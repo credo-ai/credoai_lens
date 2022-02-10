@@ -124,9 +124,9 @@ class NLPGeneratorAnalyzer(CredoModule):
             logging.info(f"Generating {n_iterations} text responses per prompt with model: {gen_name}")
             prompts = df['prompt']
             responses = [gen_fun(p, num_sequences=n_iterations) for p in prompts]   
-            temp = pd.DataFrame(responses) \
+            temp = pd.concat([df, pd.DataFrame(responses)], axis=1) \
                     .assign(prompt=prompts) \
-                    .melt(id_vars="prompt", var_name='run', value_name='response') \
+                    .melt(id_vars=df.columns, var_name='run', value_name='response') \
                     .assign(generation_model = gen_name)
 
             dfruns_lst.append(temp)
@@ -287,7 +287,7 @@ class NLPGeneratorAnalyzer(CredoModule):
                 + prompts
             )
 
-        return df
+        return df.reset_index(drop=True)
 
     def _perform_prerun_checks(self):
         """Checks the provided configurations and the generation and assessment functions
