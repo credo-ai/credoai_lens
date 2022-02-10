@@ -26,14 +26,16 @@ class DatasetModuleReport(CredoReport):
         results_all = self.module.get_results()
 
         # Generate sample balance barplots
-        fig, axs = plt.subplots(nrows=2, figsize=(8, 8), dpi=300)
+        fig, axs = plt.subplots(nrows=3, figsize=(8, 8), dpi=150)
         results = results_all["balance_metrics"]["sample_balance"]
         df = pd.DataFrame(results)
-        sensitive_feature_name = list(df.drop(["count", "percentage"], axis=1).columns)[0]
+        sensitive_feature_name = list(df.drop(["count", "percentage"], axis=1).columns)[
+            0
+        ]
 
         ax = sns.barplot(
-            x=sensitive_feature_name,
-            y="count",
+            x="count",
+            y=sensitive_feature_name,
             data=df,
             palette=plot_utils.credo_diverging_palette(1),
             alpha=1,
@@ -42,9 +44,8 @@ class DatasetModuleReport(CredoReport):
         fig.patch.set_facecolor("white")
         ax.set_frame_on(False)
         ax.set_title("Data balance across " + sensitive_feature_name + " subgroups")
-        ax.set_xlabel("")
-        ax.set_ylabel("Number of data samples")
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+        ax.set_xlabel("Number of data samples")
+        ax.set_ylabel("")
 
         # Generate label balance barplots
         results = results_all["balance_metrics"]["label_balance"]
@@ -53,8 +54,8 @@ class DatasetModuleReport(CredoReport):
 
         num_classes = df[label_name].nunique()
         ax = sns.barplot(
-            x=sensitive_feature_name,
-            y="count",
+            x="count",
+            y=sensitive_feature_name,
             hue=label_name,
             data=df,
             palette=plot_utils.credo_diverging_palette(num_classes),
@@ -63,16 +64,54 @@ class DatasetModuleReport(CredoReport):
         )
         fig.patch.set_facecolor("white")
         ax.set_frame_on(False)
-        plt.title(
+        ax.set_title(
             "Data balance across "
             + sensitive_feature_name
             + " subgroups and label values"
         )
-        plt.xlabel("")
-        plt.ylabel("Number of data samples")
-        plt.xticks(rotation=90)
-        plt.legend(bbox_to_anchor=(1.25, 0.4), loc="center right", frameon=False)
+        ax.set_xlabel("Number of data samples")
+        ax.set_ylabel("")
+        ax.legend(
+            bbox_to_anchor=(0.5, -0.3),
+            loc="upper center",
+            frameon=False,
+            ncol=num_classes,
+        )
         ax.legend_.set_title(label_name)
+
+        # Generate parity metrics barplots
+        results = results_all["balance_metrics"]["metrics"]
+
+        lst = []
+        for k, v in results.items():
+            temp = pd.DataFrame(v)
+            temp["metric"] = k.replace("_", " ")
+            lst.append(temp)
+
+        df = pd.concat(lst)
+
+        ax = sns.barplot(
+            x="value",
+            y="metric",
+            hue=label_name,
+            data=df,
+            palette=plot_utils.credo_diverging_palette(num_classes),
+            alpha=1,
+            ax=axs[2],
+        )
+        fig.patch.set_facecolor("white")
+        ax.set_frame_on(False)
+        plt.title("Parity metrics for different preferred label value possibilities")
+        plt.xlabel("")
+        plt.ylabel("")
+        plt.legend(
+            bbox_to_anchor=(0.5, -0.2),
+            loc="upper center",
+            frameon=False,
+            ncol=num_classes,
+        )
+        ax.legend_.set_title(label_name)
+
         plt.tight_layout()
 
         self.figs.append(fig)
@@ -81,7 +120,7 @@ class DatasetModuleReport(CredoReport):
         results = results_all["group_diffs"]
         for k, v in results.items():
             df = pd.DataFrame(v.items(), columns=["feature", "group difference"])
-            fig = plt.figure(figsize=(8, 4), dpi=300)
+            fig = plt.figure(figsize=(8, 4), dpi=150)
             ax = sns.barplot(
                 x="feature",
                 y="group difference",
@@ -119,13 +158,14 @@ class DatasetModuleReport(CredoReport):
         ref_name = ref.iloc[0]["feature"]
         ref_type = ref.iloc[0]["feature type"].split("_")[0]
 
-        fig = plt.figure(figsize=(8, 4), dpi=300)
+        fig = plt.figure(figsize=(8, 4), dpi=150)
+        num_types = 2
         ax = sns.barplot(
             x="feature",
             y="mutual information",
             hue="feature type",
             data=df,
-            palette=plot_utils.credo_diverging_palette(2),
+            palette=plot_utils.credo_diverging_palette(num_types),
             alpha=1,
         )
         fig.patch.set_facecolor("white")
@@ -134,7 +174,7 @@ class DatasetModuleReport(CredoReport):
         plt.xlabel("")
         plt.ylabel("Mutual information")
         plt.xticks(rotation=90)
-        plt.legend(bbox_to_anchor=(1.25, 0.4), loc="center right", frameon=False)
+        plt.tight_layout()
 
         self.figs.append(fig)
 
