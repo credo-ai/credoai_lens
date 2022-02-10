@@ -80,7 +80,7 @@ def get_technical_spec(use_case_id, version='latest'):
     dict
         The spec for the Use Case
     """
-    base_end_point = get_end_point(f"use_case_ids/{use_case_id}/scopes")
+    base_end_point = get_end_point(f"use_cases/{use_case_id}/scopes")
     if version is not None:
         end_point = os.path.join(base_end_point, version)
     try:
