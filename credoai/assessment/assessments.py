@@ -38,19 +38,21 @@ class FairnessBaseAssessment(CredoAssessment):
     def init_module(self, *, model, data, metrics):
         """ Initializes the assessment module
 
-        Transforms the spec, CredoModel and CredoData into the proper form
+        Transforms CredoModel and CredoData into the proper form
         to create a runnable assessment.
 
         See the lens_customization notebook for examples
 
         Parameters
         ------------
-        spec : dict
-            assessment spec: dictionary containing kwargs 
-            for the module defined by the spec. Other kwargs
-            can be passed at run time.
         model : CredoModel, optional
         data : CredoData, optional
+        metrics : List-like
+            list of metric names as string or list of FairnessFunctions.
+            Metric strings should in list returned by credoai.utils.list_metrics.
+            Note for performance parity metrics like 
+            "false negative rate parity" just list "false negative rate". Partiy metrics
+            are calculated automatically.
 
         Example
         ---------
@@ -110,7 +112,7 @@ class NLPEmbeddingBiasAssessment(CredoAssessment):
                 model_requirements=['embedding_fun'])
             )
         
-    def init_module(self, model, data=None, 
+    def init_module(self, model, 
               group_embeddings=None, 
               comparison_categories=None, 
               include_default=True):
@@ -126,6 +128,12 @@ class NLPGeneratorAssessment(CredoAssessment):
     NLP Generator Assessment
     
     Runs the NLPGenerator module.
+    
+    Requirements
+    ------------
+    Requires that the CredoModel defines a "generator_fun"
+    - `generator_fun` should take in text as input and return text. 
+        See `credoai.utils.nlp_utils.gpt1_text_generator` as an example
     """
     def __init__(self):    
         super().__init__(
@@ -135,11 +143,44 @@ class NLPGeneratorAssessment(CredoAssessment):
                 model_requirements=['generator_fun'])
             )
         
-    def init_module(self, *, model, data=None,
+    def init_module(self, *, model, 
                    prompts='bold_religious_ideology',
                    assessment_functions=None,
-                   comparison_models='gpt2'):
-        # set up deafult assessments
+                   comparison_models=None,
+                   perspective_config=None):
+        """ Initializes the assessment module
+
+        Transforms CredoModel into the proper form
+        to create a runnable assessment.
+
+        Parameters
+        ------------
+        model : CredoModel
+        prompts : str
+            choices are builtin datasets, which include:
+                'bold_gender', 'bold_political_ideology', 'bold_profession', 
+                'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
+                'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 
+                'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
+            or path of your own prompts csv file with columns 'group', 'subgroup', 'prompt'
+        assessment_functions : dict
+            keys are names of the assessment functions and values could be custom callable assessment functions 
+            or name of builtin assessment functions. 
+            Current choices, all using Perspective API include:
+                    'perspective_toxicity', 'perspective_severe_toxicity', 
+                    'perspective_identify_attack', 'perspective_insult', 
+                    'perspective_profanity', 'perspective_threat'
+        comparison_models : dict, optional
+            Dictionary of other generator functions to use. Will assess these as well against
+            the prompt dataset to use for comparison. If None, gpt2 will be used. To
+            specify no comparison_models, supply the empty dictionary {}
+        perspective_config : dict
+            if Perspective API is to be used, this must be passed with the following:
+                'api_key': your Perspective API key
+                'rpm_limit': request per minute limit of your Perspective API account
+
+        """
+        # set up default assessments
         if assessment_functions is None:
             try:
                 assessment_functions = cutils.nlp_utils.get_default_nlp_assessments()
@@ -149,19 +190,20 @@ class NLPGeneratorAssessment(CredoAssessment):
         # set up generation functions
         generation_functions = {model.name: model.generator_fun}
         # extract generation functions from comparisons
-        if comparison_models == 'gpt2':
+        if comparison_models is None:
             try:
                 generation_functions['gpt2_comparison'] = \
                     cutils.nlp_utils.gpt2_text_generator
             except AttributeError:
-                raise InstallationError("To use gpt2 as a comparison model requires installing credoai-lens[extras]")
+                raise InstallationError("To use the default comparison model requires installing credoai-lens[extras]")
         else:
             generation_functions.update(comparison_models)
             
         module = self.module(
             prompts,
             generation_functions,
-            assessment_functions)
+            assessment_functions,
+            perspective_config)
 
         self.initialized_module = module
         
@@ -191,7 +233,7 @@ class DatasetAssessment(CredoAssessment):
             )
         )
 
-    def init_module(self, *, data, model=None):
+    def init_module(self, *, data):
         self.initialized_module = self.module(
             data.X, 
             data.y,

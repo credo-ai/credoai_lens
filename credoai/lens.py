@@ -1,6 +1,7 @@
 """Credo AI's AI Assessment Framework"""
 
 from absl import logging
+from copy import deepcopy
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
 from credoai.utils.common import (
@@ -632,10 +633,13 @@ class Lens:
     def _init_assessments(self):
         """Initializes modules in each assessment"""
         for assessment in self.assessments.values():
-            kwargs = self.spec.get(assessment.name, {})
-            assessment.init_module(model=self.model,
-                                   data=self.data,
-                                   **kwargs)
+            kwargs = deepcopy(self.spec.get(assessment.name, {}))
+            reqs = assessment.get_requirements()
+            if reqs['model_requirements']:
+                kwargs['model'] = self.model
+            if reqs['data_requirements']:
+                kwargs['data'] = self.data
+            assessment.init_module(**kwargs)
 
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment.name)
