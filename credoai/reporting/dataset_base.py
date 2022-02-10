@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import pandas as pd
 import seaborn as sns
 
@@ -23,11 +24,34 @@ class DatasetModuleReport(CredoReport):
         -------
         array of figures
         """
-        results_all = self.module.get_results()
+        self.results_all = self.module.get_results()
+
+        # Generate data balance charts
+        self._plot_balance_metrics()
+
+        # Generate group difference charts
+        self._plot_group_diff()
+
+         # Generate mutual information charts
+        self._plot_mutual_information()
+
+        # Save to pdf if requested
+        if filename:
+            self.export_report(filename)
+
+        return self.figs
+
+
+    def _plot_balance_metrics(self):
+        """Generates data balance charts including:
+        - Data balance across sensitive feature subgroups
+        - Data balance across sensitive feature subgroups and label values
+        - Demographic Darity metrics for different preferred label value possibilities
+        """
+        fig, axs = plt.subplots(nrows=3, figsize=(8, 8), dpi=150)
 
         # Generate sample balance barplots
-        fig, axs = plt.subplots(nrows=3, figsize=(8, 8), dpi=150)
-        results = results_all["balance_metrics"]["sample_balance"]
+        results = self.results_all["balance_metrics"]["sample_balance"]
         df = pd.DataFrame(results)
         sensitive_feature_name = list(df.drop(["count", "percentage"], axis=1).columns)[
             0
@@ -48,7 +72,7 @@ class DatasetModuleReport(CredoReport):
         ax.set_ylabel("")
 
         # Generate label balance barplots
-        results = results_all["balance_metrics"]["label_balance"]
+        results = self.results_all["balance_metrics"]["label_balance"]
         df = pd.DataFrame(results)
         label_name = list(df.drop([sensitive_feature_name, "count"], axis=1).columns)[0]
 
@@ -80,7 +104,7 @@ class DatasetModuleReport(CredoReport):
         ax.legend_.set_title(label_name)
 
         # Generate parity metrics barplots
-        results = results_all["balance_metrics"]["metrics"]
+        results = self.results_all["balance_metrics"]["metrics"]
 
         lst = []
         for k, v in results.items():
@@ -116,30 +140,46 @@ class DatasetModuleReport(CredoReport):
 
         self.figs.append(fig)
 
-        # Generate group difference barplots
-        results = results_all["group_diffs"]
+    def _plot_group_diff(self):
+        """ Generates group difference barplots
+        """
+        results = self.results_all["group_diffs"]
+        fig, axs = plt.subplots(nrows=len(results), dpi=150)
+        i = 0
         for k, v in results.items():
             df = pd.DataFrame(v.items(), columns=["feature", "group difference"])
-            fig = plt.figure(figsize=(8, 4), dpi=150)
-            ax = sns.barplot(
-                x="feature",
-                y="group difference",
-                data=df,
-                palette=plot_utils.credo_diverging_palette(1),
-                alpha=1,
-            )
+            if len(results) > 1:
+                ax = sns.barplot(
+                    x="feature",
+                    y="group difference",
+                    data=df,
+                    palette=plot_utils.credo_diverging_palette(1),
+                    alpha=1,
+                    ax=axs[i],
+                )
+                i += 1
+            else:
+                ax = sns.barplot(
+                    x="feature",
+                    y="group difference",
+                    data=df,
+                    palette=plot_utils.credo_diverging_palette(1),
+                    alpha=1,
+                )
             fig.patch.set_facecolor("white")
             ax.axhline(0, color='k')
             sns.despine()
-            plt.title("Group differences for " + k + " combination across features")
-            plt.xlabel("")
-            plt.ylabel("Group difference")
-            plt.xticks(rotation=90)
+            ax.set_title("Group differences for " + k + " combination across features")
+            ax.set_xlabel("")
+            ax.set_ylabel("Group difference")
+            ax.xaxis.set_tick_params(rotation=90)
 
-            self.figs.append(fig)
+        self.figs.append(fig)
 
-        # Generate mutual information barplots
-        results = results_all["normalized_mutual_information"]
+    def _plot_mutual_information(self):
+        """ Generates normalized mututal information between features and sensitive attribute
+        """
+        results = self.results_all["normalized_mutual_information"]
         df = pd.DataFrame.from_dict(results, orient="index").reset_index()
         df = df.rename(
             columns={
@@ -159,7 +199,7 @@ class DatasetModuleReport(CredoReport):
         ref_name = ref.iloc[0]["feature"]
         ref_type = ref.iloc[0]["feature type"].split("_")[0]
 
-        fig = plt.figure(figsize=(8, 4), dpi=150)
+        fig = plt.figure(dpi=150)
         num_types = 2
         ax = sns.barplot(
             x="feature",
@@ -168,19 +208,19 @@ class DatasetModuleReport(CredoReport):
             data=df,
             palette=plot_utils.credo_diverging_palette(num_types),
             alpha=1,
+            dodge=False
         )
         fig.patch.set_facecolor("white")
+        ax.axhline(0, color='k')
         sns.despine()
-        plt.title("Mututal information with " + ref_type + " feature " + ref_name)
-        plt.xlabel("")
-        plt.ylabel("Mutual information")
-        plt.xticks(rotation=90)
-        plt.tight_layout()
+        ax.set_title("Normalized mututal information with " + ref_type + " feature " + ref_name)
+        ax.set_xlabel("")
+        ax.set_ylabel("Normalized mutual information")
+        ax.set_ylim([0, 1])
+        ax.xaxis.set_tick_params(rotation=90)
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
 
         self.figs.append(fig)
 
-        # Save to pdf if requested
-        if filename:
-            self.export_report(filename)
 
-        return self.figs
+
