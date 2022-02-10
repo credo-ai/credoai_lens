@@ -281,29 +281,29 @@ def export_figure_to_credo(figure_record, credo_id):
     post_figure(credo_id, figure_record)
 
 
-def get_assessment_spec(ai_solution_id=None, spec_path=None, version='latest'):
+def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
     """Get aligned metrics from Credo's Governance Platform or file
 
-    At least one of the ai_solution_id or spec_path must be provided! If both
+    At least one of the use_case_id or spec_path must be provided! If both
     are provided, the spec_path takes precedence.
 
     Parameters
     ----------
-    ai_solution_id : string, optional
-        Identifier for AI solution on Credo AI's Governance Platform
+    use_case_id : string, optional
+        Identifier for Use Case on Credo AI's Governance Platform
     spec_path : string, optional
         The file location for the technical spec json downloaded from
-        the technical requirements of an AI Solution on Credo AI's
+        the technical requirements of an Use Case on Credo AI's
         Governance Platform
     Returns
     -------
     dict
-        The aligned metrics for each model contained in the AI solution.
+        The aligned metrics for each model contained in the Use Case.
         Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
     """
     spec = {}
-    if ai_solution_id:
-        spec = get_technical_spec(ai_solution_id, version=version)
+    if use_case_id:
+        spec = get_technical_spec(use_case_id, version=version)
     if spec_path:
         spec = json.load(open(spec_path))
     try:
