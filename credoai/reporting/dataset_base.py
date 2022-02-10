@@ -42,7 +42,7 @@ class DatasetModuleReport(CredoReport):
             ax=axs[0],
         )
         fig.patch.set_facecolor("white")
-        ax.set_frame_on(False)
+        sns.despine()
         ax.set_title("Data balance across " + sensitive_feature_name + " subgroups")
         ax.set_xlabel("Number of data samples")
         ax.set_ylabel("")
@@ -63,7 +63,7 @@ class DatasetModuleReport(CredoReport):
             ax=axs[1],
         )
         fig.patch.set_facecolor("white")
-        ax.set_frame_on(False)
+        sns.despine()
         ax.set_title(
             "Data balance across "
             + sensitive_feature_name
@@ -100,7 +100,7 @@ class DatasetModuleReport(CredoReport):
             ax=axs[2],
         )
         fig.patch.set_facecolor("white")
-        ax.set_frame_on(False)
+        sns.despine()
         plt.title("Parity metrics for different preferred label value possibilities")
         plt.xlabel("")
         plt.ylabel("")
@@ -116,7 +116,7 @@ class DatasetModuleReport(CredoReport):
 
         self.figs.append(fig)
 
-        # Generate groupd difference barplots
+        # Generate group difference barplots
         results = results_all["group_diffs"]
         for k, v in results.items():
             df = pd.DataFrame(v.items(), columns=["feature", "group difference"])
@@ -129,7 +129,8 @@ class DatasetModuleReport(CredoReport):
                 alpha=1,
             )
             fig.patch.set_facecolor("white")
-            ax.set_frame_on(False)
+            ax.axhline(0, color='k')
+            sns.despine()
             plt.title("Group differences for " + k + " combination across features")
             plt.xlabel("")
             plt.ylabel("Group difference")
@@ -169,7 +170,7 @@ class DatasetModuleReport(CredoReport):
             alpha=1,
         )
         fig.patch.set_facecolor("white")
-        ax.set_frame_on(False)
+        sns.despine()
         plt.title("Mututal information with " + ref_type + " feature " + ref_name)
         plt.xlabel("")
         plt.ylabel("Mutual information")
