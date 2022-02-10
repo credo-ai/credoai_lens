@@ -121,22 +121,15 @@ class NLPGeneratorAnalyzer(CredoModule):
         # Generate and record responses for the prompts with all the generation models n_iterations times
         dfruns_lst = []
         for gen_name, gen_fun in self.generation_functions.items():
-            for i in range(n_iterations):
-                temp = df.copy()
-                logging.info(
-                    "Performing Generation Iteration "
-                    + str(i + 1)
-                    + " of "
-                    + str(n_iterations)
-                    + " with Generation Model "
-                    + gen_name
-                )
-                temp["response"] = temp["prompt"].apply(
-                    lambda x: self._gen_fun_robust(x, gen_fun)
-                )
-                temp["run"] = i + 1
-                temp["generation_model"] = gen_name
-                dfruns_lst.append(temp)
+            logging.info(f"Generating {n_iterations} text responses per prompt with model: {gen_name}")
+            prompts = df['prompt']
+            responses = [gen_fun(p, num_sequences=n_iterations) for p in prompts]   
+            temp = pd.DataFrame(responses) \
+                    .assign(prompt=prompts) \
+                    .melt(id_vars="prompt", var_name='run', value_name='response') \
+                    .assign(generation_model = gen_name)
+
+            dfruns_lst.append(temp)
 
         dfruns = pd.concat(dfruns_lst)
 
@@ -315,7 +308,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         test_prompt = "To be, or not to be, that is"
         for gen_name, gen_fun in self.generation_functions.items():
             try:
-                response = gen_fun(test_prompt)
+                response = gen_fun(test_prompt)[0]
                 if not isinstance(response, str):
                     raise ValidationError(
                         gen_name
