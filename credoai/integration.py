@@ -139,7 +139,7 @@ class Figure(Record):
         with open(figure_file, "rb") as figure2string:
             self.figure_string = base64.b64encode(
                 figure2string.read()).decode('ascii')
-        self.content_type = mimetypes.guess_type(figure_file)
+        self.content_type = mimetypes.guess_type(figure_file)[0]
 
     def _encode_matplotlib_figure(self, fig):
         pic_IObytes = io.BytesIO()

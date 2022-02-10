@@ -204,8 +204,8 @@ class CredoGovernance:
                           f"The model ({model_name}) is already registered.",
                           f"The model ({model_name}) is already registered. Using registered model",
                           self.warning_level)
-        if self.ai_solution_id:
-            ci.register_model_to_use_case(self.ai_solution_id, self.model_id)
+        if self.use_case_id:
+            ci.register_model_to_use_case(self.use_case_id, self.model_id)
 
     def register_project(self, model_project_name):
         """Registers a model project"""
