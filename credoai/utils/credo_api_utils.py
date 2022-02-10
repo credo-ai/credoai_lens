@@ -15,7 +15,7 @@ def read_config():
     if not os.path.exists(config_file):
         # return example
         config = {'API_KEY': 'empty',
-                 'TENANT': 'empty'}
+                  'TENANT': 'empty'}
     else:
         config = dotenv_values(config_file)
     config['API_URL'] = os.path.join(config.get('CREDO_URL', CREDO_URL), "api/v1/credoai")
@@ -24,7 +24,7 @@ def read_config():
 def exchange_token():
     data = {"api_token": CONFIG['API_KEY'], "tenant": CONFIG['TENANT']}
     headers = {'content-type': 'application/json', 'charset': 'utf-8'}
-    auth_url = os.path.join(CREDO_URL, 'auth', 'exchange')
+    auth_url = os.path.join(CONFIG.get('CREDO_URL', CREDO_URL), 'auth', 'exchange')
     r = requests.post(auth_url, json=data, headers=headers)
     return f"Bearer {r.json()['access_token']}"
 
