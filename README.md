@@ -76,6 +76,7 @@ To connect to [Credo AI's Governance Platform](https://www.credo.ai/product), en
 the below format. 
 
 ```
+TENANT={tenant name} # Example: credoai
 API_KEY=<your api key> # Example: JSMmd26...
 ```
  
