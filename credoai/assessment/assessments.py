@@ -4,7 +4,7 @@ Module containing all CredoAssessmsents
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
-from credoai.reporting import FairnessReport, NLPGeneratorAnalyzerReport
+from credoai.reporting import FairnessReport, NLPGeneratorAnalyzerReport, DatasetModuleReport
 from sklearn.utils.multiclass import type_of_target
 
 from credoai.utils import InstallationError
@@ -238,6 +238,17 @@ class DatasetAssessment(CredoAssessment):
             data.X, 
             data.y,
             data.sensitive_features)
+
+    def create_report(self, filename=None):
+        """Creates a report for dataset assessment
+
+        Parameters
+        ----------
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
+        """        
+        self.report = DatasetModuleReport(self.initialized_module)
+        return self.report.create_report(filename)
         
 def list_assessments_exhaustive():
     """List all defined assessments"""
