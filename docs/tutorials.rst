@@ -12,8 +12,8 @@ Start here!
 
    notebooks/quickstart
    notebooks/governance_integration
-   notebooks/integration_demo
    notebooks/lens_customization
+   notebooks/integration_demo
 
 **Quickstart Demo**
 

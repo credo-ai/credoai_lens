@@ -183,6 +183,8 @@ class DatasetModule(CredoModule):
             else:
                 results[k] = {"value": v, "feature_type": "continuous"}
 
+        results[sensitive_feature_name]["feature_type"] = results[sensitive_feature_name]["feature_type"] + '_reference'
+
         return results
     
     def _assess_balance_metrics(self):
