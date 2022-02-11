@@ -1,3 +1,4 @@
+import math
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
@@ -15,7 +16,7 @@ class NLPGeneratorAnalyzerReport(CredoReport):
         self.num_assessment_funs = len(module.assessment_functions)
         self.size = size
 
-    def create_report(self, filename=None):
+    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
         """Creates a fairness report for binary classification model
 
         Parameters
@@ -28,45 +29,119 @@ class NLPGeneratorAnalyzerReport(CredoReport):
         array of figures
         """
         # Generate assessment attribute distribution parameters plots
-        self.figs.append(self._plot_overall_performance())
+        self.figs.append(self._plot_overall_assessment())
+        if include_fairness:
+            self.figs.append(self._plot_fairness())
+        if include_disaggregation:
+            self.figs.append(self._plot_disaggregated_assessment())
+        #self.figs.append(self._plot_hists())
 
         # Save to pdf if requested
         if filename:
             self.export_report(filename)
-
         return self.figs
 
-    def _plot_overall_performance(self):
+    def _plot_overall_assessment(self, kind='box'):
         """Plots assessment values for each generator as box plots"""        
         results_all = self.module.get_results()
         palette = plot_utils.credo_converging_palette(self.num_gen_models)
-        with plot_utils.get_style(figure_ratio = 1/self.num_assessment_funs):
+        n_cols = 2
+        n_rows = math.ceil(self.num_assessment_funs/n_cols)
+
+        with plot_utils.get_style(figsize=self.size, figure_ratio = n_rows/n_cols):
             # Generate assessment attribute distribution parameters plots
-            fig = plt.figure()
-            sns.boxplot(x="assessment_attribute", y="value",
-                        hue="generation_model", dodge=True,
-                        data=results_all, palette=palette,
-                        width=.8, linewidth=2)
-            
+            f, axes = plt.subplots(n_rows, n_cols)
+            to_loop = zip(axes.flat, results_all.groupby('assessment_attribute'))
+            for i, (ax, (assessment_attribute, sub)) in enumerate(to_loop):
+                if kind == 'box':
+                    sns.boxplot(x="value", y="generation_model", 
+                                dodge=True, data=sub, palette=palette,
+                                width=.8, linewidth=1, fliersize=1, ax=ax)
+                elif kind == 'bar':
+                    sns.barplot(x="value", y="generation_model", 
+                                dodge=True, data=sub, palette=palette,
+                                linewidth=1, ax=ax, errwidth=1)
+
+                sns.despine()
+                ax.set_xlabel(assessment_attribute)
+                ax.set_ylabel("")
+                if i%2:
+                    ax.tick_params(labelleft=False) 
+            plt.subplots_adjust(wspace=.5)
+            plt.suptitle('Overal Assessment of Text Generators', y=1.05)
+        return f
+
+    def _plot_disaggregated_assessment(self, kind='box'):
+        """Plots assessment values for each generator and group as box plots"""        
+        results_all = self.module.get_results()
+        palette = plot_utils.credo_converging_palette(2)
+        n_cols = 2
+        n_rows = math.ceil(self.num_assessment_funs/n_cols)
+
+        with plot_utils.get_style(figsize=self.size, figure_ratio = n_rows/n_cols):
+            # Generate assessment attribute distribution parameters plots
+            f, axes = plt.subplots(n_rows, n_cols)
+            to_loop = zip(axes.flat, results_all.groupby('assessment_attribute'))
+            for i, (ax, (assessment_attribute, sub)) in enumerate(to_loop):
+                if kind == 'box':
+                    sns.boxplot(x="value", y="group",
+                                hue="generation_model", dodge=True,
+                                data=sub, palette=palette,
+                                width=.8, linewidth=1, ax=ax, fliersize=1)
+                elif kind == 'bar':
+                    sns.barplot(x="value", y="group",
+                                hue="generation_model", 
+                                data=sub, palette=palette,
+                                linewidth=1, ax=ax, errwidth=1)
+
+                sns.despine()
+                ax.set_xlabel(assessment_attribute)
+                ax.set_ylabel("")
+                if i%2:
+                    ax.tick_params(labelleft=False) 
+                if i == self.num_assessment_funs-1:
+                    ax.legend(bbox_to_anchor=(1.05, 0.9), 
+                        title='Text Generator', labelcolor='linecolor')
+                else:
+                    ax.legend().set_visible(False)
+            plt.subplots_adjust(wspace=.1)
+            plt.suptitle('Disaggregated Assessment across Groups', y=1.05)
+        return f
+
+    def _plot_fairness(self):
+        results = self.module.prepare_results()
+        palette = plot_utils.credo_converging_palette(2)
+
+        # create parity metrics
+        parity = results.groupby(['generation_model', 'assessment_attribute'])['mean'] \
+                    .agg(['max', 'min']).diff(axis=1)['min'].abs().reset_index()
+        parity.rename(columns={'min': 'value'}, inplace=True)
+
+        # plot
+        with plot_utils.get_style(figsize=self.size, figure_ratio = 1/self.num_assessment_funs):
+            f = plt.figure()
+            sns.barplot(x='assessment_attribute', y='value', hue='generation_model', data=parity,
+                        palette=palette)
+            plt.xlabel("Assessment Attribute")
+            plt.ylabel("Min/Max Parity")
+            plt.title("Parity of Assessment Attributes across Group")
             sns.despine()
-            plt.xlabel("")
-            plt.ylabel("Value")
-            plt.legend(bbox_to_anchor=(1.05, 0.9))
-        return fig
+            plt.legend(bbox_to_anchor=(1.05, 0.9), title='Text Generator', labelcolor='linecolor')
+        return f
 
     def _plot_hists(self):
         # generate assessment attribute histogram plots
         results_all = self.module.get_results()
         palette = plot_utils.credo_converging_palette(self.num_gen_models)
         n_plots = self.num_assessment_funs
-        with plot_utils.get_style(figure_ratio = n_plots/2):
+        with plot_utils.get_style(figsize=self.size, figure_ratio = n_plots/2):
             f, axes = plt.subplots(n_plots, 1)
-        axes = f.get_axes()
-        for i, (assessment_attribute, results_sub) in enumerate(results_all.groupby('assessment_attribute')):
-            ax = axes[i]
-            n_bins = min(results_sub.shape[0]//4, 20)
+        to_loop = zip(axes.flat, results_all.groupby('assessment_attribute'))
+        for i, (ax, (assessment_attribute, sub)) in enumerate(to_loop):
+            ax = axes.flat[i]
+            n_bins = min(sub.shape[0]//4, 20)
             sns.histplot(
-                data=results_sub,
+                data=sub,
                 x="value",
                 hue="generation_model",
                 element="step",
@@ -80,4 +155,4 @@ class NLPGeneratorAnalyzerReport(CredoReport):
             sns.despine()
             plt.xlim([0, 1])
             plt.xlabel(assessment_attribute)
-        return fig
+        return f
