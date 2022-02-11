@@ -24,23 +24,23 @@ class DatasetModuleReport(CredoReport):
         -------
         array of figures
         """
-        self.results_all = self.module.get_results()
-
         # Generate data balance charts
         self._plot_balance_metrics()
 
         # Generate group difference charts
         self._plot_group_diff()
 
-         # Generate mutual information charts
+        # Generate mutual information charts
         self._plot_mutual_information()
+
+        # Generate overall proxy score plot
+        self._plot_overall_proxy_score()
 
         # Save to pdf if requested
         if filename:
             self.export_report(filename)
 
         return self.figs
-
 
     def _plot_balance_metrics(self):
         """Generates data balance charts including:
@@ -49,9 +49,10 @@ class DatasetModuleReport(CredoReport):
         - Demographic parity metrics for different preferred label value possibilities
         """
         fig, axs = plt.subplots(nrows=3, figsize=(8, 8), dpi=150)
+        results_all = self.module.get_results()
 
         # Generate sample balance barplots
-        results = self.results_all["balance_metrics"]["sample_balance"]
+        results = results_all["balance_metrics"]["sample_balance"]
         df = pd.DataFrame(results)
         sensitive_feature_name = list(df.drop(["count", "percentage"], axis=1).columns)[
             0
@@ -72,7 +73,7 @@ class DatasetModuleReport(CredoReport):
         ax.set_ylabel("")
 
         # Generate label balance barplots
-        results = self.results_all["balance_metrics"]["label_balance"]
+        results = results_all["balance_metrics"]["label_balance"]
         df = pd.DataFrame(results)
         label_name = list(df.drop([sensitive_feature_name, "count"], axis=1).columns)[0]
 
@@ -104,7 +105,7 @@ class DatasetModuleReport(CredoReport):
         ax.legend_.set_title(label_name)
 
         # Generate parity metrics barplots
-        results = self.results_all["balance_metrics"]["metrics"]
+        results = results_all["balance_metrics"]["metrics"]
 
         lst = []
         for k, v in results.items():
@@ -141,9 +142,9 @@ class DatasetModuleReport(CredoReport):
         self.figs.append(fig)
 
     def _plot_group_diff(self):
-        """ Generates group difference barplots
-        """
-        results = self.results_all["group_diffs"]
+        """Generates group difference barplots"""
+        results_all = self.module.get_results()
+        results = results_all["group_diffs"]
         fig, axs = plt.subplots(nrows=len(results), dpi=150)
         i = 0
         for k, v in results.items():
@@ -167,7 +168,7 @@ class DatasetModuleReport(CredoReport):
                     alpha=1,
                 )
             fig.patch.set_facecolor("white")
-            ax.axhline(0, color='k')
+            ax.axhline(0, color="k")
             sns.despine()
             ax.set_title("Group differences for " + k + " combination across features")
             ax.set_xlabel("")
@@ -177,9 +178,9 @@ class DatasetModuleReport(CredoReport):
         self.figs.append(fig)
 
     def _plot_mutual_information(self):
-        """ Generates normalized mututal information between features and sensitive attribute
-        """
-        results = self.results_all["normalized_mutual_information"]
+        """Generates normalized mututal information between features and sensitive attribute"""
+        results_all = self.module.get_results()
+        results = results_all["normalized_mutual_information"]
         df = pd.DataFrame.from_dict(results, orient="index").reset_index()
         df = df.rename(
             columns={
@@ -208,12 +209,14 @@ class DatasetModuleReport(CredoReport):
             data=df,
             palette=plot_utils.credo_diverging_palette(num_types),
             alpha=1,
-            dodge=False
+            dodge=False,
         )
         fig.patch.set_facecolor("white")
-        ax.axhline(0, color='k')
+        ax.axhline(0, color="k")
         sns.despine()
-        ax.set_title("Normalized mututal information with " + ref_type + " feature " + ref_name)
+        ax.set_title(
+            "Normalized mututal information with " + ref_type + " feature " + ref_name
+        )
         ax.set_xlabel("")
         ax.set_ylabel("Normalized mutual information")
         ax.set_ylim([0, 1])
@@ -222,5 +225,12 @@ class DatasetModuleReport(CredoReport):
 
         self.figs.append(fig)
 
+    def _plot_overall_proxy_score(self):
+        """Generates overall proxy scor plote"""
+        results_all = self.module.get_results()
+        overall_proxy_score = results_all["overall_proxy_score"]
+        fig = plt.figure(figsize=(5, 0.5), dpi=150)
+        plt.axis('off')
+        plt.text(0, 0.5, 'Overall proxy score: ' + str(round(overall_proxy_score, 3)))
 
-
+        self.figs.append(fig)
