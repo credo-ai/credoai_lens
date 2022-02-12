@@ -19,9 +19,6 @@ On Windows
 ``pip install credoai-lens[extras]``
 
 
-``pip install 'credoai-lens[extras]'``
-
-
 **Virtual Environment**
 
 Lens can be installed in any python environment. The easiest way to create a working
