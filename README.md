@@ -37,14 +37,21 @@ pip install credoai-lens
 To include additional dependencies needed for some modules and demos, use the 
 following installation command. 
 
+On Mac
 ```
 pip install 'credoai-lens[extras]'
 ```
 
-Modules that require extras include:
-* fairness_nlp
+On Windows
+```
+pip install credoai-lens[extras]
+```
 
-### Failed pip installation - use conda
+Modules that require extras include:
+* nlp_generator
+
+
+### ARM Macbook failed pip installation - use conda
 
 Installation sometimes fails on M1 macbooks. Specifically, pandas, scipy, and scikit-learn 
 may fail to build. Installing these packages with the anaconda package manager seems to be
@@ -66,16 +73,17 @@ A listing and overview of all the demonstration notebooks are available [here](h
 
 ## Documentation
 
-Documentation is hosted by [readthedocs](https://credoai-lens.readthedocs.io/en/latest/index.html).
+Documentation is hosted by [readthedocs](https://credoai-lens.readthedocs.io/en/stable/).
+
+For dev documentation, see [latest](https://credoai-lens.readthedocs.io/en/latest/index.html).
 
 ## Configuration
 
-To connect to [Credo AI's Governance Platform](https://www.credo.ai/product), enter your connection info in `~/.credoconfig` (in the root directory) using
+To connect to [Credo AI's Governance Platform](https://www.credo.ai/product), enter your connection info in `~/.credoconfig` (".credoconfig" in the root directory) using
 the below format. 
 
 ```
 TENANT={tenant name} # Example: credoai
-CREDO_URL=<your credo url>  # Example: https://api.credo.ai 
 API_KEY=<your api key> # Example: JSMmd26...
 ```
  

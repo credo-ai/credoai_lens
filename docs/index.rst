@@ -69,8 +69,8 @@ CredoModels and Data (:ref:`Credo Model/Data`).
 
 Assessments have certain functionality requirements, which the CredoModel/Data must meet to be run.
 Essentially, we use "duck typing" for models. Assessments require certain functionality and can
-run on any object that instiates that functionality. Lens makes use of these functionality requirements
-to automatically determine which assesments to run.
+run on any object that initiates that functionality. Lens makes use of these functionality requirements
+to automatically determine which assessments to run.
 
 You can easily define your own assessment by inheriting from the abstract `CredoAssessment <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/assessment/credo_assessment.py>`_ class.
 
@@ -85,7 +85,7 @@ solve this issue we introduce two artifacts: CredoModels and CredoData.
 
 **Credo Models** are not "models" in the traditional sense - they are connector objects
 that instantiate functions necessary for an assessment. For instance, to evaluate
-fairness usingn the "FairnessBase" assessment, the CredoModel must instantiate
+fairness using the "FairnessBase" assessment, the CredoModel must instantiate
 a `prob_fun` or `pred_fun`. The nature of these functions can be quite general.
 
 The simplest case is you setting `pred_fun` to the `predict` method of your model.

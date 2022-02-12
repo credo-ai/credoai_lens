@@ -1,42 +1,47 @@
 """Credo AI Governance Platform Integration Functionality"""
 
-from collections import ChainMap
+from collections import ChainMap, defaultdict
 from datetime import datetime
 from json_api_doc import serialize
-from credoai.utils.common import (NumpyEncoder, wrap_list, 
+from credoai.utils.common import (NumpyEncoder, wrap_list,
                                   ValidationError, dict_hash)
-from credoai.utils.credo_api_utils import (patch_metrics, post_figure,
-                                          register_project, register_model)
+from credoai.utils.credo_api_utils import (get_technical_spec,
+                                           patch_metrics, post_figure,
+                                           register_dataset, register_model,
+                                           register_project,
+                                           register_model_to_use_case)
 import base64
 import credoai
 import json
-import io 
+import io
 import matplotlib
+import mimetypes
 import numpy as np
 import pandas as pd
 import pprint
 
 META = {
-  'source': 'credoai_ml_library',
-  'version': credoai.__version__
+    'source': 'credoai_ml_library',
+    'version': credoai.__version__
 }
 
-    
+
 class Record:
     def __init__(self, json_header, **metadata):
         self.json_header = json_header
         self.metadata = metadata
         self.creation_time = datetime.now().isoformat()
-        
+
     def _struct(self):
         pass
 
     def jsonify(self, filename=None):
         return json.dumps(serialize(data=self._struct()), cls=NumpyEncoder)
-    
+
     def __str__(self):
         return pprint.pformat(self._struct())
-    
+
+
 class Metric(Record):
     """
     A metric record
@@ -62,19 +67,20 @@ class Metric(Record):
     ---------
     metric = Metric('precision_score', 0.5)
     """
+
     def __init__(self,
-            metric_type,
-            value,
-            name = 'DEFAULT',
-            process = None,
-            **metadata):
+                 metric_type,
+                 value,
+                 name='DEFAULT',
+                 process=None,
+                 **metadata):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
         self.name = name
         self.process = process
         self.config_hash = self._generate_config()
-    
+
     def _struct(self):
         return {
             'key': self.config_hash,
@@ -86,12 +92,13 @@ class Metric(Record):
             'value_updated_at': self.creation_time,
             '$type': 'model_metrics'
         }
-    
+
     def _generate_config(self):
         ignored = ['value', 'creation_time']
-        return dict_hash({k:v for k,v in self.__dict__.items() 
-                                      if k not in ignored})
-    
+        return dict_hash({k: v for k, v in self.__dict__.items()
+                          if k not in ignored})
+
+
 class Figure(Record):
     """
     A figure record
@@ -115,11 +122,13 @@ class Figure(Record):
     f = plt.figure()
     figure = Figure('Figure 1', fig=f, description='A matplotlib figure')
     """
+
     def __init__(self, name, figure, description=None, **metadata):
         super().__init__('figures', **metadata)
         self.name = name
         self.description = description
         self.figure_string = None
+        self.content_type = None
         if type(figure) == matplotlib.figure.Figure:
             self._encode_matplotlib_figure(figure)
         else:
@@ -128,22 +137,28 @@ class Figure(Record):
 
     def _encode_figure(self, figure_file):
         with open(figure_file, "rb") as figure2string:
-            self.figure_string = base64.b64encode(figure2string.read()).decode('ascii')
-            
+            self.figure_string = base64.b64encode(
+                figure2string.read()).decode('ascii')
+        self.content_type = mimetypes.guess_type(figure_file)[0]
+
     def _encode_matplotlib_figure(self, fig):
         pic_IObytes = io.BytesIO()
         fig.savefig(pic_IObytes,  format='png')
         pic_IObytes.seek(0)
-        self.figure_string = base64.b64encode(pic_IObytes.read()).decode('ascii')
-        
+        self.figure_string = base64.b64encode(
+            pic_IObytes.read()).decode('ascii')
+        self.content_type = "image/png"
+
     def _struct(self):
         return {'name': self.name,
                 'description': self.description,
+                'content_type': self.content_type,
                 'file': self.figure_string,
                 'creation_time': self.creation_time,
                 'metadata': {'type': 'chart', **self.metadata},
                 '$type': 'model_assets'}
-    
+
+
 class MultiRecord(Record):
     """
     A Multi-record object
@@ -155,17 +170,17 @@ class MultiRecord(Record):
     metric = Metric('recall', 0.6)
     model_record = MutliRecord(metric)
     """
-    
+
     def __init__(self, records):
         self.records = wrap_list(records)
         if len(set(type(r) for r in self.records)) != 1:
             raise ValidationError
         super().__init__(self.records[0].json_header)
-    
+
     def _struct(self):
-        data = [m._struct() for m in self.records] 
+        data = [m._struct() for m in self.records]
         return data
-    
+
 
 def record_metric(metric_type, value,  **metadata):
     """Convenience function to create a metric json object
@@ -183,18 +198,19 @@ def record_metric(metric_type, value,  **metadata):
     Returns
     -------
     Metric object
-    """    
+    """
 
-    return Metric(metric_type, 
-                  value, 
+    return Metric(metric_type,
+                  value,
                   **metadata)
+
 
 def record_metrics(metric_df):
     """
     Function to create a list of metric json objects
-    
+
     Metrics must be properly formatted in a pandas dataframe
-    
+
     Parameters
     ------------
     metric_df : pd.DataFrame
@@ -208,14 +224,15 @@ def record_metrics(metric_df):
         records.append(record_metric(metric_type=metric, **row))
     return MultiRecord(records)
 
+
 def record_metrics_from_dict(metrics, **metadata):
     """
     Function to create a list of metric json objects from dictionary
-    
+
     All metrics will have the same metadata using this function. 
     To assign unique metadata to each metric use 
     `credoai.integration.record_metrics`
-    
+
     Parameters
     ------------
     metrics : dict
@@ -226,7 +243,8 @@ def record_metrics_from_dict(metrics, **metadata):
     metric_df = pd.Series(metrics, name='value').to_frame()
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
-    
+
+
 def export_to_file(multi_record, filename):
     """Saves record as json object to filename
 
@@ -236,11 +254,12 @@ def export_to_file(multi_record, filename):
         A MutliRecord object
     filename : str
         file to write Record json object
-    """    
+    """
     json_out = multi_record.jsonify()
     with open(filename, 'w') as f:
         f.write(json_out)
-        
+
+
 def export_to_credo(multi_record, credo_id):
     """Sends record to Credo AI's Governance Platform
 
@@ -251,8 +270,9 @@ def export_to_credo(multi_record, credo_id):
     credo_id : str
         The destination id for the model or data on 
         Credo AI's Governance platform.
-    """    
+    """
     patch_metrics(credo_id, multi_record)
+
 
 def export_figure_to_credo(figure_record, credo_id):
     """Sends record to Credo AI's Governance Platform
@@ -264,6 +284,48 @@ def export_figure_to_credo(figure_record, credo_id):
     credo_id : str
         The destination id for the model or data on 
         Credo AI's Governance platform.
-    """    
+    """
     post_figure(credo_id, figure_record)
 
+
+def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
+    """Get aligned metrics from Credo's Governance Platform or file
+
+    At least one of the use_case_id or spec_path must be provided! If both
+    are provided, the spec_path takes precedence.
+
+    Parameters
+    ----------
+    use_case_id : string, optional
+        Identifier for Use Case on Credo AI's Governance Platform
+    spec_path : string, optional
+        The file location for the technical spec json downloaded from
+        the technical requirements of an Use Case on Credo AI's
+        Governance Platform
+    Returns
+    -------
+    dict
+        The aligned metrics for each model contained in the Use Case.
+        Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
+    """
+    spec = {}
+    if use_case_id:
+        spec = get_technical_spec(use_case_id, version=version)
+    if spec_path:
+        spec = json.load(open(spec_path))
+    try:
+        models = spec['model_ids']
+    except KeyError:
+        return {}
+    metric_dict = {m: defaultdict(dict) for m in models}
+    metrics = spec['metrics']
+    for metric in metrics:
+        #bounds = (metric['lower_threshold'], metric['upper_threshold'])
+        # applies to all models
+        if 'model_id' not in metric:
+            for metric_list in metric_dict.values():
+                metric_list[metric['type']] = {0, 1}
+        # otherwise only applies to one model
+        else:
+            metric_dict[metric['model_id']][metric['type']] = {0, 1}
+    return metric_dict
