@@ -1,6 +1,6 @@
-import credoai.lens as cl
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
+from credoai.utils.dataset_utils import concat_features_label_to_dataframe
 from credoai.utils.model_utils import get_gradient_boost_model
 from itertools import combinations
 import numpy as np
@@ -197,7 +197,7 @@ class DatasetModule(CredoModule):
             'label_balance': distribution of labels across groups
             'metrics': maximum statistical parity and maximum disparate impact between groups for all preferred label value possibilities 
         """
-        df, sensitive_feature_name, label_name = cl.CredoData._concat_features_label_to_dataframe(
+        df, sensitive_feature_name, label_name = concat_features_label_to_dataframe(
             X=self.X, y=self.y, sensitive_features=self.sensitive_features
             )
         results = {}

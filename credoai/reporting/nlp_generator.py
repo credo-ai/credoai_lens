@@ -2,15 +2,14 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 
-from credoai.reporting.credo_report import CredoReport
+from credoai.reporting.credo_reporter import CredoReporter
 from credoai.reporting import plot_utils
 from datetime import datetime
 
 
-class NLPGeneratorAnalyzerReport(CredoReport):
-    def __init__(self, module):
-        super().__init__()
-        self.module = module
+class NLPGeneratorAnalyzerReporter(CredoReporter):
+    def __init__(self, assessment):
+        super().__init__(assessment)
 
     def create_report(self, filename=None):
         """Creates a fairness report for binary classification model

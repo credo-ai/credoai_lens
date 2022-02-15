@@ -4,7 +4,7 @@ Module containing all CredoAssessmsents
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
-from credoai.reporting import FairnessReport, NLPGeneratorAnalyzerReport, DatasetModuleReport
+from credoai.reporting import FairnessReporter, NLPGeneratorAnalyzerReporter, DatasetModuleReporter
 from sklearn.utils.multiclass import type_of_target
 
 from credoai.utils import InstallationError
@@ -14,9 +14,17 @@ import sys, inspect
 
 class FairnessBaseAssessment(CredoAssessment):
     """
-    FairnessBase Assessment
+    Basic evaluation of the fairness of ML models
     
-    Runs the FairnessModule.
+    Runs fairness analysis on models with well-defined
+    objective functions. Examples include:
+        * binary classification
+        * regression
+        * recommendation systems
+
+    Modules
+    -------
+    * credoai.modules.fairness_base
     
     Requirements
     ------------
@@ -36,7 +44,7 @@ class FairnessBaseAssessment(CredoAssessment):
         )
     
     def init_module(self, *, model, data, metrics):
-        """ Initializes the assessment module
+        """Initializes the assessment module
 
         Transforms CredoModel and CredoData into the proper form
         to create a runnable assessment.
@@ -95,7 +103,7 @@ class FairnessBaseAssessment(CredoAssessment):
             subgroup. Overall performance are always reported, by default True
         """        
         if type_of_target(self.initialized_module.y_true) == 'binary':
-            self.report = FairnessReport(self.initialized_module)
+            self.report = FairnessReporter(self)
             return self.report.create_report(filename, include_fairness, include_disaggregation)
             
 class NLPEmbeddingBiasAssessment(CredoAssessment):
@@ -215,7 +223,7 @@ class NLPGeneratorAssessment(CredoAssessment):
         filename : string, optional
             If given, the location where the generated pdf report will be saved, by default None
     """        
-        self.report = NLPGeneratorAnalyzerReport(self.initialized_module)
+        self.report = NLPGeneratorAnalyzerReporter(self)
         return self.report.create_report(filename)
             
 class DatasetAssessment(CredoAssessment):
@@ -247,7 +255,7 @@ class DatasetAssessment(CredoAssessment):
         filename : string, optional
             If given, the location where the generated pdf report will be saved, by default None
         """        
-        self.report = DatasetModuleReport(self.initialized_module)
+        self.report = DatasetModuleReporter(self)
         return self.report.create_report(filename)
         
 def list_assessments_exhaustive():
