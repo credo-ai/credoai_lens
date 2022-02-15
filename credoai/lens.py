@@ -4,6 +4,7 @@ from absl import logging
 from copy import deepcopy
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
+from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
     IntegrationError, ValidationError, raise_or_warn)
 from credoai.utils.credo_api_utils import (get_dataset_by_name, get_model_by_name,
@@ -515,6 +516,18 @@ class Lens:
                         prepared_results, to_model=True)
         return assessment_results
 
+    def create_report_notebooks(self, report_name, report_directory=None):
+        reporters = {}
+        for name, assessment in self.assessments.items():
+            logging.info(f"Reporter exporting notebook for assessment-{name}")
+            reporter = assessment.get_reporter()
+            if reporter is not None:
+                reporter.export_notebook_report(report_directory)
+                reporters[name] = reporter
+        final_report = MainReport(report_name, reporters.values())
+        final_report.create_report(self, report_directory)
+        return reporters
+
     def create_reports(self, export=False,
                        report_directory=None,
                        report_kwargs=None):
@@ -560,8 +573,8 @@ class Lens:
             report = assessment.report
             # get filename
             meta = self._gather_meta(name)
-            names = self._get_names()
-            report_name = f"AssessmentReport_assessment-{name}_model-{names['model']}_data-{names['data']}"
+            names = self.get_artifact_names()
+            report_name = f"AssessmentReport_assessment-{name}_model-{names['model']}_data-{names['dataset']}"
             filename = path.join(tmpdir, report_name)
             # create report recodr
             report.export_report(filename)
@@ -590,9 +603,9 @@ class Lens:
         metric_records = ci.record_metrics(results)
         # determine save directory
         assessment_name = results.assessment.unique()[0]
-        names = self._get_names()
+        names = self.get_artifact_names()
         results_file = (f"AssessmentResults_assessment-{assessment_name}_"
-                        f"model-{names['model']}_data-{names['data']}.json")
+                        f"model-{names['model']}_data-{names['dataset']}.json")
         output_file = path.join(output_directory, results_file)
         ci.export_to_file(metric_records, output_file)
 
@@ -601,10 +614,10 @@ class Lens:
         ci.export_figure_to_credo(report_record, destination_id)
 
     def _gather_meta(self, assessment_name):
-        names = self._get_names()
+        names = self.get_artifact_names()
         return {'process': f'Lens-{assessment_name}',
                 'model_label': names['model'],
-                'dataset_label': names['data'],
+                'dataset_label': names['dataset'],
                 'user_id': self.user_id,
                 'assessment': assessment_name,
                 'lens_version': f'Lens-v{__version__}'}
@@ -625,10 +638,10 @@ class Lens:
         logging.info(f"**** Destination for export: {label} id-{destination}")
         return destination
 
-    def _get_names(self):
+    def get_artifact_names(self):
         model_name = self.model.name if self.model else 'NA'
         data_name = self.data.name if self.data else 'NA'
-        return {'model': model_name, 'data': data_name}
+        return {'model': model_name, 'dataset': data_name}
 
     def _init_assessments(self):
         """Initializes modules in each assessment"""

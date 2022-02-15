@@ -41,6 +41,20 @@ class DatasetModuleReporter(CredoReporter):
 
         return self.figs
 
+    def _create_report_cells(self):
+        # report cells
+        cells = [
+            ("""Stuff stuff and more stuff""", 'markdown'),
+            ("""\
+            reporter._plot_balance_metrics()
+            """, 'code'),
+            ("""Some stuff""", 'markdown'),
+            ("""\
+            reporter._plot_group_diff()
+            """, 'code'),
+        ]
+        return cells
+
     def _plot_balance_metrics(self):
         """Generates data balance charts including:
         - Data balance across sensitive feature subgroups

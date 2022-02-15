@@ -110,6 +110,13 @@ class CredoAssessment(ABC):
     def get_results(self):
         return self.initialized_module.get_results()
 
+    def get_reporter(self):
+        """Gets reporter to visualize the assessment
+
+        Does nothing if not overwritten
+        """
+        pass   
+        
     def create_report(self, filename=None):
         """Creates a report
 

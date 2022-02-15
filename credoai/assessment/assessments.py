@@ -18,9 +18,9 @@ class FairnessBaseAssessment(CredoAssessment):
     
     Runs fairness analysis on models with well-defined
     objective functions. Examples include:
-        * binary classification
-        * regression
-        * recommendation systems
+    * binary classification
+    * regression
+    * recommendation systems
 
     Modules
     -------
@@ -105,7 +105,11 @@ class FairnessBaseAssessment(CredoAssessment):
         if type_of_target(self.initialized_module.y_true) == 'binary':
             self.report = FairnessReporter(self)
             return self.report.create_report(filename, include_fairness, include_disaggregation)
-            
+    
+    def get_reporter(self):
+        if type_of_target(self.initialized_module.y_true) == 'binary':
+            return FairnessReporter(self)
+
 class NLPEmbeddingBiasAssessment(CredoAssessment):
     """
     NLP Embedding-Bias Assessments
@@ -222,10 +226,13 @@ class NLPGeneratorAssessment(CredoAssessment):
         ----------
         filename : string, optional
             If given, the location where the generated pdf report will be saved, by default None
-    """        
+        """        
         self.report = NLPGeneratorAnalyzerReporter(self)
         return self.report.create_report(filename)
-            
+    
+    def get_reporter(self):
+        return NLPGeneratorAnalyzerReporter(self)
+
 class DatasetAssessment(CredoAssessment):
     """
     Dataset Assessment
@@ -257,6 +264,9 @@ class DatasetAssessment(CredoAssessment):
         """        
         self.report = DatasetModuleReporter(self)
         return self.report.create_report(filename)
+
+    def get_reporter(self):
+        return DatasetModuleReporter(self)
         
 def list_assessments_exhaustive():
     """List all defined assessments"""
