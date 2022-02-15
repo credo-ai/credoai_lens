@@ -14,9 +14,17 @@ import sys, inspect
 
 class FairnessBaseAssessment(CredoAssessment):
     """
-    FairnessBase Assessment
+    Basic evaluation of the fairness of ML models
     
-    Runs the FairnessModule.
+    Runs fairness analysis on models with well-defined
+    objective functions. Examples include:
+        * binary classification
+        * regression
+        * recommendation systems
+
+    Modules
+    -------
+    * credoai.modules.fairness_base
     
     Requirements
     ------------
@@ -36,7 +44,7 @@ class FairnessBaseAssessment(CredoAssessment):
         )
     
     def init_module(self, *, model, data, metrics):
-        """ Initializes the assessment module
+        """Initializes the assessment module
 
         Transforms CredoModel and CredoData into the proper form
         to create a runnable assessment.
