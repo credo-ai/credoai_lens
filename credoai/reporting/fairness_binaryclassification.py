@@ -302,7 +302,7 @@ class FairnessReporter(CredoReporter):
     def _style_barplot(self, ax):
         sns.despine()
         ax.set_xlabel(ax.get_xlabel(), fontweight='bold')
-        ax.set_ylabel(ax.get_xlabel(), fontweight='bold')
+        ax.set_ylabel(ax.get_ylabel(), fontweight='bold')
         # format metric labels
         ax.set_yticklabels([format_metric(label.get_text()) 
                             for label in ax.get_yticklabels()])
