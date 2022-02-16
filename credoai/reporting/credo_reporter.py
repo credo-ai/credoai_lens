@@ -8,10 +8,12 @@ import pandas as pd
 import matplotlib.backends.backend_pdf
 
 
-class CredoReport(ABC):
+class CredoReporter(ABC):
     """Abstract base class for all CredoReports"""
     
-    def __init__(self):
+    def __init__(self, assessment):
+        self.assessment = assessment
+        self.module = assessment.initialized_module
         self.figs = []
 
     @abstractmethod

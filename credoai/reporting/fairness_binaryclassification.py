@@ -1,4 +1,4 @@
-from credoai.reporting.credo_report import CredoReport
+from credoai.reporting.credo_reporter import CredoReporter
 from credoai.reporting.plot_utils import (credo_classification_palette, 
                                           format_metric, get_axis_size,
                                           DEFAULT_COLOR)
@@ -9,10 +9,9 @@ import numpy as np
 import seaborn as sns
 import sklearn.metrics as sk_metrics
 
-class FairnessReport(CredoReport):
-    def __init__(self, module, infographic_shape=(3,5), size=5):
-        super().__init__()
-        self.module = module
+class FairnessReporter(CredoReporter):
+    def __init__(self, assessment, infographic_shape=(3,5), size=5):
+        super().__init__(assessment)
         self.size = size
         self.infographic_shape = infographic_shape
     
@@ -274,7 +273,7 @@ class FairnessReport(CredoReport):
     def _style_barplot(self, ax):
         sns.despine()
         ax.set_xlabel(ax.get_xlabel(), fontweight='bold')
-        ax.set_ylabel(ax.get_xlabel(), fontweight='bold')
+        ax.set_ylabel(ax.get_ylabel(), fontweight='bold')
         # format metric labels
         ax.set_yticklabels([format_metric(label.get_text()) 
                             for label in ax.get_yticklabels()])

@@ -3,17 +3,16 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 
-from credoai.reporting.credo_report import CredoReport
+from credoai.reporting.credo_reporter import CredoReporter
 from credoai.reporting import plot_utils
 from datetime import datetime
 
 
-class NLPGeneratorAnalyzerReport(CredoReport):
-    def __init__(self, module, size=5):
-        super().__init__()
-        self.module = module
-        self.num_gen_models = len(module.generation_functions)
-        self.num_assessment_funs = len(module.assessment_functions)
+class NLPGeneratorAnalyzerReporter(CredoReporter):
+    def __init__(self, assessment, size=5):
+        super().__init__(assessment)
+        self.num_gen_models = len(self.module.generation_functions)
+        self.num_assessment_funs = len(self.module.assessment_functions)
         self.size = size
 
     def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
