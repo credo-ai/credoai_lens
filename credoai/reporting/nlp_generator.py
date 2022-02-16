@@ -42,7 +42,7 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
 
     def _plot_overall_assessment(self, kind='box'):
         """Plots assessment values for each generator as box plots"""        
-        results_all = self.module.get_results()
+        results = self.module.get_results()
         palette = plot_utils.credo_converging_palette(self.num_gen_models)
         n_cols = 2
         n_rows = math.ceil(self.num_assessment_funs/n_cols)
@@ -50,7 +50,7 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
         with plot_utils.get_style(figsize=self.size, figure_ratio = n_rows/n_cols):
             # Generate assessment attribute distribution parameters plots
             f, axes = plt.subplots(n_rows, n_cols)
-            to_loop = zip(axes.flat, results_all.groupby('assessment_attribute'))
+            to_loop = zip(axes.flat, results.groupby('assessment_attribute'))
             for i, (ax, (assessment_attribute, sub)) in enumerate(to_loop):
                 if kind == 'box':
                     sns.boxplot(x="value", y="generation_model", 
@@ -66,21 +66,25 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
                 ax.set_ylabel("")
                 if i%2:
                     ax.tick_params(labelleft=False) 
-            plt.subplots_adjust(wspace=.5)
+            plt.subplots_adjust(wspace=.5, hspace=.3)
             plt.suptitle('Overal Assessment of Text Generators', y=1.05)
         return f
 
     def _plot_disaggregated_assessment(self, kind='box'):
-        """Plots assessment values for each generator and group as box plots"""        
-        results_all = self.module.get_results()
-        palette = plot_utils.credo_converging_palette(2)
+        """Plots assessment values for each generator and group as box plots"""  
+        palette = plot_utils.credo_converging_palette(self.num_gen_models)      
+        results = self.module.get_results()
+        # if only one group, can't calculate disaggregated
+        if len(results['group'].unique())==1:
+            return
+
         n_cols = 2
         n_rows = math.ceil(self.num_assessment_funs/n_cols)
 
         with plot_utils.get_style(figsize=self.size, figure_ratio = n_rows/n_cols):
             # Generate assessment attribute distribution parameters plots
             f, axes = plt.subplots(n_rows, n_cols)
-            to_loop = zip(axes.flat, results_all.groupby('assessment_attribute'))
+            to_loop = zip(axes.flat, results.groupby('assessment_attribute'))
             for i, (ax, (assessment_attribute, sub)) in enumerate(to_loop):
                 if kind == 'box':
                     sns.boxplot(x="value", y="group",
@@ -103,14 +107,16 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
                         title='Text Generator', labelcolor='linecolor')
                 else:
                     ax.legend().set_visible(False)
-            plt.subplots_adjust(wspace=.1)
+            plt.subplots_adjust(wspace=.1, hspace=.3)
             plt.suptitle('Disaggregated Assessment across Groups', y=1.05)
         return f
 
     def _plot_fairness(self):
+        palette = plot_utils.credo_converging_palette(self.num_gen_models)
         results = self.module.prepare_results()
-        palette = plot_utils.credo_converging_palette(2)
-
+        # if only one group, can't calculate fairness
+        if len(results['group'].unique())==1:
+            return
         # create parity metrics
         parity = results.groupby(['generation_model', 'assessment_attribute'])['mean'] \
                     .agg(['max', 'min']).diff(axis=1)['min'].abs().reset_index()
@@ -130,12 +136,12 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
 
     def _plot_hists(self):
         # generate assessment attribute histogram plots
-        results_all = self.module.get_results()
+        results = self.module.get_results()
         palette = plot_utils.credo_converging_palette(self.num_gen_models)
         n_plots = self.num_assessment_funs
         with plot_utils.get_style(figsize=self.size, figure_ratio = n_plots/2):
             f, axes = plt.subplots(n_plots, 1)
-        to_loop = zip(axes.flat, results_all.groupby('assessment_attribute'))
+        to_loop = zip(axes.flat, results.groupby('assessment_attribute'))
         for i, (ax, (assessment_attribute, sub)) in enumerate(to_loop):
             ax = axes.flat[i]
             n_bins = min(sub.shape[0]//4, 20)

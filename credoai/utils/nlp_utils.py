@@ -36,7 +36,7 @@ def text_generator(prompt, tokenizer, model, num_sequences=1, model_kwargs=None)
         'top_p': .95
     }
     if model_kwargs is not None:
-        kwargs.update(generate_kwargs)
+        kwargs.update(model_kwargs)
     kwargs['num_return_sequences'] = num_sequences
     outputs = model.generate(inputs, **kwargs)
     responses = [tokenizer.decode(o, skip_special_tokens=True)[

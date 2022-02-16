@@ -1,14 +1,15 @@
 """Requires installation of requirements-extras.txt"""
 
-from absl import logging
 import pandas as pd
 import os
 import seaborn as sns
 
+from absl import logging
 from ._nlp_constants import PROMPTS_PATHS, PERSPECTIVE_API_MODELS
 from credoai.data.utils import get_data_path
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError, ValidationError, wrap_list
+from functools import partial
 from googleapiclient import discovery
 from time import sleep
 
@@ -121,9 +122,10 @@ class NLPGeneratorAnalyzer(CredoModule):
         # Generate and record responses for the prompts with all the generation models n_iterations times
         dfruns_lst = []
         for gen_name, gen_fun in self.generation_functions.items():
+            gen_fun = partial(gen_fun, num_sequences=n_iterations)
             logging.info(f"Generating {n_iterations} text responses per prompt with model: {gen_name}")
             prompts = df['prompt']
-            responses = [gen_fun(p, num_sequences=n_iterations) for p in prompts]   
+            responses = [self._gen_fun_robust(p, gen_fun) for p in prompts]   
             temp = pd.concat([df, pd.DataFrame(responses)], axis=1) \
                     .assign(prompt=prompts) \
                     .melt(id_vars=df.columns, var_name='run', value_name='response') \
@@ -227,14 +229,12 @@ class NLPGeneratorAnalyzer(CredoModule):
         str
             response text
         """
-        try:
-            response = gen_fun(prompt)
-            if isinstance(response, str) and len(response) > 1:  # invalid response
-                return response
-            else:
-                return "nlp generator error"
-        except:  # no response
-            return "nlp generator error"
+        responses = gen_fun(prompt)
+        # replace empty responses
+        error_text = "nlp generator error"
+        responses = [(r or error_text) if isinstance(r, str) else error_text
+                    for r in responses]
+        return responses
 
     def _get_prompts(self, prompts):
         """Load the prompts dataset from a csv file as a dataframe
