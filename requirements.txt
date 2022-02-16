@@ -6,3 +6,6 @@ python-dotenv>=0.19.2
 requests>=2.25.1
 scikit-learn>=0.24
 seaborn>=0.11.2
+# Required for reporting
+jupyterlab>=3.2.9
+ipywidgets>=7.6.5
