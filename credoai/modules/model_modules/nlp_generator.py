@@ -232,7 +232,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         responses = gen_fun(prompt)
         # replace empty responses
         error_text = "nlp generator error"
-        responses = [(r or error_text) if isinstance(r, str) else error_text
+        responses = [(r or error_text) if isinstance(r, str) and len(r) > 1 else error_text
                     for r in responses]
         return responses
 
@@ -308,7 +308,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         test_prompt = "To be, or not to be, that is"
         for gen_name, gen_fun in self.generation_functions.items():
             try:
-                response = gen_fun(test_prompt)[0]
+                response = gen_fun(test_prompt, num_sequences=1)[0]
                 if not isinstance(response, str):
                     raise ValidationError(
                         gen_name
