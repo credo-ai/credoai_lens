@@ -66,8 +66,8 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
                 ax.set_ylabel("")
                 if i%2:
                     ax.tick_params(labelleft=False) 
-            plt.subplots_adjust(wspace=.5, hspace=.3)
-            plt.suptitle('Overal Assessment of Text Generators', y=1.05)
+            plt.subplots_adjust(wspace=.5, hspace=.5)
+            plt.suptitle('Overal Assessment of Text Generators', y=1)
         return f
 
     def _plot_disaggregated_assessment(self, kind='box'):
@@ -107,8 +107,8 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
                         title='Text Generator', labelcolor='linecolor')
                 else:
                     ax.legend().set_visible(False)
-            plt.subplots_adjust(wspace=.1, hspace=.3)
-            plt.suptitle('Disaggregated Assessment across Groups', y=1.05)
+            plt.subplots_adjust(wspace=.1, hspace=.5)
+            plt.suptitle('Disaggregated Assessment across Groups', y=1)
         return f
 
     def _plot_fairness(self):
