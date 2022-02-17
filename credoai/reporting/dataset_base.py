@@ -242,7 +242,7 @@ class DatasetModuleReporter(CredoReporter):
     def _plot_overall_proxy_score(self):
         """Generates overall proxy scor plote"""
         results_all = self.module.get_results()
-        overall_proxy_score = results_all["overall_proxy_score"]['value']
+        overall_proxy_score = results_all["overall_proxy_score"]
         fig = plt.figure(figsize=(5, 0.5), dpi=150)
         plt.axis('off')
         plt.text(0, 0.5, 'Overall proxy score: ' + str(round(overall_proxy_score, 3)))
