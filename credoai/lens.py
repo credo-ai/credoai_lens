@@ -522,11 +522,11 @@ class Lens:
             logging.info(f"Reporter exporting notebook for assessment-{name}")
             reporter = assessment.get_reporter()
             if reporter is not None:
-                reporter.export_notebook_report(report_directory)
+                reporter.create_notebook()
                 reporters[name] = reporter
         final_report = MainReport(report_name, reporters.values())
-        final_report.create_report(self, report_directory)
-        return reporters
+        final_report.create_report(self)
+        return reporters, final_report
 
     def create_reports(self, export=False,
                        report_directory=None,

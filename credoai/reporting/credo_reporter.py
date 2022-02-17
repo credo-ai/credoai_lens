@@ -4,12 +4,13 @@ Defines abstract base class for all CredoReports
 
 from abc import ABC, abstractmethod
 from credoai.utils.common import ValidationError
+from credoai.reporting.plot_utils import get_table_style, format_label
 from credoai.reporting.reports import AssessmentReport
 from IPython.display import display
 import os
 import pandas as pd
 import matplotlib.backends.backend_pdf
-
+import textwrap
 
 class CredoReporter(ABC):
     """Abstract base class for all CredoReports"""
@@ -25,26 +26,29 @@ class CredoReporter(ABC):
         """ Creates the report """
         pass
     
-    def export_notebook_report(self, directory):
-        report = AssessmentReport()
-        # create description
+    def _get_description(self):
         assessment_description = self.assessment.get_description()
         description = f"""\
-    ### {self.assessment.name} Report
-    
-    #### Description
-    
-    {assessment_description['short']}
+        ## {self.assessment.name} Report
+        
+        #### Description
+        
+        {assessment_description['short']}
 
-    {assessment_description['long']}
+        {textwrap.indent(assessment_description['long'], ' '*4)}
 
-    ### Results
+        ### Results
         """
-        results_table = ("reporter.display_results()", 'code')
-        cells = [(description, 'markdown'), results_table] + self._create_report_cells()
+        return description
+
+    def create_notebook(self):
+        report = AssessmentReport({'reporter': self})
+        results_table = [("#### Result Tables", "markdown"), 
+                        ("reporter.display_results()", 'code')]
+        cells = [(self._get_description(), 'markdown')] \
+            + self._create_report_cells() \
+            + results_table
         report.add_cells(cells)
-        loc = os.path.join(directory, f'assessment-{self.assessment.name}_report.ipynb')
-        report.write_notebook(loc, run=True, reporter=self)
         self.report = report
 
     @abstractmethod
@@ -63,18 +67,16 @@ class CredoReporter(ABC):
 
     def display_results(self):
         results = self.assessment.get_results()
-        caption_style = {
-            'selector': 'caption',
-            'props': [
-                ('font-weight', 'bold'),
-                ('font-size', '16px')
-            ]
-        }
+        styles = get_table_style()
         for key, val in results.items():
             try:
-                to_display=val.style.set_caption(key.upper()).set_table_styles([caption_style])
+                title = format_label(key.upper(), wrap_length=30)
+                val = pd.DataFrame(val)
+                to_display=val.style.set_caption(title)\
+                                .set_table_styles(styles)
                 display(to_display)
-                print('\n\n')
             except:
-                pass
+                print(f'{key}: {val}')
+            print('\n')
+
 

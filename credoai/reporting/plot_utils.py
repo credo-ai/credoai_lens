@@ -27,12 +27,31 @@ def credo_paired_palette(n_colors):
     credo_colors = ['#a6cee3', '#1f78b4', '#ee1d7a', '#ac0047', '#cab2d6', '#6a3d9a',  '#fdbf6f', '#ff7f00']
     return credo_colors[:n_colors]
 
-def format_metric(metric, wrap_length=15):
+def format_label(metric, wrap_length=15):
     return textwrap.fill(metric.replace('_', ' '), wrap_length) 
     
 def get_axis_size(ax, fig):
     bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
     return [bbox.width, bbox.height]
+
+def get_table_style():
+    caption_style = {
+            'selector': 'caption',
+            'props': [
+                ('text-align', 'left'),
+                ('font-weight', 'bold'),
+                ('font-size', '1.25em')
+            ]
+        }
+
+    cell_hover = {  # for row hover use <tr> instead of <td>
+        'selector': 'td:hover',
+        'props': [('background-color', '#3b07b4'),
+                ('color', 'white')]
+    }
+
+    styles = [caption_style, cell_hover]
+    return styles
 
 def outlier_style_df(s):
     '''

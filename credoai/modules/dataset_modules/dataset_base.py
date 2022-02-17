@@ -44,9 +44,9 @@ class DatasetModule(CredoModule):
         normalized_mutual_information = self._calculate_mutual_information()
         balance_metrics = self._assess_balance_metrics()
         self.results = {'overall_proxy_score': cv_results.mean(),
-                        'group_diffs': group_differences,
+                        'standardized_group_diffs': group_differences,
                         'normalized_mutual_information': normalized_mutual_information,
-                        'balance_metrics': balance_metrics}  
+                        **balance_metrics}  
         return self  
     
     def prepare_results(self):
@@ -64,7 +64,6 @@ class DatasetModule(CredoModule):
         for group1, group2 in combinations(group_means.index, 2):
             diff = (group_means.loc[group1]-group_means.loc[group2])/std
             diffs[f'{group1}-{group2}'] = diff.to_dict()
-
         return diffs
     
     def _run_cv(self, pipe):
@@ -200,7 +199,7 @@ class DatasetModule(CredoModule):
         df, sensitive_feature_name, label_name = concat_features_label_to_dataframe(
             X=self.X, y=self.y, sensitive_features=self.sensitive_features
             )
-        results = {}
+        balance_results = {}
 
         # Distribution of samples across groups
         sample_balance = (
@@ -212,7 +211,7 @@ class DatasetModule(CredoModule):
             .reset_index()
             .to_dict(orient="records")
         )
-        results["sample_balance"] = sample_balance
+        balance_results["sample_balance"] = sample_balance
 
         # Distribution of samples across groups
         label_balance = (
@@ -223,13 +222,14 @@ class DatasetModule(CredoModule):
             .reset_index(name="count")
             .to_dict(orient="records")
         )
-        results["label_balance"] = label_balance
+        balance_results["label_balance"] = label_balance
 
         # Fairness metrics
-        r = df.groupby([sensitive_feature_name, label_name]).agg({label_name: 'count'})
-        r = r.groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))
-        r.rename({label_name:'ratio'}, inplace=True, axis=1)
-        r.reset_index(inplace=True)
+        r = df.groupby([sensitive_feature_name, label_name])\
+                .agg({label_name: 'count'})\
+                .groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))\
+                .rename({label_name:'ratio'}, inplace=False, axis=1)\
+                .reset_index(inplace=False)
 
         # Compute the maximum difference between any two pairs of groups
         demographic_parity_difference = r.groupby(label_name)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
@@ -237,6 +237,7 @@ class DatasetModule(CredoModule):
         # Compute the maximum ratio between any two pairs of groups
         demographic_parity_ratio = r.groupby(label_name)['ratio'].apply(lambda x: np.max(x)/np.min(x)).reset_index(name='value').to_dict(orient='records')
         
-        results['metrics'] = {'demographic_parity_difference': demographic_parity_difference, 'demographic_parity_ratio': demographic_parity_ratio}
+        balance_results['demographic_parity_difference'] = demographic_parity_difference
+        balance_results['demographic_parity_ratio'] = demographic_parity_ratio
 
-        return results
+        return balance_results

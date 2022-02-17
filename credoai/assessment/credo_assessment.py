@@ -94,7 +94,7 @@ class CredoAssessment(ABC):
 
     def prepare_results(self, metadata=None, **kwargs):
         results = self.initialized_module.prepare_results(**kwargs)
-        results = self._standardize_results(results)
+        results = self._standardize_prepared_results(results)
         self._validate_results(results)
         # add metadata
         metadata = metadata or {}
@@ -139,13 +139,13 @@ class CredoAssessment(ABC):
         # remove last line (title of next section)
         description = description[:description.rfind('\n')].lstrip()
         short = description.split('\n')[0]
-        long = description[len(short)+2:].lstrip()
+        long = description[len(short)+2:]
         if self.short_description is None:
             self.short_description = short
         if self.long_description is None:
             self.long_description = long
 
-    def _standardize_results(self, results):
+    def _standardize_prepared_results(self, results):
         if type(results) == dict:
             results = pd.Series(results, name='value').to_frame()
             results.index.name = 'metric_type'

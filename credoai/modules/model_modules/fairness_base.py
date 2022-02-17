@@ -86,9 +86,9 @@ class FairnessModule(CredoModule):
             as columns
         """
         fairness_results = self.get_fairness_results(method=method)
-        disaggregated_results = self.get_disaggregated_results()
+        disaggregated_performance = self.get_disaggregated_performance()
         self.results = {'fairness': fairness_results,
-                        'disaggregated_results': disaggregated_results}
+                        'disaggregated_performance': disaggregated_performance}
         return self
         
     def prepare_results(self, method='between_groups', filter=None):
@@ -104,7 +104,7 @@ class FairnessModule(CredoModule):
             Regex string to filter fairness results if only a subset are desired.
             Passed as a regex argument to pandas `filter` function applied to the
             concatenated output of Fairnessmodule.get_fairness_results and
-            Fairnessmodule.get_disaggregated_results, by default None
+            Fairnessmodule.get_disaggregated_performance, by default None
 
         Returns
         -------
@@ -117,7 +117,7 @@ class FairnessModule(CredoModule):
         """
         if self.results is not None:
             # melt disaggregated df before combinding
-            disaggregated_df = self.results['disaggregated_results']
+            disaggregated_df = self.results['disaggregated_performance']
             disaggregated_df = disaggregated_df.reset_index()\
                 .melt(id_vars=disaggregated_df.index.name, var_name='metric_type')\
                 .set_index('metric_type')
@@ -229,7 +229,7 @@ class FairnessModule(CredoModule):
         results.loc[results.index[-len(parity_results):], 'kind'] = 'parity'
         return results
 
-    def get_disaggregated_results(self, melt=False):
+    def get_disaggregated_performance(self, melt=False):
         """Return performance metrics for each group
 
         Parameters

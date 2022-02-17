@@ -2,12 +2,13 @@ import nbformat as nbf
 import os
 import pickle
 import textwrap
+from inspect import cleandoc
 from nbclient import NotebookClient
+from nbconvert import HTMLExporter
 
 class NotebookReport():
     def __init__(self):
         self.nb = nbf.v4.new_notebook()
-        self.nb_file_loc = ''
         self.cells = []
     
     def add_cells(self, cells):
@@ -19,39 +20,64 @@ class NotebookReport():
             elif cell_type == 'code':
                 self.nb['cells'].append(nbf.v4.new_code_cell(content))
     
-    def write_notebook(self, file_loc, run=False, **run_kwargs):
+    def export_notebook(self, file_loc, run=False):
+        """Writes notebook to html"""
         if run:
-            self.run_notebook(**run_kwargs)
+            self.run_notebook()
+        html_exporter = HTMLExporter(template_name = 'classic')
+        (body, resources) = html_exporter.from_notebook_node(self.nb)
+        with open(file_loc, "w") as html_nb:
+            # Writing data to a file
+            html_nb.write(body)
+        return self
+
+    def write_notebook(self, file_loc, run=False):
+        """Writes notebook to file"""
+        if run:
+            self.run_notebook()
         nbf.write(self.nb, file_loc)
-        self.nb_file_loc = file_loc
+        return self
 
     def run_notebook(self):
         client = NotebookClient(self.nb, timeout=600, 
                     kernel_name='python3')
 
         client.execute()
+        return self
 
     def _preprocess_cell_content(self, cells):
-        return [(textwrap.dedent(content), cell_type) 
+        return [(cleandoc(content), cell_type) 
                 for content, cell_type in cells]
 
 class AssessmentReport(NotebookReport):
-    def __init__(self):
-        super().__init__()
-        # set up reporter
-        load_code="""\
-        import pickle
-        reporter = pickle.load(open('tmp.pkl','rb'))
+    def __init__(self, needed_artifacts=None):
+        """Assessment version of the report
+        
+        Parameters
+        ---------
+        needed_artifacts : dict
+            dictionary of artifacts that will be pickled to run the report
         """
+        super().__init__()
+        self.needed_artifacts = needed_artifacts
+        # set up reporter
+        load_code="import pickle\n"
+        for key, val in self.needed_artifacts.items():
+            load_code += f"{key} = pickle.load(open('{key}.pkl','rb'))"
         self.add_cells([(load_code, 'code')])
     
-    def run_notebook(self, reporter):
-        pickle.dump(reporter, open('tmp.pkl', 'wb'))
+    def run_notebook(self):
+        pickle_files = []
+        for key, val in self.needed_artifacts.items():
+            pickle_files.append(f'{key}.pkl')
+            pickle.dump(val, open(pickle_files[-1], 'wb'))
         client = NotebookClient(self.nb, timeout=600, 
                     kernel_name='python3')
 
         client.execute()
-        os.remove('tmp.pkl')
+        for f in pickle_files:
+            os.remove(f)
+        return self
 
 class MainReport(NotebookReport):
     def __init__(self, report_name, reporters):
@@ -64,8 +90,13 @@ class MainReport(NotebookReport):
         toc = self.get_toc()
         boiler_plate=f"""\
         # {self.name}
-        {toc}
-        ## Basic Information
+        
+        **Table of Contents**\n
+"""\
+        f"{textwrap.indent(toc, ' '*8)}"\
+        f"""
+        
+        **Basic Information**
         
         Model Information
             
@@ -76,46 +107,42 @@ class MainReport(NotebookReport):
         self.add_cells(cells)
     
     def get_toc(self):
-        toc = """**Table of Contents**
-
-        1. [Basic Information](#Basic-Information)
+        toc = """1. [Basic Information](#Basic-Information)
         1. [Executive Summary](#Executive-Summary)
         1. [Technical Reports](#Technical-Reports)
         """
+        toc = cleandoc(toc)
         for reporter in self.reporters:
-            tmp = f"""\
-                1. [{reporter.assessment.name} Report](#{reporter.assessment.name}-Report)
-            """
-            toc += textwrap.indent(textwrap.dedent(tmp), '    ')
+            tmp = f"\n1. [{reporter.assessment.name} Report](#{reporter.assessment.name}-Report)"
+            toc += textwrap.indent(tmp, '    ')
         return toc
 
-    def create_report(self, lens, directory):
+    def create_report(self, lens):
         self.create_boiler_plate(lens)
         cells = [
             ("""## Executive Summary
             
             We have executive stuff here
             """, 'markdown'),
-            ("""## Technical Reports""", 'markdown')
+            ("""# Technical Reports""", 'markdown')
         ]
         self.add_cells(cells)
-        loc = os.path.join(directory, 'main_report.ipynb')
-        self.write_notebook(loc, run=True)
+        self.run_notebook()
         self.add_technical()
+        return self
 
-    def add_technical(self):
+    def add_technical(self, run_technical=True):
         for reporter in self.reporters:
             technical_notebook = reporter.report
             # Reading the notebooks
-            first_notebook = nbf.read(self.nb_file_loc, 4)
-            second_notebook = nbf.read(technical_notebook.nb_file_loc, 4)
-
+            first_notebook = self.nb
+            if run_technical:
+                second_notebook = technical_notebook.run_notebook().nb
+            else:
+                second_notebook = technical_notebook.nb
             # Creating a new notebook
-            final_notebook = nbf.v4.new_notebook(metadata=first_notebook.metadata)
-
+            cat_notebook = nbf.v4.new_notebook(metadata=first_notebook.metadata)
             # Concatenating the notebooks
-            final_notebook.cells = first_notebook.cells + second_notebook.cells
-
-            self.nb = final_notebook
-            # Saving the new notebook 
-            self.write_notebook('main_report.ipynb')
+            cat_notebook.cells = first_notebook.cells + second_notebook.cells
+            self.nb = cat_notebook
+        return self

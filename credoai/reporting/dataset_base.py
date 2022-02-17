@@ -65,7 +65,7 @@ class DatasetModuleReporter(CredoReporter):
         results_all = self.module.get_results()
 
         # Generate sample balance barplots
-        results = results_all["balance_metrics"]["sample_balance"]
+        results = results_all["sample_balance"]
         df = pd.DataFrame(results)
         sensitive_feature_name = list(df.drop(["count", "percentage"], axis=1).columns)[
             0
@@ -86,7 +86,7 @@ class DatasetModuleReporter(CredoReporter):
         ax.set_ylabel("")
 
         # Generate label balance barplots
-        results = results_all["balance_metrics"]["label_balance"]
+        results = results_all["label_balance"]
         df = pd.DataFrame(results)
         label_name = list(df.drop([sensitive_feature_name, "count"], axis=1).columns)[0]
 
@@ -118,12 +118,13 @@ class DatasetModuleReporter(CredoReporter):
         ax.legend_.set_title(label_name)
 
         # Generate parity metrics barplots
-        results = results_all["balance_metrics"]["metrics"]
+        metric_keys = ['demographic_parity_difference',
+                       'demographic_parity_ratio']
 
         lst = []
-        for k, v in results.items():
-            temp = pd.DataFrame(v)
-            temp["metric"] = k.replace("_", " ")
+        for metric in metric_keys:
+            temp = pd.DataFrame(results_all[metric])
+            temp["metric"] = metric.replace("_", " ")
             lst.append(temp)
 
         df = pd.concat(lst)
@@ -157,7 +158,7 @@ class DatasetModuleReporter(CredoReporter):
     def _plot_group_diff(self):
         """Generates group difference barplots"""
         results_all = self.module.get_results()
-        results = results_all["group_diffs"]
+        results = results_all["standardized_group_diffs"]
         fig, axs = plt.subplots(nrows=len(results), dpi=150)
         i = 0
         for k, v in results.items():
@@ -241,7 +242,7 @@ class DatasetModuleReporter(CredoReporter):
     def _plot_overall_proxy_score(self):
         """Generates overall proxy scor plote"""
         results_all = self.module.get_results()
-        overall_proxy_score = results_all["overall_proxy_score"]
+        overall_proxy_score = results_all["overall_proxy_score"]['value']
         fig = plt.figure(figsize=(5, 0.5), dpi=150)
         plt.axis('off')
         plt.text(0, 0.5, 'Overall proxy score: ' + str(round(overall_proxy_score, 3)))

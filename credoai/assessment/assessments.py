@@ -237,7 +237,16 @@ class DatasetAssessment(CredoAssessment):
     """
     Dataset Assessment
     
-    Runs the Dataset module.
+    Runs fairness assessment on a CredoDataset. This
+    includes:
+    * Distributional assessment of dataset
+    * Proxy detection
+    * Demographic Parity of outcomes
+
+    Modules
+    -------
+    * credoai.modules.dataset_base
+
     """
     def __init__(self):
         super().__init__(

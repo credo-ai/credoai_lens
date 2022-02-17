@@ -1,6 +1,6 @@
 from credoai.reporting.credo_reporter import CredoReporter
 from credoai.reporting.plot_utils import (credo_classification_palette, 
-                                          format_metric, get_axis_size,
+                                          format_label, get_axis_size,
                                           DEFAULT_STYLE)
 from numpy import pi
 import matplotlib as mpl
@@ -280,7 +280,7 @@ class FairnessReporter(CredoReporter):
     def _plot_disaggregated_metrics(self, ax, size):
         # create df
         sensitive_feature = self.module.sensitive_features.name
-        df =  self.module.get_disaggregated_results(False) \
+        df =  self.module.get_disaggregated_performance(False) \
                     .reset_index() \
                     .melt(id_vars=sensitive_feature,
                           var_name='Performance Metric',
@@ -304,6 +304,6 @@ class FairnessReporter(CredoReporter):
         ax.set_xlabel(ax.get_xlabel(), fontweight='bold')
         ax.set_ylabel(ax.get_ylabel(), fontweight='bold')
         # format metric labels
-        ax.set_yticklabels([format_metric(label.get_text()) 
+        ax.set_yticklabels([format_label(label.get_text()) 
                             for label in ax.get_yticklabels()])
     
