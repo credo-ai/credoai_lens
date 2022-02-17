@@ -16,9 +16,7 @@ import pandas as pd
 class DatasetModule(CredoModule):
     """Dataset module for Credo AI. 
 
-    This module takes in features and labels and provides functionality to:
-    - perform proxy analysis of features
-    - generate fairness-oriented descriptive information 
+    This module takes in features and labels and provides functionality to perform dataset assessment
 
     Parameters
     ----------
@@ -28,6 +26,7 @@ class DatasetModule(CredoModule):
         The labels
     sensitive_features : (List, pandas.Series, numpy.ndarray)
         The sensitive features which should be used to create subgroups
+        This represents a single sensitive feature vector
     """    
     def __init__(self,
                  X,
@@ -38,6 +37,15 @@ class DatasetModule(CredoModule):
         self.sensitive_features = sensitive_features
     
     def run(self):
+        """Runs the assessment process
+
+        Returns
+        -------
+        dict, nested
+            Key: assessment category
+            Values: detailed results associated with each category
+                
+        """        
         pipe = self._make_pipe()
         cv_results = self._run_cv(pipe)
         group_differences = self._group_differences()
@@ -58,6 +66,17 @@ class DatasetModule(CredoModule):
             )
     
     def _group_differences(self):
+        """Calculates standardized mean differences
+        It is performed for all numeric features and all possible group pairs combinations present in the sensitive feature.
+
+        Returns
+        -------
+        dict, nested
+            Key: senstive feature groups pair
+            Values: dict
+                Key: numeric feature's name
+                Value: standardized mean differences
+        """        
         group_means = self.X.groupby(self.sensitive_features).mean()
         std = self.X.std(numeric_only=True)
         diffs = {}
@@ -68,15 +87,38 @@ class DatasetModule(CredoModule):
         return diffs
     
     def _run_cv(self, pipe):
+        """Determines cross-validated ROC-AUC score
+        A model is trained on the features to predict the sensitive attribute.
+        The score quantifies the performance of this prediction. 
+        A high score means the data collectively serves as a proxy.
+
+        Parameters
+        ----------
+        pipe : sklearn.pipeline
+            Pipeline of transforms
+
+        Returns
+        -------
+        ndarray
+            Cross-validation score
+        """        
         scorer = make_scorer(roc_auc_score, 
                              needs_proba=True,
                              multi_class='ovo')
-        results = cross_val_score(pipe, self.X, self.y,
+        results = cross_val_score(pipe, self.X, self.sensitive_features,
                              cv = StratifiedKFold(5),
-                             scoring = scorer)
+                             scoring = scorer,
+                             error_score='raise')
         return results
     
     def _make_pipe(self):
+        """Makes a pipeline
+
+        Returns
+        -------
+        sklearn.pipeline
+            Pipeline of scaler and model transforms
+        """
         model = get_gradient_boost_model()
         
         pipe = Pipeline(steps = 
@@ -85,9 +127,10 @@ class DatasetModule(CredoModule):
         return pipe
 
     
-    def _find_categorical_features(self, df, threshold=0.10):
+    def _find_categorical_features(self, df, threshold=0.05):
         """Identifies categorical features
         Logic: If type is not float and there are relatively few unique values for a feature, the feature is likely categorical.
+        The results are estimates and are not guaranteed to be correct by any means.
 
         Parameters
         ----------
@@ -95,41 +138,41 @@ class DatasetModule(CredoModule):
             A dataframe
 
         threshold : float
-            The unique-count over total-count threshold
+            The threshold (number of the unique values over the total number of values)
 
         Returns
         -------
         list
             Names of categorical features
         """        
-        cols = df.columns
-        float_cols = df.select_dtypes(include=[np.float]).columns
-        cat_cols = set(cols) - set(float_cols)
-
+        float_cols = list(df.select_dtypes(include=[np.float]).columns)
+        cat_cols = []
         for name, column in df.iteritems():
-            unique_count = column.unique().shape[0]
-            total_count = column.shape[0]
-            if unique_count / total_count < threshold:
-                cat_cols.add(name)
+            if name not in float_cols:
+                unique_count = column.unique().shape[0]
+                total_count = column.shape[0]
+                if unique_count / total_count < threshold:
+                    cat_cols.append(name)
 
-        return list(cat_cols)
+        return cat_cols
 
     def _calculate_mutual_information(self, categorical_features=None, normalize=True):
         """Calculates normalized mutual information between sensitive feature and other features
-        Mutual information is the "amount of information" obtained about the sensitive feature by observing the other feature.
-        It can therefore be used to proxy detection purposes.
+        Normalization is done via dividing by the mutual information between the sensitive feature and itself.
+        Mutual information is the "amount of information" obtained about the sensitive feature by observing another feature.
+        It is useful to proxy detection purposes.
 
         Parameters
         ----------
         categorical_features : [str], optional
             List of the categorical features (including the sensitive attribute) in the dataset, by default None
-            If not provided, all non-float-type features are considered as categorical features
+            If not provided, categorical features are estimated in an automated manner
 
         Returns
         -------
-        dict
-            Normalized mutual information between sensitive feature and features and their considered feature type (categorical/continuous)
-            Normalized mutual information between sensitive feature and itself is always 1, but is included to report its considered type
+        dict, nested
+            Key: feature name
+            Value: normalized mutual information and considered feature type (categorical/continuous)
         """
 
         # Create a pandas dataframe of features and sensitive feature
