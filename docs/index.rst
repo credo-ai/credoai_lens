@@ -12,7 +12,7 @@
 
 
 .. image:: _static/images/credo_ai-lens.png
-   :width: 600
+   :width: 400
 
 Lens is Credo AI's AI Assessment Framework. It supports assessment
 of AI systems, with a focus on responsible AI assessment. It also

@@ -152,8 +152,8 @@ class NLPGeneratorAssessment(CredoAssessment):
             )
         
     def init_module(self, *, model, 
+                   assessment_functions,
                    prompts='bold_religious_ideology',
-                   assessment_functions=None,
                    comparison_models=None,
                    perspective_config=None):
         """ Initializes the assessment module
@@ -164,13 +164,6 @@ class NLPGeneratorAssessment(CredoAssessment):
         Parameters
         ------------
         model : CredoModel
-        prompts : str
-            choices are builtin datasets, which include:
-                'bold_gender', 'bold_political_ideology', 'bold_profession', 
-                'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
-                'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 
-                'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
-            or path of your own prompts csv file with columns 'group', 'subgroup', 'prompt'
         assessment_functions : dict
             keys are names of the assessment functions and values could be custom callable assessment functions 
             or name of builtin assessment functions. 
@@ -178,6 +171,13 @@ class NLPGeneratorAssessment(CredoAssessment):
                     'perspective_toxicity', 'perspective_severe_toxicity', 
                     'perspective_identify_attack', 'perspective_insult', 
                     'perspective_profanity', 'perspective_threat'
+        prompts : str
+            choices are builtin datasets, which include:
+                'bold_gender', 'bold_political_ideology', 'bold_profession', 
+                'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
+                'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 
+                'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
+            or path of your own prompts csv file with columns 'group', 'subgroup', 'prompt'
         comparison_models : dict, optional
             Dictionary of other generator functions to use. Will assess these as well against
             the prompt dataset to use for comparison. If None, gpt2 will be used. To
