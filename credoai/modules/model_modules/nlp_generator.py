@@ -1,14 +1,15 @@
 """Requires installation of requirements-extras.txt"""
 
-from absl import logging
 import pandas as pd
 import os
 import seaborn as sns
 
+from absl import logging
 from ._nlp_constants import PROMPTS_PATHS, PERSPECTIVE_API_MODELS
 from credoai.data.utils import get_data_path
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError, ValidationError, wrap_list
+from functools import partial
 from googleapiclient import discovery
 from time import sleep
 
@@ -96,7 +97,7 @@ class NLPGeneratorAnalyzer(CredoModule):
                 "Results not created yet. Call 'run' with appropriate arguments before preparing results"
             )
 
-    def run(self, n_iterations=1, verbose=True):
+    def run(self, n_iterations=1):
         """Run the generations and assessments
 
         Parameters
@@ -104,50 +105,38 @@ class NLPGeneratorAnalyzer(CredoModule):
         n_iterations : int, optional
             Number of times to generate responses for a prompt, by default 1
             Increase if your generation model is stochastic for a higher confidence
-        verbose : bool, optional
-            Progress messages will be printed if True, by default True
 
         Returns
         -------
         self
         """
         df = self._get_prompts(self.prompts)
-        if verbose:
-            logging.info("Loaded the prompts dataset " + self.prompts)
+        logging.info("Loaded the prompts dataset " + self.prompts)
 
         # Perform prerun checks
         self._perform_prerun_checks()
-        if verbose:
-            logging.info(
-                "Performed prerun checks of generation and assessment functions"
-            )
+        logging.info(
+            "Performed prerun checks of generation and assessment functions"
+        )
 
         # Generate and record responses for the prompts with all the generation models n_iterations times
         dfruns_lst = []
         for gen_name, gen_fun in self.generation_functions.items():
-            for i in range(n_iterations):
-                temp = df.copy()
-                if verbose:
-                    logging.info(
-                        "Performing Generation Iteration "
-                        + str(i + 1)
-                        + " of "
-                        + str(n_iterations)
-                        + " with Generation Model "
-                        + gen_name
-                    )
-                temp["response"] = temp["prompt"].apply(
-                    lambda x: self._gen_fun_robust(x, gen_fun)
-                )
-                temp["run"] = i + 1
-                temp["generation_model"] = gen_name
-                dfruns_lst.append(temp)
+            gen_fun = partial(gen_fun, num_sequences=n_iterations)
+            logging.info(f"Generating {n_iterations} text responses per prompt with model: {gen_name}")
+            prompts = df['prompt']
+            responses = [self._gen_fun_robust(p, gen_fun) for p in prompts]   
+            temp = pd.concat([df, pd.DataFrame(responses)], axis=1) \
+                    .assign(prompt=prompts) \
+                    .melt(id_vars=df.columns, var_name='run', value_name='response') \
+                    .assign(generation_model = gen_name)
+
+            dfruns_lst.append(temp)
 
         dfruns = pd.concat(dfruns_lst)
 
         # Assess the responses for the input assessment attributes
-        if verbose:
-            logging.info("Performing assessment of the generated responses")
+        logging.info("Performing assessment of the generated responses")
 
         dfrunst = dfruns[
             dfruns["response"] != "nlp generator error"
@@ -155,6 +144,7 @@ class NLPGeneratorAnalyzer(CredoModule):
 
         dfrunst_assess_lst = []
         for assessment_attribute, assessment_fun in self.assessment_functions.items():
+            logging.info(f"Performing {assessment_attribute} assessment")
             temp = dfrunst.copy()
             temp["assessment_attribute"] = assessment_attribute
             if assessment_fun in list(PERSPECTIVE_API_MODELS):
@@ -168,7 +158,7 @@ class NLPGeneratorAnalyzer(CredoModule):
 
             dfrunst_assess_lst.append(temp)
 
-        dfrunst_assess = pd.concat(dfrunst_assess_lst)
+        dfrunst_assess = pd.concat(dfrunst_assess_lst).reset_index(drop=True)
 
         self.results = dfrunst_assess
 
@@ -239,14 +229,12 @@ class NLPGeneratorAnalyzer(CredoModule):
         str
             response text
         """
-        try:
-            response = gen_fun(prompt)
-            if isinstance(response, str) and len(response) > 1:  # invalid response
-                return response
-            else:
-                return "nlp generator error"
-        except:  # no response
-            return "nlp generator error"
+        responses = gen_fun(prompt)
+        # replace empty responses
+        error_text = "nlp generator error"
+        responses = [(r or error_text) if isinstance(r, str) and len(r) > 1 else error_text
+                    for r in responses]
+        return responses
 
     def _get_prompts(self, prompts):
         """Load the prompts dataset from a csv file as a dataframe
@@ -299,7 +287,7 @@ class NLPGeneratorAnalyzer(CredoModule):
                 + prompts
             )
 
-        return df
+        return df.reset_index(drop=True)
 
     def _perform_prerun_checks(self):
         """Checks the provided configurations and the generation and assessment functions
@@ -320,7 +308,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         test_prompt = "To be, or not to be, that is"
         for gen_name, gen_fun in self.generation_functions.items():
             try:
-                response = gen_fun(test_prompt)
+                response = gen_fun(test_prompt, num_sequences=1)[0]
                 if not isinstance(response, str):
                     raise ValidationError(
                         gen_name
