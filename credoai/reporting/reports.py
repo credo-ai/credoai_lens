@@ -89,7 +89,7 @@ class MainReport(NotebookReport):
         names = lens.get_artifact_names()
         toc = self.get_toc()
         boiler_plate=f"""\
-        # {self.name}
+        # <span style="color:#3b07b4;font-weight:bold">{self.name}</span>
         
         **Table of Contents**\n
 """\
@@ -103,7 +103,27 @@ class MainReport(NotebookReport):
         * Model: {names['model']}
         * Dataset: {names['dataset']}
         """
-        cells = [(boiler_plate, 'markdown')]
+        toggle_code = """\
+        # code to toggle code on and off
+        from IPython.display import HTML
+
+        HTML('''<script>
+        code_show=true; 
+        function code_toggle() {
+        if (code_show){
+        $('div.input').hide();
+        } else {
+        $('div.input').show();
+        }
+        code_show = !code_show
+        } 
+        $( document ).ready(code_toggle);
+        </script>
+        <form action="javascript:code_toggle()"><input type="submit" value="Click here to toggle on/off the raw code."></form>''')
+        """
+
+        cells = [(boiler_plate, 'markdown'),
+                 (toggle_code, 'code')]
         self.add_cells(cells)
     
     def get_toc(self):
@@ -124,7 +144,7 @@ class MainReport(NotebookReport):
             
             We have executive stuff here
             """, 'markdown'),
-            ("""# Technical Reports""", 'markdown')
+            ("""# <span style="color:#3b07b4">Technical Reports</span>""", 'markdown')
         ]
         self.add_cells(cells)
         self.run_notebook()

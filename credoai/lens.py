@@ -516,7 +516,7 @@ class Lens:
                         prepared_results, to_model=True)
         return assessment_results
 
-    def create_report_notebooks(self, report_name, report_directory=None):
+    def create_report_notebooks(self, report_name, export=False, report_directory=None):
         reporters = {}
         for name, assessment in self.assessments.items():
             logging.info(f"Reporter exporting notebook for assessment-{name}")
@@ -526,6 +526,13 @@ class Lens:
                 reporters[name] = reporter
         final_report = MainReport(report_name, reporters.values())
         final_report.create_report(self)
+        # exporting
+        names = self.get_artifact_names()
+        report_name = f"AssessmentReport_assessment-{name}_model-{names['model']}_data-{names['dataset']}"
+        if report_directory:
+            final_report.write_notebook(path.join(report_directory, 'main_report.ipynb'))
+        if export:
+            final_report.export_notebook(path.join(report_directory, 'main_report.html'))
         return reporters, final_report
 
     def create_reports(self, export=False,

@@ -29,6 +29,8 @@ class CredoReporter(ABC):
     def _get_description(self):
         assessment_description = self.assessment.get_description()
         description = f"""\
+        <hr style="border:2px solid #3b07b4"> </hr>
+
         ## {self.assessment.name} Report
         
         #### Description
@@ -43,7 +45,7 @@ class CredoReporter(ABC):
 
     def create_notebook(self):
         report = AssessmentReport({'reporter': self})
-        results_table = [("#### Result Tables", "markdown"), 
+        results_table = [("### Result Tables", "markdown"), 
                         ("reporter.display_results()", 'code')]
         cells = [(self._get_description(), 'markdown')] \
             + self._create_report_cells() \
