@@ -532,7 +532,7 @@ class Lens:
         if report_directory:
             final_report.write_notebook(path.join(report_directory, 'main_report.ipynb'))
         if export:
-            final_report.export_notebook(path.join(report_directory, 'main_report.html'))
+            final_report.export_notebook(self.gov.use_case_id, self.gov.model_id)
         return reporters, final_report
 
     def create_reports(self, export=False,

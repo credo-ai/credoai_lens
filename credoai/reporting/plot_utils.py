@@ -6,7 +6,7 @@ import textwrap
 
 DEFAULT_COLOR = '#4937c0'
 
-def get_style(rc=None, figsize=6, figure_ratio=1):
+def get_style(rc=None, figsize=3, figure_ratio=1):
     figsize = [figsize, figsize*figure_ratio]
     style = {'figure.figsize': figsize,
              'figure.dpi': 200}
