@@ -520,10 +520,10 @@ class Lens:
                         prepared_results, to_model=True)
         return assessment_results
 
-    def create_report_notebooks(self, report_name, export=False):
+    def create_reports(self, report_name, export=False):
         """Creates notebook reports
 
-        This method creates jupyter notebook reports for every assessment that
+        Creates jupyter notebook reports for every assessment that
         has reporting functionality defined. It then concatenates the reports into
         one final report. The reports are then able to be saved to file (if report_directory
         is defined), or exported to Credo AI's governance platform (if export=True).
@@ -551,11 +551,13 @@ class Lens:
         """        
         reporters = {}
         for name, assessment in self.assessments.items():
-            logging.info(f"Reporter exporting notebook for assessment-{name}")
             reporter = assessment.get_reporter()
             if reporter is not None:
+                logging.info(f"Reporter creating notebook for assessment-{name}")
                 reporter.create_notebook()
                 reporters[name] = reporter
+            else:
+                logging.info(f"No reporter found for assessment-{name}")
         final_report = MainReport(report_name, reporters.values())
         final_report.create_report(self)
         # exporting
@@ -574,69 +576,11 @@ class Lens:
                                 "Ensure use_case_id is defined in CredoGovernance")
         return reporters, final_report
 
-    def create_reports(self, export=False,
-                       report_directory=None,
-                       report_kwargs=None):
-        """Create reports for assessments that have reports
-
-        Parameters
-        ----------
-        export : bool or str, optional
-            If a boolean, and true, export to Credo AI Governance Platform.
-            If a string, reports to output_directory indicated by the string.
-            If False, do not export, by default False
-        report_kwargs : dict, optional
-            key word arguments passed to each assessments `create_report`
-            Each key must correspond to  an assessment name (CredoAssessment.name). 
-            The assessments loaded by an instance of Lens can be accessed by calling
-            `get_assessments`. 
-
-        Returns
-        -------
-        reports
-        """
-        report_kwargs = report_kwargs or {}
-        reports = {}
-        for name, assessment in self.assessments.items():
-            logging.info(f"Creating report for assessment-{name}")
-            kwargs = report_kwargs.get(name, {})
-            reports[name] = assessment.create_report(**kwargs)
-        if export:
-            logging.info(f"** Exporting report for assessment-{name}")
-            self._export_reports(export)
-        return reports
-
     def get_assessments(self):
         return self.assessments
 
     def get_governance(self):
         return self.gov
-
-    def _export_reports(self, export=False):
-        tmpdir = tempfile.mkdtemp()
-        report_records = []
-        for name, assessment in self.assessments.items():
-            report = assessment.report
-            # get filename
-            meta = self._gather_meta(name)
-            names = self.get_artifact_names()
-            report_name = f"AssessmentReport_assessment-{name}_model-{names['model']}_data-{names['dataset']}"
-            filename = path.join(tmpdir, report_name)
-            # create report recodr
-            report.export_report(filename)
-            if export is True:
-                report_record = ci.Figure(
-                    name=f"{report_name}.pdf",
-                    figure=f"{filename}.pdf",
-                    **meta)
-                self._export_report_to_credo(report_record)
-        if type(export) == str:
-            # move to final location
-            allfiles = listdir(tmpdir)
-            for f in allfiles:
-                shutil.move(path.join(tmpdir, f),
-                            path.join(export, f))
-        shutil.rmtree(tmpdir)
 
     def _export_results_to_credo(self, results, to_model=True):
         metric_records = ci.record_metrics(results)
@@ -654,10 +598,6 @@ class Lens:
                         f"model-{names['model']}_data-{names['dataset']}.json")
         output_file = path.join(output_directory, results_file)
         ci.export_to_file(metric_records, output_file)
-
-    def _export_report_to_credo(self, report_record, to_model=True):
-        destination_id = self._get_credo_destination(to_model)
-        ci.export_figure_to_credo(report_record, destination_id)
 
     def _gather_meta(self, assessment_name):
         names = self.get_artifact_names()

@@ -116,18 +116,6 @@ class CredoAssessment(ABC):
         Does nothing if not overwritten
         """
         pass   
-        
-    def create_report(self, filename=None):
-        """Creates a report
-
-        Does nothing if not overwritten
-
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        """
-        pass
 
     def _set_description_from_doc(self):
         docs = self.__doc__

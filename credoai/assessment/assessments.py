@@ -87,25 +87,6 @@ class FairnessBaseAssessment(CredoAssessment):
             y_prob)
         self.initialized_module = module
     
-    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
-        """Creates a fairness report 
-        
-        Currently only supports binary classification models
-
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        include_fairness : bool, optional
-            Whether to include fairness plots, by default True
-        include_disaggregation : bool, optional
-            Whether to include performance plots broken down by
-            subgroup. Overall performance are always reported, by default True
-        """        
-        if type_of_target(self.initialized_module.y_true) == 'binary':
-            self.report = FairnessReporter(self)
-            return self.report.create_report(filename, include_fairness, include_disaggregation)
-    
     def get_reporter(self):
         if type_of_target(self.initialized_module.y_true) == 'binary':
             return FairnessReporter(self)
@@ -218,17 +199,6 @@ class NLPGeneratorAssessment(CredoAssessment):
             perspective_config)
 
         self.initialized_module = module
-        
-    def create_report(self, filename=None):
-        """Creates a report for nlp generator
-
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        """        
-        self.report = NLPGeneratorAnalyzerReporter(self)
-        return self.report.create_report(filename)
     
     def get_reporter(self):
         return NLPGeneratorAnalyzerReporter(self)
@@ -262,17 +232,6 @@ class DatasetAssessment(CredoAssessment):
             data.X, 
             data.y,
             data.sensitive_features)
-
-    def create_report(self, filename=None):
-        """Creates a report for dataset assessment
-
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        """        
-        self.report = DatasetModuleReporter(self)
-        return self.report.create_report(filename)
 
     def get_reporter(self):
         return DatasetModuleReporter(self)
