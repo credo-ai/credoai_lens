@@ -190,7 +190,7 @@ def post_use_case_report(html, use_case_id, model_id=None, risk="fairness"):
         "type": "fairness",
         '$type': 'use_case_assessments'
     }
-    data = serialize(data)
+    data = json.dumps(serialize(data))
     end_point = get_end_point(f"use_cases/{use_case_id}/assessments")
     return submit_request('post', end_point, data=data, headers={"content-type": "application/vnd.api+json"})
 
@@ -276,7 +276,7 @@ def register_model_to_use_case(use_case_id, model_id):
     data = serialize({'model_ids': model_ids, 
                       'id': 'resource-id',
                       '$type': 'use_case_id_scopes'})
-    end_point = get_end_point(f"use_case_ids/{use_case_id}/scopes/draft")
+    end_point = get_end_point(f"use_cases/{use_case_id}/scopes/draft")
     submit_request('patch', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
     
 

@@ -103,11 +103,15 @@ class CredoGovernance:
         return {"FairnessBase": spec}
 
     def get_info(self):
-        """Returns Credo AI Governance IDs"""
+        """Return Credo AI Governance IDs"""
         to_return = self.__dict__.copy()
         del to_return['assessment_spec']
         del to_return['warning_level']
         return to_return
+
+    def get_defined_ids(self):
+        """Return IDS that have been defined"""
+        return [k for k, v in self.get_info().items() if v]
 
     def set_governance_info_by_name(self,
                                     *,
@@ -516,7 +520,35 @@ class Lens:
                         prepared_results, to_model=True)
         return assessment_results
 
-    def create_report_notebooks(self, report_name, export=False, report_directory=None):
+    def create_report_notebooks(self, report_name, export=False):
+        """Creates notebook reports
+
+        This method creates jupyter notebook reports for every assessment that
+        has reporting functionality defined. It then concatenates the reports into
+        one final report. The reports are then able to be saved to file (if report_directory
+        is defined), or exported to Credo AI's governance platform (if export=True).
+
+        Note: to export to Credo AI's Governance Platform, CredoGovernance must be passed
+        to Lens with a defined "use_case_id". "model_id" is also required, but if no "model_id" 
+        is explicitly provided, a model will be registered and used.
+
+        Parameters
+        ----------
+        report_name : str
+            Title of the final report
+        export : bool or str, optional
+            If a boolean, and true, export to Credo AI Governance Platform.
+            If a string, save notebook to the output_directory indicated by the string.
+            If False, do not export, by default False
+
+        Returns
+        -------
+        reporters : dict
+            dictionary of reporters (credoai.reporting.credo_reporter). Each reporter is
+            responsible for creating visualizations and reports for a particular assessment
+        final_report : credoai.reports.MainReport
+            The final report. This object is responsible for managing notebook report creation.
+        """        
         reporters = {}
         for name, assessment in self.assessments.items():
             logging.info(f"Reporter exporting notebook for assessment-{name}")
@@ -528,11 +560,18 @@ class Lens:
         final_report.create_report(self)
         # exporting
         names = self.get_artifact_names()
-        report_name = f"AssessmentReport_assessment-{name}_model-{names['model']}_data-{names['dataset']}"
-        if report_directory:
-            final_report.write_notebook(path.join(report_directory, 'main_report.ipynb'))
+        name_for_save = f"{report_name}_model-{names['model']}_data-{names['dataset']}.ipynb"
+        if isinstance(export, str):
+            final_report.write_notebook(path.join(export, name_for_save))
         if export:
-            final_report.export_notebook(self.gov.use_case_id, self.gov.model_id)
+            model_id = self._get_credo_destination()
+            defined_ids = self.gov.get_defined_ids()
+            if len({'model_id', 'use_case_id'}.intersection(defined_ids)) == 2:
+                final_report.export_notebook(self.gov.use_case_id, self.gov.model_id)
+                logging.info(f"Exporting complete report to Credo AI's Governance Platform")
+            else:
+                logging.warning("Couldn't upload report to Credo AI's Governance Platform. "\
+                                "Ensure use_case_id is defined in CredoGovernance")
         return reporters, final_report
 
     def create_reports(self, export=False,
