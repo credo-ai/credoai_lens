@@ -577,7 +577,7 @@ class Lens:
         name_for_save = f"{report_name}_model-{names['model']}_data-{names['dataset']}.ipynb"
         if isinstance(export, str):
             final_report.write_notebook(path.join(export, name_for_save))
-        if export:
+        elif export:
             model_id = self._get_credo_destination()
             defined_ids = self.gov.get_defined_ids()
             if len({'model_id', 'use_case_id'}.intersection(defined_ids)) == 2:
