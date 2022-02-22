@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from credoai.utils.common import ValidationError
 from credoai.reporting.plot_utils import get_table_style, format_label
 from credoai.reporting.reports import AssessmentReport
-from IPython.display import display
+from IPython.core.display import display, HTML
 import os
 import pandas as pd
 import matplotlib.backends.backend_pdf
@@ -33,16 +33,14 @@ class CredoReporter(ABC):
 
     def display_results_tables(self):
         results = self.assessment.get_results()
-        styles = get_table_style()
         for key, val in results.items():
+            title = format_label(key.upper(), wrap_length=30)
+            display(HTML(f'<h3><span style="font-size:1em; text-align: left">{title}</span></h3>'))
             try:
-                title = format_label(key.upper(), wrap_length=30)
                 val = pd.DataFrame(val)
-                to_display=val.style.set_caption(title)\
-                                .set_table_styles(styles)
-                display(to_display)
+                display(val)
             except:
-                print(f'{key}: {val}')
+                print(val)
             print('\n')
 
     def export_report(self, filename):
