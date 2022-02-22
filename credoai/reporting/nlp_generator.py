@@ -15,7 +15,7 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
         self.num_assessment_funs = len(self.module.assessment_functions)
         self.size = size
 
-    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
+    def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
         """Creates a fairness report for binary classification model
 
         Parameters
@@ -35,6 +35,8 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
             self.figs.append(self._plot_disaggregated_assessment())
         #self.figs.append(self._plot_hists())
 
+        # display
+        plt.show()
         # Save to pdf if requested
         if filename:
             self.export_report(filename)
@@ -139,7 +141,7 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
         results = self.module.get_results()
         palette = plot_utils.credo_converging_palette(self.num_gen_models)
         n_plots = self.num_assessment_funs
-        with plot_utils.get_style(figsize=self.size, figure_ratio = n_plots/2):
+        with plot_utils.get_style(figsize=self.size, n_rows=n_plots):
             f, axes = plt.subplots(n_plots, 1)
         to_loop = zip(axes.flat, results.groupby('assessment_attribute'))
         for i, (ax, (assessment_attribute, sub)) in enumerate(to_loop):

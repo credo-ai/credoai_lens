@@ -6,7 +6,7 @@ from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
 from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
-    IntegrationError, ValidationError, raise_or_warn)
+    IntegrationError, NotRunError, ValidationError, raise_or_warn)
 from credoai.utils.credo_api_utils import (get_dataset_by_name, get_model_by_name,
                                            get_model_project_by_name, patch_metrics)
 from credoai import __version__
@@ -465,6 +465,7 @@ class Lens:
         self.data = data
         self.spec = {}
         self.warning_level = warning_level
+        self.run = False
 
         if assessments == 'auto':
             assessments = self._select_assessments()
@@ -518,9 +519,10 @@ class Lens:
                 else:
                     self._export_results_to_credo(
                         prepared_results, to_model=True)
+        self.run = True
         return assessment_results
 
-    def create_reports(self, report_name, export=False):
+    def create_reports(self, report_name, export=False, display_results=False):
         """Creates notebook reports
 
         Creates jupyter notebook reports for every assessment that
@@ -540,6 +542,9 @@ class Lens:
             If a boolean, and true, export to Credo AI Governance Platform.
             If a string, save notebook to the output_directory indicated by the string.
             If False, do not export, by default False
+        display_results : bool
+            If True, display results. Calls credo_reporter.plot_results and 
+            credo_reporter.display_table_results
 
         Returns
         -------
@@ -548,7 +553,11 @@ class Lens:
             responsible for creating visualizations and reports for a particular assessment
         final_report : credoai.reports.MainReport
             The final report. This object is responsible for managing notebook report creation.
-        """        
+        """
+        if self.run == False:
+            raise NotRunError(
+                "Results not created yet. Call 'run_assessments' first"
+            )
         reporters = {}
         for name, assessment in self.assessments.items():
             reporter = assessment.get_reporter()
@@ -556,6 +565,9 @@ class Lens:
                 logging.info(f"Reporter creating notebook for assessment-{name}")
                 reporter.create_notebook()
                 reporters[name] = reporter
+                if display_results:
+                    reporter.display_results_tables()
+                    reporter.plot_results()
             else:
                 logging.info(f"No reporter found for assessment-{name}")
         final_report = MainReport(report_name, reporters.values())

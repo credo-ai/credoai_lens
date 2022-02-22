@@ -1,5 +1,6 @@
 from credoai.reporting.credo_reporter import CredoReporter
-from credoai.reporting.plot_utils import (credo_classification_palette, 
+from credoai.reporting.plot_utils import (get_style,
+                                          credo_classification_palette, 
                                           format_label, get_axis_size,
                                           DEFAULT_COLOR)
 from numpy import pi
@@ -10,12 +11,12 @@ import seaborn as sns
 import sklearn.metrics as sk_metrics
 
 class FairnessReporter(CredoReporter):
-    def __init__(self, assessment, infographic_shape=(3,5), size=5):
+    def __init__(self, assessment, infographic_shape=(3,5), size=3):
         super().__init__(assessment)
         self.size = size
         self.infographic_shape = infographic_shape
     
-    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
+    def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
         """Creates a fairness report for binary classification model
 
         Parameters
@@ -42,6 +43,9 @@ class FairnessReporter(CredoReporter):
         if include_disaggregation:
             for group, sub_df in df.groupby('sensitive'):
                 self.figs.append(self.plot_performance(sub_df['true'], sub_df['pred'], group))
+
+        # display
+        plt.show()
         # save
         if filename is not None:
             self.export_report(filename)
@@ -92,15 +96,14 @@ class FairnessReporter(CredoReporter):
         if self.module.metric_frames != {}:
             plot_disaggregated = True
         n_plots = 1+plot_disaggregated
-        with sns.plotting_context('talk', font_scale=self.size/7):
-            f, ax = plt.subplots(1, n_plots, figsize=(self.size*n_plots, 
-                                                       self.size))
-        plt.subplots_adjust(wspace=0.5)
-        axes = f.get_axes()
-        # plot fairness
-        self._plot_fairness_metrics(axes[0], self.size)
-        if plot_disaggregated:
-            self._plot_disaggregated_metrics(axes[1], self.size)
+        with get_style(figsize=self.size*.6, n_cols=n_plots):
+            f, axes = plt.subplots(1, n_plots)
+            plt.subplots_adjust(wspace=0.7)
+            axes = axes.flat
+            # plot fairness
+            self._plot_fairness_metrics(axes[0])
+            if plot_disaggregated:
+                self._plot_disaggregated_metrics(axes[1])
         return f
     
     def plot_performance(self, y_true, y_pred, label, **grid_kwargs):
@@ -237,9 +240,9 @@ class FairnessReporter(CredoReporter):
         ax.set_yticklabels(['Negative', 'Positive'], va='center', rotation = 90, position=(0,0.28))
         ax.tick_params(labelsize=size*5, length=0, pad=size/2)
         # labels
-        ax.text(-.15, .5, 'Ground Truth', fontsize=size*5,
+        ax.text(-.2, .5, 'Ground Truth', fontsize=size*5,
                 va='center', rotation = 90, transform=ax.transAxes, fontweight='bold')
-        ax.text(.5, -.15, 'Prediction', fontsize=size*5,
+        ax.text(.5, -.2, 'Prediction', fontsize=size*5,
                 ha='center', transform=ax.transAxes, fontweight='bold')
 
         # TPR, FPR, labels
@@ -259,7 +262,7 @@ class FairnessReporter(CredoReporter):
             ax.text(x, y, s, transform = ax.transAxes, ha='center', **kwargs)
         return ax
     
-    def _plot_fairness_metrics(self, ax, size):
+    def _plot_fairness_metrics(self, ax):
         # create df
         df = self.module.get_fairness_results()
         # add parity to names
@@ -270,14 +273,14 @@ class FairnessReporter(CredoReporter):
         df.name = 'Value'
         # plot
         sns.barplot(data=df.reset_index(), 
-                     y='Fairness Metric', 
-                     x='Value',
-                     edgecolor='w',
-                     color = DEFAULT_COLOR,
-                     ax=ax)
+                    y='Fairness Metric', 
+                    x='Value',
+                    edgecolor='w',
+                    color = DEFAULT_COLOR,
+                    ax=ax)
         self._style_barplot(ax)
         
-    def _plot_disaggregated_metrics(self, ax, size):
+    def _plot_disaggregated_metrics(self, ax):
         # create df
         sensitive_feature = self.module.sensitive_features.name
         df =  self.module.get_disaggregated_performance(False) \
@@ -290,12 +293,12 @@ class FairnessReporter(CredoReporter):
         palette = sns.color_palette('Purples', num_cats)
         palette[-1] = [.4,.4,.4]
         sns.barplot(data=df, 
-                     y='Performance Metric', 
-                     x='Value', 
-                     hue=sensitive_feature,
-                     palette=palette,
-                     edgecolor='w',
-                     ax=ax)
+                    y='Performance Metric', 
+                    x='Value', 
+                    hue=sensitive_feature,
+                    palette=palette,
+                    edgecolor='w',
+                    ax=ax)
         self._style_barplot(ax)
         plt.legend(bbox_to_anchor=(1.01, 1.02))
         

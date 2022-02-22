@@ -6,12 +6,63 @@ import textwrap
 
 DEFAULT_COLOR = '#4937c0'
 
-def get_style(rc=None, figsize=3, figure_ratio=1):
-    figsize = [figsize, figsize*figure_ratio]
-    style = {'figure.figsize': figsize,
-             'figure.dpi': 200}
+from credoai.reporting.plot_utils import *
+def get_style(rc=None, figsize=3, figure_ratio=1, n_cols=1, n_rows=1):
+    """Sets default styling for plots
+
+    Figsize is the size of one plot. Fontsizes are also keyed to the fig size.
+    If you create a figure with multiple subplots, change the n_cols/n_rows
+    
+    See: https://matplotlib.org/stable/tutorials/introductory/customizing.html
+    
+    If seaborn is used note that you may have to pass the style to sns.axes_style.
+    Example:
+    
+    with get_style() as style:
+        f, ax = plt.subplots()
+        with sns.axes_style(rc=style):
+            sns.barplot...
+
+    Parameters
+    ----------
+    rc : dict
+        Dictionary of rc params to override defaults
+    figsize : int
+        dimension of a single subplot in figure
+    figure_ratio : int
+        ratio of height/width. >1 will lead to a tall plot. <1 will lead to a wide plot
+    n_cols : int
+        Set to the number of columns of subplot
+    n_rows : int
+        Set to the number of rows of subplot
+    
+    """
+    fig_dims = [figsize*n_cols, figsize*n_rows*figure_ratio]
+    # fontsizes defined relative to font.size
+    # xx-small, x-small, small, medium, large, x-large, xx-large, larger, or smaller
+    style = {'figure.figsize': fig_dims,
+             'figure.dpi': 200,
+             'font.size': figsize*3,
+             'lines.linewidth': figsize/3,
+             'axes.titlesize': 'large',
+             'axes.titlepad': figsize*2,
+             'axes.labelsize': 'medium',
+             'axes.labelpad': figsize*1.5,
+             'xtick.labelsize': 'small',
+             'ytick.labelsize': 'small',
+             'legend.title_fontsize': 'x-small',
+             'legend.fontsize': 'xx-small'}
+    # adjust the tick params
+    tick_pad = figsize
+    tick_size = {'major': figsize*2, 'minor': figsize}
+    tick_width = {'major': figsize/3, 'minor': figsize/4}
+    for axis in ['ytick', 'xtick']:
+        for kind in ['major', 'minor']:
+            style[f'{axis}.{kind}.size'] = tick_size[kind]
+            style[f'{axis}.{kind}.width'] = tick_width[kind]
+            style[f'{axis}.{kind}.pad'] = tick_pad
     if rc:
-            style.update(rc)
+        style.update(rc)
     return mpl.rc_context(style)
 
 def credo_classification_palette():
