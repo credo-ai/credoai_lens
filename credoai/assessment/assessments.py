@@ -237,15 +237,16 @@ class DatasetAssessment(CredoAssessment):
             'Dataset', 
             mod.DatasetModule,
             AssessmentRequirements(
-                data_requirements=['X', 'y', 'sensitive_features']
+                data_requirements=['data', 'sensitive_feature_key', 'label_key', ]
             )
         )
 
     def init_module(self, *, data):
         self.initialized_module = self.module(
-            data.X, 
-            data.y,
-            data.sensitive_features)
+            data.data, 
+            data.sensitive_feature_key,
+            data.label_key,
+            data.categorical_features_keys)
 
     def create_report(self, filename=None):
         """Creates a report for dataset assessment

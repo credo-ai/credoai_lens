@@ -10,31 +10,35 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score, make_scorer
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
+from typing import List, Optional
 
 import pandas as pd
 
 class DatasetModule(CredoModule):
     """Dataset module for Credo AI. 
-
     This module takes in features and labels and provides functionality to perform dataset assessment
 
     Parameters
     ----------
-    X : (List, pandas.Series, numpy.ndarray)
-        The features
-    y : (List, pandas.Series, numpy.ndarray)
-        The labels
-    sensitive_features : (List, pandas.Series, numpy.ndarray)
-        The sensitive features which should be used to create subgroups
-        This represents a single sensitive feature vector
+    data : pd.DataFrame
+        Dataset dataframe that includes all features and labels
+    sensitive_feature_key : str
+        Name of the sensitive feature column, like 'race' or 'gender'
+    label_key : str
+        Name of the label column
+    categorical_features_keys : list[str], optional
+        Names of the categorical features (including the sensitive feature, if applicable)
     """    
     def __init__(self,
-                 X,
-                 y,
-                 sensitive_features):                
-        self.X = pd.DataFrame(X)
-        self.y = y
-        self.sensitive_features = sensitive_features
+                data: pd.DataFrame,
+                sensitive_feature_key: str,
+                label_key: str,
+                categorical_features_keys: Optional[List[str]]=None): 
+
+        self.data = data
+        self.sensitive_feature_key = sensitive_feature_key
+        self.label_key = label_key
+        self.categorical_features_keys = categorical_features_keys
     
     def run(self):
         """Runs the assessment process
@@ -74,11 +78,14 @@ class DatasetModule(CredoModule):
         dict, nested
             Key: senstive feature groups pair
             Values: dict
-                Key: numeric feature's name
-                Value: standardized mean differences
-        """        
-        group_means = self.X.groupby(self.sensitive_features).mean()
-        std = self.X.std(numeric_only=True)
+                Key: name of feature
+                Value: standardized mean difference
+        """
+        X = self.data.drop(columns=[self.sensitive_feature_key, self.label_key])
+        sensitive_features = self.data[self.sensitive_feature_key]
+
+        group_means = X.groupby(sensitive_features).mean()
+        std = X.std(numeric_only=True)
         diffs = {}
         for group1, group2 in combinations(group_means.index, 2):
             diff = (group_means.loc[group1]-group_means.loc[group2])/std
@@ -101,11 +108,13 @@ class DatasetModule(CredoModule):
         -------
         ndarray
             Cross-validation score
-        """        
+        """
+        X = self.data.drop(columns=[self.sensitive_feature_key, self.label_key])
+        sensitive_features = self.data[self.sensitive_feature_key]     
         scorer = make_scorer(roc_auc_score, 
                              needs_proba=True,
                              multi_class='ovo')
-        results = cross_val_score(pipe, self.X, self.sensitive_features,
+        results = cross_val_score(pipe, X, sensitive_features,
                              cv = StratifiedKFold(5),
                              scoring = scorer,
                              error_score='raise')
@@ -127,7 +136,7 @@ class DatasetModule(CredoModule):
         return pipe
 
     
-    def _find_categorical_features(self, df, threshold=0.05):
+    def _find_categorical_features(self, threshold=0.05):
         """Identifies categorical features
         Logic: If type is not float and there are relatively few unique values for a feature, the feature is likely categorical.
         The results are estimates and are not guaranteed to be correct by any means.
@@ -144,10 +153,11 @@ class DatasetModule(CredoModule):
         -------
         list
             Names of categorical features
-        """        
-        float_cols = list(df.select_dtypes(include=[np.float]).columns)
+        """
+        X = self.data.drop(columns=[self.label_key])
+        float_cols = list(X.select_dtypes(include=[np.float]).columns)
         cat_cols = []
-        for name, column in df.iteritems():
+        for name, column in X.iteritems():
             if name not in float_cols:
                 unique_count = column.unique().shape[0]
                 total_count = column.shape[0]
@@ -156,38 +166,31 @@ class DatasetModule(CredoModule):
 
         return cat_cols
 
-    def _calculate_mutual_information(self, categorical_features=None, normalize=True):
+    def _calculate_mutual_information(self, normalize=True):
         """Calculates normalized mutual information between sensitive feature and other features
-        Normalization is done via dividing by the mutual information between the sensitive feature and itself.
         Mutual information is the "amount of information" obtained about the sensitive feature by observing another feature.
-        It is useful to proxy detection purposes.
+        Mutual information is useful to proxy detection purposes.
 
         Parameters
         ----------
-        categorical_features : [str], optional
-            List of the categorical features (including the sensitive attribute) in the dataset, by default None
-            If not provided, categorical features are estimated in an automated manner
+        normalize : bool, optional
+            If True, calculated mutual information values are normalized
+            Normalization is done via dividing by the mutual information between the sensitive feature and itself.
 
         Returns
         -------
         dict, nested
             Key: feature name
-            Value: normalized mutual information and considered feature type (categorical/continuous)
+            Value: mutual information and considered feature type (categorical/continuous)
         """
-
-        # Create a pandas dataframe of features and sensitive feature
-        if isinstance(self.sensitive_features, pd.Series):
-            df = pd.concat([self.X, self.sensitive_features], axis=1)
-            sensitive_feature_name = self.sensitive_features.name
-        else:
-            df = self.X.copy()
-            df["sensitive_feature"] = self.sensitive_features
-            sensitive_feature_name = "sensitive_feature"
-
+        df = self.data.copy().drop(columns=[self.label_key])
+        sensitive_feature_name = self.sensitive_feature_key
         # Estimate categorical features, if not provided
-        if not categorical_features:
-            categorical_features = self._find_categorical_features(df)
-
+        if self.categorical_features_keys:
+            categorical_features = self.categorical_features_keys
+        else:
+            categorical_features = self._find_categorical_features()
+        
         # Encode categorical features
         for col in categorical_features:
             df[col] = df[col].astype("category").cat.codes
@@ -238,19 +241,17 @@ class DatasetModule(CredoModule):
         dict
             'sample_balance': distribution of samples across groups
             'label_balance': distribution of labels across groups
-            'metrics': maximum statistical parity and maximum disparate impact between groups for all preferred label value possibilities 
+            'metrics': demographic parity difference and ratio between groups for all preferred label value possibilities 
         """
-        df, sensitive_feature_name, label_name = concat_features_label_to_dataframe(
-            X=self.X, y=self.y, sensitive_features=self.sensitive_features
-            )
+        df = self.data.copy()
         results = {}
 
         # Distribution of samples across groups
         sample_balance = (
-            df.groupby([sensitive_feature_name])
+            df.groupby([self.sensitive_feature_key])
             .agg(
-                count=(label_name, len),
-                percentage=(label_name, lambda x: 100.0 * len(x) / len(df)),
+                count=(self.label_key, len),
+                percentage=(self.label_key, lambda x: 100.0 * len(x) / len(df)),
             )
             .reset_index()
             .to_dict(orient="records")
@@ -259,7 +260,7 @@ class DatasetModule(CredoModule):
 
         # Distribution of samples across groups
         label_balance = (
-            df.groupby([sensitive_feature_name, label_name])
+            df.groupby([self.sensitive_feature_key, self.label_key])
             .size()
             .unstack(fill_value=0)
             .stack()
@@ -269,16 +270,16 @@ class DatasetModule(CredoModule):
         results["label_balance"] = label_balance
 
         # Fairness metrics
-        r = df.groupby([sensitive_feature_name, label_name]).agg({label_name: 'count'})
+        r = df.groupby([self.sensitive_feature_key, self.label_key]).agg({self.label_key: 'count'})
         r = r.groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))
-        r.rename({label_name:'ratio'}, inplace=True, axis=1)
+        r.rename({self.label_key:'ratio'}, inplace=True, axis=1)
         r.reset_index(inplace=True)
 
         # Compute the maximum difference between any two pairs of groups
-        demographic_parity_difference = r.groupby(label_name)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
+        demographic_parity_difference = r.groupby(self.label_key)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
 
         # Compute the maximum ratio between any two pairs of groups
-        demographic_parity_ratio = r.groupby(label_name)['ratio'].apply(lambda x: np.max(x)/np.min(x)).reset_index(name='value').to_dict(orient='records')
+        demographic_parity_ratio = r.groupby(self.label_key)['ratio'].apply(lambda x: np.max(x)/np.min(x)).reset_index(name='value').to_dict(orient='records')
         
         results['metrics'] = {'demographic_parity_difference': demographic_parity_difference, 'demographic_parity_ratio': demographic_parity_ratio}
 
