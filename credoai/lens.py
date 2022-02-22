@@ -98,8 +98,8 @@ class CredoGovernance:
             self.retrieve_assessment_spec()
         spec = {}
         metrics = self.assessment_spec
-        if metrics:
-            spec['metrics'] = list(metrics.keys())
+        if self.model_id in metrics.keys():
+            spec['metrics'] = list(metrics[self.model_id].keys())
         return {"FairnessBase": spec}
 
     def get_info(self):
