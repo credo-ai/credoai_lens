@@ -1,13 +1,13 @@
+import numpy as np
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
 from credoai.utils.dataset_utils import concat_features_label_to_dataframe
 from credoai.utils.model_utils import get_gradient_boost_model
 from itertools import combinations
-import numpy as np
+from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.metrics import roc_auc_score, make_scorer
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 from typing import List, Optional
@@ -48,17 +48,18 @@ class DatasetModule(CredoModule):
         dict, nested
             Key: assessment category
             Values: detailed results associated with each category
-                
         """        
         pipe = self._make_pipe()
         cv_results = self._run_cv(pipe)
         group_differences = self._group_differences()
         normalized_mutual_information = self._calculate_mutual_information()
         balance_metrics = self._assess_balance_metrics()
-        self.results = {'overall_proxy_score': cv_results.mean(),
+        self.results = {'sensitive_feature_prediction_score': cv_results.mean(),
                         'group_diffs': group_differences,
                         'normalized_mutual_information': normalized_mutual_information,
-                        'balance_metrics': balance_metrics}  
+                        'balance_metrics': balance_metrics,
+                        'meta_data': {'sensitive_feature_key':self.sensitive_feature_key, 'label_key':self.label_key}
+                        }  
         return self  
     
     def prepare_results(self):
@@ -128,24 +129,48 @@ class DatasetModule(CredoModule):
         sklearn.pipeline
             Pipeline of scaler and model transforms
         """
-        model = get_gradient_boost_model()
+        # Estimate categorical features, if not provided
+        if self.categorical_features_keys:
+            categorical_features = self.categorical_features_keys.copy()
+        else:
+            categorical_features = self._find_categorical_features()
+
+        if self.sensitive_feature_key in categorical_features:
+            categorical_features.remove(self.sensitive_feature_key)
+
+        all_features = list(self.data.drop(columns=[self.label_key, self.sensitive_feature_key]).columns)
+        numeric_features = [x for x in all_features if x not in categorical_features]
+
+        # Define features tansformers
+        categorical_transformer = OneHotEncoder(handle_unknown="ignore")
         
-        pipe = Pipeline(steps = 
-               [('scaler', StandardScaler()),
-                ('model', model)])
+        numeric_transformer = Pipeline(
+            steps=[("scaler", StandardScaler())]
+        )
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ("num", numeric_transformer, numeric_features),
+                ("cat", categorical_transformer, categorical_features),
+            ]
+        )
+
+        model = get_gradient_boost_model()
+
+        pipe = Pipeline(
+            steps=[("preprocessor", preprocessor), ("model", model)]
+        )
+        
         return pipe
 
     
     def _find_categorical_features(self, threshold=0.05):
         """Identifies categorical features
         Logic: If type is not float and there are relatively few unique values for a feature, the feature is likely categorical.
-        The results are estimates and are not guaranteed to be correct by any means.
+        The results are estimates and are not guaranteed to be correct.
 
         Parameters
         ----------
-        df : pandas.dataframe
-            A dataframe
-
         threshold : float
             The threshold (number of the unique values over the total number of values)
 
@@ -198,7 +223,7 @@ class DatasetModule(CredoModule):
         discrete_features = [
             True if col in categorical_features else False for col in df.columns
         ]
-
+        
         # Use the right mutual information methods based on the feature type of the sensitive attribute
         if sensitive_feature_name in categorical_features:
             mi = mutual_info_classif(
