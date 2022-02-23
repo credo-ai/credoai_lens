@@ -33,7 +33,7 @@ class DatasetModuleReporter(CredoReporter):
         self._plot_mutual_information()
 
         # Generate overall proxy score plot
-        self._plot_overall_proxy_score()
+        self._plot_sensitive_feature_prediction_score()
 
         # Save to pdf if requested
         if filename:
@@ -53,9 +53,7 @@ class DatasetModuleReporter(CredoReporter):
         # Generate sample balance barplots
         results = results_all["balance_metrics"]["sample_balance"]
         df = pd.DataFrame(results)
-        sensitive_feature_name = list(df.drop(["count", "percentage"], axis=1).columns)[
-            0
-        ]
+        sensitive_feature_name = results_all["meta_data"]["sensitive_feature_key"]
 
         ax = sns.barplot(
             x="count",
@@ -74,7 +72,7 @@ class DatasetModuleReporter(CredoReporter):
         # Generate label balance barplots
         results = results_all["balance_metrics"]["label_balance"]
         df = pd.DataFrame(results)
-        label_name = list(df.drop([sensitive_feature_name, "count"], axis=1).columns)[0]
+        label_name = results_all["meta_data"]["label_key"]
 
         num_classes = df[label_name].nunique()
         ax = sns.barplot(
@@ -141,38 +139,36 @@ class DatasetModuleReporter(CredoReporter):
         self.figs.append(fig)
 
     def _plot_group_diff(self):
-        """Generates group difference barplots"""
+        """Generates group difference barplots
+        If sensitive feature has more than two subgroups, the group differences is plotted for the pair with maximum total absolute differences.
+        """
         results_all = self.module.get_results()
         results = results_all["group_diffs"]
-        fig, axs = plt.subplots(nrows=len(results), dpi=150)
-        i = 0
+        abs_sum = -1
         for k, v in results.items():
-            df = pd.DataFrame(v.items(), columns=["feature", "group difference"])
-            if len(results) > 1:
-                ax = sns.barplot(
-                    x="feature",
-                    y="group difference",
-                    data=df,
-                    palette=plot_utils.credo_diverging_palette(1),
-                    alpha=1,
-                    ax=axs[i],
-                )
-                i += 1
-            else:
-                ax = sns.barplot(
-                    x="feature",
-                    y="group difference",
-                    data=df,
-                    palette=plot_utils.credo_diverging_palette(1),
-                    alpha=1,
-                )
-            fig.patch.set_facecolor("white")
-            ax.axhline(0, color="k")
-            sns.despine()
-            ax.set_title("Group differences for " + k + " combination across features")
-            ax.set_xlabel("")
-            ax.set_ylabel("Group difference")
-            ax.xaxis.set_tick_params(rotation=90)
+            diffs = list(v.values())
+            abs_sum_new = sum([abs(x) for x in diffs])
+            if abs_sum_new > abs_sum:
+                max_pair_key, max_pair_values = k, v
+                abs_sum_new = abs_sum
+
+        df = pd.DataFrame(max_pair_values.items(), columns=["feature", "group difference"])
+        fig = plt.figure(dpi=150)
+        ax = sns.barplot(
+            x="feature",
+            y="group difference",
+            data=df,
+            palette=plot_utils.credo_diverging_palette(1),
+            alpha=1,
+            dodge=False,
+        )
+        fig.patch.set_facecolor("white")
+        ax.axhline(0, color="k")
+        sns.despine()
+        ax.set_title("Group differences for " + max_pair_key)
+        ax.set_xlabel("")
+        ax.set_ylabel("Group difference")
+        ax.xaxis.set_tick_params(rotation=90)
 
         self.figs.append(fig)
 
@@ -224,12 +220,13 @@ class DatasetModuleReporter(CredoReporter):
 
         self.figs.append(fig)
 
-    def _plot_overall_proxy_score(self):
-        """Generates overall proxy scor plote"""
+    def _plot_sensitive_feature_prediction_score(self):
+        """Generates sensitive feature prediction ROC AUC score plot"""
         results_all = self.module.get_results()
-        overall_proxy_score = results_all["overall_proxy_score"]
-        fig = plt.figure(figsize=(5, 0.5), dpi=150)
+        sensitive_feature_prediction_score = results_all["sensitive_feature_prediction_score"]
+        sensitive_feature_name = results_all["meta_data"]["sensitive_feature_key"]
+        fig = plt.figure(figsize=(5, 0.3), dpi=150)
         plt.axis('off')
-        plt.text(0, 0.5, 'Overall proxy score: ' + str(round(overall_proxy_score, 3)))
+        plt.text(0, 0.5, sensitive_feature_name + ' feature prediction ROC AUC score: ' + str(round(sensitive_feature_prediction_score, 3)))
 
         self.figs.append(fig)
