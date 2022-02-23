@@ -12,7 +12,7 @@ from credoai import __version__
 from dataclasses import dataclass, field
 from os import listdir, makedirs, path
 from sklearn.utils import check_consistent_length
-from typing import List, Union
+from typing import List, Union, Optional
 
 import credoai.integration as ci
 import pandas as pd
@@ -334,7 +334,6 @@ class CredoModel:
             return framework
 
 
-@dataclass
 class CredoData:
     """ Class to store assessment data. 
 
@@ -359,12 +358,34 @@ class CredoData:
     metadata: dict, optional
         Arbitrary additional data that will be associated with the dataset
     """
-    name: str
-    data: "model-input"
-    sensitive_feature_key: "sensitive-feature-key"
-    label_key: "model-output-key"
-    categorical_features_keys: "array-like" = None
-    metadata: dict = None
+    # name: str
+    # data: "model-input"
+    # sensitive_feature_key: "sensitive-feature-key"
+    # label_key: "model-output-key"
+    # categorical_features_keys: "array-like" = None
+    # metadata: dict = None
+
+    def __init__(self,
+            name: str,
+            data: pd.DataFrame,
+            sensitive_feature_key: str,
+            label_key: str,
+            categorical_features_keys: Optional[List[str]]=None,
+            include_sensitive_feature_in_model=False): 
+
+        
+        self.data = data
+        self.sensitive_feature_key = sensitive_feature_key
+        self.label_key = label_key
+        self.categorical_features_keys = categorical_features_keys
+
+        self.name = name
+        self.sensitive_features = data[sensitive_feature_key]
+        self.y = data[label_key]
+        if include_sensitive_feature_in_model:
+            self.X = data.drop(columns=[label_key])
+        else:
+            self.X = data.drop(columns=[sensitive_feature_key, label_key])
 
     def __post_init__(self):
         self.metadata = self.metadata or {}
