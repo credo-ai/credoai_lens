@@ -303,8 +303,8 @@ class DatasetModule(CredoModule):
         # Compute the maximum difference between any two pairs of groups
         demographic_parity_difference = r.groupby(self.label_key)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
 
-        # Compute the maximum ratio between any two pairs of groups
-        demographic_parity_ratio = r.groupby(self.label_key)['ratio'].apply(lambda x: np.max(x)/np.min(x)).reset_index(name='value').to_dict(orient='records')
+        # Compute the minimum ratio between any two pairs of groups
+        demographic_parity_ratio = r.groupby(self.label_key)['ratio'].apply(lambda x: np.min(x)/np.max(x)).reset_index(name='value').to_dict(orient='records')
         
         results['metrics'] = {'demographic_parity_difference': demographic_parity_difference, 'demographic_parity_ratio': demographic_parity_ratio}
 
