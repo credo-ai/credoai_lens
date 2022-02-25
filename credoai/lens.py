@@ -383,9 +383,9 @@ class CredoData:
         self.sensitive_features = data[sensitive_feature_key]
         self.y = data[label_key]
         if include_sensitive_feature_in_model:
-            self.X = data.drop(columns=[label_key])
+            self.X = data.drop(columns=[label_key], axis=1)
         else:
-            self.X = data.drop(columns=[sensitive_feature_key, label_key])
+            self.X = data.drop(columns=[sensitive_feature_key, label_key], axis=1)
 
     def __post_init__(self):
         self.metadata = self.metadata or {}
