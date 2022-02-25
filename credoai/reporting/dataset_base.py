@@ -151,9 +151,6 @@ class DatasetModuleReporter(CredoReporter):
             if abs_sum_new > abs_sum:
                 max_pair_key, max_pair_values = k, v
                 abs_sum_new = abs_sum
-
-        print('---')
-        print(max_pair_values)
         
         if max_pair_values:  # do not plot when group_diffs is empty, which happens when none of the features are numeric 
             df = pd.DataFrame(max_pair_values.items(), columns=["feature", "group difference"])
