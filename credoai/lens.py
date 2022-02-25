@@ -355,6 +355,9 @@ class CredoData:
         Name of the label column
     categorical_features_keys : list[str], optional
         Names of the categorical features
+    omit_for_model_features_keys : list[str], optional
+        Names of the features to not use for model training
+        Include all the features in the data that were not used during model training
     metadata: dict, optional
         Arbitrary additional data that will be associated with the dataset
     """
@@ -363,6 +366,7 @@ class CredoData:
     # sensitive_feature_key: "sensitive-feature-key"
     # label_key: "model-output-key"
     # categorical_features_keys: "array-like" = None
+    # omit_for_model_features_keys: "array-like" = None
     # metadata: dict = None
 
     def __init__(self,
@@ -371,7 +375,7 @@ class CredoData:
             sensitive_feature_key: str,
             label_key: str,
             categorical_features_keys: Optional[List[str]]=None,
-            include_sensitive_feature_in_model=False): 
+            omit_for_model_features_keys: Optional[List[str]]=None): 
 
         
         self.data = data
@@ -382,10 +386,10 @@ class CredoData:
         self.name = name
         self.sensitive_features = data[sensitive_feature_key]
         self.y = data[label_key]
-        if include_sensitive_feature_in_model:
-            self.X = data.drop(columns=[label_key], axis=1)
-        else:
-            self.X = data.drop(columns=[sensitive_feature_key, label_key], axis=1)
+        self.X = data.drop(columns=[label_key], axis=1)
+
+        if omit_for_model_features_keys:
+            self.X = self.X.drop(columns=omit_for_model_features_keys, axis=1, errors='ignore')
 
     def __post_init__(self):
         self.metadata = self.metadata or {}
