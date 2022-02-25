@@ -152,25 +152,29 @@ class DatasetModuleReporter(CredoReporter):
                 max_pair_key, max_pair_values = k, v
                 abs_sum_new = abs_sum
 
-        df = pd.DataFrame(max_pair_values.items(), columns=["feature", "group difference"])
-        fig = plt.figure(dpi=150)
-        ax = sns.barplot(
-            x="feature",
-            y="group difference",
-            data=df,
-            palette=plot_utils.credo_diverging_palette(1),
-            alpha=1,
-            dodge=False,
-        )
-        fig.patch.set_facecolor("white")
-        ax.axhline(0, color="k")
-        sns.despine()
-        ax.set_title("Group differences for " + max_pair_key)
-        ax.set_xlabel("")
-        ax.set_ylabel("Group difference")
-        ax.xaxis.set_tick_params(rotation=90)
+        print('---')
+        print(max_pair_values)
+        
+        if max_pair_values:  # do not plot when group_diffs is empty, which happens when none of the features are numeric 
+            df = pd.DataFrame(max_pair_values.items(), columns=["feature", "group difference"])
+            fig = plt.figure(dpi=150)
+            ax = sns.barplot(
+                x="feature",
+                y="group difference",
+                data=df,
+                palette=plot_utils.credo_diverging_palette(1),
+                alpha=1,
+                dodge=False,
+            )
+            fig.patch.set_facecolor("white")
+            ax.axhline(0, color="k")
+            sns.despine()
+            ax.set_title("Group differences for " + max_pair_key)
+            ax.set_xlabel("")
+            ax.set_ylabel("Group difference")
+            ax.xaxis.set_tick_params(rotation=90)
 
-        self.figs.append(fig)
+            self.figs.append(fig)
 
     def _plot_mutual_information(self):
         """Generates normalized mututal information between features and sensitive attribute"""
