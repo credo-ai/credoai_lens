@@ -1,5 +1,4 @@
 # Required for notebooks
-jupyterlab
 ipywidgets>=7.6.5
 
 # required for modules.model_modules.nlp_generator.NLPGeneratorAnalyzer

@@ -314,7 +314,7 @@ class CredoModel:
     def _sklearn_style_config(self, model):
         # if binary classification, only return
         # the positive classes probabilities by default
-        if model.n_classes_ == 2:
+        if len(model.classes_) == 2:
             def prob_fun(X): return model.predict_proba(X)[:, 1]
         else:
             prob_fun = model.predict_proba
