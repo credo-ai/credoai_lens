@@ -1,7 +1,8 @@
 import numpy as np
+import pandas as pd
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
-from credoai.utils.dataset_utils import concat_features_label_to_dataframe
+from credoai.utils.dataset_utils import concat_features_label_to_dataframe, ColumnTransformerUtil
 from credoai.utils.model_utils import get_gradient_boost_model
 from itertools import combinations
 from sklearn.compose import ColumnTransformer
@@ -12,7 +13,6 @@ from sklearn.metrics import roc_auc_score, make_scorer
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 from typing import List, Optional
 
-import pandas as pd
 
 class DatasetModule(CredoModule):
     """Dataset module for Credo AI. 
@@ -49,12 +49,11 @@ class DatasetModule(CredoModule):
             Key: assessment category
             Values: detailed results associated with each category
         """        
-        pipe = self._make_pipe()
-        cv_results = self._run_cv(pipe)
+        sensitive_feature_prediction_results = self._run_cv()
         group_differences = self._group_differences()
         normalized_mutual_information = self._calculate_mutual_information()
         balance_metrics = self._assess_balance_metrics()
-        self.results = {'sensitive_feature_prediction_score': cv_results.mean(),
+        self.results = {**sensitive_feature_prediction_results,
                         'group_diffs': group_differences,
                         'normalized_mutual_information': normalized_mutual_information,
                         'balance_metrics': balance_metrics,
@@ -94,7 +93,7 @@ class DatasetModule(CredoModule):
 
         return diffs
     
-    def _run_cv(self, pipe):
+    def _run_cv(self):
         """Determines cross-validated ROC-AUC score
         A model is trained on the features to predict the sensitive attribute.
         The score quantifies the performance of this prediction. 
@@ -110,15 +109,26 @@ class DatasetModule(CredoModule):
         ndarray
             Cross-validation score
         """
+        results = {}
+        pipe = self._make_pipe()
         X = self.data.drop(columns=[self.sensitive_feature_key, self.label_key])
-        sensitive_features = self.data[self.sensitive_feature_key]     
+        sensitive_features = self.data[self.sensitive_feature_key].cat.codes
         scorer = make_scorer(roc_auc_score, 
                              needs_proba=True,
                              multi_class='ovo')
-        results = cross_val_score(pipe, X, sensitive_features,
+        cv_results = cross_val_score(pipe, X, sensitive_features,
                              cv = StratifiedKFold(5),
                              scoring = scorer,
                              error_score='raise')
+        # get feature importances by running once
+        pipe.fit(X, sensitive_features)
+        model = pipe['model']
+        preprocessor = pipe['preprocessor']
+        col_names = ColumnTransformerUtil.get_ct_feature_names(preprocessor)
+        feature_importances = pd.Series(model.feature_importances_, 
+            index=col_names).sort_values(ascending=False)
+        results['sensitive_feature_prediction_score'] = cv_results.mean()
+        results['sensitive_feature_prediction_feature_importances'] = feature_importances
         return results
     
     def _make_pipe(self):
