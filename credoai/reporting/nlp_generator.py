@@ -9,7 +9,7 @@ from datetime import datetime
 
 
 class NLPGeneratorAnalyzerReporter(CredoReporter):
-    def __init__(self, assessment, size=3):
+    def __init__(self, assessment, size=4):
         super().__init__(assessment)
         self.num_gen_models = len(self.module.generation_functions)
         self.num_assessment_funs = len(self.module.assessment_functions)
@@ -125,14 +125,15 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
         parity.rename(columns={'min': 'value'}, inplace=True)
 
         # plot
-        with plot_utils.get_style(figsize=self.size, figure_ratio = 1/self.num_assessment_funs):
+        with plot_utils.get_style(figsize=self.size, figure_ratio = 0.5):
             f = plt.figure()
-            sns.barplot(x='assessment_attribute', y='value', hue='generation_model', data=parity,
+            ax = sns.barplot(x='assessment_attribute', y='value', hue='generation_model', data=parity,
                         palette=palette)
             plt.xlabel("Assessment Attribute")
             plt.ylabel("Min/Max Parity")
             plt.title("Parity of Assessment Attributes across Group")
             sns.despine()
+            plt.setp(ax.get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")
             plt.legend(bbox_to_anchor=(1.05, 0.9), title='Text Generator', labelcolor='linecolor')
         return f
 

@@ -8,7 +8,7 @@ from credoai.reporting import plot_utils
 
 
 class DatasetModuleReporter(CredoReporter):
-    def __init__(self, assessment, size=3):
+    def __init__(self, assessment, size=5):
         super().__init__(assessment)
         self.size = size
 
@@ -133,7 +133,7 @@ class DatasetModuleReporter(CredoReporter):
         """Generates group difference barplots"""
         results_all = self.module.get_results()
         results = results_all["standardized_group_diffs"]
-        with plot_utils.get_style(figsize=self.size):
+        with plot_utils.get_style(figsize=self.size, figure_ratio=0.7):
             f, axes = plt.subplots(nrows=len(results))
             if len(results) == 1:
                 axes = [axes]
@@ -179,7 +179,7 @@ class DatasetModuleReporter(CredoReporter):
         ref_name = ref.iloc[0]["feature"]
         ref_type = ref.iloc[0]["feature type"].split("_")[0]
 
-        with plot_utils.get_style(figsize=self.size) as style:
+        with plot_utils.get_style(figsize=self.size, figure_ratio=0.7) as style:
             f, ax = plt.subplots()
             num_types = 2
             sns.barplot(
@@ -192,7 +192,7 @@ class DatasetModuleReporter(CredoReporter):
                 dodge=False,
             )
             f.patch.set_facecolor("white")
-            ax.axhline(0, color="k")
+            ax.axhline(0, color="k", lw=self.size/6)
             sns.despine()
             ax.set_title(
                 "Normalized mututal information\n with " + ref_type + " feature " + ref_name

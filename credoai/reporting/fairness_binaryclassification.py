@@ -65,7 +65,7 @@ class FairnessReporter(CredoReporter):
         if self.module.metric_frames != {}:
             plot_disaggregated = True
         n_plots = 1+plot_disaggregated
-        with get_style(figsize=self.size*.6, n_cols=n_plots):
+        with get_style(figsize=self.size, n_cols=n_plots):
             f, axes = plt.subplots(1, n_plots)
             plt.subplots_adjust(wspace=0.7)
             axes = axes.flat
