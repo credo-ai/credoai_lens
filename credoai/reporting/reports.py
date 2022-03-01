@@ -127,8 +127,9 @@ class MainReport(NotebookReport):
         """
 
         cells = [(boiler_plate, 'markdown'),
-                 (toggle_code, 'code'),
-                 (event_listener, 'code')]
+                (event_listener, 'code'),
+                 (toggle_code, 'code')
+                 ]
         self.add_cells(cells)
     
     def get_toc(self):
