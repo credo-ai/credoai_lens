@@ -5,12 +5,13 @@ import textwrap
 from credoai.utils.credo_api_utils import post_use_case_report
 from inspect import cleandoc
 from nbclient import NotebookClient
-from nbconvert import HTMLExporter
+from jupyterlab_nbconvert_nocode.nbconvert_functions import HTMLHideCodeExporter
 
 class NotebookReport():
     def __init__(self):
         self.nb = nbf.v4.new_notebook()
         self.cells = []
+        self.add_cells([self.get_style_cell()])
     
     def add_cells(self, cells):
         cells = self._preprocess_cell_content(cells)
@@ -23,11 +24,28 @@ class NotebookReport():
     
     def export_notebook(self, use_case_id, model_id):
         """Writes notebook to html"""
-        html_exporter = HTMLExporter(template_name = 'classic')
+        html_exporter = HTMLHideCodeExporter()
         (body, resources) = html_exporter.from_notebook_node(self.nb)
         post_use_case_report(body, use_case_id, model_id)
         return self
 
+    def get_style_cell(self):
+        cell = ("""\
+        %%html
+        <style>
+        ::marker {
+            unicode-bidi: isolate;
+            font-variant-numeric: tabular-nums;
+            text-transform: none;
+            text-indent: 0px !important;
+            text-align: start !important;
+            text-align-last: start !important;
+        }
+        </style>
+        """, "code"
+        )
+        return cell
+        
     def write_notebook(self, file_loc):
         """Writes notebook to file"""
         nbf.write(self.nb, file_loc)
@@ -58,7 +76,8 @@ class AssessmentReport(NotebookReport):
         # set up reporter
         load_code="import pickle\n"
         for key, val in self.needed_artifacts.items():
-            load_code += f"{key} = pickle.load(open('{key}.pkl','rb'))"
+            load_code += f"{key} = pickle.load(open('{key}.pkl','rb'))\n"
+        load_code += "%config InlineBackend.figure_formats = ['svg', 'png']"
         self.add_cells([(load_code, 'code')])
     
     def run_notebook(self):
@@ -98,37 +117,24 @@ class MainReport(NotebookReport):
         * Model: {names['model']}
         * Dataset: {names['dataset']}
         """
-        toggle_code = """\
-        # code to toggle code on and off
+        html_code = """\
         from IPython.display import HTML
 
-        HTML('''<script>
-        code_show=true; 
-        function code_toggle() {
-        if (code_show){
-        $('div.input').hide();
-        } else {
-        $('div.input').show();
-        }
-        code_show = !code_show
-        } 
-        $( document ).ready(code_toggle);
-        </script>
-        <form action="javascript:code_toggle()"><input type="submit" value="Click here to toggle on/off the raw code."></form>''')
-        """
-        event_listener = """\
-        HTML('''<script>
+        HTML('''
+        <script>
         window.addEventListener('load', function() {
 	    let message = { height: document.body.scrollHeight, width: document.body.scrollWidth };	
 	    window.top.postMessage(message, "*");
         });
         </script>
+
+        <script>
+        $('div.input').hide();
+        </script>
         ''')
         """
-
         cells = [(boiler_plate, 'markdown'),
-                (event_listener, 'code'),
-                 (toggle_code, 'code')
+                 (html_code, 'code')
                  ]
         self.add_cells(cells)
     

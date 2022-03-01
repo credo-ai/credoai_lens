@@ -8,7 +8,7 @@ from credoai.reporting import plot_utils
 
 
 class DatasetModuleReporter(CredoReporter):
-    def __init__(self, assessment, size=3):
+    def __init__(self, assessment, size=5):
         super().__init__(assessment)
         self.size = size
 
@@ -57,43 +57,45 @@ class DatasetModuleReporter(CredoReporter):
                 #### Data Balance
 
                 <details>
-                <summary><b>Assessment Description</b></summary>
-
-                The data balance assessment helps us gain insights
+                <summary>Assessment Description:</summary>
+                <br>
+                <p>The data balance assessment helps us gain insights
                 into how different subgroups are represented in the 
                 dataset. Data balance is particularly important for
                 datasets used to train models, as models generally show some
-                form of [bias towards the most represented group](https://medium.com/@mrtz/how-big-data-is-unfair-9aa544d739de). 
+                form of <a href="https://medium.com/@mrtz/how-big-data-is-unfair-9aa544d739de">bias towards the most represented group</a>. 
+                </p>
 
-                For validation datasets
+                <p>For validation datasets
                 it is important that each important subgroup is 
                 adequately represented, but parity is not necessarily required.
-                However, if subgroups _are_ imbalanced, it is imperative
-                that performance measures are disaggregated across subgroups.
-
-                </details>&nbsp;
+                However, if subgroups <em>are</em> imbalanced, it is imperative
+                that performance measures are disaggregated across subgroups.</p>
+                </details><br>
 
                 <details>
-                <summary><b>Subplot Descriptions</b></summary>
+                <summary>Plot Descriptions:</summary>
+                <br>
+                <p>The first plot shows the number of samples for each
+                subgroup in the dataset.</p>
 
-                The first subplot shows the number of samples for each
-                subgroup in the dataset.
+                <p>The second plot shows how the outcome distribution differs
+                between subgroups.</p>
 
-                The second subplot shows how the outcome distribution differs
-                between subgroups.
-
-                The third subplot summarizes label disparities by calculating
-                the [demographic parity](https://afraenkel.github.io/fairness-book/content/05-parity-measures.html#demographic-parity). This metric compares the proportion 
+                <p>The third plot summarizes label disparities by calculating
+                the <a href="https://afraenkel.github.io/fairness-book/content/05-parity-measures.html#demographic-parity">demographic parity]</a>. This metric compares the proportion 
                 of samples a group is given a particular label to other groups.
                 Ideally, this value is 1. We calculate this value for each outcome label.
-                Typically, one is concerned with the demographic parity of outcomes that are either:
+                Typically, one is concerned with the demographic parity of outcomes that are either:</p>
 
-                * beneficial vs. the status quo
-                * harmful vs. the status quo
-                * rarer
+                <ul>
+                    <li>beneficial vs. the status quo</li>
+                    <li>harmful vs. the status quo</li>
+                    <li>rarer</li>
+                </ul>
 
-                That is to say, your AI system probably _does something_ to people. This
-                plot helps you evaluate whether it is equitable in its actions.
+                <p>That is to say, your AI system probably <em>does something</em> to people. This
+                plot helps you evaluate whether it is equitable in its actions.</p>
                 </details>
                 """, 'markdown')
         return cell
@@ -193,27 +195,27 @@ class DatasetModuleReporter(CredoReporter):
         cell = (f"""
                 #### Redundant Encoding
             
-                <details>
-                <summary><b>Assessment Description</b></summary>
-
-                The most important thing to check about your dataset is
+                <details open>
+                <summary>Assessment Description:</summary>
+                <br>
+                <p>The most important thing to check about your dataset is
                 "does it redundantly code a sensitive feature". Redundant encoding
-                means that the sensitive feature can be _reconstructed_ from the features 
+                means that the sensitive feature can be <em>reconstructed</em> from the features 
                 in your dataset. If it can be reconstructed, this means that your AI system
-                is implicitly trained on the sensitive feature, _even if it isn't explicitly included
-                in the dataset_.
+                is implicitly trained on the sensitive feature, <em>even if it isn't explicitly included
+                in the dataset</em>.</p>
 
-                To evaluate this, we train a model that tries to predict the sensitive feature from the
+                <p>To evaluate this, we train a model that tries to predict the sensitive feature from the
                 dataset. The score ranges from 0.5 - 1.0. If the score is 0.5, the model is random, and
                 no information about the senstive feature is likely contained in the dataset. A value
-                of 1 means the sensitive feature is able to be perfectly reconstructed.
+                of 1 means the sensitive feature is able to be perfectly reconstructed.</p>
 
-                The [Feature Balance](#Feature-Balance) and [Feature Proxy Detection](#Feature-Proxy-Detection)
+                <p>The <a href="#Feature-Balance>Feature Balance</a> and <a href="#Feature-Proxy-Detection>Feature Proxy Detection</a>
                 sections each provide additional perspective by diving into whether
                 individual features serve as proxies. Note that the overall dataset can be a 
-                proxy even if no individual feature is! That's where this score is important.
+                proxy even if no individual feature is! That's where this score is important.</p>
                 
-                </details>&nbsp;
+                </details>
 
                 **Overall Proxy Score**: {score:.4f}
                 """, 'markdown')
@@ -224,14 +226,14 @@ class DatasetModuleReporter(CredoReporter):
                 #### Feature Balance
             
                 <details>
-                <summary><b>Assessment Description</b></summary>
+                <summary>Assessment Description:</summary>
 
                 Though potentially less important than balance of the
                 primary outcome, feature differences are also worth evaluating.
 
                 While some differences amongst groups should be expected, large deviations
                 are problematic. One of the main issues is that they may lead
-                to your dataset _redundantly encoding_ sensitive features. In other
+                to your dataset <em>redundantly encoding</em> sensitive features. In other
                 words, features that differ significantly between groups act as proxies
                 for the sensitive feature.
                 </details>
@@ -269,20 +271,25 @@ class DatasetModuleReporter(CredoReporter):
         cell = ("""
                 #### Feature Proxy Detection
             
-                <details>
-                <summary><b>Assessment Description</b></summary>
-
+                <details open>
+                <summary>Assessment Description:</summary>
+                <br>
                 The previous plot served as a simple descriptive analysis
                 of sensitive feature parity. A more rigorous method is to calculate
-                the [mutual information](https://simple.wikipedia.org/wiki/Mutual_information) between
+                the <a href="https://simple.wikipedia.org/wiki/Mutual_information">mutual information</a> between
                 the features and the sensitive feature.
+                
+                </details><br>
 
-                Higher values mean there is more information about the sensitive feature
+                <details>
+                <summary>Plot Description:</summary>
+                <br>
+                <p>Higher values mean there is more information about the sensitive feature
                 encoded in the feature. We normalize the mutual information by the amount of information
-                the sensitive feature has _to itself_. Thus this metric goes from 0-1, where 1 means 
-                the feature is a perfect proxy of the sensitive feature.
+                the sensitive feature has <em>to itself</em>. Thus this metric goes from 0-1, where 1 means 
+                the feature is a perfect proxy of the sensitive feature.</p>
 
-                Removing such features is advised!
+                <p>Removing such features is advised!</p>
                 </details>
                 """, 'markdown')
         return cell
