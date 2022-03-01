@@ -355,8 +355,8 @@ class CredoData:
         Name of the label column
     categorical_features_keys : list[str], optional
         Names of the categorical features
-    omit_for_model_features_keys : list[str], optional
-        Names of the features to not use for model training
+    unused_features_keys : list[str], optional
+        Names of the features to ignore when performing prediction
         Include all the features in the data that were not used during model training
     metadata: dict, optional
         Arbitrary additional data that will be associated with the dataset
@@ -366,7 +366,7 @@ class CredoData:
     # sensitive_feature_key: "sensitive-feature-key"
     # label_key: "model-output-key"
     # categorical_features_keys: "array-like" = None
-    # omit_for_model_features_keys: "array-like" = None
+    # unused_features_keys: "array-like" = None
     # metadata: dict = None
 
     def __init__(self,
@@ -375,7 +375,7 @@ class CredoData:
             sensitive_feature_key: str,
             label_key: str,
             categorical_features_keys: Optional[List[str]]=None,
-            omit_for_model_features_keys: Optional[List[str]]=None): 
+            unused_features_keys: Optional[List[str]]=None): 
 
         
         self.data = data
@@ -386,10 +386,12 @@ class CredoData:
         self.name = name
         self.sensitive_features = data[sensitive_feature_key]
         self.y = data[label_key]
-        self.X = data.drop(columns=[label_key], axis=1)
+        X = data.drop(columns=[label_key], axis=1)
 
-        if omit_for_model_features_keys:
-            self.X = self.X.drop(columns=omit_for_model_features_keys, axis=1, errors='ignore')
+        if unused_features_keys:
+            X = X.drop(columns=unused_features_keys, axis=1, errors='ignore')
+
+        self.X = X
 
     def __post_init__(self):
         self.metadata = self.metadata or {}
