@@ -37,12 +37,13 @@ In Integration demo, we will take a model created and assessed completely indepe
 
 Lens Demos
 ----------
-Demos of other use cases and assesments using the Lens framework.
+Demos of other use cases and assessments using the Lens framework.
 
 .. toctree::
    :maxdepth: 1
 
    notebooks/lens_demos/binaryclassification
+   notebooks/lens_demos/dataset_assessment
    notebooks/lens_demos/nlp_generator
 
 **Binary Classification Demo**
@@ -50,6 +51,11 @@ Demos of other use cases and assesments using the Lens framework.
 Lens can help you assess their performance and fairness of binary classification models. 
 In this notebook, this capability is demonstrated on a scenario where binary classification is 
 used to predict the likelihood that an applicant will default on a credit-card loan.
+
+**Data Assessment Demo**
+
+Biases in data could result in biased algorithmic outcomes. Lens can assess a structured 
+dataset for biases. This notebook demonstrates this capability on an income dataset.
 
 **Language Generation Demo**
 
