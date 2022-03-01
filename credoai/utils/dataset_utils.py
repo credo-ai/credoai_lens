@@ -16,13 +16,13 @@ class ColumnTransformerUtil:
     """
     @staticmethod
     def get_feature_out(estimator, feature_in):
-        if hasattr(estimator,'get_feature_names'):
+        if hasattr(estimator,'get_feature_names_out'):
             if isinstance(estimator, _VectorizerMixin):
                 # handling all vectorizers
                 return [f'vec_{f}' \
-                    for f in estimator.get_feature_names()]
+                    for f in estimator.get_feature_names_out()]
             else:
-                return estimator.get_feature_names(feature_in)
+                return estimator.get_feature_names_out(feature_in)
         elif isinstance(estimator, SelectorMixin):
             return np.array(feature_in)[estimator.get_support()]
         else:
