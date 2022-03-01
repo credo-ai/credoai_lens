@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
-from credoai.utils.dataset_utils import concat_features_label_to_dataframe, ColumnTransformerUtil
+from credoai.utils.dataset_utils import ColumnTransformerUtil
 from credoai.utils.model_utils import get_gradient_boost_model
 from itertools import combinations
 from sklearn.compose import ColumnTransformer
@@ -15,7 +15,8 @@ from typing import List, Optional
 
 
 class DatasetModule(CredoModule):
-    """Dataset module for Credo AI. 
+    """Dataset module for Credo AI.
+
     This module takes in features and labels and provides functionality to perform dataset assessment
 
     Parameters
@@ -33,12 +34,17 @@ class DatasetModule(CredoModule):
                 data: pd.DataFrame,
                 sensitive_feature_key: str,
                 label_key: str,
-                categorical_features_keys: Optional[List[str]]=None): 
+                categorical_features_keys: Optional[List[str]]=None):
 
         self.data = data
         self.sensitive_feature_key = sensitive_feature_key
         self.label_key = label_key
-        self.categorical_features_keys = categorical_features_keys
+        self.X = data.drop(columns=[sensitive_feature_key, label_key])
+
+        if categorical_features_keys:
+            self.categorical_features_keys = categorical_features_keys
+        else:
+            self.categorical_features_keys = self._find_categorical_features()
     
     def run(self):
         """Runs the assessment process
@@ -71,21 +77,19 @@ class DatasetModule(CredoModule):
     
     def _group_differences(self):
         """Calculates standardized mean differences
+
         It is performed for all numeric features and all possible group pairs combinations present in the sensitive feature.
 
         Returns
         -------
         dict, nested
-            Key: senstive feature groups pair
+            Key: sensitive feature groups pair
             Values: dict
                 Key: name of feature
                 Value: standardized mean difference
         """
-        X = self.data.drop(columns=[self.sensitive_feature_key, self.label_key])
-        sensitive_features = self.data[self.sensitive_feature_key]
-
-        group_means = X.groupby(sensitive_features).mean()
-        std = X.std(numeric_only=True)
+        group_means = self.X.groupby(self.data[self.sensitive_feature_key]).mean()
+        std = self.X.std(numeric_only=True)
         diffs = {}
         for group1, group2 in combinations(group_means.index, 2):
             diff = (group_means.loc[group1]-group_means.loc[group2])/std
@@ -111,17 +115,17 @@ class DatasetModule(CredoModule):
         """
         results = {}
         pipe = self._make_pipe()
-        X = self.data.drop(columns=[self.sensitive_feature_key, self.label_key])
         sensitive_features = self.data[self.sensitive_feature_key].cat.codes
         scorer = make_scorer(roc_auc_score, 
                              needs_proba=True,
                              multi_class='ovo')
-        cv_results = cross_val_score(pipe, X, sensitive_features,
+        cv_results = cross_val_score(pipe, self.X, sensitive_features,
                              cv = StratifiedKFold(5),
                              scoring = scorer,
                              error_score='raise')
-        # get feature importances by running once
-        pipe.fit(X, sensitive_features)
+
+        # Get feature importances by running once
+        pipe.fit(self.X, sensitive_features)
         model = pipe['model']
         preprocessor = pipe['preprocessor']
         col_names = ColumnTransformerUtil.get_ct_feature_names(preprocessor)
@@ -129,6 +133,7 @@ class DatasetModule(CredoModule):
             index=col_names).sort_values(ascending=False)
         results['sensitive_feature_prediction_score'] = cv_results.mean()
         results['sensitive_feature_prediction_feature_importances'] = feature_importances
+
         return results
     
     def _make_pipe(self):
@@ -139,12 +144,7 @@ class DatasetModule(CredoModule):
         sklearn.pipeline
             Pipeline of scaler and model transforms
         """
-        # Estimate categorical features, if not provided
-        if self.categorical_features_keys:
-            categorical_features = self.categorical_features_keys.copy()
-        else:
-            categorical_features = self._find_categorical_features()
-
+        categorical_features = self.categorical_features_keys.copy()
         if self.sensitive_feature_key in categorical_features:
             categorical_features.remove(self.sensitive_feature_key)
 
@@ -176,6 +176,7 @@ class DatasetModule(CredoModule):
     
     def _find_categorical_features(self, threshold=0.05):
         """Identifies categorical features
+
         Logic: If type is not float and there are relatively few unique values for a feature, the feature is likely categorical.
         The results are estimates and are not guaranteed to be correct.
 
@@ -189,11 +190,10 @@ class DatasetModule(CredoModule):
         list
             Names of categorical features
         """
-        X = self.data.drop(columns=[self.label_key])
-        float_cols = list(X.select_dtypes(include=[np.float]).columns)
+        float_cols = list(self.data.select_dtypes(include=[np.float]).columns)
         cat_cols = []
-        for name, column in X.iteritems():
-            if name not in float_cols:
+        for name, column in self.data.iteritems():
+            if name not in float_cols and name != self.label_key:
                 unique_count = column.unique().shape[0]
                 total_count = column.shape[0]
                 if unique_count / total_count < threshold:
@@ -203,6 +203,7 @@ class DatasetModule(CredoModule):
 
     def _calculate_mutual_information(self, normalize=True):
         """Calculates normalized mutual information between sensitive feature and other features
+
         Mutual information is the "amount of information" obtained about the sensitive feature by observing another feature.
         Mutual information is useful to proxy detection purposes.
 
@@ -219,33 +220,27 @@ class DatasetModule(CredoModule):
             Value: mutual information and considered feature type (categorical/continuous)
         """
         df = self.data.copy().drop(columns=[self.label_key])
-        sensitive_feature_name = self.sensitive_feature_key
-        # Estimate categorical features, if not provided
-        if self.categorical_features_keys:
-            categorical_features = self.categorical_features_keys
-        else:
-            categorical_features = self._find_categorical_features()
         
         # Encode categorical features
-        for col in categorical_features:
+        for col in self.categorical_features_keys:
             df[col] = df[col].astype("category").cat.codes
 
         discrete_features = [
-            True if col in categorical_features else False for col in df.columns
+            True if col in self.categorical_features_keys else False for col in df.columns
         ]
         
         # Use the right mutual information methods based on the feature type of the sensitive attribute
-        if sensitive_feature_name in categorical_features:
+        if self.sensitive_feature_key in self.categorical_features_keys:
             mi = mutual_info_classif(
                 df,
-                df[sensitive_feature_name],
+                df[self.sensitive_feature_key],
                 discrete_features=discrete_features,
                 random_state=42,
             )
         else:
             mi = mutual_info_regression(
                 df,
-                df[sensitive_feature_name],
+                df[self.sensitive_feature_key],
                 discrete_features=discrete_features,
                 random_state=42,
             )
@@ -257,16 +252,16 @@ class DatasetModule(CredoModule):
 
         # Create the results
         mi = mi.sort_index().to_dict()
-        results = {}
+        mutual_information_results = {}
         for k, v in mi.items():
-            if k in categorical_features:
-                results[k] = {"value": v, "feature_type": "categorical"}
+            if k in self.categorical_features_keys:
+                mutual_information_results[k] = {"value": v, "feature_type": "categorical"}
             else:
-                results[k] = {"value": v, "feature_type": "continuous"}
+                mutual_information_results[k] = {"value": v, "feature_type": "continuous"}
 
-        results[sensitive_feature_name]["feature_type"] = results[sensitive_feature_name]["feature_type"] + '_reference'
+        mutual_information_results[self.sensitive_feature_key]["feature_type"] = mutual_information_results[self.sensitive_feature_key]["feature_type"] + '_reference'
 
-        return results
+        return mutual_information_results
     
     def _assess_balance_metrics(self):
         """Calculate dataset balance statistics and metrics 
@@ -278,37 +273,37 @@ class DatasetModule(CredoModule):
             'label_balance': distribution of labels across groups
             'metrics': demographic parity difference and ratio between groups for all preferred label value possibilities 
         """
-        df = self.data.copy()
-        results = {}
+        balance_results = {}
 
         # Distribution of samples across groups
         sample_balance = (
-            df.groupby([self.sensitive_feature_key])
+            self.data.groupby([self.sensitive_feature_key])
             .agg(
                 count=(self.label_key, len),
-                percentage=(self.label_key, lambda x: 100.0 * len(x) / len(df)),
+                percentage=(self.label_key, lambda x: 100.0 * len(x) / len(self.data)),
             )
             .reset_index()
             .to_dict(orient="records")
         )
-        results["sample_balance"] = sample_balance
+        balance_results["sample_balance"] = sample_balance
 
         # Distribution of samples across groups
         label_balance = (
-            df.groupby([self.sensitive_feature_key, self.label_key])
+            self.data.groupby([self.sensitive_feature_key, self.label_key])
             .size()
             .unstack(fill_value=0)
             .stack()
             .reset_index(name="count")
             .to_dict(orient="records")
         )
-        results["label_balance"] = label_balance
+        balance_results["label_balance"] = label_balance
 
         # Fairness metrics
-        r = df.groupby([self.sensitive_feature_key, self.label_key]).agg({self.label_key: 'count'})
-        r = r.groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))
-        r.rename({self.label_key:'ratio'}, inplace=True, axis=1)
-        r.reset_index(inplace=True)
+        r = self.data.groupby([self.sensitive_feature_key, self.label_key])\
+                        .agg({self.label_key: 'count'})\
+                        .groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))\
+                        .rename({self.label_key:'ratio'}, inplace=False, axis=1)\
+                        .reset_index(inplace=False)
 
         # Compute the maximum difference between any two pairs of groups
         demographic_parity_difference = r.groupby(self.label_key)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
@@ -316,6 +311,7 @@ class DatasetModule(CredoModule):
         # Compute the minimum ratio between any two pairs of groups
         demographic_parity_ratio = r.groupby(self.label_key)['ratio'].apply(lambda x: np.min(x)/np.max(x)).reset_index(name='value').to_dict(orient='records')
         
-        results['metrics'] = {'demographic_parity_difference': demographic_parity_difference, 'demographic_parity_ratio': demographic_parity_ratio}
+        balance_results['demographic_parity_difference'] = demographic_parity_difference
+        balance_results['demographic_parity_ratio'] = demographic_parity_ratio
 
-        return results
+        return balance_results
