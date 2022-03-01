@@ -14,6 +14,7 @@ class DatasetModuleReporter(CredoReporter):
 
     def create_report(self, filename=None):
         """Creates a fairness report for dataset assessment
+
         Parameters
         ----------
         filename : string, optional
@@ -40,7 +41,9 @@ class DatasetModuleReporter(CredoReporter):
         return self.figs
 
     def _plot_balance_metrics(self):
-        """Generates data balance charts including:
+        """Generates data balance charts
+
+        They include:
         - Data balance across sensitive feature subgroups
         - Data balance across sensitive feature subgroups and label values
         - Demographic parity metrics for different preferred label value possibilities
@@ -131,33 +134,44 @@ class DatasetModuleReporter(CredoReporter):
 
     def _plot_group_diff(self):
         """Generates group difference barplots"""
+
         results_all = self.module.get_results()
         results = results_all["standardized_group_diffs"]
+        abs_sum = -1
+        for k, v in results.items():
+            diffs = list(v.values())
+            abs_sum_new = sum([abs(x) for x in diffs])
+            if abs_sum_new > abs_sum:
+                max_pair_key, max_pair_values = k, v
+                abs_sum_new = abs_sum
+
+        if not max_pair_values:  # do not plot when standardized_group_diffs is empty, which happens when none of the features are numeric 
+            return
+
         with plot_utils.get_style(figsize=self.size, figure_ratio=0.7):
-            f, axes = plt.subplots(nrows=len(results))
-            if len(results) == 1:
-                axes = [axes]
-            for ax, (k, v) in zip(axes, results.items()):
-                df = pd.DataFrame(v.items(), columns=["feature", "group difference"])
-                sns.barplot(
-                    x="feature",
-                    y="group difference",
-                    data=df,
-                    palette=plot_utils.credo_diverging_palette(1),
-                    alpha=1,
-                    ax=ax,
-                )
-                f.patch.set_facecolor("white")
-                ax.axhline(0, color="k")
-                sns.despine()
-                ax.set_title("Group differences for " + k + "\ncombination across features")
-                ax.set_xlabel("")
-                ax.set_ylabel("Group difference")
-                ax.xaxis.set_tick_params(rotation=90)
+            f, ax = plt.subplots()
+            df = pd.DataFrame(max_pair_values.items(), columns=["feature", "group difference"])
+            sns.barplot(
+                x="feature",
+                y="group difference",
+                data=df,
+                palette=plot_utils.credo_diverging_palette(1),
+                alpha=1,
+                dodge=False,
+            )
+            f.patch.set_facecolor("white")
+            ax.axhline(0, color="k")
+            sns.despine()
+            ax.set_title("Group differences for " + max_pair_key)
+            ax.set_xlabel("")
+            ax.set_ylabel("Group difference")
+            ax.xaxis.set_tick_params(rotation=90)
+
         self.figs.append(f)
 
     def _plot_mutual_information(self):
-        """Generates normalized mututal information between features and sensitive attribute"""
+        """Generates normalized mutual information between features and sensitive attribute"""
+
         results_all = self.module.get_results()
         results = results_all["normalized_mutual_information"]
         df = pd.DataFrame.from_dict(results, orient="index").reset_index()
@@ -203,4 +217,5 @@ class DatasetModuleReporter(CredoReporter):
             ax.xaxis.set_tick_params(rotation=90)
             ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
             ax.legend(loc='upper right')
+
         self.figs.append(f)
