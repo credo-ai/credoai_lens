@@ -62,8 +62,7 @@ class DatasetModule(CredoModule):
         self.results = {**sensitive_feature_prediction_results,
                         'standardized_group_diffs': group_differences,
                         'normalized_mutual_information': normalized_mutual_information,
-                        'balance_metrics': balance_metrics,
-                        'meta_data': {'sensitive_feature_key':self.sensitive_feature_key, 'label_key':self.label_key}
+                        **balance_metrics
                         }  
         return self  
     
