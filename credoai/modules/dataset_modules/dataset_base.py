@@ -98,6 +98,7 @@ class DatasetModule(CredoModule):
     
     def _run_cv(self):
         """Determines cross-validated ROC-AUC score
+        
         A model is trained on the features to predict the sensitive attribute.
         The score quantifies the performance of this prediction. 
         A high score means the data collectively serves as a proxy.
