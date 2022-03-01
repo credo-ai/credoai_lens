@@ -97,10 +97,11 @@ class DatasetModule(CredoModule):
         return diffs
     
     def _run_cv(self):
-        """Determines cross-validated ROC-AUC score
-        
+        """Determines redundant encoding
+
         A model is trained on the features to predict the sensitive attribute.
-        The score quantifies the performance of this prediction. 
+        The score is cross-validated ROC-AUC score.
+        It quantifies the performance of this prediction. 
         A high score means the data collectively serves as a proxy.
 
         Parameters
