@@ -76,7 +76,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         if self.results is not None:
             # Calculate statistics across groups and assessment attributes
             results = (
-                self.results[
+                self.results['assessment_results'][
                     ["generation_model", "group", "assessment_attribute", "value"]
                 ]
                 .groupby(
@@ -160,7 +160,7 @@ class NLPGeneratorAnalyzer(CredoModule):
 
         dfrunst_assess = pd.concat(dfrunst_assess_lst).reset_index(drop=True)
 
-        self.results = dfrunst_assess
+        self.results = {'assessment_results': dfrunst_assess}
 
         return self
 

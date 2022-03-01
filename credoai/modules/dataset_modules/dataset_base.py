@@ -60,7 +60,7 @@ class DatasetModule(CredoModule):
         normalized_mutual_information = self._calculate_mutual_information()
         balance_metrics = self._assess_balance_metrics()
         self.results = {**sensitive_feature_prediction_results,
-                        'group_diffs': group_differences,
+                        'standardized_group_diffs': group_differences,
                         'normalized_mutual_information': normalized_mutual_information,
                         'balance_metrics': balance_metrics,
                         'meta_data': {'sensitive_feature_key':self.sensitive_feature_key, 'label_key':self.label_key}
@@ -313,5 +313,4 @@ class DatasetModule(CredoModule):
         
         balance_results['demographic_parity_difference'] = demographic_parity_difference
         balance_results['demographic_parity_ratio'] = demographic_parity_ratio
-
         return balance_results

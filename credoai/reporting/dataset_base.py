@@ -8,17 +8,16 @@ from credoai.reporting import plot_utils
 
 
 class DatasetModuleReporter(CredoReporter):
-    def __init__(self, assessment):
+    def __init__(self, assessment, size=5):
         super().__init__(assessment)
+        self.size = size
 
     def create_report(self, filename=None):
         """Creates a fairness report for dataset assessment
-
         Parameters
         ----------
         filename : string, optional
             If given, the location where the generated pdf report will be saved, by default Non
-
         Returns
         -------
         array of figures
@@ -32,9 +31,8 @@ class DatasetModuleReporter(CredoReporter):
         # Generate mutual information charts
         self._plot_mutual_information()
 
-        # Generate overall proxy score plot
-        self._plot_sensitive_feature_prediction_score()
-
+        # display
+        plt.show()
         # Save to pdf if requested
         if filename:
             self.export_report(filename)
@@ -47,131 +45,116 @@ class DatasetModuleReporter(CredoReporter):
         - Data balance across sensitive feature subgroups and label values
         - Demographic parity metrics for different preferred label value possibilities
         """
-        fig, axs = plt.subplots(nrows=3, figsize=(8, 8), dpi=150)
-        results_all = self.module.get_results()
+        with plot_utils.get_style(figsize=self.size, rc={'font.size': self.size*1.5}):
+            f, axes = plt.subplots(nrows=3)
+            plt.subplots_adjust(hspace=1.8)
+            results_all = self.module.get_results()
 
-        # Generate sample balance barplots
-        results = results_all["balance_metrics"]["sample_balance"]
-        df = pd.DataFrame(results)
-        sensitive_feature_name = results_all["meta_data"]["sensitive_feature_key"]
-
-        ax = sns.barplot(
-            x="count",
-            y=sensitive_feature_name,
-            data=df,
-            palette=plot_utils.credo_diverging_palette(1),
-            alpha=1,
-            ax=axs[0],
-        )
-        fig.patch.set_facecolor("white")
-        sns.despine()
-        ax.set_title("Data balance across " + sensitive_feature_name + " subgroups")
-        ax.set_xlabel("Number of data samples")
-        ax.set_ylabel("")
-
-        # Generate label balance barplots
-        results = results_all["balance_metrics"]["label_balance"]
-        df = pd.DataFrame(results)
-        label_name = results_all["meta_data"]["label_key"]
-
-        num_classes = df[label_name].nunique()
-        ax = sns.barplot(
-            x="count",
-            y=sensitive_feature_name,
-            hue=label_name,
-            data=df,
-            palette=plot_utils.credo_diverging_palette(num_classes),
-            alpha=1,
-            ax=axs[1],
-        )
-        fig.patch.set_facecolor("white")
-        sns.despine()
-        ax.set_title(
-            "Data balance across "
-            + sensitive_feature_name
-            + " subgroups and label values"
-        )
-        ax.set_xlabel("Number of data samples")
-        ax.set_ylabel("")
-        ax.legend(
-            bbox_to_anchor=(0.5, -0.3),
-            loc="upper center",
-            frameon=False,
-            ncol=num_classes,
-        )
-        ax.legend_.set_title(label_name)
-
-        # Generate parity metrics barplots
-        results = results_all["balance_metrics"]["metrics"]
-
-        lst = []
-        for k, v in results.items():
-            temp = pd.DataFrame(v)
-            temp["metric"] = k.replace("_", " ")
-            lst.append(temp)
-
-        df = pd.concat(lst)
-
-        ax = sns.barplot(
-            x="value",
-            y="metric",
-            hue=label_name,
-            data=df,
-            palette=plot_utils.credo_diverging_palette(num_classes),
-            alpha=1,
-            ax=axs[2],
-        )
-        fig.patch.set_facecolor("white")
-        sns.despine()
-        plt.title("Parity metrics for different preferred label value possibilities")
-        plt.xlabel("")
-        plt.ylabel("")
-        plt.legend(
-            bbox_to_anchor=(0.5, -0.2),
-            loc="upper center",
-            frameon=False,
-            ncol=num_classes,
-        )
-        ax.legend_.set_title(label_name)
-
-        plt.tight_layout()
-
-        self.figs.append(fig)
-
-    def _plot_group_diff(self):
-        """Generates group difference barplots
-        If sensitive feature has more than two subgroups, the group differences is plotted for the pair with maximum total absolute differences.
-        """
-        results_all = self.module.get_results()
-        results = results_all["group_diffs"]
-        abs_sum = -1
-        for k, v in results.items():
-            diffs = list(v.values())
-            abs_sum_new = sum([abs(x) for x in diffs])
-            if abs_sum_new > abs_sum:
-                max_pair_key, max_pair_values = k, v
-                abs_sum_new = abs_sum
-        
-        if max_pair_values:  # do not plot when group_diffs is empty, which happens when none of the features are numeric 
-            df = pd.DataFrame(max_pair_values.items(), columns=["feature", "group difference"])
-            fig = plt.figure(dpi=150)
+            # Generate sample balance barplots
+            results = results_all["sample_balance"]
+            df = pd.DataFrame(results)
+            sensitive_feature_name = list(df.drop(["count", "percentage"], axis=1).columns)[
+                0
+            ]
             ax = sns.barplot(
-                x="feature",
-                y="group difference",
+                x="count",
+                y=sensitive_feature_name,
                 data=df,
                 palette=plot_utils.credo_diverging_palette(1),
-                alpha=1,
-                dodge=False,
+                ax=axes[0],
             )
-            fig.patch.set_facecolor("white")
-            ax.axhline(0, color="k")
+            f.patch.set_facecolor("white")
             sns.despine()
-            ax.set_title("Group differences for " + max_pair_key)
-            ax.set_xlabel("")
-            ax.set_ylabel("Group difference")
-            ax.xaxis.set_tick_params(rotation=90)
+            ax.set_title("Data balance across " + sensitive_feature_name + " subgroups")
+            ax.set_xlabel("Number of data samples")
+            ax.set_ylabel("")
 
-            self.figs.append(fig)
+            # Generate label balance barplots
+            results = results_all["label_balance"]
+            df = pd.DataFrame(results)
+            label_name = list(df.drop([sensitive_feature_name, "count"], axis=1).columns)[0]
+
+            num_classes = df[label_name].nunique()
+            ax = sns.barplot(
+                x="count",
+                y=sensitive_feature_name,
+                hue=label_name,
+                data=df,
+                palette=plot_utils.credo_diverging_palette(num_classes),
+                alpha=1,
+                ax=axes[1],
+            )
+            f.patch.set_facecolor("white")
+            sns.despine()
+            ax.set_title(
+                "Data balance across "
+                + sensitive_feature_name
+                + " subgroups and label values"
+            )
+            ax.set_xlabel("Number of data samples")
+            ax.set_ylabel("")
+            ax.get_legend().set_visible(False)
+
+            # Generate parity metrics barplots
+            metric_keys = ['demographic_parity_difference',
+                        'demographic_parity_ratio']
+
+            lst = []
+            for metric in metric_keys:
+                temp = pd.DataFrame(results_all[metric])
+                temp["metric"] = metric.replace("_", " ")
+                lst.append(temp)
+
+            df = pd.concat(lst)
+            ax = sns.barplot(
+                x="value",
+                y="metric",
+                hue=label_name,
+                data=df,
+                palette=plot_utils.credo_diverging_palette(num_classes),
+                ax=axes[2],
+            )
+            f.patch.set_facecolor("white")
+            sns.despine()
+            plt.title("Parity metrics for different preferred label value possibilities")
+            plt.xlabel("Value")
+            plt.ylabel("")
+            plt.legend(
+                bbox_to_anchor=(1.2, 0.5), 
+                loc="center",
+                frameon=False,
+                ncol=num_classes,
+                title=label_name
+            )
+            ax.legend_.set_title(label_name)
+        self.figs.append(f)
+
+    def _plot_group_diff(self):
+        """Generates group difference barplots"""
+        results_all = self.module.get_results()
+        results = results_all["standardized_group_diffs"]
+        with plot_utils.get_style(figsize=self.size, figure_ratio=0.7):
+            f, axes = plt.subplots(nrows=len(results))
+            if len(results) == 1:
+                axes = [axes]
+            for ax, (k, v) in zip(axes, results.items()):
+                df = pd.DataFrame(v.items(), columns=["feature", "group difference"])
+                sns.barplot(
+                    x="feature",
+                    y="group difference",
+                    data=df,
+                    palette=plot_utils.credo_diverging_palette(1),
+                    alpha=1,
+                    ax=ax,
+                )
+                f.patch.set_facecolor("white")
+                ax.axhline(0, color="k")
+                sns.despine()
+                ax.set_title("Group differences for " + k + "\ncombination across features")
+                ax.set_xlabel("")
+                ax.set_ylabel("Group difference")
+                ax.xaxis.set_tick_params(rotation=90)
+        self.figs.append(f)
 
     def _plot_mutual_information(self):
         """Generates normalized mututal information between features and sensitive attribute"""
@@ -196,38 +179,28 @@ class DatasetModuleReporter(CredoReporter):
         ref_name = ref.iloc[0]["feature"]
         ref_type = ref.iloc[0]["feature type"].split("_")[0]
 
-        fig = plt.figure(dpi=150)
-        num_types = 2
-        ax = sns.barplot(
-            x="feature",
-            y="mutual information",
-            hue="feature type",
-            data=df,
-            palette=plot_utils.credo_diverging_palette(num_types),
-            alpha=1,
-            dodge=False,
-        )
-        fig.patch.set_facecolor("white")
-        ax.axhline(0, color="k")
-        sns.despine()
-        ax.set_title(
-            "Normalized mututal information with " + ref_type + " feature " + ref_name
-        )
-        ax.set_xlabel("")
-        ax.set_ylabel("Normalized mutual information")
-        ax.set_ylim([0, 1])
-        ax.xaxis.set_tick_params(rotation=90)
-        ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
-
-        self.figs.append(fig)
-
-    def _plot_sensitive_feature_prediction_score(self):
-        """Generates sensitive feature prediction ROC AUC score plot"""
-        results_all = self.module.get_results()
-        sensitive_feature_prediction_score = results_all["sensitive_feature_prediction_score"]
-        sensitive_feature_name = results_all["meta_data"]["sensitive_feature_key"]
-        fig = plt.figure(figsize=(5, 0.3), dpi=150)
-        plt.axis('off')
-        plt.text(0, 0.5, sensitive_feature_name + ' feature prediction ROC AUC score: ' + str(round(sensitive_feature_prediction_score, 3)))
-
-        self.figs.append(fig)
+        with plot_utils.get_style(figsize=self.size, figure_ratio=0.7) as style:
+            f, ax = plt.subplots()
+            num_types = 2
+            sns.barplot(
+                x="feature",
+                y="mutual information",
+                hue="feature type",
+                data=df,
+                palette=plot_utils.credo_diverging_palette(num_types),
+                alpha=1,
+                dodge=False,
+            )
+            f.patch.set_facecolor("white")
+            ax.axhline(0, color="k", lw=self.size/6)
+            sns.despine()
+            ax.set_title(
+                "Normalized mututal information\n with " + ref_type + " feature " + ref_name
+            )
+            ax.set_xlabel("")
+            ax.set_ylabel("Normalized mutual information")
+            ax.set_ylim([0, 1])
+            ax.xaxis.set_tick_params(rotation=90)
+            ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+            ax.legend(loc='upper right')
+        self.figs.append(f)
