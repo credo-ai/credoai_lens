@@ -239,5 +239,4 @@ class DatasetModule(CredoModule):
         
         balance_results['demographic_parity_difference'] = demographic_parity_difference
         balance_results['demographic_parity_ratio'] = demographic_parity_ratio
-
         return balance_results

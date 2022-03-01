@@ -3,6 +3,7 @@ Defines abstract base class for all CredoReports
 """
 
 from abc import ABC, abstractmethod
+from credoai.reporting.plot_utils import get_table_style, format_label
 from credoai.utils.common import ValidationError
 from credoai.reporting.plot_utils import get_table_style, format_label
 from credoai.reporting.reports import AssessmentReport
@@ -65,7 +66,6 @@ class CredoReporter(ABC):
         assessment_description = self.assessment.get_description()
         description = f"""\
         <hr style="border:2px solid #3b07b4"> </hr>
-
         ## {self.assessment.name} Report
         
         #### Description

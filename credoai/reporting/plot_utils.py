@@ -6,7 +6,6 @@ import textwrap
 
 DEFAULT_COLOR = '#4937c0'
 
-from credoai.reporting.plot_utils import *
 def get_style(rc=None, figsize=3, figure_ratio=1, n_cols=1, n_rows=1):
     """Sets default styling for plots
 
@@ -41,9 +40,10 @@ def get_style(rc=None, figsize=3, figure_ratio=1, n_cols=1, n_rows=1):
     # fontsizes defined relative to font.size
     # xx-small, x-small, small, medium, large, x-large, xx-large, larger, or smaller
     style = {'figure.figsize': fig_dims,
-             'figure.dpi': 200,
+             'figure.dpi': 300,
              'font.size': figsize*3,
              'lines.linewidth': figsize/3,
+             'axes.linewidth': figsize/3,
              'axes.titlesize': 'large',
              'axes.titlepad': figsize*2,
              'axes.labelsize': 'medium',
@@ -55,7 +55,7 @@ def get_style(rc=None, figsize=3, figure_ratio=1, n_cols=1, n_rows=1):
     # adjust the tick params
     tick_pad = figsize
     tick_size = {'major': figsize*2, 'minor': figsize}
-    tick_width = {'major': figsize/3, 'minor': figsize/4}
+    tick_width = {'major': figsize/4, 'minor': figsize/5}
     for axis in ['ytick', 'xtick']:
         for kind in ['major', 'minor']:
             style[f'{axis}.{kind}.size'] = tick_size[kind]

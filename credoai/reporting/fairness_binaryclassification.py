@@ -82,12 +82,10 @@ class FairnessReporter(CredoReporter):
 
     def plot_fairness(self):
         """Plots fairness for binary classification
-
         Creates plots for binary classification model that summarizes
         performance disparities across groups. Individual group
         performance plots are also relevant for fully describing
         performance differences.
-
         Returns
         -------
         matplotlib figure
@@ -96,7 +94,7 @@ class FairnessReporter(CredoReporter):
         if self.module.metric_frames != {}:
             plot_disaggregated = True
         n_plots = 1+plot_disaggregated
-        with get_style(figsize=self.size*.6, n_cols=n_plots):
+        with get_style(figsize=self.size, n_cols=n_plots):
             f, axes = plt.subplots(1, n_plots)
             plt.subplots_adjust(wspace=0.7)
             axes = axes.flat
@@ -108,10 +106,8 @@ class FairnessReporter(CredoReporter):
     
     def plot_performance(self, y_true, y_pred, label, **grid_kwargs):
         """Plots performance for binary classification
-
         Plots "infographic" depiction of outcomes for ground truth
         and model performance, as well as a confusion matrix.
-
         Parameters
         ----------
         y_true : (List, pandas.Series, numpy.ndarray)
@@ -120,7 +116,6 @@ class FairnessReporter(CredoReporter):
             The predicted labels for classification
         label : str
             super title for set of performance plots
-
         Returns
         -------
         matplotlib figure
