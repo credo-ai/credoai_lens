@@ -116,9 +116,19 @@ class MainReport(NotebookReport):
         </script>
         <form action="javascript:code_toggle()"><input type="submit" value="Click here to toggle on/off the raw code."></form>''')
         """
+        event_listener = """\
+        HTML('''<script>
+        window.addEventListener('load', function() {
+	    let message = { height: document.body.scrollHeight, width: document.body.scrollWidth };	
+	    window.top.postMessage(message, "*");
+        });
+        </script>
+        ''')
+        """
 
         cells = [(boiler_plate, 'markdown'),
-                 (toggle_code, 'code')]
+                 (toggle_code, 'code'),
+                 (event_listener, 'code')]
         self.add_cells(cells)
     
     def get_toc(self):
@@ -135,10 +145,6 @@ class MainReport(NotebookReport):
     def create_report(self, lens):
         self.create_boiler_plate(lens)
         cells = [
-            ("""## Executive Summary
-            
-            We have executive stuff here
-            """, 'markdown'),
             ("""# <span style="color:#3b07b4">Technical Reports</span>""", 'markdown')
         ]
         self.add_cells(cells)
