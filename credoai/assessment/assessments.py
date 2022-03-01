@@ -18,6 +18,7 @@ class FairnessBaseAssessment(CredoAssessment):
     
     Runs fairness analysis on models with well-defined
     objective functions. Examples include:
+
     * binary classification
     * regression
     * recommendation systems
@@ -209,6 +210,7 @@ class DatasetAssessment(CredoAssessment):
     
     Runs fairness assessment on a CredoDataset. This
     includes:
+    
     * Distributional assessment of dataset
     * Proxy detection
     * Demographic Parity of outcomes
