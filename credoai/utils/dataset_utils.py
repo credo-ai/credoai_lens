@@ -1,7 +1,7 @@
-import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import _VectorizerMixin
 from sklearn.feature_selection._base import SelectorMixin
+import numpy as np
 
 class ColumnTransformerUtil:
     """Utility functions for ColumnTransformer
