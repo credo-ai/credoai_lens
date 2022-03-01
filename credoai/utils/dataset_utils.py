@@ -2,8 +2,6 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import _VectorizerMixin
 from sklearn.feature_selection._base import SelectorMixin
-from sklearn.feature_selection import SelectKBest
-from sklearn.feature_extraction.text import CountVectorizer
 
 class ColumnTransformerUtil:
     """Utility functions for ColumnTransformer
