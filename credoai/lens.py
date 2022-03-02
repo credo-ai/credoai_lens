@@ -267,8 +267,6 @@ class CredoModel:
     model_config : dict, optional
         dictionary containing mappings between CredoModel function names (e.g., "prob_fun")
         and functions (e.g., "model.predict"), by default None
-    metadata: dict, optional
-        Arbitrary additional data that will be associated with the model
     """
 
     def __init__(
@@ -276,7 +274,6 @@ class CredoModel:
         name: str,
         model=None,
         model_config: dict = None,
-        metadata=None
     ):
         self.name = name
         self.config = {}
@@ -335,10 +332,10 @@ class CredoModel:
 
 
 class CredoData:
-    """ Class to store assessment data. 
+    """Class wrapper around data-to-be-assessed
 
-    Lightweight wrapper to hold data for analysis or to pass to 
-    a model. 
+    CredoData serves as an adapter between tabular datasets
+    and the assessments in CredoLens.
 
     Passed to Lens for certain assessments. Either will be used
     by a CredoModel to make predictions or analyzed itself. 
@@ -356,18 +353,15 @@ class CredoData:
     categorical_features_keys : list[str], optional
         Names of the categorical features
     unused_features_keys : list[str], optional
-        Names of the features to ignore when performing prediction
+        Names of the features to ignore when performing prediction.
         Include all the features in the data that were not used during model training
-    metadata: dict, optional
-        Arbitrary additional data that will be associated with the dataset
+    drop_sensitive_feature : bool, optional
+        If True, automatically adds sensitive_feature_key to the list of 
+        unused_features_keys. If you do not explicitly use the sensitive feature
+        in your model, this argument should be True. Otherwise, set to False.
+        Default, True
+
     """
-    # name: str
-    # data: "model-input"
-    # sensitive_feature_key: "sensitive-feature-key"
-    # label_key: "model-output-key"
-    # categorical_features_keys: "array-like" = None
-    # unused_features_keys: "array-like" = None
-    # metadata: dict = None
 
     def __init__(self,
             name: str,
@@ -375,8 +369,9 @@ class CredoData:
             sensitive_feature_key: str,
             label_key: str,
             categorical_features_keys: Optional[List[str]]=None,
-            unused_features_keys: Optional[List[str]]=None): 
-
+            unused_features_keys: Optional[List[str]]=None,
+            drop_sensitive_feature: bool=True,
+            ): 
         
         self.data = data
         self.sensitive_feature_key = sensitive_feature_key
@@ -386,11 +381,14 @@ class CredoData:
         self.name = name
         self.sensitive_features = data[sensitive_feature_key]
         self.y = data[label_key]
-        X = data.drop(columns=[label_key], axis=1)
 
+        # drop columns from X
+        to_drop = [label_key]
         if unused_features_keys:
-            X = X.drop(columns=unused_features_keys, axis=1, errors='ignore')
-
+            to_drop += unused_features_keys
+        if drop_sensitive_feature:
+            to_drop.append(sensitive_feature_key)
+        X = data.drop(columns=to_drop, axis=1)
         self.X = X
 
     def __post_init__(self):
@@ -461,12 +459,12 @@ class CredoData:
 class Lens:
     def __init__(
         self,
-        governance: CredoGovernance = None,
-        spec: dict = None,
-        assessments: Union[List[CredoAssessment], str] = 'auto',
-        model: CredoModel = None,
-        data: CredoData = None,
-        user_id: str = None,
+        governance: CredoGovernance=None,
+        spec: dict=None,
+        assessments: Union[List[CredoAssessment], str]='auto',
+        model: CredoModel=None,
+        data: CredoData=None,
+        user_id: str=None,
         warning_level=1
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance
