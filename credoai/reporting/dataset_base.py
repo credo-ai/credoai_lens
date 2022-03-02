@@ -14,7 +14,7 @@ class DatasetModuleReporter(CredoReporter):
 
     def create_report(self, filename=None):
         """Creates a fairness report for dataset assessment
-
+        
         Parameters
         ----------
         filename : string, optional
@@ -188,11 +188,6 @@ class DatasetModuleReporter(CredoReporter):
             ascending=[True, False],
         )
 
-        ref = df[df["feature type"].str.contains("reference")]
-        df = df[~df["feature type"].str.contains("reference")]
-        ref_name = ref.iloc[0]["feature"]
-        ref_type = ref.iloc[0]["feature type"].split("_")[0]
-
         with plot_utils.get_style(figsize=self.size, figure_ratio=0.7) as style:
             f, ax = plt.subplots()
             num_types = 2
@@ -209,7 +204,7 @@ class DatasetModuleReporter(CredoReporter):
             ax.axhline(0, color="k", lw=self.size/6)
             sns.despine()
             ax.set_title(
-                "Normalized mututal information\n with " + ref_type + " feature " + ref_name
+                "Normalized mututal information\n with feature: " + self.module.sensitive_features.name
             )
             ax.set_xlabel("")
             ax.set_ylabel("Normalized mutual information")

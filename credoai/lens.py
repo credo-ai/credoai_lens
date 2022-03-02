@@ -351,7 +351,8 @@ class CredoData:
     label_key : str
         Name of the label column
     categorical_features_keys : list[str], optional
-        Names of the categorical features
+        Names of categorical features. If the sensitive feature is categorical, include it in this list.
+        Note - ordinal features should not be included. 
     unused_features_keys : list[str], optional
         Names of the features to ignore when performing prediction.
         Include all the features in the data that were not used during model training
@@ -379,8 +380,8 @@ class CredoData:
         self.categorical_features_keys = categorical_features_keys
 
         self.name = name
-        self.sensitive_features = data[sensitive_feature_key]
         self.y = data[label_key]
+        self.sensitive_features = data[sensitive_feature_key]
 
         # drop columns from X
         to_drop = [label_key]
