@@ -3,6 +3,7 @@ import os
 import pickle
 import textwrap
 from credoai.utils.credo_api_utils import post_use_case_report
+from datetime import datetime
 from inspect import cleandoc
 from nbclient import NotebookClient
 from jupyterlab_nbconvert_nocode.nbconvert_functions import HTMLHideCodeExporter
@@ -112,8 +113,7 @@ class MainReport(NotebookReport):
         
         **Basic Information**
         
-        Model Information
-            
+        * Creation time: {datetime.now().strftime("%Y-%m-%d %H:%M")}
         * Model: {names['model']}
         * Dataset: {names['dataset']}
         """
@@ -140,13 +140,16 @@ class MainReport(NotebookReport):
     
     def get_toc(self):
         toc = """1. [Basic Information](#Basic-Information)
-        1. [Executive Summary](#Executive-Summary)
         1. [Technical Reports](#Technical-Reports)
         """
         toc = cleandoc(toc)
         for reporter in self.reporters:
             tmp = f"\n1. [{reporter.assessment.name} Report](#{reporter.assessment.name}-Report)"
             toc += textwrap.indent(tmp, '    ')
+            result_link  = f"\n1. [{reporter.assessment.name} Results](#{reporter.assessment.name}-Results)"
+            toc += textwrap.indent(result_link, '        ')
+            result_table_link  = f"\n1. [{reporter.assessment.name} Result Tables](#{reporter.assessment.name}-Result-Tables)"
+            toc += textwrap.indent(result_table_link, '        ')
         return toc
 
     def create_report(self, lens):

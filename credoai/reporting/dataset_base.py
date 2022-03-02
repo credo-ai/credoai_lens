@@ -227,15 +227,16 @@ class DatasetModuleReporter(CredoReporter):
             
                 <details>
                 <summary>Assessment Description:</summary>
+                <br>
+                
+                <pr>Though potentially less important than balance of the
+                primary outcome, feature differences are also worth evaluating.</pr>
 
-                Though potentially less important than balance of the
-                primary outcome, feature differences are also worth evaluating.
-
-                While some differences amongst groups should be expected, large deviations
+                <pr>While some differences amongst groups should be expected, large deviations
                 are problematic. One of the main issues is that they may lead
                 to your dataset <em>redundantly encoding</em> sensitive features. In other
                 words, features that differ significantly between groups act as proxies
-                for the sensitive feature.
+                for the sensitive feature.</pr>
                 </details>
                 """, 'markdown')
         return cell

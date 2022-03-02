@@ -24,7 +24,7 @@ class CredoReporter(ABC):
 
     def create_notebook(self):
         report = AssessmentReport({'reporter': self})
-        results_table = [("### Result Tables", "markdown"), 
+        results_table = [(f"### {self.assessment.name} Result Tables", "markdown"), 
                          ("reporter.display_results_tables()", 'code')]
         cells = [(self._get_description(), 'markdown')] \
             + self._create_report_cells() \
@@ -74,7 +74,7 @@ class CredoReporter(ABC):
 
         {textwrap.indent(assessment_description['long'], ' '*4)}
 
-        ### Results
+        ### {self.assessment.name} Results
         """
         return description
 
