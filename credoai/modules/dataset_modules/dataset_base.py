@@ -302,7 +302,7 @@ class DatasetModule(CredoModule):
         # Fairness metrics
         r = self.data.groupby([self.sensitive_feature_key, self.label_key])\
                         .agg({self.label_key: 'count'})\
-                        .groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))\
+                        .groupby(level=0).apply(lambda x: x / float(x.sum()))\
                         .rename({self.label_key:'ratio'}, inplace=False, axis=1)\
                         .reset_index(inplace=False)
 
