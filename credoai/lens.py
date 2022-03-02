@@ -12,7 +12,7 @@ from credoai import __version__
 from dataclasses import dataclass, field
 from os import listdir, makedirs, path
 from sklearn.utils import check_consistent_length
-from typing import List, Union
+from typing import List, Union, Optional
 
 import credoai.integration as ci
 import pandas as pd
@@ -267,8 +267,6 @@ class CredoModel:
     model_config : dict, optional
         dictionary containing mappings between CredoModel function names (e.g., "prob_fun")
         and functions (e.g., "model.predict"), by default None
-    metadata: dict, optional
-        Arbitrary additional data that will be associated with the model
     """
 
     def __init__(
@@ -276,7 +274,6 @@ class CredoModel:
         name: str,
         model=None,
         model_config: dict = None,
-        metadata=None
     ):
         self.name = name
         self.config = {}
@@ -334,12 +331,11 @@ class CredoModel:
             return framework
 
 
-@dataclass
 class CredoData:
-    """ Class to store assessment data. 
+    """Class wrapper around data-to-be-assessed
 
-    Lightweight wrapper to hold data for analysis or to pass to 
-    a model. 
+    CredoData serves as an adapter between tabular datasets
+    and the assessments in CredoLens.
 
     Passed to Lens for certain assessments. Either will be used
     by a CredoModel to make predictions or analyzed itself. 
@@ -348,36 +344,91 @@ class CredoData:
     -------------
     name : str
         Label of the dataset
-    X : data for model-input
-        Features passed to a model. Should be dataframe-like in the case of tabular data
-    y: data analogous model-output
-        Ground-truth labels
-    sensitive_features: array-like, optional
-        Array of sensitive-feature labels. E.g., protected attributes like race or gender
-        or categorical labels for important performance dimensions (["bright_lighting", "dark_lighting"])
-    metadata: dict, optional
-        Arbitrary additional data that will be associated with the dataset
+    data : pd.DataFrame
+        Dataset dataframe that includes all features and labels
+    sensitive_feature_key : str
+        Name of the sensitive feature column, like 'race' or 'gender'
+    label_key : str
+        Name of the label column
+    categorical_features_keys : list[str], optional
+        Names of categorical features. If the sensitive feature is categorical, include it in this list.
+        Note - ordinal features should not be included. 
+    unused_features_keys : list[str], optional
+        Names of the features to ignore when performing prediction.
+        Include all the features in the data that were not used during model training
+    drop_sensitive_feature : bool, optional
+        If True, automatically adds sensitive_feature_key to the list of 
+        unused_features_keys. If you do not explicitly use the sensitive feature
+        in your model, this argument should be True. Otherwise, set to False.
+        Default, True
+
     """
-    name: str
-    X: "model-input"
-    y: "model-output"
-    sensitive_features: 'array-like' = None
-    metadata: dict = None
+
+    def __init__(self,
+            name: str,
+            data: pd.DataFrame,
+            sensitive_feature_key: str,
+            label_key: str,
+            categorical_features_keys: Optional[List[str]]=None,
+            unused_features_keys: Optional[List[str]]=None,
+            drop_sensitive_feature: bool=True,
+            ): 
+        
+        self.data = data
+        self.sensitive_feature_key = sensitive_feature_key
+        self.label_key = label_key
+        self.categorical_features_keys = categorical_features_keys
+
+        self.name = name
+        self.y = data[label_key]
+        self.sensitive_features = data[sensitive_feature_key]
+
+        # drop columns from X
+        to_drop = [label_key]
+        if unused_features_keys:
+            to_drop += unused_features_keys
+        if drop_sensitive_feature:
+            to_drop.append(sensitive_feature_key)
+        X = data.drop(columns=to_drop, axis=1)
+        self.X = X
 
     def __post_init__(self):
         self.metadata = self.metadata or {}
         self._validate_data()
 
     def _validate_data(self):
-        try:
-            check_consistent_length(self.X, self.y)
-        except ValueError:
-            raise ValidationError("X and y don't have the same length")
-        try:
-            check_consistent_length(self.X, self.sensitive_features)
-        except ValueError:
+        # Validate the types 
+        if not isinstance(self.data, pd.DataFrame):
             raise ValidationError(
-                f"X and sensitive features don't have the same index")
+                "The provided data type is " + self.data.__class__.__name__ + " but the required type is pd.DataFrame"
+            )
+        if not isinstance(self.sensitive_feature_key, str):
+            raise ValidationError(
+                "The provided sensitive_feature_key type is " + self.sensitive_feature_key.__class__.__name__ + " but the required type is str"
+            )
+        if not isinstance(self.label_key, str):
+            raise ValidationError(
+                "The provided label_key type is " + self.label_key.__class__.__name__ + " but the required type is str"
+            )
+        if self.categorical_features_keys and not isinstance(self.categorical_features_keys, list):
+            raise ValidationError(
+                "The provided label_key type is " + self.label_key.__class__.__name__ + " but the required type is list"
+            )
+        # Validate that the data column names are unique
+        if len(self.data. columns) != len(set(self.data. columns)):
+            raise ValidationError(
+                "The provided data contains duplicate column names"
+            )
+        # Validate that the data contains the provided sensitive feature and label keys
+        col_names = list(self.data.columns)
+        if self.sensitive_feature_key not in col_names:
+            raise ValidationError(
+                "The provided sensitive_feature_key " + self.sensitive_feature_key + " does not exist in the provided data"
+            )
+        if self.label_key not in col_names:
+            raise ValidationError(
+                "The provided label_key " + self.label_key + " does not exist in the provided data"
+            )
 
     @staticmethod
     def _concat_features_label_to_dataframe(X, y, sensitive_features):
@@ -409,12 +460,12 @@ class CredoData:
 class Lens:
     def __init__(
         self,
-        governance: CredoGovernance = None,
-        spec: dict = None,
-        assessments: Union[List[CredoAssessment], str] = 'auto',
-        model: CredoModel = None,
-        data: CredoData = None,
-        user_id: str = None,
+        governance: CredoGovernance=None,
+        spec: dict=None,
+        assessments: Union[List[CredoAssessment], str]='auto',
+        model: CredoModel=None,
+        data: CredoData=None,
+        user_id: str=None,
         warning_level=1
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance

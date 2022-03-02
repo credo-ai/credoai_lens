@@ -1,52 +1,77 @@
+import numpy as np
+import pandas as pd
 from credoai.modules.credo_module import CredoModule
-from credoai.utils.common import NotRunError
-from credoai.utils.dataset_utils import concat_features_label_to_dataframe
+from credoai.utils.common import NotRunError, is_categorical
+from credoai.utils.dataset_utils import ColumnTransformerUtil
 from credoai.utils.model_utils import get_gradient_boost_model
 from itertools import combinations
-import numpy as np
+from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.metrics import roc_auc_score, make_scorer
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
+from typing import List, Optional
 
-import pandas as pd
 
 class DatasetModule(CredoModule):
-    """Dataset module for Credo AI. 
+    """Dataset module for Credo AI.
 
-    This module takes in features and labels and provides functionality to:
-    - perform proxy analysis of features
-    - generate fairness-oriented descriptive information 
+    This module takes in features and labels and provides functionality to perform dataset assessment
 
     Parameters
     ----------
-    X : (List, pandas.Series, numpy.ndarray)
+    X : pandas.DataFrame
         The features
-    y : (List, pandas.Series, numpy.ndarray)
-        The labels
-    sensitive_features : (List, pandas.Series, numpy.ndarray)
-        The sensitive features which should be used to create subgroups
+    y : pandas.Series
+        The outcome labels
+    sensitive_features : pandas.Series
+        A series of the sensitive feature labels (e.g., "male", "female") which should be used to create subgroups
+    categorical_features_keys : list[str], optional
+        Names of the categorical features
+    categorical_threshold : float
+        Parameter for automatically identifying categorical columns. See
+        `credoai.utils.common.is_categorical`
     """    
     def __init__(self,
-                 X,
-                 y,
-                 sensitive_features):                
-        self.X = pd.DataFrame(X)
-        self.y = y
+                X,
+                y,
+                sensitive_features: pd.Series,
+                categorical_features_keys: Optional[List[str]]=None,
+                categorical_threshold: float=0.05):
+
+        self.data = pd.concat([X, y], axis=1)
         self.sensitive_features = sensitive_features
+        self.X = X
+        self.y = y
+
+        # set up categorical features
+        if categorical_features_keys:
+            self.categorical_features_keys = categorical_features_keys.copy()
+            if self.sensitive_features.name in self.categorical_features_keys:
+                self.sensitive_features = self.sensitive_features.astype('category')
+                self.categorical_features_keys.remove(self.sensitive_features.name)
+        else:
+            self.categorical_features_keys = self._find_categorical_features(categorical_threshold)
     
     def run(self):
-        pipe = self._make_pipe()
-        cv_results = self._run_cv(pipe)
+        """Runs the assessment process
+
+        Returns
+        -------
+        dict, nested
+            Key: assessment category
+            Values: detailed results associated with each category
+        """        
+        sensitive_feature_prediction_results = self._run_cv()
         group_differences = self._group_differences()
         normalized_mutual_information = self._calculate_mutual_information()
         balance_metrics = self._assess_balance_metrics()
-        self.results = {'overall_proxy_score': cv_results.mean(),
+        self.results = {**sensitive_feature_prediction_results,
                         'standardized_group_diffs': group_differences,
                         'normalized_mutual_information': normalized_mutual_information,
-                        **balance_metrics}   
+                        **balance_metrics
+                        }  
         return self  
     
     def prepare_results(self):
@@ -58,6 +83,18 @@ class DatasetModule(CredoModule):
             )
     
     def _group_differences(self):
+        """Calculates standardized mean differences
+
+        It is performed for all numeric features and all possible group pairs combinations present in the sensitive feature.
+
+        Returns
+        -------
+        dict, nested
+            Key: sensitive feature groups pair
+            Values: dict
+                Key: name of feature
+                Value: standardized mean difference
+        """
         group_means = self.X.groupby(self.sensitive_features).mean()
         std = self.X.std(numeric_only=True)
         diffs = {}
@@ -67,125 +104,163 @@ class DatasetModule(CredoModule):
 
         return diffs
     
-    def _run_cv(self, pipe):
-        scorer = make_scorer(roc_auc_score, 
-                             needs_proba=True,
-                             multi_class='ovo')
-        results = cross_val_score(pipe, self.X, self.y,
-                             cv = StratifiedKFold(5),
-                             scoring = scorer)
-        return results
-    
-    def _make_pipe(self):
-        model = get_gradient_boost_model()
-        
-        pipe = Pipeline(steps = 
-               [('scaler', StandardScaler()),
-                ('model', model)])
-        return pipe
+    def _run_cv(self):
+        """Determines redundant encoding
 
-    
-    def _find_categorical_features(self, df, threshold=0.10):
-        """Identifies categorical features
-        Logic: If type is not float and there are relatively few unique values for a feature, the feature is likely categorical.
+        A model is trained on the features to predict the sensitive attribute.
+        The score is cross-validated ROC-AUC score.
+        It quantifies the performance of this prediction. 
+        A high score means the data collectively serves as a proxy.
 
         Parameters
         ----------
-        df : pandas.dataframe
-            A dataframe
+        pipe : sklearn.pipeline
+            Pipeline of transforms
 
-        threshold : float
-            The unique-count over total-count threshold
+        Returns
+        -------
+        ndarray
+            Cross-validation score
+        """
+        results = {}
+        if self.sensitive_features.dtype == 'category':
+            sensitive_features = self.sensitive_features.cat.codes
+        else:
+            sensitive_features = self.sensitive_features
+        
+        pipe = self._make_pipe()
+        scorer = make_scorer(roc_auc_score, 
+                             needs_proba=True,
+                             multi_class='ovo')
+        cv_results = cross_val_score(pipe, self.X, sensitive_features,
+                             cv = StratifiedKFold(5),
+                             scoring = scorer,
+                             error_score='raise')
+
+        # Get feature importances by running once
+        pipe.fit(self.X, sensitive_features)
+        model = pipe['model']
+        preprocessor = pipe['preprocessor']
+        col_names = ColumnTransformerUtil.get_ct_feature_names(preprocessor)
+        feature_importances = pd.Series(model.feature_importances_, 
+            index=col_names).sort_values(ascending=False)
+        results['sensitive_feature_prediction_score'] = cv_results.mean()
+        results['sensitive_feature_prediction_feature_importances'] = feature_importances.to_dict()
+
+        return results
+    
+    def _make_pipe(self):
+        """Makes a pipeline
+
+        Returns
+        -------
+        sklearn.pipeline
+            Pipeline of scaler and model transforms
+        """
+        categorical_features = self.categorical_features_keys.copy()
+        numeric_features = [x for x in self.X.columns if x not in categorical_features]
+
+        # Define features tansformers
+        categorical_transformer = OneHotEncoder(handle_unknown="ignore")
+        
+        numeric_transformer = Pipeline(
+            steps=[("scaler", StandardScaler())]
+        )
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ("num", numeric_transformer, numeric_features),
+                ("cat", categorical_transformer, categorical_features),
+            ]
+        )
+
+        model = get_gradient_boost_model()
+
+        pipe = Pipeline(
+            steps=[("preprocessor", preprocessor), ("model", model)]
+        )
+        
+        return pipe
+
+    def _find_categorical_features(self, threshold):
+        """Identifies categorical features
 
         Returns
         -------
         list
             Names of categorical features
-        """        
-        cols = df.columns
-        float_cols = df.select_dtypes(include=[np.float]).columns
-        cat_cols = set(cols) - set(float_cols)
+        """
+        if is_categorical(self.sensitive_features, threshold=threshold):
+            self.sensitive_features = self.sensitive_features.astype('category')
+        cat_cols = []
+        for name, column in self.X.iteritems():
+            if is_categorical(column, threshold=threshold):
+                cat_cols.append(name)
+        return cat_cols
 
-        for name, column in df.iteritems():
-            unique_count = column.unique().shape[0]
-            total_count = column.shape[0]
-            if unique_count / total_count < threshold:
-                cat_cols.add(name)
-
-        return list(cat_cols)
-
-    def _calculate_mutual_information(self, categorical_features=None, normalize=True):
+    def _calculate_mutual_information(self, normalize=True):
         """Calculates normalized mutual information between sensitive feature and other features
-        Mutual information is the "amount of information" obtained about the sensitive feature by observing the other feature.
-        It can therefore be used to proxy detection purposes.
+
+        Mutual information is the "amount of information" obtained about the sensitive feature by observing another feature.
+        Mutual information is useful to proxy detection purposes.
 
         Parameters
         ----------
-        categorical_features : [str], optional
-            List of the categorical features (including the sensitive attribute) in the dataset, by default None
-            If not provided, all non-float-type features are considered as categorical features
+        normalize : bool, optional
+            If True, calculated mutual information values are normalized
+            Normalization is done via dividing by the mutual information between the sensitive feature and itself.
 
         Returns
         -------
-        dict
-            Normalized mutual information between sensitive feature and features and their considered feature type (categorical/continuous)
-            Normalized mutual information between sensitive feature and itself is always 1, but is included to report its considered type
-        """
-
-        # Create a pandas dataframe of features and sensitive feature
-        if isinstance(self.sensitive_features, pd.Series):
-            df = pd.concat([self.X, self.sensitive_features], axis=1)
-            sensitive_feature_name = self.sensitive_features.name
-        else:
-            df = self.X.copy()
-            df["sensitive_feature"] = self.sensitive_features
-            sensitive_feature_name = "sensitive_feature"
-
-        # Estimate categorical features, if not provided
-        if not categorical_features:
-            categorical_features = self._find_categorical_features(df)
-
+        dict, nested
+            Key: feature name
+            Value: mutual information and considered feature type (categorical/continuous)
+        """        
         # Encode categorical features
-        for col in categorical_features:
-            df[col] = df[col].astype("category").cat.codes
+        for col in self.categorical_features_keys:
+            self.X[col] = self.X[col].astype("category").cat.codes
 
         discrete_features = [
-            True if col in categorical_features else False for col in df.columns
+            True if col in self.categorical_features_keys else False for col in self.X.columns
         ]
-
+        
         # Use the right mutual information methods based on the feature type of the sensitive attribute
-        if sensitive_feature_name in categorical_features:
+        if self.sensitive_features.dtype == 'category':
+            sensitive_feature = self.sensitive_features.cat.codes
             mi = mutual_info_classif(
-                df,
-                df[sensitive_feature_name],
+                self.X,
+                self.sensitive_features.cat.codes,
                 discrete_features=discrete_features,
                 random_state=42,
             )
+            ref = mutual_info_classif(sensitive_feature.values[:,None], sensitive_feature, 
+                                        discrete_features=[True], random_state=42)[0]
         else:
             mi = mutual_info_regression(
-                df,
-                df[sensitive_feature_name],
+                self.X,
+                self.sensitive_features,
                 discrete_features=discrete_features,
                 random_state=42,
             )
+            ref = mutual_info_regression(self.sensitive_feature.values[:,None], 
+                                         self.sensitive_features,
+                                         random_state=42)[0]
 
         # Normalize the mutual information values, if requested
-        mi = pd.Series(mi, index=df.columns)
+        mi = pd.Series(mi, index=self.X.columns)
         if normalize:
-            mi = mi / mi.max()
+            mi = mi / ref
 
         # Create the results
         mi = mi.sort_index().to_dict()
-        results = {}
+        mutual_information_results = {}
         for k, v in mi.items():
-            if k in categorical_features:
-                results[k] = {"value": v, "feature_type": "categorical"}
+            if k in self.categorical_features_keys:
+                mutual_information_results[k] = {"value": v, "feature_type": "categorical"}
             else:
-                results[k] = {"value": v, "feature_type": "continuous"}
+                mutual_information_results[k] = {"value": v, "feature_type": "continuous"}
 
-        results[sensitive_feature_name]["feature_type"] = results[sensitive_feature_name]["feature_type"] + '_reference'
-
-        return results
+        return mutual_information_results
     
     def _assess_balance_metrics(self):
         """Calculate dataset balance statistics and metrics 
@@ -195,19 +270,16 @@ class DatasetModule(CredoModule):
         dict
             'sample_balance': distribution of samples across groups
             'label_balance': distribution of labels across groups
-            'metrics': maximum statistical parity and maximum disparate impact between groups for all preferred label value possibilities 
+            'metrics': demographic parity difference and ratio between groups for all preferred label value possibilities 
         """
-        df, sensitive_feature_name, label_name = concat_features_label_to_dataframe(
-            X=self.X, y=self.y, sensitive_features=self.sensitive_features
-            )
         balance_results = {}
 
         # Distribution of samples across groups
         sample_balance = (
-            df.groupby([sensitive_feature_name])
+            self.y.groupby(self.sensitive_features)
             .agg(
-                count=(label_name, len),
-                percentage=(label_name, lambda x: 100.0 * len(x) / len(df)),
+                count=(len),
+                percentage=(lambda x: 100.0 * len(x) / len(self.y)),
             )
             .reset_index()
             .to_dict(orient="records")
@@ -216,7 +288,7 @@ class DatasetModule(CredoModule):
 
         # Distribution of samples across groups
         label_balance = (
-            df.groupby([sensitive_feature_name, label_name])
+            self.data.groupby([self.sensitive_features, self.y.name])
             .size()
             .unstack(fill_value=0)
             .stack()
@@ -226,17 +298,17 @@ class DatasetModule(CredoModule):
         balance_results["label_balance"] = label_balance
 
         # Fairness metrics
-        r = df.groupby([sensitive_feature_name, label_name])\
-                .agg({label_name: 'count'})\
-                .groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))\
-                .rename({label_name:'ratio'}, inplace=False, axis=1)\
-                .reset_index(inplace=False)
+        r = self.data.groupby([self.sensitive_features, self.y.name])\
+                        .agg({self.y.name: 'count'})\
+                        .groupby(level=0).apply(lambda x: x / float(x.sum()))\
+                        .rename({self.y.name:'ratio'}, inplace=False, axis=1)\
+                        .reset_index(inplace=False)
 
         # Compute the maximum difference between any two pairs of groups
-        demographic_parity_difference = r.groupby(label_name)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
+        demographic_parity_difference = r.groupby(self.y.name)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
 
-        # Compute the maximum ratio between any two pairs of groups
-        demographic_parity_ratio = r.groupby(label_name)['ratio'].apply(lambda x: np.max(x)/np.min(x)).reset_index(name='value').to_dict(orient='records')
+        # Compute the minimum ratio between any two pairs of groups
+        demographic_parity_ratio = r.groupby(self.y.name)['ratio'].apply(lambda x: np.min(x)/np.max(x)).reset_index(name='value').to_dict(orient='records')
         
         balance_results['demographic_parity_difference'] = demographic_parity_difference
         balance_results['demographic_parity_ratio'] = demographic_parity_ratio

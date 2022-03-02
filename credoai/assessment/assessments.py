@@ -245,7 +245,8 @@ class DatasetAssessment(CredoAssessment):
         self.initialized_module = self.module(
             data.X, 
             data.y,
-            data.sensitive_features)
+            data.sensitive_features,
+            data.categorical_features_keys)
 
     def create_report(self, filename=None):
         """Creates a report for dataset assessment
