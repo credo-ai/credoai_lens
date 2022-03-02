@@ -21,16 +21,33 @@ class NotebookReport():
             elif cell_type == 'code':
                 self.nb['cells'].append(nbf.v4.new_code_cell(content))
     
-    def export_notebook(self, use_case_id, model_id):
+    def send_to_credo(self, use_case_id, model_id):
         """Writes notebook to html"""
-        html_exporter = HTMLExporter(template_name = 'classic')
-        (body, resources) = html_exporter.from_notebook_node(self.nb)
-        post_use_case_report(body, use_case_id, model_id)
+        post_use_case_report(self._to_html(), use_case_id, model_id)
         return self
+        
+    def write_notebook(self, file_loc, as_html=False):
+        """Write notebook to file
 
-    def write_notebook(self, file_loc):
-        """Writes notebook to file"""
-        nbf.write(self.nb, file_loc)
+        Parameters
+        ----------
+        file_loc : str
+            file location to save notebook
+        as_html : bool, optional
+            Whether to convert the notebook to an html before saving.
+            Note that all code input blocks will be stripped from the
+            saved html - only outputs will remain, by default False
+
+        Returns
+        -------
+        self
+        """        
+        if as_html:
+            html = self._to_html()
+            with open(file_loc, 'w') as f:
+                f.write(html)
+        else:
+            nbf.write(self.nb, file_loc)
         return self
 
     def run_notebook(self):
@@ -43,6 +60,12 @@ class NotebookReport():
     def _preprocess_cell_content(self, cells):
         return [(cleandoc(content), cell_type) 
                 for content, cell_type in cells]
+
+    def _to_html(self):
+        """Converts notebook to html"""
+        html_exporter = HTMLExporter()
+        (body, resources) = html_exporter.from_notebook_node(self.nb)
+        return body
 
 class AssessmentReport(NotebookReport):
     def __init__(self, needed_artifacts=None):

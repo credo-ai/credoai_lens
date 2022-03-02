@@ -576,12 +576,12 @@ class Lens:
         names = self.get_artifact_names()
         name_for_save = f"{report_name}_model-{names['model']}_data-{names['dataset']}.ipynb"
         if isinstance(export, str):
-            final_report.write_notebook(path.join(export, name_for_save))
+            final_report.write_notebook(path.join(export, name_for_save), as_html=True)
         elif export:
             model_id = self._get_credo_destination()
             defined_ids = self.gov.get_defined_ids()
             if len({'model_id', 'use_case_id'}.intersection(defined_ids)) == 2:
-                final_report.export_notebook(self.gov.use_case_id, self.gov.model_id)
+                final_report.send_to_credo(self.gov.use_case_id, self.gov.model_id)
                 logging.info(f"Exporting complete report to Credo AI's Governance Platform")
             else:
                 logging.warning("Couldn't upload report to Credo AI's Governance Platform. "\
