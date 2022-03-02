@@ -36,7 +36,8 @@ class CredoReporter(ABC):
         results = self.assessment.get_results()
         for key, val in results.items():
             title = format_label(key.upper(), wrap_length=30)
-            display(HTML(f'<h3><span style="font-size:1em; text-align: left">{title}</span></h3>'))
+            anchor_name = f'{self.assessment.name}-{"-".join(title.split())}'
+            display(HTML(f'<h3 id="{anchor_name}"><span style="font-size:1em; text-align: left">{title}</span></h3>'))
             try:
                 val = pd.DataFrame(val)
                 display(val)
