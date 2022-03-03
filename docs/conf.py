@@ -61,13 +61,17 @@ autodoc_mock_imports = [
     'fairlearn',
     'googleapiclient',
     'joblib', 
+    'jupyterlab_nbconvert_nocode',
     'json_api_doc',
     'matplotlib',
+    'nbclient',
+    'nbformat',
     'numpy', 'pandas', 
     'scipy', 
     'seaborn',
     'sklearn', 
     'sentence_transformers', 
+    'tempfile',
     'transformers'
 ]
 
