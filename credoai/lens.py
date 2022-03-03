@@ -625,7 +625,7 @@ class Lens:
         final_report.create_report(self)
         # exporting
         names = self.get_artifact_names()
-        name_for_save = f"{report_name}_model-{names['model']}_data-{names['dataset']}.ipynb"
+        name_for_save = f"{report_name}_model-{names['model']}_data-{names['dataset']}.html"
         if isinstance(export, str):
             final_report.write_notebook(path.join(export, name_for_save), as_html=True)
         elif export:

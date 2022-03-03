@@ -39,10 +39,10 @@ class FairnessReporter(CredoReporter):
         if include_fairness:
             self.figs.append(self.plot_fairness())
         # individual group performance plots
-        self.figs.append(self.plot_performance(df['true'], df['pred'], 'Overall'))
+        self.figs.append(self.plot_performance_infographic(df['true'], df['pred'], 'Overall'))
         if include_disaggregation:
             for group, sub_df in df.groupby('sensitive'):
-                self.figs.append(self.plot_performance(sub_df['true'], sub_df['pred'], group))
+                self.figs.append(self.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
 
         # display
         plt.show()
@@ -54,31 +54,46 @@ class FairnessReporter(CredoReporter):
     def _create_report_cells(self):
         # report cells
         cells = [
-            ("""\
-            #### Fairness across groups
-
-            Below is a fairness plot. See the fairness. 
-            """, 'markdown'),
-            ("""\
-            reporter.plot_fairness()
-            """, 'code'),
-            ("""\
-            #### Performance
-
-            It was the best of times, it was the worst of times, 
-            it was the age of wisdom, it was the age of foolishness, 
-            it was the epoch of belief, it was the epoch of incredulity, 
-            it was the season of light, it was the season of darkness, 
-            it was the spring of hope, it was the winter of despair.
-            """, 'markdown'),
+            self._write_fairness(),
+            ("reporter.plot_fairness();", 'code'),
+            self._write_performance_infographic(),
             ("""\
             df = reporter.module.get_df()
-            reporter.plot_performance(df['true'], df['pred'], 'Overall')
+            reporter.plot_performance_infographic(df['true'], df['pred'], 'Overall')
             for group, sub_df in df.groupby('sensitive'):
-                reporter.plot_performance(sub_df['true'], sub_df['pred'], group)
+                reporter.plot_performance_infographic(sub_df['true'], sub_df['pred'], group)
             """, 'code')
         ]
         return cells
+
+    def _write_fairness(self):
+        cell = ("""
+                #### Fairness Metrics
+
+                <details>
+                <summary>Assessment Description:</summary>
+                <br>
+                <p>The fairness assessment is divided into two primary metrics: (1) Fairness
+                    metrics, and (2) performance metrics. The former help describe how equitable
+                    your AI system, while the latter describes how performant the system is.</p.
+                    
+                <p>Fairness metrics summarize whether your AI system is performing similarlty across all groups.
+                    These metrics may well-known "fairness metrics" like "equal opportunity", 
+                    or performance parity metrics. Performance parity captures the idea that the
+                    AI system should work similarly well for all groups. Some "fairness metrics"
+                    like equal opportunity are actually parity metrics. "Equal opportunity" is simply
+                    the true positive rate parity.
+                </p>
+                
+                <p>Performance metrics describe how performant your system is. It goes without saying
+                    that the AI system should be performing at some minimum acceptable level to be
+                    deployed. The Fairness Assessment disaggregates performance across the 
+                    sensitive feature provided. This ensures that the system is evaluated for 
+                    acceptable performance across groups that are important. Think of it as any
+                    segmentation analysis, where the segments are groups of people.</p>
+                </details>
+                """, 'markdown')
+        return cell
 
     def plot_fairness(self):
         """Plots fairness for binary classification
@@ -103,8 +118,47 @@ class FairnessReporter(CredoReporter):
             if plot_disaggregated:
                 self._plot_disaggregated_metrics(axes[1])
         return f
-    
-    def plot_performance(self, y_true, y_pred, label, **grid_kwargs):
+
+    def _write_performance_infographic(self):
+        cell = ("""
+                #### Binary Classification Infographic
+
+                <details>
+                <summary>Plot Descriptions:</summary>
+                <br>
+                <u>Positive Rate Infographic</u>
+                <p>On the left is a visual summary of the AI system's performance on different
+                    subgroups. These plots track the ground truth and predicted positive rate.
+                    Note that the "positive rate" is a function of the dataset's labeling and doesn't
+                    necessarily mean a positive outcome! For instance, "denying bail" could be the positive
+                    label.</p>
+
+                <p>Ideally the AI system performs equally well for all subgroups and positively 
+                    classifies each group at similar rates</p>
+
+                <p> ** Note ** If the ground truth positive rate differs between groups, the AI system cannot
+                    be <a href="https://arxiv.org/abs/1609.07236">fair by all definition of fairness.</a>
+                    For instance, the AI system can either accurately reflect the outcome differences
+                    in the data (violating demographic parity if the dataset show disparities) or 
+                    violating performance parity.
+                </p><br>
+
+                <u> Confusion Matrixes</u>
+                <p>On the right are <a href="https://towardsdatascience.com/confusion-matrix-what-is-it-e859e1bbecdc">confusion matrixes</a> 
+                    for each group. The confusion matrix plots true positive, false positive, true negative and false negative rates.
+                    It is rich description of the performance of binary classification systems. A well performing system should have
+                    most outcomes along the diagonal (true positives and true negatives).</p>
+                    
+                <p>** Note ** A perfect looking confusion matrix for every group does not guarantee
+                    fairness by all definitions! It just means that the model is accurately reflecting
+                    the dataset. If the dataset has different positive outcome rates
+                    for different groups, the model may be considered unfair.
+                </details>
+                
+                """, 'markdown')
+        return cell
+
+    def plot_performance_infographic(self, y_true, y_pred, label, **grid_kwargs):
         """Plots performance for binary classification
         Plots "infographic" depiction of outcomes for ground truth
         and model performance, as well as a confusion matrix.

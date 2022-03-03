@@ -43,16 +43,63 @@ class DatasetModuleReporter(CredoReporter):
     def _create_report_cells(self):
         # report cells
         cells = [
-            ("""Stuff stuff and more stuff""", 'markdown'),
-            ("""\
-            reporter._plot_balance_metrics()
-            """, 'code'),
-            ("""Some stuff""", 'markdown'),
-            ("""\
-            reporter._plot_group_diff()
-            """, 'code'),
+            self._write_balance_metrics(),
+            ("reporter._plot_balance_metrics();", 'code'),
+            self._write_sensitive_feature_prediction(),
+            self._write_group_diff(),
+            ("reporter._plot_group_diff();", 'code'),
+            self._write_mutual_information(),
+            ("reporter._plot_mutual_information();", 'code'),
         ]
         return cells
+
+    def _write_balance_metrics(self):
+        cell = ("""
+                #### Data Balance
+
+                <details>
+                <summary>Assessment Description:</summary>
+                <br>
+                <p>The data balance assessment helps us gain insights
+                into how different subgroups are represented in the 
+                dataset. Data balance is particularly important for
+                datasets used to train models, as models generally show some
+                form of <a href="https://medium.com/@mrtz/how-big-data-is-unfair-9aa544d739de">bias towards the most represented group</a>. 
+                </p>
+
+                <p>For validation datasets
+                it is important that each important subgroup is 
+                adequately represented, but parity is not necessarily required.
+                However, if subgroups <em>are</em> imbalanced, it is imperative
+                that performance measures are disaggregated across subgroups.</p>
+                </details><br>
+
+                <details>
+                <summary>Plot Descriptions:</summary>
+                <br>
+                <p>The first plot shows the number of samples for each
+                subgroup in the dataset.</p>
+
+                <p>The second plot shows how the outcome distribution differs
+                between subgroups.</p>
+
+                <p>The third plot summarizes label disparities by calculating
+                the <a href="https://afraenkel.github.io/fairness-book/content/05-parity-measures.html#demographic-parity">demographic parity]</a>. This metric compares the proportion 
+                of samples a group is given a particular label to other groups.
+                Ideally, this value is 1. We calculate this value for each outcome label.
+                Typically, one is concerned with the demographic parity of outcomes that are either:</p>
+
+                <ul>
+                    <li>beneficial vs. the status quo</li>
+                    <li>harmful vs. the status quo</li>
+                    <li>rarer</li>
+                </ul>
+
+                <p>That is to say, your AI system probably <em>does something</em> to people. This
+                plot helps you evaluate whether it is equitable in its actions.</p>
+                </details>
+                """, 'markdown')
+        return cell
 
     def _plot_balance_metrics(self):
         """Generates data balance charts
@@ -113,8 +160,8 @@ class DatasetModuleReporter(CredoReporter):
             ax.get_legend().set_visible(False)
             
             # Generate parity metrics barplots
-            metric_keys = ['demographic_parity_difference',
-                        'demographic_parity_ratio']
+            # only using demographic_parity_ratio, ignoring difference
+            metric_keys = ['demographic_parity_ratio']
 
             lst = []
             for metric in metric_keys:
@@ -145,6 +192,57 @@ class DatasetModuleReporter(CredoReporter):
             )
             ax.legend_.set_title(label_name)
         self.figs.append(f)
+
+    def _write_sensitive_feature_prediction(self):
+        score = self.module.get_results()['sensitive_feature_prediction_score']
+        cell = (f"""
+                #### Redundant Encoding
+            
+                <details open>
+                <summary>Assessment Description:</summary>
+                <br>
+                <p>The most important thing to check about your dataset is
+                "does it redundantly code a sensitive feature". Redundant encoding
+                means that the sensitive feature can be <em>reconstructed</em> from the features 
+                in your dataset. If it can be reconstructed, this means that your AI system
+                is implicitly trained on the sensitive feature, <em>even if it isn't explicitly included
+                in the dataset</em>.</p>
+
+                <p>To evaluate this, we train a model that tries to predict the sensitive feature from the
+                dataset. The score ranges from 0.5 - 1.0. If the score is 0.5, the model is random, and
+                no information about the senstive feature is likely contained in the dataset. A value
+                of 1 means the sensitive feature is able to be perfectly reconstructed.</p>
+
+                <p>The <a href="#Feature-Balance>Feature Balance</a> and <a href="#Feature-Proxy-Detection>Feature Proxy Detection</a>
+                sections each provide additional perspective by diving into whether
+                individual features serve as proxies. Note that the overall dataset can be a 
+                proxy even if no individual feature is! That's where this score is important.</p>
+                
+                </details>
+
+                **Overall Proxy Score**: {score:.4f}
+                """, 'markdown')
+        return cell
+
+    def _write_group_diff(self):
+        cell = ("""
+                #### Feature Balance
+            
+                <details>
+                <summary>Assessment Description:</summary>
+                <br>
+                
+                <pr>Though potentially less important than balance of the
+                primary outcome, feature differences are also worth evaluating.</pr>
+
+                <pr>While some differences amongst groups should be expected, large deviations
+                are problematic. One of the main issues is that they may lead
+                to your dataset <em>redundantly encoding</em> sensitive features. In other
+                words, features that differ significantly between groups act as proxies
+                for the sensitive feature.</pr>
+                </details>
+                """, 'markdown')
+        return cell
 
     def _plot_group_diff(self):
         """Generates group difference barplots"""
@@ -182,6 +280,33 @@ class DatasetModuleReporter(CredoReporter):
             ax.xaxis.set_tick_params(rotation=90)
 
         self.figs.append(f)
+
+    def _write_mutual_information(self):
+        cell = ("""
+                #### Feature Proxy Detection
+            
+                <details open>
+                <summary>Assessment Description:</summary>
+                <br>
+                The previous plot served as a simple descriptive analysis
+                of sensitive feature parity. A more rigorous method is to calculate
+                the <a href="https://simple.wikipedia.org/wiki/Mutual_information">mutual information</a> between
+                the features and the sensitive feature.
+                
+                </details><br>
+
+                <details>
+                <summary>Plot Description:</summary>
+                <br>
+                <p>Higher values mean there is more information about the sensitive feature
+                encoded in the feature. We normalize the mutual information by the amount of information
+                the sensitive feature has <em>to itself</em>. Thus this metric goes from 0-1, where 1 means 
+                the feature is a perfect proxy of the sensitive feature.</p>
+
+                <p>Removing such features is advised!</p>
+                </details>
+                """, 'markdown')
+        return cell
 
     def _plot_mutual_information(self):
         """Generates normalized mutual information between features and sensitive attribute"""
@@ -226,5 +351,5 @@ class DatasetModuleReporter(CredoReporter):
             ax.xaxis.set_tick_params(rotation=90)
             ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
             ax.legend(loc='upper right')
-
         self.figs.append(f)
+
