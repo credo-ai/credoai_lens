@@ -87,3 +87,30 @@ def to_array(lst):
         return lst
     else:
         raise TypeError
+
+def is_categorical(series, threshold=0.05):
+    """Identifies whether a series is categorical or not
+
+    Logic: If there are relatively few unique values for a feature, the feature is likely categorical.
+    The results are estimates and are not guaranteed to be correct.
+
+    Parameters
+    ----------
+    series : pd.Series
+        Series to evaluate
+    threshold : float
+        The threshold (number of the unique values over the total number of values)
+
+
+    Returns
+    -------
+    bool
+        Whether the series is categorical or not
+    """
+    # float columns are assumed not-categorical
+    if len(series.unique()) / len(series) < threshold:
+        return True
+    elif series.dtype == 'category':
+        return True
+    else:
+        return False

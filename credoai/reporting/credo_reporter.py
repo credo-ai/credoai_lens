@@ -41,8 +41,12 @@ class CredoReporter(ABC):
             try:
                 val = pd.DataFrame(val)
                 display(val)
-            except:
-                print(val)
+            except ValueError:
+                try:
+                    val = pd.Series(val).to_frame()
+                    display(val)
+                except:
+                    print(val)
             print('\n')
 
     def export_report(self, filename):
