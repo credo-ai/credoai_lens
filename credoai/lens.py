@@ -379,27 +379,37 @@ class CredoData:
             drop_sensitive_feature: bool=True
             ): 
         
+        self.name = name
         self.data = data
         self.sensitive_feature_key = sensitive_feature_key
         self.label_key = label_key
         self.categorical_features_keys = categorical_features_keys
+        self.unused_features_keys = unused_features_keys
+        self.drop_sensitive_feature = drop_sensitive_feature
 
-        self.name = name
-        self.y = data[label_key]
-        self.sensitive_features = data[sensitive_feature_key]
+        self.X = None
+        self.y = None
+        self.sensitive_features = None
+        self._process_data(self.data)
 
-        # drop columns from X
-        to_drop = [label_key]
-        if unused_features_keys:
-            to_drop += unused_features_keys
-        if drop_sensitive_feature:
-            to_drop.append(sensitive_feature_key)
-        X = data.drop(columns=to_drop, axis=1)
-        self.X = X
 
     def __post_init__(self):
         self.metadata = self.metadata or {}
         self._validate_data()
+    
+    def _process_data(self, data):
+        # set up sensitive features, y and X
+        self.sensitive_features = data[self.sensitive_feature_key]
+        self.y = data[self.label_key]
+
+        # drop columns from X
+        to_drop = [self.label_key]
+        if self.unused_features_keys:
+            to_drop += self.unused_features_keys
+        if self.drop_sensitive_feature:
+            to_drop.append(self.sensitive_feature_key)
+        X = data.drop(columns=to_drop, axis=1)
+        self.X = X
 
     def _validate_data(self):
         # Validate the types 
@@ -435,31 +445,24 @@ class CredoData:
                 "The provided label_key " + self.label_key + " does not exist in the provided data"
             )
 
-    @staticmethod
-    def _concat_features_label_to_dataframe(X, y, sensitive_features):
-        """A utility method that concatenates all features and labels into a single dataframe
+    def dev_mode(self, frac=0.1):
+        """Samples data down for faster assessment and iteration
+        
+        Sampling will be stratified across the sensitive feature
 
-        Returns
-        -------
-        pandas.dataframe, str, str
-            Full dataset dataframe, sensitive feature name, label name
+        Parameters
+        ----------
+        frac : float
+            The fraction of data to use
         """
-        if isinstance(sensitive_features, pd.Series):
-            df = pd.concat([X, sensitive_features], axis=1)
-            sensitive_feature_name = sensitive_features.name
-        else:
-            df = X.copy()
-            df['sensitive_feature'] = sensitive_features
-            sensitive_feature_name = 'sensitive_feature'
+        data = self.data.groupby(self.sensitive_features, 
+            group_keys=False).apply(lambda x: x.sample(frac=0.1))
+        self._process_data(data)
 
-        if isinstance(y, pd.Series):
-            df = pd.concat([df, y], axis=1)
-            label_name = y.name
-        else:
-            label_name = 'label'
-            df[label_name] = sensitive_features
 
-        return df, sensitive_feature_name, label_name
+
+    
+
 
 
 class Lens:
@@ -471,6 +474,7 @@ class Lens:
         model: CredoModel=None,
         data: CredoData=None,
         user_id: str=None,
+        dev_mode: Union[bool,float]=False,
         warning_level=1
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance
@@ -494,7 +498,7 @@ class Lens:
             an assessment name (CredoAssessment.name), with each value
             being a dictionary of kwargs. Passed to the init_module function
             as kwargs for each assessment
-        assessments : Union[List[CredoAssessment], str], optional
+        assessments : CredoAssessment or str, optional
             List of assessments to run. If "auto", runs all assessments
             CredoModel and CredoData support from the standard
             set of CredoLens assessments (defined by credoai.lens.ASSESSMENTS), by default 'auto'
@@ -504,6 +508,11 @@ class Lens:
             CredoData to assess, or be used by CredoModel for assessment, by default None
         user_id : str, optional
             Label for user running assessments, by default None
+        dev_mode : bool or float, optional
+            If True, the passed CredoData will be reduced in size to speed up development. 
+            A float<1 can also be provided which will determine the fraction of data to retain.
+            Defaults to 0.1 when dev_mode is set to True.
+            Default, False
         warning_level : int
             warning level. 
                 0: warnings are off
@@ -516,6 +525,7 @@ class Lens:
         self.data = data
         self.spec = {}
         self.warning_level = warning_level
+        self.dev_mode = dev_mode
         self.run = False
 
         if assessments == 'auto':
@@ -525,6 +535,12 @@ class Lens:
             assessments = assessments
         self.assessments = {a.name: a for a in assessments}
         self.user_id = user_id
+
+        # if data is defined and dev mode, convert data
+        if self.data and self.dev_mode:
+            if self.dev_mode == True:
+                self.dev_mode = 0.1
+            self.data.dev_mode(self.dev_mode)
 
         # if governance is defined, pull down spec for
         # use_case / model
