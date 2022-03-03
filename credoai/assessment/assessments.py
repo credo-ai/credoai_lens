@@ -18,9 +18,10 @@ class FairnessBaseAssessment(CredoAssessment):
     
     Runs fairness analysis on models with well-defined
     objective functions. Examples include:
-        * binary classification
-        * regression
-        * recommendation systems
+
+    * binary classification
+    * regression
+    * recommendation systems
 
     Modules
     -------
@@ -87,25 +88,10 @@ class FairnessBaseAssessment(CredoAssessment):
             y_prob)
         self.initialized_module = module
     
-    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
-        """Creates a fairness report 
-        
-        Currently only supports binary classification models
-
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        include_fairness : bool, optional
-            Whether to include fairness plots, by default True
-        include_disaggregation : bool, optional
-            Whether to include performance plots broken down by
-            subgroup. Overall performance are always reported, by default True
-        """        
+    def get_reporter(self):
         if type_of_target(self.initialized_module.y_true) == 'binary':
-            self.report = FairnessReporter(self)
-            return self.report.create_report(filename, include_fairness, include_disaggregation)
-            
+            return FairnessReporter(self)
+
 class NLPEmbeddingBiasAssessment(CredoAssessment):
     """
     NLP Embedding-Bias Assessments
@@ -214,23 +200,25 @@ class NLPGeneratorAssessment(CredoAssessment):
             perspective_config)
 
         self.initialized_module = module
-        
-    def create_report(self, filename=None):
-        """Creates a report for nlp generator
+    
+    def get_reporter(self):
+        return NLPGeneratorAnalyzerReporter(self)
 
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-    """        
-        self.report = NLPGeneratorAnalyzerReporter(self)
-        return self.report.create_report(filename)
-            
 class DatasetAssessment(CredoAssessment):
     """
     Dataset Assessment
     
-    Runs the Dataset module.
+    Runs fairness assessment on a CredoDataset. This
+    includes:
+    
+    * Distributional assessment of dataset
+    * Proxy detection
+    * Demographic Parity of outcomes
+
+    Modules
+    -------
+    * credoai.modules.dataset_base
+
     """
     def __init__(self):
         super().__init__(
@@ -248,16 +236,8 @@ class DatasetAssessment(CredoAssessment):
             data.sensitive_features,
             data.categorical_features_keys)
 
-    def create_report(self, filename=None):
-        """Creates a report for dataset assessment
-
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        """        
-        self.report = DatasetModuleReporter(self)
-        return self.report.create_report(filename)
+    def get_reporter(self):
+        return DatasetModuleReporter(self)
         
 def list_assessments_exhaustive():
     """List all defined assessments"""

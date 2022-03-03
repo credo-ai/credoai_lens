@@ -181,6 +181,18 @@ def post_figure(model_id, figure_record):
     end_point = get_end_point(f"models/{model_id}/model_assets")
     return submit_request('post', end_point, data=figure_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
 
+def post_use_case_report(html, use_case_id, model_id=None, risk="fairness"):
+    model_id = model_id or ''
+    data = {
+        "content": html,
+        "content_type": "text/html",
+        "model_id": model_id,
+        "type": "fairness",
+        '$type': 'use_case_assessments'
+    }
+    data = json.dumps(serialize(data))
+    end_point = get_end_point(f"use_cases/{use_case_id}/assessments")
+    return submit_request('post', end_point, data=data, headers={"content-type": "application/vnd.api+json"})
 
 def register_dataset(dataset_name):
     """Registers a dataset on Credo AI's Governance Platform
@@ -264,7 +276,7 @@ def register_model_to_use_case(use_case_id, model_id):
     data = serialize({'model_ids': model_ids, 
                       'id': 'resource-id',
                       '$type': 'use_case_id_scopes'})
-    end_point = get_end_point(f"use_case_ids/{use_case_id}/scopes/draft")
+    end_point = get_end_point(f"use_cases/{use_case_id}/scopes/draft")
     submit_request('patch', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
     
 

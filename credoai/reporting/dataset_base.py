@@ -12,7 +12,7 @@ class DatasetModuleReporter(CredoReporter):
         super().__init__(assessment)
         self.size = size
 
-    def create_report(self, filename=None):
+    def plot_results(self, filename=None):
         """Creates a fairness report for dataset assessment
         
         Parameters
@@ -39,6 +39,20 @@ class DatasetModuleReporter(CredoReporter):
             self.export_report(filename)
 
         return self.figs
+
+    def _create_report_cells(self):
+        # report cells
+        cells = [
+            ("""Stuff stuff and more stuff""", 'markdown'),
+            ("""\
+            reporter._plot_balance_metrics()
+            """, 'code'),
+            ("""Some stuff""", 'markdown'),
+            ("""\
+            reporter._plot_group_diff()
+            """, 'code'),
+        ]
+        return cells
 
     def _plot_balance_metrics(self):
         """Generates data balance charts
@@ -97,7 +111,7 @@ class DatasetModuleReporter(CredoReporter):
             ax.set_xlabel("Number of data samples")
             ax.set_ylabel("")
             ax.get_legend().set_visible(False)
-
+            
             # Generate parity metrics barplots
             metric_keys = ['demographic_parity_difference',
                         'demographic_parity_ratio']

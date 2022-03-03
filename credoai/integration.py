@@ -320,12 +320,12 @@ def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
     metric_dict = {m: defaultdict(dict) for m in models}
     metrics = spec['metrics']
     for metric in metrics:
-        #bounds = (metric['lower_threshold'], metric['upper_threshold'])
+        bounds = (metric['lower_threshold'], metric['upper_threshold'])
         # applies to all models
         if 'model_id' not in metric:
             for metric_list in metric_dict.values():
-                metric_list[metric['type']] = {0, 1}
+                metric_list[metric['type']] = bounds
         # otherwise only applies to one model
         else:
-            metric_dict[metric['model_id']][metric['type']] = {0, 1}
+            metric_dict[metric['model_id']][metric['type']] = bounds
     return metric_dict

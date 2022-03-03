@@ -16,7 +16,7 @@ class FairnessReporter(CredoReporter):
         self.size = size
         self.infographic_shape = infographic_shape
     
-    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
+    def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
         """Creates a fairness report for binary classification model
 
         Parameters
@@ -50,6 +50,35 @@ class FairnessReporter(CredoReporter):
         if filename is not None:
             self.export_report(filename)
         return self.figs
+
+    def _create_report_cells(self):
+        # report cells
+        cells = [
+            ("""\
+            #### Fairness across groups
+
+            Below is a fairness plot. See the fairness. 
+            """, 'markdown'),
+            ("""\
+            reporter.plot_fairness()
+            """, 'code'),
+            ("""\
+            #### Performance
+
+            It was the best of times, it was the worst of times, 
+            it was the age of wisdom, it was the age of foolishness, 
+            it was the epoch of belief, it was the epoch of incredulity, 
+            it was the season of light, it was the season of darkness, 
+            it was the spring of hope, it was the winter of despair.
+            """, 'markdown'),
+            ("""\
+            df = reporter.module.get_df()
+            reporter.plot_performance(df['true'], df['pred'], 'Overall')
+            for group, sub_df in df.groupby('sensitive'):
+                reporter.plot_performance(sub_df['true'], sub_df['pred'], group)
+            """, 'code')
+        ]
+        return cells
 
     def plot_fairness(self):
         """Plots fairness for binary classification
@@ -275,3 +304,4 @@ class FairnessReporter(CredoReporter):
         # format metric labels
         ax.set_yticklabels([format_label(label.get_text()) 
                             for label in ax.get_yticklabels()])
+    

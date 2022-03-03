@@ -3,8 +3,10 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 
+from copy import deepcopy
 from credoai.reporting.credo_reporter import CredoReporter
 from credoai.reporting import plot_utils
+from credoai.reporting.reports import AssessmentReport
 from datetime import datetime
 
 
@@ -15,7 +17,7 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
         self.num_assessment_funs = len(self.module.assessment_functions)
         self.size = size
 
-    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
+    def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
         """Creates a fairness report for binary classification model
 
         Parameters
@@ -41,6 +43,31 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
         if filename:
             self.export_report(filename)
         return self.figs
+
+    def create_notebook(self):
+        report = AssessmentReport({'reporter': self._get_scrubbed_reporter()})
+        results_table = [("### Result Tables", "markdown"), 
+                         ("reporter.display_results_tables()", 'code')]
+        cells = [(self._get_description(), 'markdown')] \
+            + self._create_report_cells() \
+            + results_table
+        report.add_cells(cells)
+        self.report = report
+        
+    def _create_report_cells(self):
+        # report cells
+        cells = [
+            ("""\
+            reporter.plot_overall_assessment()
+            """, 'code'),
+            ("""\
+            reporter.plot_fairness()
+            """, 'code'),
+            ("""\
+            reporter.plot_disaggregated_assessment()
+            """, 'code')
+        ]
+        return cells
 
     def plot_overall_assessment(self, kind='box'):
         """Plots assessment values for each generator as box plots"""        
@@ -177,3 +204,4 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
         for key in ['assessment_functions', 'generator_functions']:
             module.__dict__[key] = {k: None for k in module.__dict__.keys()}
         return new_reporter
+

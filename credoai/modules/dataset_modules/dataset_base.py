@@ -67,10 +67,10 @@ class DatasetModule(CredoModule):
         group_differences = self._group_differences()
         normalized_mutual_information = self._calculate_mutual_information()
         balance_metrics = self._assess_balance_metrics()
-        self.results = {**sensitive_feature_prediction_results,
+        self.results = {**balance_metrics,
+                        **sensitive_feature_prediction_results,
                         'standardized_group_diffs': group_differences,
                         'normalized_mutual_information': normalized_mutual_information,
-                        **balance_metrics
                         }  
         return self  
     
@@ -101,7 +101,6 @@ class DatasetModule(CredoModule):
         for group1, group2 in combinations(group_means.index, 2):
             diff = (group_means.loc[group1]-group_means.loc[group2])/std
             diffs[f'{group1}-{group2}'] = diff.to_dict()
-
         return diffs
     
     def _run_cv(self):
@@ -144,8 +143,8 @@ class DatasetModule(CredoModule):
         col_names = ColumnTransformerUtil.get_ct_feature_names(preprocessor)
         feature_importances = pd.Series(model.feature_importances_, 
             index=col_names).sort_values(ascending=False)
-        results['sensitive_feature_prediction_score'] = cv_results.mean()
-        results['sensitive_feature_prediction_feature_importances'] = feature_importances.to_dict()
+        results['sensitive_feature_prediction:_score'] = cv_results.mean()
+        results['sensitive_feature_prediction:_feature_importances'] = feature_importances.to_dict()
 
         return results
     
