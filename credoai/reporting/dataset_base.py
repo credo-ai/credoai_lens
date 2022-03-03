@@ -44,12 +44,12 @@ class DatasetModuleReporter(CredoReporter):
         # report cells
         cells = [
             self._write_balance_metrics(),
-            ("reporter._plot_balance_metrics()", 'code'),
-            self._write_overall_proxy_score(),
+            ("reporter._plot_balance_metrics();", 'code'),
+            self._write_sensitive_feature_prediction(),
             self._write_group_diff(),
-            ("reporter._plot_group_diff()", 'code'),
+            ("reporter._plot_group_diff();", 'code'),
             self._write_mutual_information(),
-            ("reporter._plot_mutual_information()", 'code'),
+            ("reporter._plot_mutual_information();", 'code'),
         ]
         return cells
 
@@ -193,8 +193,8 @@ class DatasetModuleReporter(CredoReporter):
             ax.legend_.set_title(label_name)
         self.figs.append(f)
 
-    def _write_overall_proxy_score(self):
-        score = self.module.get_results()['overall_proxy_score']
+    def _write_sensitive_feature_prediction(self):
+        score = self.module.get_results()['sensitive_feature_prediction_score']
         cell = (f"""
                 #### Redundant Encoding
             

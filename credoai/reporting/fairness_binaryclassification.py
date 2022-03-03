@@ -55,7 +55,7 @@ class FairnessReporter(CredoReporter):
         # report cells
         cells = [
             self._write_fairness(),
-            ("reporter.plot_fairness()", 'code'),
+            ("reporter.plot_fairness();", 'code'),
             self._write_performance_infographic(),
             ("""\
             df = reporter.module.get_df()
