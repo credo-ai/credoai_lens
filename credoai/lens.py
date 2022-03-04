@@ -7,8 +7,11 @@ from credoai.assessment import get_usable_assessments
 from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
     IntegrationError, NotRunError, ValidationError, raise_or_warn)
-from credoai.utils.credo_api_utils import (get_dataset_by_name, get_model_by_name,
-                                           get_model_project_by_name, patch_metrics)
+from credoai.utils.credo_api_utils import (get_dataset_by_name, 
+                                           get_model_by_name,
+                                           get_model_project_by_name, 
+                                           get_use_case_by_name,
+                                           patch_metrics)
 from credoai import __version__
 from dataclasses import dataclass, field
 from os import listdir, makedirs, path
@@ -115,6 +118,7 @@ class CredoGovernance:
 
     def set_governance_info_by_name(self,
                                     *,
+                                    use_case_name=None,
                                     model_name=None,
                                     dataset_name=None,
                                     model_project_name=None):
@@ -125,6 +129,8 @@ class CredoGovernance:
 
         Parameters
         ----------
+        use_case_name : str
+            name of a use_case
         model_name : str
             name of a model
         model_name : str
@@ -132,6 +138,10 @@ class CredoGovernance:
         model_name : str
             name of a model project
         """
+        if use_case_name:
+            ids = get_use_case_by_name(use_case_name)
+            if ids is not None:
+                self.use_case_id = ids['use_case_id']
         if model_name:
             ids = get_model_by_name(model_name)
             if ids is not None:

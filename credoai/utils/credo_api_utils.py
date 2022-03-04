@@ -153,7 +153,17 @@ def get_model_project_by_name(project_name):
                 'dataset_id': returned['id']}
     return None
 
+def get_use_case_by_name(use_case_nmae):
+    """Returns governance info (ids) for model_project using its name"""
+    returned = _get_by_name(use_case_nmae, 'use_cases')
+    if returned:
+        return {'name': use_case_nmae,
+                'use_case_id': returned['id']}
+    return None
 
+def post_assessment(use_case_id, model_id):
+    end_point = f"use_cases/{use_case_id}/models/{model_id}/assessments"
+    
 def patch_metrics(model_id, model_record):
     """Send a model record object to Credo's Governance Platform
 
@@ -166,8 +176,8 @@ def patch_metrics(model_id, model_record):
     """
     end_point = get_end_point(f"models/{model_id}/relationships/metrics")
     return submit_request('patch', end_point, data=model_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
-
-
+    
+    
 def post_figure(model_id, figure_record):
     """Send a figure record object to Credo AI's Governance Platform
 

@@ -313,19 +313,9 @@ def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
         spec = get_technical_spec(use_case_id, version=version)
     if spec_path:
         spec = json.load(open(spec_path))
-    try:
-        models = spec['model_ids']
-    except KeyError:
-        return {}
-    metric_dict = {m: defaultdict(dict) for m in models}
+    metric_dict = defaultdict(dict)
     metrics = spec['metrics']
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        # applies to all models
-        if 'model_id' not in metric:
-            for metric_list in metric_dict.values():
-                metric_list[metric['type']] = bounds
-        # otherwise only applies to one model
-        else:
-            metric_dict[metric['model_id']][metric['type']] = bounds
+        metric_dict[metric['model_id']][metric['type']] = bounds
     return metric_dict
