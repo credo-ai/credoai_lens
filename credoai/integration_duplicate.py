@@ -6,7 +6,7 @@ from json_api_doc import serialize
 from credoai.utils.common import (NumpyEncoder, wrap_list,
                                   ValidationError, dict_hash)
 from credoai.utils.credo_api_utils import (get_technical_spec,
-                                           post_assessment,
+                                           patch_metrics, post_figure,
                                            register_dataset, register_model,
                                            register_project,
                                            register_model_to_use_case)
@@ -24,7 +24,6 @@ META = {
     'source': 'credoai_ml_library',
     'version': credoai.__version__
 }
-RISK = "fairness"
 
 
 class Record:
@@ -35,6 +34,9 @@ class Record:
 
     def struct(self):
         pass
+
+    def jsonify(self, filename=None):
+        return json.dumps(serialize(data=self.struct()), cls=NumpyEncoder)
 
     def __str__(self):
         return pprint.pformat(self.struct())
@@ -176,8 +178,6 @@ class MultiRecord(Record):
 
     def struct(self):
         data = [m.struct() for m in self.records]
-        if isinstance(self.records[0], MultiRecord):
-            data = [item for sublist in data for item in sublist]
         return data
 
 
@@ -243,40 +243,48 @@ def record_metrics_from_dict(metrics, **metadata):
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
 
-def prepare_assessment_payload(prepared_results, report=None, assessed_at=None, export=True):
-    """Export assessment json to file or credo
+
+def export_to_file(multi_record, filename):
+    """Saves record as json object to filename
 
     Parameters
     ----------
-    prepared_results : _type_
-        _description_
-    report : _type_, optional
-        _description_, by default None
-    assessed_at : _type_, optional
-        _description_, by default None
-    export : bool or str, optional
-        If a boolean, and true, export to Credo AI Governance Platform.
-        If a string, save as a json to the output_directory indicated by the string.
-        If False, do not export, by default False
-    """    
-    # prepare assessments
-    assessment_records = [record_metrics(r) for r in prepared_results]
-    assessment_records = MultiRecord(assessment_records)
+    multi_record : credo.integration.MutliRecord
+        A MutliRecord object
+    filename : str
+        file to write Record json object
+    """
+    json_out = multi_record.jsonify()
+    with open(filename, 'w') as f:
+        f.write(json_out)
 
-    payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
-               "metrics": assessment_records.struct(),
-               "charts": [],
-               "type": RISK,
-               "$type": 'string'}
 
-    # add report, if exists
-    if report:
-        report_payload = {'content': report.to_html(),
-                          'content_type': "text/html"}
-        payload['report'] = report_payload
+def export_to_credo(multi_record, credo_id):
+    """Sends record to Credo AI's Governance Platform
 
-    payload_json = json.dumps(serialize(data=payload), cls=NumpyEncoder)
-    return payload_json
+    Parameters
+    ----------
+    multi_record : credo.integration.MutliRecord
+        A MutliRecord object
+    credo_id : str
+        The destination id for the model or data on 
+        Credo AI's Governance platform.
+    """
+    patch_metrics(credo_id, multi_record)
+
+
+def export_figure_to_credo(figure_record, credo_id):
+    """Sends record to Credo AI's Governance Platform
+
+    Parameters
+    ----------
+    figure_record : credo.integration.Figure
+        A Figure record object
+    credo_id : str
+        The destination id for the model or data on 
+        Credo AI's Governance platform.
+    """
+    post_figure(credo_id, figure_record)
 
 
 def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
