@@ -2,7 +2,6 @@ import nbformat as nbf
 import os
 import pickle
 import textwrap
-from credoai.utils.credo_api_utils import post_use_case_report
 from datetime import datetime
 from inspect import cleandoc
 from nbclient import NotebookClient
@@ -22,11 +21,6 @@ class NotebookReport():
                 self.nb['cells'].append(nbf.v4.new_markdown_cell(content))
             elif cell_type == 'code':
                 self.nb['cells'].append(nbf.v4.new_code_cell(content))
-    
-    def send_to_credo(self, use_case_id, model_id):
-        """Writes notebook to html"""
-        post_use_case_report(self._to_html(), use_case_id, model_id)
-        return self
         
     def write_notebook(self, file_loc, as_html=False):
         """Write notebook to file
@@ -45,7 +39,7 @@ class NotebookReport():
         self
         """        
         if as_html:
-            html = self._to_html()
+            html = self.to_html()
             with open(file_loc, 'w') as f:
                 f.write(html)
         else:
@@ -80,7 +74,7 @@ class NotebookReport():
         return [(cleandoc(content), cell_type) 
                 for content, cell_type in cells]
 
-    def _to_html(self):
+    def to_html(self):
         """Converts notebook to html"""
         html_exporter = HTMLHideCodeExporter()
         (body, resources) = html_exporter.from_notebook_node(self.nb)
