@@ -584,7 +584,7 @@ class Lens:
 
         Returns
         -------
-        assessment_results
+        self
         """
         assessment_kwargs = assessment_kwargs or {}
         assessment_results = {}
@@ -593,9 +593,9 @@ class Lens:
             kwargs = assessment_kwargs.get(name, {})
             assessment_results[name] = assessment.run(**kwargs).get_results()
         self.run_time = datetime.now().isoformat()
-        return assessment_results
+        return self
 
-    def create_reports(self, report_name, export=False, display_results=False):
+    def create_reports(self, export=False, display_results=False):
         """Creates notebook reports
 
         Creates jupyter notebook reports for every assessment that
@@ -609,8 +609,6 @@ class Lens:
 
         Parameters
         ----------
-        report_name : str
-            Title of the final report
         export : bool or str, optional
             If false, do not export. If a string, pass to export_assessments
         display_results : bool

@@ -22,23 +22,19 @@ class NotebookReport():
             elif cell_type == 'code':
                 self.nb['cells'].append(nbf.v4.new_code_cell(content))
         
-    def write_notebook(self, file_loc, as_html=False):
+    def write_notebook(self, file_loc):
         """Write notebook to file
 
         Parameters
         ----------
         file_loc : str
             file location to save notebook
-        as_html : bool, optional
-            Whether to convert the notebook to an html before saving.
-            Note that all code input blocks will be stripped from the
-            saved html - only outputs will remain, by default False
             
         Returns
         -------
         self
         """        
-        if as_html:
+        if file_loc.endswith('.html'):
             html = self.to_html()
             with open(file_loc, 'w') as f:
                 f.write(html)
