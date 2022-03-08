@@ -94,6 +94,9 @@ class FairnessModule(CredoModule):
     def prepare_results(self, method='between_groups', filter=None):
         """prepares fairness and disaggregated results to Credo AI
 
+        Structures results for export as a dataframe with appropriate structure
+        for exporting. See credoai.modules.credo_module.
+
         Parameters
         ----------
         method : str, optional  
