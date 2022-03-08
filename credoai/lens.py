@@ -12,7 +12,7 @@ from credoai import __version__
 from datetime import datetime
 from os import listdir, makedirs, path
 from sklearn.utils import check_consistent_length
-from typing import List, Union, Optional
+from typing import List, Union
 import collections.abc
 import credoai.integration as ci
 import shutil

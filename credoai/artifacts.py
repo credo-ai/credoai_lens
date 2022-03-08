@@ -25,8 +25,7 @@
 from credoai.utils.common import IntegrationError, ValidationError, raise_or_warn
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
-                                           get_model_project_by_name, 
-                                           get_use_case_by_name)
+                                           get_model_project_by_name)
 from typing import List, Optional
 import credoai.integration as ci   
 import pandas as pd
