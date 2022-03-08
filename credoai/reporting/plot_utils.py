@@ -130,11 +130,11 @@ def outlier_style_df(s):
 
 def plot_curve(x, y, label, 
                ax=None, legend_loc='auto',
-               context=None):
+               context=None, **kwargs):
     if ax is None:
         _, ax = plt.subplots(figsize=(12, 8))
 
-    ax.plot(x, y, label=label)
+    ax.plot(x, y, label=label, **kwargs)
     if label != "":
         ax.legend(loc=legend_loc)
     return ax

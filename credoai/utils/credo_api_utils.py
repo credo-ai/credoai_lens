@@ -63,7 +63,10 @@ def submit_request(request, end_point, **kwargs):
     response = SESSION.request(request, end_point, **kwargs)
     return response
 
-
+def get_assessment(assessment_id):
+    end_point = get_end_point(f"assessments/{assessment_id}")
+    return deserialize(submit_request('get', end_point).json())
+    
 def get_technical_spec(use_case_id, version='latest'):
     """Get technicalspecifications for an Use Case from credoai.Governance Platform
 
@@ -162,9 +165,11 @@ def get_use_case_by_name(use_case_nmae):
     return None
 
 def post_assessment(use_case_id, model_id, data):
-    end_point = f"use_cases/{use_case_id}/models/{model_id}/assessments"
-    return submit_request('post', end_point, data=data, 
+    end_point = get_end_point(f"use_cases/{use_case_id}/models/{model_id}/assessments")
+    request =  submit_request('post', end_point, data=data, 
                           headers={"content-type": "application/vnd.api+json"})
+    assessment_id = deserialize(request.json())['id']
+    return get_assessment(assessment_id)
 
 
 def register_dataset(dataset_name):

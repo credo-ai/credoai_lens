@@ -648,7 +648,7 @@ class Lens:
         return reporters, final_report
 
     def export_assessments(self, export="credoai", report=None):
-        """_summary_
+        """Exports assessments to file or Credo AI's governance platform
 
         Parameters
         ----------
@@ -660,7 +660,6 @@ class Lens:
             a report to include with the export. by default None
         """        
         prepared_results = []
-        report = None
         for name, assessment in self.assessments.items():
             logging.info(f"** Exporting assessment-{name}")
             prepared_results.append(self._prepare_results(assessment))
@@ -670,9 +669,9 @@ class Lens:
             model_id = self._get_credo_destination()
             defined_ids = self.gov.get_defined_ids()
             if len({'model_id', 'use_case_id'}.intersection(defined_ids)) == 2:
-                ci.post_assessment(self.gov.use_case_id, self.gov.model_id, payload)
                 logging.info(
                     f"Exporting assessments to Credo AI's Governance Platform")
+                return ci.post_assessment(self.gov.use_case_id, self.gov.model_id, payload)
             else:
                 logging.warning("Couldn't upload assessment to Credo AI's Governance Platform. "
                                 "Ensure use_case_id is defined in CredoGovernance")

@@ -243,37 +243,35 @@ def record_metrics_from_dict(metrics, **metadata):
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
 
-def prepare_assessment_payload(prepared_results, report=None, assessed_at=None, export=True):
+def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
     """Export assessment json to file or credo
 
     Parameters
     ----------
-    prepared_results : _type_
-        _description_
-    report : _type_, optional
-        _description_, by default None
-    assessed_at : _type_, optional
-        _description_, by default None
-    export : bool or str, optional
-        If a boolean, and true, export to Credo AI Governance Platform.
-        If a string, save as a json to the output_directory indicated by the string.
-        If False, do not export, by default False
+    prepared_results : list
+        prepared of prepared_results from credo_assessments. See lens.export_assessments for example
+    report : credo.reporting.NotebookReport, optional
+        report to optionally include with assessments, by default None
+    assessed_at : str, optional
+        date when assessments were created, by default None
     """    
     # prepare assessments
     assessment_records = [record_metrics(r) for r in prepared_results]
     assessment_records = MultiRecord(assessment_records)
 
+    # set up report
+    default_html = '<html><body><h3 style="text-align:center">No Report Included With Assessment</h1></body></html>'
+    report_payload = {'content': default_html,
+                      'content_type': "text/html"}
+    if report:
+        report_payload['content'] = report.to_html()
+    
     payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
                "metrics": assessment_records.struct(),
-               "charts": [],
+               "charts": None,
+               "report": report_payload,
                "type": RISK,
                "$type": 'string'}
-
-    # add report, if exists
-    if report:
-        report_payload = {'content': report.to_html(),
-                          'content_type': "text/html"}
-        payload['report'] = report_payload
 
     payload_json = json.dumps(serialize(data=payload), cls=NumpyEncoder)
     return payload_json
