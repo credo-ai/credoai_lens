@@ -14,7 +14,7 @@ from sklearn.feature_selection import mutual_info_classif, mutual_info_regressio
 from typing import List, Optional
 
 
-class DatasetModule(CredoModule):
+class DatasetFairness(CredoModule):
     """Dataset module for Credo AI.
 
     This module takes in features and labels and provides functionality to perform dataset assessment
@@ -159,7 +159,7 @@ class DatasetModule(CredoModule):
             Cross-validation score
         """
         results = {}
-        if self.sensitive_features.dtype == 'category':
+        if is_categorical(self.sensitive_features):
             sensitive_features = self.sensitive_features.cat.codes
         else:
             sensitive_features = self.sensitive_features
@@ -261,7 +261,7 @@ class DatasetModule(CredoModule):
         ]
         
         # Use the right mutual information methods based on the feature type of the sensitive attribute
-        if self.sensitive_features.dtype == 'category':
+        if is_categorical(self.sensitive_features):
             sensitive_feature = self.sensitive_features.cat.codes
             mi = mutual_info_classif(
                 self.X,
