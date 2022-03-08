@@ -113,7 +113,7 @@ class DatasetModule(CredoModule):
                         tmp = {'value': val}
                     index.append(metric_type)
                     prepared_arr.append(tmp)
-            return pd.DataFrame(prepared_arr, index=index)
+            return pd.DataFrame(prepared_arr, index=index).rename_axis(index='metric_type')
         else:
             raise NotRunError(
                 "Results not created yet. Call 'run' to create results"
