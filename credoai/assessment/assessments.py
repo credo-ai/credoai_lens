@@ -4,7 +4,7 @@ Module containing all CredoAssessmsents
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
-from credoai.reporting import FairnessReporter, NLPGeneratorAnalyzerReporter, DatasetModuleReporter
+from credoai.reporting import FairnessReporter, NLPGeneratorAnalyzerReporter, DatasetFairnessReporter
 from sklearn.utils.multiclass import type_of_target
 
 from credoai.utils import InstallationError
@@ -204,7 +204,7 @@ class NLPGeneratorAssessment(CredoAssessment):
     def get_reporter(self):
         return NLPGeneratorAnalyzerReporter(self)
 
-class DatasetAssessment(CredoAssessment):
+class DatasetFairnessAssessment(CredoAssessment):
     """
     Dataset Assessment
     
@@ -217,13 +217,13 @@ class DatasetAssessment(CredoAssessment):
 
     Modules
     -------
-    * credoai.modules.dataset_base
+    * credoai.modules.dataset_fairness
 
     """
     def __init__(self):
         super().__init__(
-            'Dataset', 
-            mod.DatasetModule,
+            'DatasetFairness', 
+            mod.DatasetFairness,
             AssessmentRequirements(
                 data_requirements=['X', 'y', 'sensitive_features']
             )
@@ -237,7 +237,7 @@ class DatasetAssessment(CredoAssessment):
             data.categorical_features_keys)
 
     def get_reporter(self):
-        return DatasetModuleReporter(self)
+        return DatasetFairnessReporter(self)
         
 def list_assessments_exhaustive():
     """List all defined assessments"""

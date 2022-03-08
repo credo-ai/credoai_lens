@@ -23,6 +23,8 @@ class ColumnTransformerUtil:
                     for f in estimator.get_feature_names_out()]
             else:
                 return estimator.get_feature_names_out(feature_in)
+        elif hasattr(estimator, 'get_feature_names'):
+            return estimator.get_feature_names(feature_in)
         elif isinstance(estimator, SelectorMixin):
             return np.array(feature_in)[estimator.get_support()]
         else:
