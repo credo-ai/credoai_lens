@@ -640,7 +640,7 @@ class Lens:
                     reporter.plot_results()
             else:
                 logging.info(f"No reporter found for assessment-{name}")
-        final_report = MainReport(f"{ci.RISK} Report", reporters.values())
+        final_report = MainReport(f"{ci.RISK.title()} Report", reporters.values())
         final_report.create_report(self)
         # exporting
         if export:
