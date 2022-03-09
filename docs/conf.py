@@ -56,7 +56,6 @@ set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_t
 nbsphinx_allow_errors = True  # Continue through Jupyter errors
 nbsphinx_execute = 'never'
 autodoc_mock_imports = [
-    'nest_asyncio',
     'absl',
     'dotenv', 
     'fairlearn',
@@ -67,6 +66,7 @@ autodoc_mock_imports = [
     'matplotlib',
     'nbclient',
     'nbformat',
+    'nest_asyncio',
     'numpy', 'pandas', 
     'scipy', 
     'seaborn',
