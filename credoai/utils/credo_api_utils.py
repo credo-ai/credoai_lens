@@ -63,7 +63,10 @@ def submit_request(request, end_point, **kwargs):
     response = SESSION.request(request, end_point, **kwargs)
     return response
 
-
+def get_assessment(assessment_id):
+    end_point = get_end_point(f"assessments/{assessment_id}")
+    return deserialize(submit_request('get', end_point).json())
+    
 def get_technical_spec(use_case_id, version='latest'):
     """Get technicalspecifications for an Use Case from credoai.Governance Platform
 
@@ -153,46 +156,21 @@ def get_model_project_by_name(project_name):
                 'dataset_id': returned['id']}
     return None
 
+def get_use_case_by_name(use_case_nmae):
+    """Returns governance info (ids) for model_project using its name"""
+    returned = _get_by_name(use_case_nmae, 'use_cases')
+    if returned:
+        return {'name': use_case_nmae,
+                'use_case_id': returned['id']}
+    return None
 
-def patch_metrics(model_id, model_record):
-    """Send a model record object to Credo's Governance Platform
+def post_assessment(use_case_id, model_id, data):
+    end_point = get_end_point(f"use_cases/{use_case_id}/models/{model_id}/assessments")
+    request =  submit_request('post', end_point, data=data, 
+                          headers={"content-type": "application/vnd.api+json"})
+    assessment_id = deserialize(request.json())['id']
+    return get_assessment(assessment_id)
 
-    Parameters
-    ----------
-    model_id : string
-        Identifier for Model on Credo AI Governance Platform
-    model_record : Record
-        Model Record object, see credo.integration.MutliRecord
-    """
-    end_point = get_end_point(f"models/{model_id}/relationships/metrics")
-    return submit_request('patch', end_point, data=model_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
-
-
-def post_figure(model_id, figure_record):
-    """Send a figure record object to Credo AI's Governance Platform
-
-    Parameters
-    ----------
-    model_id : string
-        Identifier for Model on Credo AI's Governance Platform
-    figure record : Record
-        Figure Record object, see credo.integration.FigureRecord
-    """
-    end_point = get_end_point(f"models/{model_id}/model_assets")
-    return submit_request('post', end_point, data=figure_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
-
-def post_use_case_report(html, use_case_id, model_id=None, risk="fairness"):
-    model_id = model_id or ''
-    data = {
-        "content": html,
-        "content_type": "text/html",
-        "model_id": model_id,
-        "type": "fairness",
-        '$type': 'use_case_assessments'
-    }
-    data = json.dumps(serialize(data))
-    end_point = get_end_point(f"use_cases/{use_case_id}/assessments")
-    return submit_request('post', end_point, data=data, headers={"content-type": "application/vnd.api+json"})
 
 def register_dataset(dataset_name):
     """Registers a dataset on Credo AI's Governance Platform

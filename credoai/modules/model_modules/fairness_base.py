@@ -87,7 +87,7 @@ class FairnessModule(CredoModule):
                         'disaggregated_performance': disaggregated_performance}
         return self
         
-    def prepare_results(self, method='between_groups', filter=None):
+    def prepare_results(self, filter=None):
         """prepares fairness and disaggregated results to Credo AI
 
         Structures results for export as a dataframe with appropriate structure
@@ -95,10 +95,6 @@ class FairnessModule(CredoModule):
 
         Parameters
         ----------
-        method : str, optional  
-            How to compute the differences: "between_groups" or "to_overall". 
-            See fairlearn.metrics.MetricFrame.difference
-            for details, by default 'between_groups'
         filter : str, optional
             Regex string to filter fairness results if only a subset are desired.
             Passed as a regex argument to pandas `filter` function applied to the
