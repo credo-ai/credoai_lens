@@ -199,16 +199,16 @@ class FairnessModule(CredoModule):
         """
 
         results = {}
-        for metric, func in self.fairness_metrics.items():
-            results[metric] = func(y_true=self.y_true,
-                                   y_pred=self.y_pred,
-                                   sensitive_features=self.sensitive_features,
-                                   method=method)
-        for metric, func in self.fairness_prob_metrics.items():
-            results[metric] = func(y_true=self.y_true,
-                                   y_prob=self.y_prob,
-                                   sensitive_features=self.sensitive_features,
-                                   method=method)
+        for metric_name, metric in self.fairness_metrics.items():
+            results[metric_name] = metric.fun(y_true=self.y_true,
+                                              y_pred=self.y_pred,
+                                              sensitive_features=self.sensitive_features,
+                                              method=method)
+        for metric_name, metric in self.fairness_prob_metrics.items():
+            results[metric_name] = metric.fun(y_true=self.y_true,
+                                              y_prob=self.y_prob,
+                                              sensitive_features=self.sensitive_features,
+                                              method=method)
         results = pd.Series(results, dtype=float, name='value')
         # add parity results
         parity_results = pd.Series(dtype=float)
@@ -281,12 +281,12 @@ class FairnessModule(CredoModule):
             if not isinstance(metric, Metric):
                 raise ValidationError("Metric is not of type credoai.metric.Metric")
             if metric.metric_category == "FAIRNESS":
-                fairness_metrics[metric_name] = metric.fun
+                fairness_metrics[metric_name] = metric
             elif metric.metric_category in MODEL_METRIC_CATEGORIES:
                 if metric.takes_prob:
-                    prob_metrics[metric_name] = metric.fun
+                    prob_metrics[metric_name] = metric
                 else:
-                    performance_metrics[metric_name] = metric.fun
+                    performance_metrics[metric_name] = metric
             else:
                 failed_metrics.append(metric_name)
 
@@ -295,6 +295,8 @@ class FairnessModule(CredoModule):
                 failed_metrics)
 
     def _create_metric_frame(self, metrics, y_pred):
+        """Creates metric frame from dictionary of key:Metric"""
+        metrics = {name: metric.fun for name, metric in metrics.items()}
         return MetricFrame(metrics=metrics,
                            y_true=self.y_true,
                            y_pred=y_pred,

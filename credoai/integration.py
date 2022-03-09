@@ -75,7 +75,7 @@ class Metric(Record):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
-        self.name = name or self.metric_type
+        self.name = name or ' '.join(self.metric_type.split('_')).title()
         self.process = process
         self.config_hash = self._generate_config()
 
