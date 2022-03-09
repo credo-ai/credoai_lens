@@ -271,7 +271,7 @@ class FairnessModule(CredoModule):
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
-                metric = find_metrics(metric)
+                metric = find_metrics(metric, MODEL_METRIC_CATEGORIES)
                 if len(metric) == 1:
                     metric = metric[0]
                 else:
