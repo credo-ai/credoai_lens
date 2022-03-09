@@ -56,7 +56,7 @@ class Metric(Record):
     value : float
         metric value
     name : string, optional
-        Specific identifier for particular metric. Default "metric"
+        Specific identifier for particular metric. Defaults to the metric_type
     process : string, optional
         String reflecting the process used to create the metric. E.g.,
         name of a particular Lens assessment, or link to code.
@@ -71,13 +71,13 @@ class Metric(Record):
     def __init__(self,
                  metric_type,
                  value,
-                 name='DEFAULT',
+                 name=None,
                  process=None,
                  **metadata):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
-        self.name = name
+        self.name = name or self.metric_type
         self.process = process
         self.config_hash = self._generate_config()
 

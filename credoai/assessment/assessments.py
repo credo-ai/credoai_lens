@@ -57,11 +57,11 @@ class FairnessBaseAssessment(CredoAssessment):
         model : CredoModel, optional
         data : CredoData, optional
         metrics : List-like
-            list of metric names as string or list of FairnessFunctions.
-            Metric strings should in list returned by credoai.utils.list_metrics.
+            list of metric names as string or list of Metrics (credoai.metrics.Metric).
+            Metric strings should in list returned by credoai.metrics.list_metrics.
             Note for performance parity metrics like 
-            "false negative rate parity" just list "false negative rate". Partiy metrics
-            are calculated automatically.
+            "false negative rate parity" just list "false negative rate". Parity metrics
+            are calculated automatically if the performance metric is supplied
 
         Example
         ---------

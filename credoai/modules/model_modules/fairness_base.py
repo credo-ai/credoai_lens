@@ -1,14 +1,11 @@
-from credoai.utils.metric_constants import (
-    BINARY_CLASSIFICATION_METRICS, FAIRNESS_METRICS, 
-    PROBABILITY_METRICS, METRIC_EQUIVALENTS
-)
-from credoai.utils.common import to_array, NotRunError
-from credoai.utils.metric_utils import standardize_metric_name 
+
+from credoai.utils.common import to_array, NotRunError, ValidationError
+from credoai.metrics import Metric, find_metrics, MODEL_METRIC_CATEGORIES 
 from credoai.modules.credo_module import CredoModule
 from fairlearn.metrics import MetricFrame
 from scipy.stats import norm
 from sklearn.utils import check_consistent_length
-
+from typing import List, Union
 import pandas as pd
 
 class FairnessModule(CredoModule):
@@ -24,11 +21,11 @@ class FairnessModule(CredoModule):
     Parameters
     ----------
     metrics : List-like
-        list of metric names as string or list of FairnessFunctions.
-        Metric strings should in list returned by credoai.utils.list_metrics.
+        list of metric names as string or list of Metrics (credoai.metrics.Metric).
+        Metric strings should in list returned by credoai.metrics.list_metrics.
         Note for performance parity metrics like 
-        "false negative rate parity" just list "false negative rate". Partiy metrics
-        are calculated automatically.
+        "false negative rate parity" just list "false negative rate". Parity metrics
+        are calculated automatically if the performance metric is supplied
     sensitive_features :  (List, pandas.Series, numpy.ndarray)
         The sensitive features which should be used to create subgroups.
     y_true : (List, pandas.Series, numpy.ndarray)
@@ -61,7 +58,6 @@ class FairnessModule(CredoModule):
         self.prob_metrics = None
         self.fairness_metrics = None
         self.fairness_prob_metrics = None
-        self.metric_conversions = None
         self.failed_metrics = None
         self.update_metrics(metrics)
 
@@ -141,10 +137,11 @@ class FairnessModule(CredoModule):
         Parameters
         ----------
         metrics : List-like
-            list of metric names as string or list of FairnessFunctions.
-            Metric strings should be included in ALL_METRICS
-            found in credo.utils.metric_constants. Note for performance parity metrics like 
-            "false negative rate parity" or "recall parity" just list "recall"
+            list of metric names as string or list of Metrics (credoai.metrics.Metric).
+            Metric strings should in list returned by credoai.metrics.list_metrics.
+            Note for performance parity metrics like 
+            "false negative rate parity" just list "false negative rate". Parity metrics
+            are calculated automatically if the performance metric is supplied
         """
         if replace:
             self.metrics = metrics
@@ -154,7 +151,6 @@ class FairnessModule(CredoModule):
          self.prob_metrics,
          self.fairness_metrics,
          self.fairness_prob_metrics,
-         self.metric_conversions,
          self.failed_metrics) = self._process_metrics(self.metrics)
         self._setup_metric_frames()
 
@@ -258,57 +254,49 @@ class FairnessModule(CredoModule):
         return disaggregated_df
 
     def _process_metrics(self, metrics):
-        """Standardize and separates metrics
+        """Separates metrics
 
         Parameters
         ----------
-        metrics : list-like. 
+        metrics : Union[List[Metirc, str]]
+            list of metrics to use. These can be Metric objects (credoai.metric.metrics) or
+            strings. If strings, they will be converted to Metric objects using find_metrics
 
         Returns
         -------
         Separate dictionaries and lists of metrics
         """
-        metric_conversions = {}
-        custom_function_metrics = []
-        for m in metrics:
-            if type(m) == str:
-                metric_conversions[m] = standardize_metric_name(m)
-            else:
-                custom_function_metrics.append(m)
-
         # separate metrics
         failed_metrics = []
         performance_metrics = {}
         prob_metrics = {}
         fairness_metrics = {}
         fairness_prob_metrics = {}
-        for orig, standard in metric_conversions.items():
-            if standard in PROBABILITY_METRICS:
-                prob_metrics[orig] = BINARY_CLASSIFICATION_METRICS[standard]
-            elif standard in BINARY_CLASSIFICATION_METRICS:
-                performance_metrics[orig] = BINARY_CLASSIFICATION_METRICS[standard]
-            elif standard in FAIRNESS_METRICS:
-                fairness_metrics[orig] = FAIRNESS_METRICS[standard]
+        for metric in metrics:
+            if isinstance(metric, str):
+                metric_name = metric
+                metric = find_metrics(metric)
+                if len(metric) == 1:
+                    metric = metric[0]
+                else:
+                    raise Exception("Returned multiple metrics when searching using a metric name. Expected to find only one matching metric")
             else:
-                failed_metrics.append(orig)
+                metric_name = metric.name
+            if not isinstance(metric, Metric):
+                raise ValidationError("Metric is not of type credoai.metric.Metric")
+            if metric.metric_category == "FAIRNESS":
+                fairness_metrics[metric_name] = metric.fun
+            elif metric.metric_category in MODEL_METRIC_CATEGORIES:
+                if metric.takes_prob:
+                    prob_metrics[metric_name] = metric.fun
+                else:
+                    performance_metrics[metric_name] = metric.fun
+            else:
+                failed_metrics.append(metric_name)
 
-        # organize and standardize custom metrics
-        for metric in custom_function_metrics:
-            standard_name = standardize_metric_name(metric.name)
-            metric_conversions[metric.name] = standard_name
-            if metric.takes_sensitive_features:
-                if metric.takes_prob:
-                    fairness_prob_metrics[metric.name] = metric.func
-                else:
-                    fairness_metrics[metric.name] = metric.func
-            else:
-                if metric.takes_prob:
-                    prob_metrics[metric.name] = metric.func
-                else:
-                    performance_metrics[metric.name] = metric.func
         return (performance_metrics, prob_metrics,
                 fairness_metrics, fairness_prob_metrics,
-                metric_conversions, failed_metrics)
+                failed_metrics)
 
     def _create_metric_frame(self, metrics, y_pred):
         return MetricFrame(metrics=metrics,
@@ -331,32 +319,5 @@ class FairnessModule(CredoModule):
         check_consistent_length(self.y_true, self.y_pred,
                                 self.y_prob, self.sensitive_features)
         
-class FairnessFunction:
-    def __init__(self, name, func, takes_sensitive_features=False, takes_prob=False):
-        """A simple wrapper to define fairness functions
 
-        A fairness function can have various signatures, which sould
-        be reflected by the `takes_sensitive_features` and `takes_prob`
-        arguments.
-
-        Parameters
-        ----------
-        name : str
-            The name of the function
-        func : callable
-            The function to use to calculate metrics. This function must be callable 
-            as fn(y_true, y_pred / y_prob) or fn(y_true, y_pred, sensitive_features) 
-            if `takes_sensitive_features` is True
-        takes_sensitive_features : bool, optional
-            Whether the function takes a sensitive_features parameter,
-            as in fairlearn.metrics.equalized_odds_difference. Typically
-            the function compares between groups in some way, by default False
-        takes_prob : bool, optional
-            Whether the function takes the decision probabilities
-            vs. the predicted class, as for ROC AUC. by default False
-        """
-        self.name = name
-        self.func = func
-        self.takes_sensitive_features = takes_sensitive_features
-        self.takes_prob = takes_prob
         
