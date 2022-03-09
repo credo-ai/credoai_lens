@@ -76,18 +76,19 @@ class Lens:
         self.gov = governance or CredoGovernance(warning_level=warning_level)
         self.model = model
         self.data = data
+        self.user_id = user_id
         self.spec = {}
         self.warning_level = warning_level
         self.dev_mode = dev_mode
-        self.run = False
+        self.run_time = False
 
+        # set up assessments
         if assessments == 'auto':
             assessments = self._select_assessments()
         else:
             self._validate_assessments(assessments)
             assessments = assessments
         self.assessments = {a.name: a for a in assessments}
-        self.user_id = user_id
 
         # if data is defined and dev mode, convert data
         if self.data and self.dev_mode:
@@ -100,20 +101,16 @@ class Lens:
         if self.gov:
             self.spec = self.gov.get_assessment_spec()
         if spec:
-            self.spec.update(spec)
+            self._update_spec(self.spec, spec)
 
         # initialize
         self._init_assessments()
 
-    def run_assessments(self, export=False, assessment_kwargs=None):
+    def run_assessments(self, assessment_kwargs=None):
         """Runs assessments on the associated model and/or data
 
         Parameters
         ----------
-        export : bool or str, optional
-            If a boolean, and true, export to Credo AI Governance Platform.
-            If a string, save as a json to the output_directory indicated by the string.
-            If False, do not export, by default False
         assessment_kwargs : dict, optional
             key word arguments passed to each assessments `run` or 
             `prepare_results` function. Each key must correspond to
@@ -123,7 +120,7 @@ class Lens:
 
         Returns
         -------
-        assessment_results
+        self
         """
         assessment_kwargs = assessment_kwargs or {}
         assessment_results = {}
@@ -131,18 +128,10 @@ class Lens:
             logging.info(f"Running assessment-{name}")
             kwargs = assessment_kwargs.get(name, {})
             assessment_results[name] = assessment.run(**kwargs).get_results()
-            if export:
-                logging.info(f"** Exporting assessment-{name}")
-                prepared_results = self._prepare_results(assessment, **kwargs)
-                if type(export) == str:
-                    self._export_results_to_file(prepared_results, export)
-                else:
-                    self._export_results_to_credo(
-                        prepared_results, to_model=True)
-        self.run = True
-        return assessment_results
+        self.run_time = datetime.now().isoformat()
+        return self
 
-    def create_reports(self, report_name, export=False, display_results=False):
+    def create_reports(self, export=False, display_results=False):
         """Creates notebook reports
 
         Creates jupyter notebook reports for every assessment that
@@ -156,12 +145,8 @@ class Lens:
 
         Parameters
         ----------
-        report_name : str
-            Title of the final report
         export : bool or str, optional
-            If a boolean, and true, export to Credo AI Governance Platform.
-            If a string, save notebook to the output_directory indicated by the string.
-            If False, do not export, by default False
+            If false, do not export. If a string, pass to export_assessments
         display_results : bool
             If True, display results. Calls credo_reporter.plot_results and 
             credo_reporter.display_table_results
@@ -174,7 +159,7 @@ class Lens:
         final_report : credoai.reports.MainReport
             The final report. This object is responsible for managing notebook report creation.
         """
-        if self.run == False:
+        if self.run_time == False:
             raise NotRunError(
                 "Results not created yet. Call 'run_assessments' first"
             )
@@ -191,26 +176,49 @@ class Lens:
                     reporter.plot_results()
             else:
                 logging.info(f"No reporter found for assessment-{name}")
-        final_report = MainReport(report_name, reporters.values())
+        final_report = MainReport(f"{ci.RISK.title()} Report", reporters.values())
         final_report.create_report(self)
         # exporting
-        names = self.get_artifact_names()
-        name_for_save = f"{report_name}_model-{names['model']}_data-{names['dataset']}.html"
-        if isinstance(export, str):
-            final_report.write_notebook(
-                path.join(export, name_for_save), as_html=True)
-        elif export:
+        if export:
+                self.export_assessments(export, report=final_report)
+        return reporters, final_report
+
+    def export_assessments(self, export="credoai", report=None):
+        """Exports assessments to file or Credo AI's governance platform
+
+        Parameters
+        ----------
+        export : str
+            If the special string "credoai", Credo AI Governance Platform.
+            If a string, save assessment json to the output_directory indicated by the string.
+            If False, do not export, by default "credoai""
+        report : credoai.reports.Report, optional
+            a report to include with the export. by default None
+        """        
+        prepared_results = []
+        for name, assessment in self.assessments.items():
+            logging.info(f"** Exporting assessment-{name}")
+            prepared_results.append(self._prepare_results(assessment))
+        payload = ci.prepare_assessment_payload(prepared_results, report=report, assessed_at=self.run_time)
+
+        if export == 'credoai':
             model_id = self._get_credo_destination()
             defined_ids = self.gov.get_defined_ids()
             if len({'model_id', 'use_case_id'}.intersection(defined_ids)) == 2:
-                final_report.send_to_credo(
-                    self.gov.use_case_id, self.gov.model_id)
                 logging.info(
-                    f"Exporting complete report to Credo AI's Governance Platform")
+                    f"Exporting assessments to Credo AI's Governance Platform")
+                return ci.post_assessment(self.gov.use_case_id, self.gov.model_id, payload)
             else:
-                logging.warning("Couldn't upload report to Credo AI's Governance Platform. "
+                logging.warning("Couldn't upload assessment to Credo AI's Governance Platform. "
                                 "Ensure use_case_id is defined in CredoGovernance")
-        return reporters, final_report
+        else:
+            if not path.exists(export):
+                makedirs(export, exist_ok=False)
+            names = self.get_artifact_names()
+            name_for_save = f"{ci.RISK}_model-{names['model']}_data-{names['dataset']}.json"
+            output_file = path.join(export, name_for_save)
+            with open(output_file, 'w') as f:
+                f.write(payload)
 
     def get_assessments(self):
         return self.assessments
@@ -218,22 +226,8 @@ class Lens:
     def get_governance(self):
         return self.gov
 
-    def _export_results_to_credo(self, results, to_model=True):
-        metric_records = ci.record_metrics(results)
-        destination_id = self._get_credo_destination(to_model)
-        ci.export_to_credo(metric_records, destination_id)
-
-    def _export_results_to_file(self, results, output_directory):
-        if not path.exists(output_directory):
-            makedirs(output_directory, exist_ok=False)
-        metric_records = ci.record_metrics(results)
-        # determine save directory
-        assessment_name = results.assessment.unique()[0]
-        names = self.get_artifact_names()
-        results_file = (f"AssessmentResults_assessment-{assessment_name}_"
-                        f"model-{names['model']}_data-{names['dataset']}.json")
-        output_file = path.join(output_directory, results_file)
-        ci.export_to_file(metric_records, output_file)
+    def get_results(self):
+        return {name: a.get_results() for name, a in self.assessments.items()}
 
     def _gather_meta(self, assessment_name):
         names = self.get_artifact_names()
@@ -279,6 +273,16 @@ class Lens:
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment.name)
         return assessment.prepare_results(metadata, **kwargs)
+
+    def _update_spec(self, d, u):
+        for k, v in u.items():
+            if isinstance(v, collections.abc.Mapping):
+                d[k] = self._update_spec(d.get(k, {}), v)
+            elif isinstance(v, list):
+                d[k] = v + d.get(k, [])
+            else:
+                d[k] = v
+        return d
 
     def _select_assessments(self):
         return list(get_usable_assessments(self.model, self.data).values())

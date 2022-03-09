@@ -6,7 +6,7 @@ from json_api_doc import serialize
 from credoai.utils.common import (NumpyEncoder, wrap_list,
                                   ValidationError, dict_hash)
 from credoai.utils.credo_api_utils import (get_technical_spec,
-                                           patch_metrics, post_figure,
+                                           post_assessment,
                                            register_dataset, register_model,
                                            register_project,
                                            register_model_to_use_case)
@@ -24,6 +24,7 @@ META = {
     'source': 'credoai_ml_library',
     'version': credoai.__version__
 }
+RISK = "fairness"
 
 
 class Record:
@@ -32,14 +33,11 @@ class Record:
         self.metadata = metadata
         self.creation_time = datetime.now().isoformat()
 
-    def _struct(self):
+    def struct(self):
         pass
 
-    def jsonify(self, filename=None):
-        return json.dumps(serialize(data=self._struct()), cls=NumpyEncoder)
-
     def __str__(self):
-        return pprint.pformat(self._struct())
+        return pprint.pformat(self.struct())
 
 
 class Metric(Record):
@@ -81,7 +79,7 @@ class Metric(Record):
         self.process = process
         self.config_hash = self._generate_config()
 
-    def _struct(self):
+    def struct(self):
         return {
             'key': self.config_hash,
             'type': self.metric_type,
@@ -90,7 +88,6 @@ class Metric(Record):
             'process': self.process,
             'metadata': self.metadata,
             'value_updated_at': self.creation_time,
-            '$type': 'model_metrics'
         }
 
     def _generate_config(self):
@@ -149,14 +146,14 @@ class Figure(Record):
             pic_IObytes.read()).decode('ascii')
         self.content_type = "image/png"
 
-    def _struct(self):
+    def struct(self):
         return {'name': self.name,
                 'description': self.description,
                 'content_type': self.content_type,
                 'file': self.figure_string,
                 'creation_time': self.creation_time,
-                'metadata': {'type': 'chart', **self.metadata},
-                '$type': 'model_assets'}
+                'metadata': {'type': 'chart', **self.metadata}
+               }
 
 
 class MultiRecord(Record):
@@ -177,8 +174,10 @@ class MultiRecord(Record):
             raise ValidationError
         super().__init__(self.records[0].json_header)
 
-    def _struct(self):
-        data = [m._struct() for m in self.records]
+    def struct(self):
+        data = [m.struct() for m in self.records]
+        if isinstance(self.records[0], MultiRecord):
+            data = [item for sublist in data for item in sublist]
         return data
 
 
@@ -244,48 +243,38 @@ def record_metrics_from_dict(metrics, **metadata):
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
 
-
-def export_to_file(multi_record, filename):
-    """Saves record as json object to filename
-
-    Parameters
-    ----------
-    multi_record : credo.integration.MutliRecord
-        A MutliRecord object
-    filename : str
-        file to write Record json object
-    """
-    json_out = multi_record.jsonify()
-    with open(filename, 'w') as f:
-        f.write(json_out)
-
-
-def export_to_credo(multi_record, credo_id):
-    """Sends record to Credo AI's Governance Platform
+def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
+    """Export assessment json to file or credo
 
     Parameters
     ----------
-    multi_record : credo.integration.MutliRecord
-        A MutliRecord object
-    credo_id : str
-        The destination id for the model or data on 
-        Credo AI's Governance platform.
-    """
-    patch_metrics(credo_id, multi_record)
+    prepared_results : list
+        prepared of prepared_results from credo_assessments. See lens.export_assessments for example
+    report : credo.reporting.NotebookReport, optional
+        report to optionally include with assessments, by default None
+    assessed_at : str, optional
+        date when assessments were created, by default None
+    """    
+    # prepare assessments
+    assessment_records = [record_metrics(r) for r in prepared_results]
+    assessment_records = MultiRecord(assessment_records)
 
+    # set up report
+    default_html = '<html><body><h3 style="text-align:center">No Report Included With Assessment</h1></body></html>'
+    report_payload = {'content': default_html,
+                      'content_type': "text/html"}
+    if report:
+        report_payload['content'] = report.to_html()
+    
+    payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
+               "metrics": assessment_records.struct(),
+               "charts": None,
+               "report": report_payload,
+               "type": RISK,
+               "$type": 'string'}
 
-def export_figure_to_credo(figure_record, credo_id):
-    """Sends record to Credo AI's Governance Platform
-
-    Parameters
-    ----------
-    figure_record : credo.integration.Figure
-        A Figure record object
-    credo_id : str
-        The destination id for the model or data on 
-        Credo AI's Governance platform.
-    """
-    post_figure(credo_id, figure_record)
+    payload_json = json.dumps(serialize(data=payload), cls=NumpyEncoder)
+    return payload_json
 
 
 def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
@@ -313,19 +302,9 @@ def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
         spec = get_technical_spec(use_case_id, version=version)
     if spec_path:
         spec = json.load(open(spec_path))
-    try:
-        models = spec['model_ids']
-    except KeyError:
-        return {}
-    metric_dict = {m: defaultdict(dict) for m in models}
+    metric_dict = defaultdict(dict)
     metrics = spec['metrics']
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        # applies to all models
-        if 'model_id' not in metric:
-            for metric_list in metric_dict.values():
-                metric_list[metric['type']] = bounds
-        # otherwise only applies to one model
-        else:
-            metric_dict[metric['model_id']][metric['type']] = bounds
+        metric_dict[metric['model_id']][metric['type']] = bounds
     return metric_dict
