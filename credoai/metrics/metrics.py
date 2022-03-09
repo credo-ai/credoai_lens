@@ -24,14 +24,14 @@ class Metric():
     See DATASET_METRICS for examples. CUSTOM metrics have no expectations and will 
     not be automatically used by Lens modules.
 
-    Metric Categories
-    -----------------
-    {BINARY|MULTICLASS}_CLASSIFICATION: metrics like `scikit-learn's classification metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
-    REGRESSION: metrics like `scikit-learn's regression metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
-    CLUSTERING: metrics like `scikit-learn's clustering metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
-    FAIRNESS: metrics like `fairlearn's equalized odds metric <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.equalized_odds_ratio>`_
-    DATASET: metrics intended
-    CUSTOM: No expectations for fun
+    Metric Categories:
+
+    * {BINARY|MULTICLASS}_CLASSIFICATION: metrics like `scikit-learn's classification metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
+    * REGRESSION: metrics like `scikit-learn's regression metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
+    * CLUSTERING: metrics like `scikit-learn's clustering metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
+    * FAIRNESS: metrics like `fairlearn's equalized odds metric <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.equalized_odds_ratio>`_
+    * DATASET: metrics intended
+    * CUSTOM: No expectations for fun
 
     Parameters
     ----------
@@ -45,7 +45,7 @@ class Metric():
     takes_prob : bool, optional
         Whether the function takes the decision probabilities
         vs. the predicted class, as for ROC AUC. Similar to `needs_proba` used by
-        sklearn: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.make_scorer.html
+        `sklearn <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.make_scorer.html>`_
         by default False
     equivalent_names : list
         list of other names for metric

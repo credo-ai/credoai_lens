@@ -13,8 +13,7 @@ import credoai.modules as mod
 import sys, inspect
 
 class FairnessBaseAssessment(CredoAssessment):
-    """
-    Basic evaluation of the fairness of ML models
+    """Basic evaluation of the fairness of ML models
     
     Runs fairness analysis on models with well-defined
     objective functions. Examples include:
@@ -23,8 +22,8 @@ class FairnessBaseAssessment(CredoAssessment):
     * regression
     * recommendation systems
 
-    Modules
-    -------
+    Modules:
+    
     * credoai.modules.fairness_base
     
     Requirements
@@ -215,8 +214,8 @@ class DatasetFairnessAssessment(CredoAssessment):
     * Proxy detection
     * Demographic Parity of outcomes
 
-    Modules
-    -------
+    Modules:
+
     * credoai.modules.dataset_fairness
 
     """
