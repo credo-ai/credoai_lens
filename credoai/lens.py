@@ -180,7 +180,7 @@ class Lens:
         final_report.create_report(self)
         # exporting
         if export:
-                self.export_asessments(export, report=final_report)
+                self.export_assessments(export, report=final_report)
         return reporters, final_report
 
     def export_assessments(self, export="credoai", report=None):
