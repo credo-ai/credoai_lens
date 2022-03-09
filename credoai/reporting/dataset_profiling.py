@@ -1,10 +1,4 @@
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
-import pandas as pd
-import seaborn as sns
-
 from credoai.reporting.credo_reporter import CredoReporter
-from credoai.reporting import plot_utils
 
 
 class DatasetProfilingReporter(CredoReporter):
