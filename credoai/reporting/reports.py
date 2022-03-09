@@ -6,6 +6,8 @@ from datetime import datetime
 from inspect import cleandoc
 from nbclient import NotebookClient
 from jupyterlab_nbconvert_nocode.nbconvert_functions import HTMLHideCodeExporter
+import asyncio
+import nest_asyncio
 
 class NotebookReport():
     def __init__(self):
@@ -62,8 +64,9 @@ class NotebookReport():
     def run_notebook(self):
         client = NotebookClient(self.nb, timeout=600, 
                     kernel_name='python3')
-
-        client.execute()
+        loop = asyncio.new_event_loop()
+        nest_asyncio.apply(loop)
+        loop.run_until_complete(client.async_execute())
         return self
 
     def _preprocess_cell_content(self, cells):
@@ -101,8 +104,9 @@ class AssessmentReport(NotebookReport):
             pickle.dump(val, open(pickle_files[-1], 'wb'))
         client = NotebookClient(self.nb, timeout=600, 
                     kernel_name='python3')
-
-        client.execute()
+        loop = asyncio.new_event_loop()
+        nest_asyncio.apply(loop)
+        loop.run_until_complete(client.async_execute())
         for f in pickle_files:
             os.remove(f)
         return self
