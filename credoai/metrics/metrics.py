@@ -20,13 +20,13 @@ class Metric():
     that metric signatures either correspond with scikit-learn or fairlearn method signatures,
     in the case of binary/multiclass classification, regression, clustering and fairness metrics.
 
-    Dataset metrics are used as documentation placeholders and define no function. See DATASET_METRICS
-    for examples. CUSTOM metrics have no expectations and will not be automatically used throughout
-    Lens.
+    Dataset metrics are used as documentation placeholders and define no function. 
+    See DATASET_METRICS for examples. CUSTOM metrics have no expectations and will 
+    not be automatically used by Lens modules.
 
     Metric Categories
     -----------------
-    BINARY/MULTICLASS CLASSIFICATION: metrics like `scikit-learn's classification metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
+    {BINARY|MULTICLASS}_CLASSIFICATION: metrics like `scikit-learn's classification metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
     REGRESSION: metrics like `scikit-learn's regression metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
     CLUSTERING: metrics like `scikit-learn's clustering metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
     FAIRNESS: metrics like `fairlearn's equalized odds metric <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.equalized_odds_ratio>`_
@@ -61,6 +61,7 @@ class Metric():
             self.equivalent_names = {self.name}
         else:
             self.equivalent_names = set(self.equivalent_names + [self.name])
+        self.metric_category = self.metric_category.upper()
         if self.metric_category not in METRIC_CATEGORIES:
             raise ValidationError(f"metric type ({self.metric_category}) isn't valid")
         self.humanized_type = ' '.join(self.name.split('_')).title()
