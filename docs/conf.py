@@ -57,11 +57,11 @@ nbsphinx_allow_errors = True  # Continue through Jupyter errors
 nbsphinx_execute = 'never'
 autodoc_mock_imports = [
     'absl',
+    'cloudpickle',
     'dotenv', 
     'fairlearn',
     'googleapiclient',
     'joblib', 
-    'jupyterlab_nbconvert_nocode',
     'json_api_doc',
     'matplotlib',
     'nbclient',

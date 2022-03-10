@@ -1,13 +1,19 @@
 import nbformat as nbf 
 import os
-import pickle
+import cloudpickle
 import textwrap
 from datetime import datetime
 from inspect import cleandoc
 from nbclient import NotebookClient
-from jupyterlab_nbconvert_nocode.nbconvert_functions import HTMLHideCodeExporter
+from traitlets.config import Config
 import asyncio
+import nbconvert
 import nest_asyncio
+
+HTML_CONFIG = Config()
+HTML_CONFIG.TemplateExporter.exclude_input = True
+HTML_CONFIG.TemplateExporter.exclude_input_prompt = True
+HTML_CONFIG.TemplateExporter.exclude_output_prompt = True
 
 class NotebookReport():
     def __init__(self):
@@ -69,15 +75,15 @@ class NotebookReport():
         loop.run_until_complete(client.async_execute())
         return self
 
+    def to_html(self):
+        """Converts notebook to html"""
+        html_exporter = nbconvert.HTMLExporter(config=HTML_CONFIG)
+        (body, resources) = html_exporter.from_notebook_node(self.nb)
+        return body
+    
     def _preprocess_cell_content(self, cells):
         return [(cleandoc(content), cell_type) 
                 for content, cell_type in cells]
-
-    def to_html(self):
-        """Converts notebook to html"""
-        html_exporter = HTMLHideCodeExporter()
-        (body, resources) = html_exporter.from_notebook_node(self.nb)
-        return body
 
 class AssessmentReport(NotebookReport):
     def __init__(self, needed_artifacts=None):
@@ -91,9 +97,9 @@ class AssessmentReport(NotebookReport):
         super().__init__()
         self.needed_artifacts = needed_artifacts
         # set up reporter
-        load_code="import pickle\n"
+        load_code="import cloudpickle\n"
         for key, val in self.needed_artifacts.items():
-            load_code += f"{key} = pickle.load(open('{key}.pkl','rb'))\n"
+            load_code += f"{key} = cloudpickle.load(open('{key}.pkl','rb'))\n"
         load_code += "%config InlineBackend.figure_formats = ['svg', 'png']"
         self.add_cells([(load_code, 'code')])
     
@@ -101,7 +107,7 @@ class AssessmentReport(NotebookReport):
         pickle_files = []
         for key, val in self.needed_artifacts.items():
             pickle_files.append(f'{key}.pkl')
-            pickle.dump(val, open(pickle_files[-1], 'wb'))
+            cloudpickle.dump(val, open(pickle_files[-1], 'wb'))
         client = NotebookClient(self.nb, timeout=600, 
                     kernel_name='python3')
         loop = asyncio.new_event_loop()

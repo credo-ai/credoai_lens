@@ -66,7 +66,11 @@ def submit_request(request, end_point, **kwargs):
 def get_assessment(assessment_id):
     end_point = get_end_point(f"assessments/{assessment_id}")
     return deserialize(submit_request('get', end_point).json())
-    
+
+def get_associated_models(use_case_id):
+    end_point = get_end_point(f"use_cases/{use_case_id}?include=models")
+    return deserialize(submit_request('get', end_point).json())['models']
+
 def get_technical_spec(use_case_id, version='latest'):
     """Get technical specifications for an Use Case from Credo AI Governance App
 
@@ -243,20 +247,11 @@ def register_project(project_name):
     data = json.dumps(serialize(project))
     response = _register_artifact(data, end_point)
     return {'name': project_name, 'model_project_id': response['id']}
-
-def register_model_to_use_case(use_case_id, model_id):
-    scope = get_technical_spec(use_case_id, version='draft')
-    model_ids = scope['model_ids']
-    if model_id not in model_ids:
-        model_ids.append(model_id)
-    else:
-        return
-    data = serialize({'model_ids': model_ids, 
-                      'id': 'resource-id',
-                      '$type': 'use_case_id_scopes'})
-    end_point = get_end_point(f"use_cases/{use_case_id}/scopes/draft")
-    submit_request('patch', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
     
+def register_model_to_use_case(use_case_id, model_id):
+    data = {"data": [{"id": model_id, "type": "models"}]}
+    end_point = get_end_point(f"use_cases/{use_case_id}/relationships/models")
+    submit_request('post', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
 
 def _register_artifact(data, end_point):
     try:
