@@ -68,12 +68,12 @@ def get_assessment(assessment_id):
     return deserialize(submit_request('get', end_point).json())
     
 def get_technical_spec(use_case_id, version='latest'):
-    """Get technicalspecifications for an Use Case from credoai.Governance Platform
+    """Get technical specifications for an Use Case from Credo AI Governance App
 
     Parameters
     ----------
     use_case_id : string
-        identifier for Use Case on Credo AI Governance Platform
+        identifier for Use Case on Credo AI Governance App
     version : str
         "latest", for latest published spec, or "draft". If "latest"
         cannot be found, will look for a draft.
@@ -113,12 +113,12 @@ def get_survey_results(use_case_id, survey_key='FAIR'):
 
 
 def get_model_name(model_id):
-    """Get model name form a model ID from credoai.Governance Platform
+    """Get model name form a model ID from Credo AI Governance App
 
     Parameters
     ----------
     model_id : string
-        Identifier for Model on Credo AI Governance Platform
+        Identifier for Model on Credo AI Governance App
 
     Returns
     -------
@@ -173,18 +173,18 @@ def post_assessment(use_case_id, model_id, data):
 
 
 def register_dataset(dataset_name):
-    """Registers a dataset on Credo AI's Governance Platform
+    """Registers a dataset on Credo AI's Governance App
 
     Parameters
     ----------
     dataset_name : string
-        Name for dataset on Credo AI's Governance Platform
+        Name for dataset on Credo AI's Governance App
 
     Returns
     --------
     dict : str
         Dictionary with Identifiers for dataset
-        on Credo AI's Governance Platform
+        on Credo AI's Governance App
     """
     end_point = get_end_point(f"datasets")
     project = {"name": dataset_name, "$type": "string"}
@@ -194,14 +194,14 @@ def register_dataset(dataset_name):
 
 
 def register_model(model_name, model_project_id=None):
-    """Registers a model  on Credo AI's Governance Platform
+    """Registers a model  on Credo AI's Governance App
 
     Parameters
     ----------
     model_name : string
-        Name for Model on Credo AI's Governance Platform
+        Name for Model on Credo AI's Governance App
     model_project_id : string
-        Identifier for Project on Credo AI's Governance Platform.
+        Identifier for Project on Credo AI's Governance App.
         If not provided, a Project will automatically be created
         with the name {model_name} project.
 
@@ -209,7 +209,7 @@ def register_model(model_name, model_project_id=None):
     --------
     dict : str
         Dictionary with Identifiers for Model and Project
-        on Credo AI's Governance Platform
+        on Credo AI's Governance App
     """
     if model_project_id is None:
         model_project_id = register_project(f'{model_name} project')[
@@ -225,18 +225,18 @@ def register_model(model_name, model_project_id=None):
 
 
 def register_project(project_name):
-    """Registers a model project on Credo AI's Governance Platform
+    """Registers a model project on Credo AI's Governance App
 
     Parameters
     ----------
     project_name : string
-        Name for Project on Credo AI's Governance Platform
+        Name for Project on Credo AI's Governance App
 
     Returns
     --------
     dict : str
         Dictionary with Identifiers for Project
-        on Credo AI's Governance Platform
+        on Credo AI's Governance App
     """
     end_point = get_end_point(f"model_projects")
     project = {"name": project_name, "$type": "string"}

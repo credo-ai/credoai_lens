@@ -20,20 +20,20 @@ Start here!
 Our journey starts here. We will assess a payment default prediction model for gender fairness 
 using Lens, in 5 minutes.
 
-**Connecting with the Credo AI Governance Platform Demo**
+**Connecting with the Credo AI Governance App Demo**
 
 Lens is primarily a framework for comprehensive assessment of AI models. However, it is also the 
 primary way to integrate assessment analysis with 
-`Credo AI’s Governance Platform <https://www.credo.ai/product>`__. 
+`Credo AI’s Governance App <https://www.credo.ai/product>`__. 
 This notebook walks you through the steps to set up the connection.
 
 **Customizing Lens Demo**
 
 Lens strives to give you sensible defaults and automatically do the proper assessments. However, there are times where you want to customize a functionality. This notebook shows you how.
 
-**Generic Integration With Credo AI’s Governance Platform Demo**
+**Generic Integration With Credo AI’s Governance App Demo**
 
-In Integration demo, we will take a model created and assessed completely independently of Lens and send that data to `Credo AI’s Governance Platform <https://www.credo.ai/product>`__.
+In Integration demo, we will take a model created and assessed completely independently of Lens and send that data to `Credo AI’s Governance App <https://www.credo.ai/product>`__.
 
 Lens Demos
 ----------

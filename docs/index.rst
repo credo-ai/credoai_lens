@@ -16,18 +16,18 @@
 
 Lens is Credo AI's AI Assessment Framework. It supports assessment
 of AI systems, with a focus on responsible AI assessment. It also
-streamlines integration with the Credo AI governance platform.
+streamlines integration with the Credo AI Governance App.
 
 Check out the `quickstart tutorial <https://credoai-lens.readthedocs.io/en/latest/notebooks/quickstart.html>`_
 to get started.
 
-If you are connecting to the Credo AI Governance platform, see the `governance integration tutorial <https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html>`_.
+If you are connecting to the Credo AI Governance App, see the `governance integration tutorial <https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html>`_.
 
 Overview
 --------
 Lens is made of a few components.
 
-* **Lens** is the primary interface between models, data, modules and (optionally) the Credo AI Governance Platform.
+* **Lens** is the primary interface between models, data, modules and (optionally) the Credo AI Governance App.
 * **CredoModel / CredoData** are wrappers to bring models and data into the Lens Framework
 * **Modules** are tools to perform assessment-related functions on models and/or data. A bias assessment is a type of module.
 * **Assessments** are the connective tissue between CredoModels and CredoData and modules.
@@ -49,7 +49,7 @@ it was built with the breadth of the ML ecosystem in mind.
 Lens supports AI evaluation by automatically determining the assessments to run,
 running multiple assessments with just a few lines of code, and supporting
 downstream communication with report creation and integration with the 
-Credo AI Governance Platform.
+Credo AI Governance App.
 
 Is is also easily extensible. Your own code can easily be brought into Lens by 
 defining your own assessments, you are able to override Lens' automatic selection
@@ -104,10 +104,10 @@ An "Alignment Spec" must be supplied to Lens. The spec articulates
 how different assessments should be run:  
 it is a parameterization of the assessment.
 
-The spec makes most sense as part of Credo AI's overall governance platform. In 
+The spec makes most sense as part of Credo AI's overall governance app. In 
 this context the Spec is the output of a multi-stakeholder articulation of
 how the AI system should be assessed. Lens actually takes care of automatically
-retrieving the Alignment Spec from the governance platform, connecting 
+retrieving the Alignment Spec from Governance App, connecting 
 your technical team to compliance, product, and other stakeholders.
 
 Of course, a single person can also defined the Spec. 
@@ -119,17 +119,17 @@ In addition, the set of modules are easily customized and extended. Lens strives
 you sensible defaults without placing unnecessary restrictions. The `lens customization` tutorial
 goes through these aspects.
 
-Credo AI Governance Platform
+Credo AI Governance App
 ----------------------------
 Assessment is important, but it's not the end all of Responsible AI development!
-`Credo AI's <https://www.credo.ai/>`_ governance platform provides the other aspects needed for effective
+`Credo AI's <https://www.credo.ai/>`_ Governance App provides the other aspects needed for effective
 AI governance including: support for multi-stakeholder alignment, policy packs
 for different areas of responsible AI development and compliance needs,
 and continuous translation of all evidence (including assessment result!) into
 a risk perspective.
 
-This platform is independent from using Lens for assessments. You can use *any*
-method to assess your AI artifacts and upload the results to the Governance Platform
+This app is independent from using Lens for assessments. You can use *any*
+method to assess your AI artifacts and upload the results to the Governance App
 smoothly. Check out the `integration demo <https://credoai-lens.readthedocs.io/en/latest/notebooks/integration_demo.html>`_ to see how that is done.
 
 
