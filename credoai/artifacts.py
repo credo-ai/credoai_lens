@@ -1,6 +1,4 @@
-         # *********************************
-# Overview
-# *********************************
+"""Artifacts used by Lens to structure governance, models and data"""
 # CredoLens relies on four classes
 # - CredoGovernance
 # - CredoModel

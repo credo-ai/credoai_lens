@@ -13,7 +13,6 @@ Start here!
    notebooks/quickstart
    notebooks/governance_integration
    notebooks/lens_customization
-   notebooks/integration_demo
 
 **Quickstart Demo**
 
@@ -30,10 +29,6 @@ This notebook walks you through the steps to set up the connection.
 **Customizing Lens Demo**
 
 Lens strives to give you sensible defaults and automatically do the proper assessments. However, there are times where you want to customize a functionality. This notebook shows you how.
-
-**Generic Integration With Credo AI’s Governance App Demo**
-
-In Integration demo, we will take a model created and assessed completely independently of Lens and send that data to `Credo AI’s Governance App <https://www.credo.ai/product>`__.
 
 Lens Demos
 ----------

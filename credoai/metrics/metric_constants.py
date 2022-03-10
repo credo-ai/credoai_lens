@@ -1,4 +1,4 @@
-from credoai.utils.metrics import (
+from credoai.metrics.credoai_metrics import (
     equal_opportunity_difference, false_discovery_rate, false_omission_rate
 )
 from functools import partial
@@ -7,10 +7,9 @@ from fairlearn.metrics._group_metric_set import BINARY_CLASSIFICATION_METRICS as
 from sklearn import metrics as sk_metrics
 from sklearn.metrics import SCORERS
 
-# *** CONSTANTS ***
-# *** Define Basic Metric Name Mapping ***
 
-BINARY_CLASSIFICATION_METRICS = {
+# MODEL METRICS
+BINARY_CLASSIFICATION_FUNCTIONS = {
     'false_positive_rate': fl_metrics.false_positive_rate,
     'false_negative_rate': fl_metrics.false_negative_rate,
     'false_discovery_rate': false_discovery_rate,
@@ -30,14 +29,17 @@ BINARY_CLASSIFICATION_METRICS = {
 }
 
 # Define Fairness Metric Name Mapping
+# Fairness metrics must have a similar signature to fairlearn.metrics.equalized_odds_difference
+# (they should take sensitive_features and method)
 fairness_metric_list = [fl_metrics.demographic_parity_difference,
                         fl_metrics.demographic_parity_ratio,
                         fl_metrics.equalized_odds_difference]
-FAIRNESS_METRICS = {func.__name__: func for func in fairness_metric_list}
-FAIRNESS_METRICS['equal_opportunity_difference'] = equal_opportunity_difference
+FAIRNESS_FUNCTIONS = {func.__name__: func for func in fairness_metric_list}
+FAIRNESS_FUNCTIONS['equal_opportunity_difference'] = equal_opportunity_difference
+
 
 # Define functions that require probabilities ***
-PROBABILITY_METRICS = {"average_precision_score", "roc_auc_score"}
+PROBABILITY_FUNCTIONS = {"average_precision_score", "roc_auc_score"}
 
 # *** Define Alternative Naming ***
 METRIC_EQUIVALENTS = {
@@ -54,17 +56,9 @@ METRIC_EQUIVALENTS = {
     'equalized_odds_difference': ['equalized_odds']
 }
 
-STANDARD_CONVERSIONS = {}
-for standard, equivalents in METRIC_EQUIVALENTS.items():
-    conversions = {name: standard for name in equivalents}
-    STANDARD_CONVERSIONS.update(conversions)
-    
-# *** collate all metrics ***
-ALL_METRICS = list(BINARY_CLASSIFICATION_METRICS.keys()) + \
-    list(FAIRNESS_METRICS.keys()) + list(STANDARD_CONVERSIONS.keys())
-
-# humanize metric names
-def humanize_metric_name(metric):
-    return ' '.join(metric.split('_')).title()
-ALL_METRICS_HUMANIZED = [humanize_metric_name(m) for m in ALL_METRICS]
-
+# DATASET METRICS
+DATASET_METRIC_TYPES = [
+    "sensitive_feature_prediction_score",
+    "demographic_parity_ratio",
+    "demographic_parity_difference"
+]

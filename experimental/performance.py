@@ -4,8 +4,8 @@ import seaborn as sns
 import math
 from sklearn import metrics as sk_metrics
 from IPython.display import display
-from credoai.utils.metric_constants import METRICS, PROBABILITY_METRICS
-from credoai.utils.metrics import wilson_ci
+from credoai.metrics.metric_constants import METRICS, PROBABILITY_METRICS
+from credoai.metrics.credoai_metrics import wilson_ci
 from credoai.reporting.plot_utils import plot_curve, credo_converging_palette
 from credoai.utils.common import wrap_list
 
@@ -57,7 +57,7 @@ class BinaryClassificationPerformanceToolkit:
             y_prob = self._rereference_confidence(pos_class)
 
             for metric_name, metric_fun in zip(metric_names, metric_funs):
-                if metric_name in PROBABILITY_METRICSA:
+                if metric_name in PROBABILITY_METRICS:
                     out = metric_fun(self.y_true==pos_class, y_prob)
                 else:
                      out = metric_fun(self.y_true==pos_class, y_pred==pos_class)
