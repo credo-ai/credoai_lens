@@ -1,4 +1,5 @@
 absl-py>=1.0.0
+cloudpickle>=2.0.0
 fairlearn>=0.7.0
 json-api-doc>=0.15.0
 matplotlib>=3.0
