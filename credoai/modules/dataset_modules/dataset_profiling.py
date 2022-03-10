@@ -26,12 +26,12 @@ class DatasetProfiling(CredoModule):
     
     def profile_data(self):
         """Generates data profile reports
-        """        
 
+        """        
         # Initialize the report
         profile = ProfileReport(self.data, title="Dataset", explorative=True)
         
-        profile.to_notebook_iframe()
+        return profile.to_notebook_iframe()
 
     def run(self):
         return None

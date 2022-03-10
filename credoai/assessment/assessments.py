@@ -4,7 +4,7 @@ Module containing all CredoAssessmsents
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
-from credoai.reporting import FairnessReporter, NLPGeneratorAnalyzerReporter, DatasetFairnessReporter
+from credoai.reporting import FairnessReporter, NLPGeneratorAnalyzerReporter, DatasetFairnessReporter, DatasetProfilingReporter
 from sklearn.utils.multiclass import type_of_target
 from credoai.reporting.dataset_profiling import DatasetProfilingReporter
 
@@ -254,7 +254,7 @@ class DatasetProfilingAssessment(CredoAssessment):
     def __init__(self):
         super().__init__(
             'DatasetProfiling', 
-            mod.DatasetFairness,
+            mod.DatasetProfiling,
             AssessmentRequirements(
                 data_requirements=['X', 'y', 'sensitive_features']
             )
