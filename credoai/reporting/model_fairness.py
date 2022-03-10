@@ -45,6 +45,9 @@ class FairnessReporter(CredoReporter):
         array of figures
         """        
         df = self.module.get_df()
+        if df['true'].dtype.name == 'category':
+            df['true'] = df['true'].cat.codes
+
         # plot
         # comparison plots
         if include_fairness:
@@ -107,7 +110,8 @@ class FairnessReporter(CredoReporter):
         if self.module.metric_frames != {}:
             plot_disaggregated = True
         n_plots = 1+plot_disaggregated
-    with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
+        ratio = 1
+        with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
             f, axes = plt.subplots(1, n_plots)
             plt.subplots_adjust(wspace=0.7)
             axes = axes.flat
