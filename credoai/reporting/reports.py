@@ -1,6 +1,6 @@
 import nbformat as nbf 
 import os
-import pickle
+import cloudpickle
 import textwrap
 from datetime import datetime
 from inspect import cleandoc
@@ -91,9 +91,9 @@ class AssessmentReport(NotebookReport):
         super().__init__()
         self.needed_artifacts = needed_artifacts
         # set up reporter
-        load_code="import pickle\n"
+        load_code="import cloudpickle\n"
         for key, val in self.needed_artifacts.items():
-            load_code += f"{key} = pickle.load(open('{key}.pkl','rb'))\n"
+            load_code += f"{key} = cloudpickle.load(open('{key}.pkl','rb'))\n"
         load_code += "%config InlineBackend.figure_formats = ['svg', 'png']"
         self.add_cells([(load_code, 'code')])
     
@@ -101,7 +101,7 @@ class AssessmentReport(NotebookReport):
         pickle_files = []
         for key, val in self.needed_artifacts.items():
             pickle_files.append(f'{key}.pkl')
-            pickle.dump(val, open(pickle_files[-1], 'wb'))
+            cloudpickle.dump(val, open(pickle_files[-1], 'wb'))
         client = NotebookClient(self.nb, timeout=600, 
                     kernel_name='python3')
         loop = asyncio.new_event_loop()

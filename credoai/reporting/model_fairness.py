@@ -110,7 +110,9 @@ class FairnessReporter(CredoReporter):
         if self.module.metric_frames != {}:
             plot_disaggregated = True
         n_plots = 1+plot_disaggregated
-        ratio = 1
+        # ratio based on number of metrics and sensitive featurers
+        r = self.module.get_results()['disaggregated_performance'].shape
+        ratio = max(r[0]*r[1]/30, 1)
         with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
             f, axes = plt.subplots(1, n_plots)
             plt.subplots_adjust(wspace=0.7)
