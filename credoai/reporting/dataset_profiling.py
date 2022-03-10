@@ -6,5 +6,6 @@ class DatasetProfilingReporter(CredoReporter):
         super().__init__(assessment)
         self.size = size
 
-    def _create_report_cells(self):
-        cells = [("reporter.profile_data()", "code")]
+    def _create_report_cells(self):     
+        cells = [("reporter.module.profile_data()", "code")]
+        return cells
