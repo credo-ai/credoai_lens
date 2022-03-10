@@ -38,3 +38,6 @@ class DatasetProfiling(CredoModule):
     
     def prepare_results(self):
         return None
+
+    def get_results(self):
+        return None
