@@ -34,17 +34,17 @@ class Lens:
 
         Lens is the assessment framework component of the broader CredoAI suite.
         It is usable as a standalone gateway to a suite of assessments or in 
-        combination with CredoAI's Governance Platform. 
+        combination with CredoAI's Governance App. 
 
         If the latter, Lens handles connecting Governance Alignment
         to assessments as well as exporting assessment results back to the Governance
-        Platform.
+        App.
 
         Parameters
         ----------
         governance : CredoGovernance, optional
             CredoGovernance object connecting
-            Lens with Governance platform, by default None
+            Lens with Governance App, by default None
         spec : dict
             key word arguments passed to each assessments `init_module` 
             function using `Lens.init_module`. Each key must correspond to
@@ -137,9 +137,9 @@ class Lens:
         Creates jupyter notebook reports for every assessment that
         has reporting functionality defined. It then concatenates the reports into
         one final report. The reports are then able to be saved to file (if report_directory
-        is defined), or exported to Credo AI's governance platform (if export=True).
+        is defined), or exported to Credo AI's Governance App (if export=True).
 
-        Note: to export to Credo AI's Governance Platform, CredoGovernance must be passed
+        Note: to export to Credo AI's Governance App, CredoGovernance must be passed
         to Lens with a defined "use_case_id". "model_id" is also required, but if no "model_id" 
         is explicitly provided, a model will be registered and used.
 
@@ -184,12 +184,12 @@ class Lens:
         return reporters, final_report
 
     def export_assessments(self, export="credoai", report=None):
-        """Exports assessments to file or Credo AI's governance platform
+        """Exports assessments to file or Credo AI's governance app
 
         Parameters
         ----------
         export : str
-            If the special string "credoai", Credo AI Governance Platform.
+            If the special string "credoai", Credo AI Governance App.
             If a string, save assessment json to the output_directory indicated by the string.
             If False, do not export, by default "credoai""
         report : credoai.reports.Report, optional
@@ -206,10 +206,10 @@ class Lens:
             defined_ids = self.gov.get_defined_ids()
             if len({'model_id', 'use_case_id'}.intersection(defined_ids)) == 2:
                 logging.info(
-                    f"Exporting assessments to Credo AI's Governance Platform")
+                    f"Exporting assessments to Credo AI's Governance App")
                 return ci.post_assessment(self.gov.use_case_id, self.gov.model_id, payload)
             else:
-                logging.warning("Couldn't upload assessment to Credo AI's Governance Platform. "
+                logging.warning("Couldn't upload assessment to Credo AI's Governance App. "
                                 "Ensure use_case_id is defined in CredoGovernance")
         else:
             if not path.exists(export):

@@ -14,8 +14,8 @@ It is extensible, and easily customized to your organizations assessments if the
 supported by default. 
 
 Though it can be used alone, Lens shows its full value when connected to your organization's 
-[Credo AI Platform](https://www.credo.ai/product). Credo AI is an end-to-end AI Governance
-platform that supports multi-stakeholder alignment, AI assessment (via Lens) and AI risk assesssment.
+[Credo AI App](https://www.credo.ai/product). Credo AI is an end-to-end AI Governance
+App that supports multi-stakeholder alignment, AI assessment (via Lens) and AI risk assessment.
 
 
 
@@ -67,7 +67,7 @@ conda env create --file environment.yml
 
 To get started, see the [quickstart demo](https://credoai-lens.readthedocs.io/en/latest/notebooks/quickstart.html).
 
-If you are using the Credo AI Governance Platform, also check out the [governance integration demo](https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html).
+If you are using the Credo AI Governance App, also check out the [governance integration demo](https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html).
 
 A listing and overview of all the demonstration notebooks are available [here](https://github.com/credo-ai/credoai_lens/tree/develop/docs/notebooks).
 
@@ -79,7 +79,7 @@ For dev documentation, see [latest](https://credoai-lens.readthedocs.io/en/lates
 
 ## Configuration
 
-To connect to [Credo AI's Governance Platform](https://www.credo.ai/product), enter your connection info in `~/.credoconfig` (".credoconfig" in the root directory) using
+To connect to [Credo AI's Governance App](https://www.credo.ai/product), enter your connection info in `~/.credoconfig` (".credoconfig" in the root directory) using
 the below format. 
 
 ```

@@ -5,7 +5,7 @@ class CredoModule(ABC):
     """
     Base Class to build other modules off of.
     
-    Defines basic functions for interacting with Credo's governance platform
+    Defines basic functions for interacting with Credo AI's Governance App
     """
     def __init__(self):
         self.results = None

@@ -8,7 +8,7 @@
 # - CredoAssessment
 
 # CredoGovernance contains the information needed
-# to connect CredoLens with the Credo AI governance platform
+# to connect CredoLens with the Credo AI Governance App
 
 # CredoModel follows an `adapter pattern` to convert
 # any model into an interface CredoLens can work with.
@@ -37,23 +37,23 @@ class CredoGovernance:
     """Class to store governance data.
 
     This information is used to interact with the CredoAI
-    Governance Platform. Artifacts (Use Cases, model projects,
+    Governance App. Artifacts (Use Cases, model projects,
     models, and datasets) are identified by a unique ID which 
     can be found on the platform.
 
-    To make use of the governance platform a .credo_config file must
+    To make use of Governance App a .credo_config file must
     also be set up (see README)
 
     Parameters
     ----------
     use_case_id : str, optional
-        ID of Use Case on Credo AI Governance Platform, by default None
+        ID of Use Case on Credo AI Governance app, by default None
     model_project_id : str, optional
-        ID of model project on Credo AI Governance Platform, by default None
+        ID of model project on Credo AI Governance app, by default None
     model_id : str, optional
-        ID of model on Credo AI Governance Platform, by default None
+        ID of model on Credo AI Governance app, by default None
     dataset_id : str, optional
-        ID of dataset on Credo AI Governance Platform, by default None
+        ID of dataset on Credo AI Governance app, by default None
     warning_level : int
         warning level. 
             0: warnings are off
@@ -80,7 +80,7 @@ class CredoGovernance:
         by model_id.
         
         If not retrieved yet, attempt to retrieve the spec first
-        from the AI Governance platform. 
+        from the AI Governance app. 
         """
         if not self.assessment_spec:
             self.retrieve_assessment_spec()
@@ -145,7 +145,7 @@ class CredoGovernance:
         """Retrieve assessment spec
 
         Retrieve assessment spec, either from Credo AI's 
-        governance platform or a json file. This spec will be
+        Governance App or a json file. This spec will be
         for a use-case, and may apply to multiple models.
         get_assessment_spec returns the spec associated with 
         `model_id`.
@@ -155,7 +155,7 @@ class CredoGovernance:
         spec_path : string, optional
             The file location for the technical spec json downloaded from
             the technical requirements of an Use Case on Credo AI's
-            Governance Platform. If no spec_path is provided,
+            Governance App. If no spec_path is provided,
             will use the Use Case ID. Default None
 
         Returns
