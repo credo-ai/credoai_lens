@@ -10,10 +10,165 @@ import numpy as np
 import seaborn as sns
 import sklearn.metrics as sk_metrics
 
+from credoai.reporting.credo_reporter import CredoReporter
+from credoai.reporting.plot_utils import (get_style,
+                                          credo_classification_palette, 
+                                          format_label, get_axis_size,
+                                          DEFAULT_COLOR)
+from numpy import pi
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+import sklearn.metrics as sk_metrics
+
 class FairnessReporter(CredoReporter):
-    def __init__(self, assessment, infographic_shape=(3,5), size=3):
+    def __init__(self, assessment, size=3):
         super().__init__(assessment)
         self.size = size
+    
+    def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
+        """Creates a fairness report for binary classification model
+
+        Parameters
+        ----------
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
+        include_fairness : bool, optional
+            Whether to include fairness plots, by default True
+        include_disaggregation : bool, optional
+            Whether to include performance plots broken down by
+            subgroup. Overall performance are always reported, by default True
+            
+        Returns
+        -------
+        array of figures
+        """        
+        df = self.module.get_df()
+        # plot
+        # comparison plots
+        if include_fairness:
+            self.figs.append(self.plot_fairness())
+        # display
+        plt.show()
+        # save
+        if filename is not None:
+            self.export_report(filename)
+        return self.figs
+
+    def _create_report_cells(self):
+        # report cells
+        cells = [
+            self._write_fairness(),
+            ("reporter.plot_fairness();", 'code')
+        ]
+        return cells
+
+    def _write_fairness(self):
+        cell = ("""
+                #### Fairness Metrics
+
+                <details>
+                <summary>Assessment Description:</summary>
+                <br>
+                <p>The fairness assessment is divided into two primary metrics: (1) Fairness
+                    metrics, and (2) performance metrics. The former help describe how equitable
+                    your AI system, while the latter describes how performant the system is.</p.
+                    
+                <p>Fairness metrics summarize whether your AI system is performing similarlty across all groups.
+                    These metrics may well-known "fairness metrics" like "equal opportunity", 
+                    or performance parity metrics. Performance parity captures the idea that the
+                    AI system should work similarly well for all groups. Some "fairness metrics"
+                    like equal opportunity are actually parity metrics. "Equal opportunity" is simply
+                    the true positive rate parity.
+                </p>
+                
+                <p>Performance metrics describe how performant your system is. It goes without saying
+                    that the AI system should be performing at some minimum acceptable level to be
+                    deployed. The Fairness Assessment disaggregates performance across the 
+                    sensitive feature provided. This ensures that the system is evaluated for 
+                    acceptable performance across groups that are important. Think of it as any
+                    segmentation analysis, where the segments are groups of people.</p>
+                </details>
+                """, 'markdown')
+        return cell
+
+    def plot_fairness(self):
+        """Plots fairness for binary classification
+        Creates plots for binary classification model that summarizes
+        performance disparities across groups. Individual group
+        performance plots are also relevant for fully describing
+        performance differences.
+        Returns
+        -------
+        matplotlib figure
+        """
+        plot_disaggregated = False
+        if self.module.metric_frames != {}:
+            plot_disaggregated = True
+        n_plots = 1+plot_disaggregated
+    with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
+            f, axes = plt.subplots(1, n_plots)
+            plt.subplots_adjust(wspace=0.7)
+            axes = axes.flat
+            # plot fairness
+            self._plot_fairness_metrics(axes[0])
+            if plot_disaggregated:
+                self._plot_disaggregated_metrics(axes[1])
+        return f
+
+    def _plot_fairness_metrics(self, ax):
+        # create df
+        df = self.module.get_fairness_results()
+        # add parity to names
+        df.index = [i+'_parity' if row['kind'] == 'parity' else i
+                    for i, row in df.iterrows()]
+        df = df['value']
+        df.index.name = 'Fairness Metric'
+        df.name = 'Value'
+        # plot
+        sns.barplot(data=df.reset_index(), 
+                    y='Fairness Metric', 
+                    x='Value',
+                    edgecolor='w',
+                    color = DEFAULT_COLOR,
+                    ax=ax)
+        self._style_barplot(ax)
+        
+    def _plot_disaggregated_metrics(self, ax):
+        # create df
+        sensitive_feature = self.module.sensitive_features.name
+        df =  self.module.get_disaggregated_performance(False) \
+                    .reset_index() \
+                    .melt(id_vars=sensitive_feature,
+                          var_name='Performance Metric',
+                          value_name='Value')
+        # plot
+        num_cats = len(df[sensitive_feature].unique())
+        palette = sns.color_palette('Purples', num_cats)
+        palette[-1] = [.4,.4,.4]
+        sns.barplot(data=df, 
+                    y='Performance Metric', 
+                    x='Value', 
+                    hue=sensitive_feature,
+                    palette=palette,
+                    edgecolor='w',
+                    ax=ax)
+        self._style_barplot(ax)
+        plt.legend(bbox_to_anchor=(1.01, 1.02))
+        
+    def _style_barplot(self, ax):
+        sns.despine()
+        ax.set_xlabel(ax.get_xlabel(), fontweight='bold')
+        ax.set_ylabel(ax.get_ylabel(), fontweight='bold')
+        # format metric labels
+        ax.set_yticklabels([format_label(label.get_text()) 
+                            for label in ax.get_yticklabels()])
+    
+
+class BinaryClassificationReporter(FairnessReporter):
+    def __init__(self, assessment, infographic_shape=(3,5), size=3):
+        super().__init__(assessment, size)
         self.infographic_shape = infographic_shape
     
     def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
@@ -65,59 +220,6 @@ class FairnessReporter(CredoReporter):
             """, 'code')
         ]
         return cells
-
-    def _write_fairness(self):
-        cell = ("""
-                #### Fairness Metrics
-
-                <details>
-                <summary>Assessment Description:</summary>
-                <br>
-                <p>The fairness assessment is divided into two primary metrics: (1) Fairness
-                    metrics, and (2) performance metrics. The former help describe how equitable
-                    your AI system, while the latter describes how performant the system is.</p.
-                    
-                <p>Fairness metrics summarize whether your AI system is performing similarlty across all groups.
-                    These metrics may well-known "fairness metrics" like "equal opportunity", 
-                    or performance parity metrics. Performance parity captures the idea that the
-                    AI system should work similarly well for all groups. Some "fairness metrics"
-                    like equal opportunity are actually parity metrics. "Equal opportunity" is simply
-                    the true positive rate parity.
-                </p>
-                
-                <p>Performance metrics describe how performant your system is. It goes without saying
-                    that the AI system should be performing at some minimum acceptable level to be
-                    deployed. The Fairness Assessment disaggregates performance across the 
-                    sensitive feature provided. This ensures that the system is evaluated for 
-                    acceptable performance across groups that are important. Think of it as any
-                    segmentation analysis, where the segments are groups of people.</p>
-                </details>
-                """, 'markdown')
-        return cell
-
-    def plot_fairness(self):
-        """Plots fairness for binary classification
-        Creates plots for binary classification model that summarizes
-        performance disparities across groups. Individual group
-        performance plots are also relevant for fully describing
-        performance differences.
-        Returns
-        -------
-        matplotlib figure
-        """
-        plot_disaggregated = False
-        if self.module.metric_frames != {}:
-            plot_disaggregated = True
-        n_plots = 1+plot_disaggregated
-        with get_style(figsize=self.size, n_cols=n_plots):
-            f, axes = plt.subplots(1, n_plots)
-            plt.subplots_adjust(wspace=0.7)
-            axes = axes.flat
-            # plot fairness
-            self._plot_fairness_metrics(axes[0])
-            if plot_disaggregated:
-                self._plot_disaggregated_metrics(axes[1])
-        return f
 
     def _write_performance_infographic(self):
         cell = ("""
@@ -310,52 +412,3 @@ class FairnessReporter(CredoReporter):
         for x, y, s, kwargs in text_objects:
             ax.text(x, y, s, transform = ax.transAxes, ha='center', **kwargs)
         return ax
-    
-    def _plot_fairness_metrics(self, ax):
-        # create df
-        df = self.module.get_fairness_results()
-        # add parity to names
-        df.index = [i+'_parity' if row['kind'] == 'parity' else i
-                    for i, row in df.iterrows()]
-        df = df['value']
-        df.index.name = 'Fairness Metric'
-        df.name = 'Value'
-        # plot
-        sns.barplot(data=df.reset_index(), 
-                    y='Fairness Metric', 
-                    x='Value',
-                    edgecolor='w',
-                    color = DEFAULT_COLOR,
-                    ax=ax)
-        self._style_barplot(ax)
-        
-    def _plot_disaggregated_metrics(self, ax):
-        # create df
-        sensitive_feature = self.module.sensitive_features.name
-        df =  self.module.get_disaggregated_performance(False) \
-                    .reset_index() \
-                    .melt(id_vars=sensitive_feature,
-                          var_name='Performance Metric',
-                          value_name='Value')
-        # plot
-        num_cats = len(df[sensitive_feature].unique())
-        palette = sns.color_palette('Purples', num_cats)
-        palette[-1] = [.4,.4,.4]
-        sns.barplot(data=df, 
-                    y='Performance Metric', 
-                    x='Value', 
-                    hue=sensitive_feature,
-                    palette=palette,
-                    edgecolor='w',
-                    ax=ax)
-        self._style_barplot(ax)
-        plt.legend(bbox_to_anchor=(1.01, 1.02))
-        
-    def _style_barplot(self, ax):
-        sns.despine()
-        ax.set_xlabel(ax.get_xlabel(), fontweight='bold')
-        ax.set_ylabel(ax.get_ylabel(), fontweight='bold')
-        # format metric labels
-        ax.set_yticklabels([format_label(label.get_text()) 
-                            for label in ax.get_yticklabels()])
-    
