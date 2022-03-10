@@ -7,10 +7,8 @@ Our journey starts here. We will assess a payment default prediction model for g
 ## [Lens Customization Demo](https://github.com/credo-ai/credoai_lens/blob/develop/docs/notebooks/lens_customization.ipynb)
 Lens strives to give you sensible defaults and automatically do the proper assessments. However, there are times where you want to customize a functionality. Lens can accommodate that. This demo showcases the many ways you can customize Lens, from parameterizing assessments to incorporating new metrics.
 
-## Credo AI's Governance Platform [Connection](https://github.com/credo-ai/credoai_lens/blob/develop/docs/notebooks/governance_integration.ipynb) and [Integration](https://github.com/credo-ai/credoai_lens/blob/develop/docs/notebooks/integration_demo.ipynb) Demos
-Lens is primarily a framework for comprehensive assessment of AI models. However, it is also the primary way to integrate assessment analysis with [Credo AI's Governance Platform](https://www.credo.ai/product).
-
-The [Connection](https://github.com/credo-ai/credoai_lens/blob/develop/docs/notebooks/governance_integration.ipynb) notebook walks you through the steps to set up the connection. Once connected, there are a lot that can be communicated between the two. In the follow-up [Integration](https://github.com/credo-ai/credoai_lens/blob/develop/docs/notebooks/integration_demo.ipynb) demo, we will take a model created and assessed completely independently of Lens and send that data to Credo AI's Governance Platform.
+## Credo AI's Governance App [Connection](https://github.com/credo-ai/credoai_lens/blob/develop/docs/notebooks/governance_integration.ipynb) and [Integration](https://github.com/credo-ai/credoai_lens/blob/develop/docs/notebooks/integration_demo.ipynb) Demos
+Lens is primarily a framework for comprehensive assessment of AI models. However, it is also the primary way to integrate assessment analysis with [Credo AI's Governance App](https://www.credo.ai/product).
 
 ## [Data Assessment Module Demo](https://github.com/credo-ai/credoai_lens/blob/develop/docs/notebooks/lens_demos/dataset_assessment.ipynb)
 Biases in data could result in biased algorithmic outcomes. Structured Dataset Assessment tool enables the assessment of a structured dataset for biases. It assesses a dataset for the representation of demographic groups and presence of proxies.

@@ -75,7 +75,7 @@ class DatasetFairness(CredoModule):
         return self  
     
     def prepare_results(self):
-        """Prepares results for export to Credo AI's governance platform
+        """Prepares results for export to Credo AI's Governance App
 
         Structures a subset of results for export as a dataframe with appropriate structure
         for exporting. See credoai.modules.credo_module.

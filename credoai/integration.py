@@ -1,4 +1,4 @@
-"""Credo AI Governance Platform Integration Functionality"""
+"""Credo AI Governance App Integration Functionality"""
 
 from collections import ChainMap, defaultdict
 from datetime import datetime
@@ -278,7 +278,7 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
 
 
 def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
-    """Get aligned metrics from Credo's Governance Platform or file
+    """Get aligned metrics from Credo's Governance App or file
 
     At least one of the use_case_id or spec_path must be provided! If both
     are provided, the spec_path takes precedence.
@@ -286,11 +286,11 @@ def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
     Parameters
     ----------
     use_case_id : string, optional
-        Identifier for Use Case on Credo AI's Governance Platform
+        Identifier for Use Case on Credo AI's Governance App
     spec_path : string, optional
         The file location for the technical spec json downloaded from
         the technical requirements of an Use Case on Credo AI's
-        Governance Platform
+        Governance App
     Returns
     -------
     dict
