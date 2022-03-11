@@ -13,6 +13,7 @@ modules = [
     'dataset_modules.dataset_fairness',
     'model_modules.fairness_nlp',
     'model_modules.fairness_base',
+    'model_modules.performance_base',
     'model_modules.nlp_generator'
 ]
 

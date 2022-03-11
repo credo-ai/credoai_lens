@@ -7,9 +7,8 @@ from scipy.stats import norm
 from sklearn.utils import check_consistent_length
 from typing import List, Union
 import pandas as pd
-from credoai.modules.model_modules.performance_base import PerformanceModule
 
-class FairnessModule(PerformanceModule):
+class PerformanceModule(CredoModule):
     """
     Fairness module for Credo AI. Handles any metric that can be
     calculated on a set of ground truth labels and predictions, 
@@ -27,54 +26,58 @@ class FairnessModule(PerformanceModule):
         Note for performance parity metrics like 
         "false negative rate parity" just list "false negative rate". Parity metrics
         are calculated automatically if the performance metric is supplied
-    sensitive_features :  (List, pandas.Series, numpy.ndarray)
-        The sensitive features which should be used to create subgroups.
     y_true : (List, pandas.Series, numpy.ndarray)
         The ground-truth labels (for classification) or target values (for regression).
     y_pred : (List, pandas.Series, numpy.ndarray)
         The predicted labels for classification
     y_prob : (List, pandas.Series, numpy.ndarray), optional
         The unthresholded predictions, confidence values or probabilities.
+    sensitive_features :  (List, pandas.Series, numpy.ndarray)
+        The segmentation features which should be used to create subgroups to analyze.
     """
 
     def __init__(self,
                  metrics,
-                 sensitive_features,
                  y_true,
                  y_pred,
-                 y_prob=None
+                 y_prob=None,
+                 sensitive_features=None
                  ):
-        super().__init__(metrics=metrics, sensitive_features=sensitive_features, 
-                        y_true=y_true, y_pred=y_pred, y_prob=y_prob)
+        super().__init__()
+        # data variables
+        self.y_true = to_array(y_true)
+        self.y_pred = to_array(y_pred)
+        self.y_prob = to_array(y_prob) if y_prob is not None else None
+        self.perform_disaggregation = True
+        if sensitive_features is None:
+            self.perform_disaggregation = False
+            sensitive_features = ['NA'] * len(self.y_true) # only set to use metric frame
+        self.sensitive_features = sensitive_features
+        self._validate_inputs()
+        
         # assign variables
-        self.fairness_metrics = None
-        self.fairness_prob_metrics = None
+        self.metrics = metrics
+        self.metric_frames = {}
+        self.performance_metrics = None
+        self.prob_metrics = None
+        self.failed_metrics = None
         self.update_metrics(metrics)
 
-    def run(self, method='between_groups'):
+    def run(self):
         """
-        Run fairness base module
+        Run performance base module
         
-        Parameters
-        ----------
-        method : str, optional
-            How to compute the differences: "between_groups" or "to_overall". 
-            See fairlearn.metrics.MetricFrame.difference
-            for details, by default 'between_groups'
             
         Returns
         -------
         dict
-            Dictionary containing two pandas Dataframes:
+            Dictionary containing one pandas Dataframes:
                 - "disaggregated results": The disaggregated performance metrics, along with acceptability and risk
             as columns
-                - "fairness": Dataframe with fairness metrics, along with acceptability and risk
-            as columns
         """
-        super().run()
-        del self.results['overall_performance']
-        fairness_results = self.get_fairness_results(method=method)
-        self.results['fairness'] = fairness_results
+        self.results = {'overall_performance': self.get_overall_metrics()}
+        if self.perform_disaggregation:
+            self.results['disaggregated_performance'] = self.get_disaggregated_performance()
         return self
         
     def prepare_results(self, filter=None):
@@ -100,9 +103,18 @@ class FairnessModule(PerformanceModule):
         NotRunError
             Occurs if self.run is not called yet to generate the raw assessment results
         """
-        if self.results:
-            results = super().prepare_results(filter=filter)
-            results = pd.concat([self.results['fairness'], results])
+        if self.results is not None:
+            if 'overall_performance' in self.results:
+                results = self.results['overall_performance']
+            else:
+                results = pd.DataFrame()
+            # melt disaggregated df before combinding
+            if 'disaggregated_performance' in self.results:
+                disaggregated_df = self.results['disaggregated_performance']
+                disaggregated_df = disaggregated_df.reset_index() \
+                    .melt(id_vars=[disaggregated_df.index.name, 'subtype'], var_name='metric_type')\
+                    .set_index('metric_type')
+                results = pd.concat([results, disaggregated_df])
             if filter:
                 results = results.filter(regex=filter)
             return results
@@ -129,56 +141,59 @@ class FairnessModule(PerformanceModule):
             self.metrics += metrics
         (self.performance_metrics,
          self.prob_metrics,
-         self.fairness_metrics,
-         self.fairness_prob_metrics,
          self.failed_metrics) = self._process_metrics(self.metrics)
         self._setup_metric_frames()
 
-    def get_fairness_results(self, method='between_groups'):
-        """Return fairness and performance parity metrics
-
-        Note, performance parity metrics are labeled with their
-        related performance label, but are computed using 
-        fairlearn.metrics.MetricFrame.difference(method)
-
-        Parameters
-        ----------
-        method : str, optional
-            How to compute the differences: "between_groups" or "to_overall".  
-            See fairlearn.metrics.MetricFrame.difference
-            for details, by default 'between_groups'
+    def get_df(self):
+        """Return dataframe of input arrays
 
         Returns
         -------
         pandas.DataFrame
-            The returned fairness metrics
+            Dataframe containing the input arrays
         """
+        df = pd.DataFrame({'sensitive': self.sensitive_features,
+                           'true': self.y_true,
+                           'pred': self.y_pred}).reset_index(drop=True)
+        if self.y_prob is not None:
+            y_prob_df = pd.DataFrame(self.y_prob)
+            y_prob_df.columns = [f'y_prob_{i}' for i in range(y_prob_df.shape[1])]
+            df = pd.concat([df, y_prob_df], axis=1)
+        return df
+    
+    def get_overall_metrics(self):
+        """Return performance metrics for each group
 
-        results = {}
-        for metric_name, metric in self.fairness_metrics.items():
-            results[metric_name] = metric.fun(y_true=self.y_true,
-                                              y_pred=self.y_pred,
-                                              sensitive_features=self.sensitive_features,
-                                              method=method)
-        for metric_name, metric in self.fairness_prob_metrics.items():
-            results[metric_name] = metric.fun(y_true=self.y_true,
-                                              y_prob=self.y_prob,
-                                              sensitive_features=self.sensitive_features,
-                                              method=method)
-        results = pd.Series(results, dtype=float, name='value')
-        # add parity results
-        parity_results = pd.Series(dtype=float)
+        Returns
+        -------
+        pandas.Series
+            The overall performance metrics
+        """
+        overall_metrics = [metric_frame.overall for metric_frame in self.metric_frames.values()]
+        output_series = pd.concat(overall_metrics, axis=0) \
+                          .rename(index='value') \
+                          .to_frame() \
+                          .assign(subtype='overall_performance')
+        return output_series
+
+    def get_disaggregated_performance(self):
+        """Return performance metrics for each group
+
+        Parameters
+        ----------
+        melt : bool, optional
+            If True, return a long-form dataframe, by default False
+
+        Returns
+        -------
+        pandas.DataFrame
+            The disaggregated performance metrics
+        """
+        disaggregated_df = pd.DataFrame()
         for metric_frame in self.metric_frames.values():
-            parity_results = pd.concat(
-                [parity_results, metric_frame.difference(method=method)])
-        parity_results.name = 'value'
-
-        results = pd.concat([results, parity_results]).convert_dtypes().to_frame()
-        results.index.name = 'metric_type'
-        # add kind
-        results['subtype'] = ['fairness'] * len(results)
-        results.loc[results.index[-len(parity_results):], 'subtype'] = 'parity'
-        return results
+            df = metric_frame.by_group.copy().convert_dtypes()
+            disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
+        return disaggregated_df.assign(subtype='disaggregated_performance')
 
     def _process_metrics(self, metrics):
         """Separates metrics
@@ -197,8 +212,6 @@ class FairnessModule(PerformanceModule):
         failed_metrics = []
         performance_metrics = {}
         prob_metrics = {}
-        fairness_metrics = {}
-        fairness_prob_metrics = {}
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
@@ -212,7 +225,8 @@ class FairnessModule(PerformanceModule):
             if not isinstance(metric, Metric):
                 raise ValidationError("Metric is not of type credoai.metric.Metric")
             if metric.metric_category == "FAIRNESS":
-                fairness_metrics[metric_name] = metric
+                logging.info(f"fairness metric, {metric_name}, unused by PerformanceModule")
+                pass
             elif metric.metric_category in MODEL_METRIC_CATEGORIES:
                 if metric.takes_prob:
                     prob_metrics[metric_name] = metric
@@ -223,6 +237,30 @@ class FairnessModule(PerformanceModule):
                 failed_metrics.append(metric_name)
 
         return (performance_metrics, prob_metrics,
-                fairness_metrics, fairness_prob_metrics,
                 failed_metrics)
+
+    def _create_metric_frame(self, metrics, y_pred):
+        """Creates metric frame from dictionary of key:Metric"""
+        metrics = {name: metric.fun for name, metric in metrics.items()}
+        return MetricFrame(metrics=metrics,
+                           y_true=self.y_true,
+                           y_pred=y_pred,
+                           sensitive_features=self.sensitive_features)
+    
+    def _setup_metric_frames(self):
+        self.metric_frames = {}
+        if self.y_pred is not None and self.performance_metrics:
+            self.metric_frames['pred'] = self._create_metric_frame(
+                self.performance_metrics, self.y_pred)
+        # for metrics that require the probabilities
+        self.prob_metric_frame = None
+        if self.y_prob is not None and self.prob_metrics:
+            self.metric_frames['prob'] = self._create_metric_frame(
+                self.prob_metrics, self.y_prob)
+            
+    def _validate_inputs(self):
+        check_consistent_length(self.y_true, self.y_pred,
+                                self.y_prob, self.sensitive_features)
+        
+
         
