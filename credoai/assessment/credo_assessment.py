@@ -136,15 +136,14 @@ class CredoAssessment(ABC):
     def _standardize_prepared_results(self, results):
         if type(results) == dict:
             results = pd.Series(results, name='value').to_frame()
-            results.index.name = 'metric_type'
         elif type(results) == pd.Series:
-            results.index.name = 'metric_type'
             results.name = 'value'
             results = results.to_frame()
         elif type(results) == pd.DataFrame:
             pass
         else:
             raise TypeError("Results format not recognized")
+        results.index.name = 'metric_type'
         return results
 
     def _validate_results(self, results):
