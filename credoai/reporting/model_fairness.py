@@ -45,9 +45,7 @@ class FairnessReporter(CredoReporter):
         array of figures
         """        
         df = self.module.get_df()
-        if df['true'].dtype.name == 'category':
-            df['true'] = df['true'].cat.codes
-
+        
         # plot
         # comparison plots
         if include_fairness:
@@ -195,6 +193,8 @@ class BinaryClassificationReporter(FairnessReporter):
         array of figures
         """        
         df = self.module.get_df()
+        if df['true'].dtype.name == 'category':
+            df['true'] = df['true'].cat.codes
         # plot
         # comparison plots
         if include_fairness:
@@ -220,6 +220,8 @@ class BinaryClassificationReporter(FairnessReporter):
             self._write_performance_infographic(),
             ("""\
             df = reporter.module.get_df()
+            if df['true'].dtype.name == 'category':
+                df['true'] = df['true'].cat.codes
             reporter.plot_performance_infographic(df['true'], df['pred'], 'Overall')
             for group, sub_df in df.groupby('sensitive'):
                 reporter.plot_performance_infographic(sub_df['true'], sub_df['pred'], group)
