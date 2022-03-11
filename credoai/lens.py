@@ -21,7 +21,7 @@ import shutil
 class Lens:
     def __init__(
         self,
-        governance: CredoGovernance = None,
+        governance: Union[CredoGovernance, str] = None,
         spec: dict = None,
         assessments: Union[List[CredoAssessment], str] = 'auto',
         model: CredoModel = None,
@@ -42,9 +42,11 @@ class Lens:
 
         Parameters
         ----------
-        governance : CredoGovernance, optional
-            CredoGovernance object connecting
-            Lens with Governance App, by default None
+        governance : CredoGovernance or string, optional
+            If CredoGovernance, object connecting
+            Lens with Governance App. If string, interpreted as 
+            use-case ID on the Governance App. A CredoGovernance object
+            will be created with the string as use_case_id, by default None
         spec : dict
             key word arguments passed to each assessments `init_module` 
             function using `Lens.init_module`. Each key must correspond to
@@ -72,8 +74,10 @@ class Lens:
                 1: warnings are raised (default)
                 2: warnings are raised as exceptions.
         """
-
-        self.gov = governance or CredoGovernance(warning_level=warning_level)
+        if isinstance(governance, str):
+            self.gov = CredoGovernance(use_case_id=governance, warning_level=warning_level)
+        else:
+            self.gov = governance or CredoGovernance(warning_level=warning_level)
         self.model = model
         self.data = data
         self.user_id = user_id
