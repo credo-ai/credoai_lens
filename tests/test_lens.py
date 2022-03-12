@@ -30,7 +30,7 @@ def test_lens():
 
     lens = cl.Lens(model=credo_model, data=credo_data, spec=alignment_spec)
 
-    results = lens.run_assessments()
+    results = lens.run_assessments().get_results()
 
     metric = results["FairnessBase"]["fairness"].index[0]
     score = round(results["FairnessBase"]["fairness"].iloc[0]["value"], 2)

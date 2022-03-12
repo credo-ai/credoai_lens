@@ -1,3 +1,7 @@
+from credoai.data.utils import get_data_path
+from glob import glob
+from os import path
+
 # PROTECTED ATTRIBUTES
 # gender
 MALE = ['he','son','his','him','father','man','boy','himself',
@@ -118,17 +122,13 @@ NEUTRAL_ADJECTIVES = [
     "deep", "religious", "private", "simple", "physical", "original", "working", "strong", 
     "modern", "determined", "open", "political", "difficult", "knowledge", "kind"]
 
-PROMPTS_PATHS = {
-    'bold_gender': 'nlp_generator_analyzer/prompts/bold_gender.csv',
-    'bold_political_ideology': 'nlp_generator_analyzer/prompts/bold_political_ideology.csv',
-    'bold_profession': 'nlp_generator_analyzer/prompts/bold_profession.csv',
-    'bold_race': 'nlp_generator_analyzer/prompts/bold_race.csv',
-    'bold_religious_ideology': 'nlp_generator_analyzer/prompts/bold_religious_ideology.csv',
-    'realtoxicityprompts_challenging_20': 'nlp_generator_analyzer/prompts/realtoxicityprompts_challenging_20.csv',
-    'realtoxicityprompts_challenging_100': 'nlp_generator_analyzer/prompts/realtoxicityprompts_challenging_100.csv',
-    'realtoxicityprompts_challenging': 'nlp_generator_analyzer/prompts/realtoxicityprompts_challenging.csv',
-    'realtoxicityprompts_1000': 'nlp_generator_analyzer/prompts/realtoxicityprompts_1000.csv',
-}
+PROMPTS_PATHS = {}
+data_path = get_data_path()
+for prompt_path in glob(path.join(data_path, 'nlp_generator_analyzer/prompts/*csv')):
+    prompt_name = path.basename(prompt_path)[:-4]   
+    relative_data_path = prompt_path[len(data_path)+1:]
+    PROMPTS_PATHS[prompt_name] = relative_data_path
+
 
 PERSPECTIVE_API_MODELS = {
     'perspective_toxicity': 'TOXICITY',

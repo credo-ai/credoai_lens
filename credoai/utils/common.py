@@ -1,10 +1,10 @@
 import json
 import hashlib
-from absl import logging
 import numpy as np
 import pandas as pd
 import os
 import requests
+from absl import logging
 from pathlib import Path
 from typing import Dict, Any
 
@@ -87,3 +87,31 @@ def to_array(lst):
         return lst
     else:
         raise TypeError
+
+def is_categorical(series, threshold=0.05):
+    """Identifies whether a series is categorical or not
+
+    Logic: If there are relatively few unique values for a feature, the feature is likely categorical.
+    The results are estimates and are not guaranteed to be correct.
+
+    Parameters
+    ----------
+    series : pd.Series
+        Series to evaluate
+    threshold : float
+        The threshold (number of the unique values over the total number of values)
+
+
+    Returns
+    -------
+    bool
+        Whether the series is categorical or not
+    """
+    
+    if series.dtype.name == 'category':
+        return True
+    # float columns are assumed not-categorical
+    elif len(series.unique()) / len(series) < threshold:
+        return True
+    else:
+        return False

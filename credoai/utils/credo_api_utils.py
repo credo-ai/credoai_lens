@@ -63,14 +63,21 @@ def submit_request(request, end_point, **kwargs):
     response = SESSION.request(request, end_point, **kwargs)
     return response
 
+def get_assessment(assessment_id):
+    end_point = get_end_point(f"assessments/{assessment_id}")
+    return deserialize(submit_request('get', end_point).json())
+
+def get_associated_models(use_case_id):
+    end_point = get_end_point(f"use_cases/{use_case_id}?include=models")
+    return deserialize(submit_request('get', end_point).json())['models']
 
 def get_technical_spec(use_case_id, version='latest'):
-    """Get technicalspecifications for an Use Case from credoai.Governance Platform
+    """Get technical specifications for an Use Case from Credo AI Governance App
 
     Parameters
     ----------
     use_case_id : string
-        identifier for Use Case on Credo AI Governance Platform
+        identifier for Use Case on Credo AI Governance App
     version : str
         "latest", for latest published spec, or "draft". If "latest"
         cannot be found, will look for a draft.
@@ -110,12 +117,12 @@ def get_survey_results(use_case_id, survey_key='FAIR'):
 
 
 def get_model_name(model_id):
-    """Get model name form a model ID from credoai.Governance Platform
+    """Get model name form a model ID from Credo AI Governance App
 
     Parameters
     ----------
     model_id : string
-        Identifier for Model on Credo AI Governance Platform
+        Identifier for Model on Credo AI Governance App
 
     Returns
     -------
@@ -153,48 +160,35 @@ def get_model_project_by_name(project_name):
                 'dataset_id': returned['id']}
     return None
 
+def get_use_case_by_name(use_case_nmae):
+    """Returns governance info (ids) for model_project using its name"""
+    returned = _get_by_name(use_case_nmae, 'use_cases')
+    if returned:
+        return {'name': use_case_nmae,
+                'use_case_id': returned['id']}
+    return None
 
-def patch_metrics(model_id, model_record):
-    """Send a model record object to Credo's Governance Platform
-
-    Parameters
-    ----------
-    model_id : string
-        Identifier for Model on Credo AI Governance Platform
-    model_record : Record
-        Model Record object, see credo.integration.MutliRecord
-    """
-    end_point = get_end_point(f"models/{model_id}/relationships/metrics")
-    return submit_request('patch', end_point, data=model_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
-
-
-def post_figure(model_id, figure_record):
-    """Send a figure record object to Credo AI's Governance Platform
-
-    Parameters
-    ----------
-    model_id : string
-        Identifier for Model on Credo AI's Governance Platform
-    figure record : Record
-        Figure Record object, see credo.integration.FigureRecord
-    """
-    end_point = get_end_point(f"models/{model_id}/model_assets")
-    return submit_request('post', end_point, data=figure_record.jsonify(), headers={"content-type": "application/vnd.api+json"})
+def post_assessment(use_case_id, model_id, data):
+    end_point = get_end_point(f"use_cases/{use_case_id}/models/{model_id}/assessments")
+    request =  submit_request('post', end_point, data=data, 
+                          headers={"content-type": "application/vnd.api+json"})
+    assessment_id = deserialize(request.json())['id']
+    return get_assessment(assessment_id)
 
 
 def register_dataset(dataset_name):
-    """Registers a dataset on Credo AI's Governance Platform
+    """Registers a dataset on Credo AI's Governance App
 
     Parameters
     ----------
     dataset_name : string
-        Name for dataset on Credo AI's Governance Platform
+        Name for dataset on Credo AI's Governance App
 
     Returns
     --------
     dict : str
         Dictionary with Identifiers for dataset
-        on Credo AI's Governance Platform
+        on Credo AI's Governance App
     """
     end_point = get_end_point(f"datasets")
     project = {"name": dataset_name, "$type": "string"}
@@ -204,14 +198,14 @@ def register_dataset(dataset_name):
 
 
 def register_model(model_name, model_project_id=None):
-    """Registers a model  on Credo AI's Governance Platform
+    """Registers a model  on Credo AI's Governance App
 
     Parameters
     ----------
     model_name : string
-        Name for Model on Credo AI's Governance Platform
+        Name for Model on Credo AI's Governance App
     model_project_id : string
-        Identifier for Project on Credo AI's Governance Platform.
+        Identifier for Project on Credo AI's Governance App.
         If not provided, a Project will automatically be created
         with the name {model_name} project.
 
@@ -219,7 +213,7 @@ def register_model(model_name, model_project_id=None):
     --------
     dict : str
         Dictionary with Identifiers for Model and Project
-        on Credo AI's Governance Platform
+        on Credo AI's Governance App
     """
     if model_project_id is None:
         model_project_id = register_project(f'{model_name} project')[
@@ -235,38 +229,29 @@ def register_model(model_name, model_project_id=None):
 
 
 def register_project(project_name):
-    """Registers a model project on Credo AI's Governance Platform
+    """Registers a model project on Credo AI's Governance App
 
     Parameters
     ----------
     project_name : string
-        Name for Project on Credo AI's Governance Platform
+        Name for Project on Credo AI's Governance App
 
     Returns
     --------
     dict : str
         Dictionary with Identifiers for Project
-        on Credo AI's Governance Platform
+        on Credo AI's Governance App
     """
     end_point = get_end_point(f"model_projects")
     project = {"name": project_name, "$type": "string"}
     data = json.dumps(serialize(project))
     response = _register_artifact(data, end_point)
     return {'name': project_name, 'model_project_id': response['id']}
-
-def register_model_to_use_case(use_case_id, model_id):
-    scope = get_technical_spec(use_case_id, version='draft')
-    model_ids = scope['model_ids']
-    if model_id not in model_ids:
-        model_ids.append(model_id)
-    else:
-        return
-    data = serialize({'model_ids': model_ids, 
-                      'id': 'resource-id',
-                      '$type': 'use_case_id_scopes'})
-    end_point = get_end_point(f"use_case_ids/{use_case_id}/scopes/draft")
-    submit_request('patch', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
     
+def register_model_to_use_case(use_case_id, model_id):
+    data = {"data": [{"id": model_id, "type": "models"}]}
+    end_point = get_end_point(f"use_cases/{use_case_id}/relationships/models")
+    submit_request('post', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
 
 def _register_artifact(data, end_point):
     try:

@@ -6,23 +6,53 @@ from abc import ABC, abstractmethod
 from credoai.utils.common import ValidationError
 import pandas as pd
 
+# Class Docstring below is a template used for all assessments __init__
+# Following this template helps for consistency, and filters down
+# to reporting
+
 
 class CredoAssessment(ABC):
-    """Abstract base class for all CredoAssessments
+    """{Short description of assessment}
+
+    {Longer escription of what the assessment does}
+
+    Modules
+    -------
+    * credoai.modules.module1
+    * credoai.modules.module2
+    * etc...
+
+    Requirements
+    ------------
+    {Describe requirements for CredoModel and CredoData
+    as specified by AssessmentRequirements in plain english}}
 
     Parameters
     ----------
-    name : str
-        Label of the assessment
-    module : CredoModule
-        CredoModule the Assessment builds
-    requirements : AssessmentRequirements, optional
-        Instantiation of funtionality CredoModel and/or CredoData
-        must define to run this asssesment. If defined, enables
-        automated validation and selection of asssessment
+    ...
     """
 
-    def __init__(self, name, module, requirements=None):
+    def __init__(self, name, module, requirements=None,
+                 short_description=None, long_description=None):
+        """Abstract base class for all CredoAssessments
+
+        Parameters
+        ----------
+        name : str
+            Label of the assessment
+        module : CredoModule
+            CredoModule the Assessment builds
+        requirements : AssessmentRequirements, optional
+            Instantiation of funtionality CredoModel and/or CredoData
+            must define to run this asssesment. If defined, enables
+            automated validation and selection of asssessment
+        short_description : str
+            Short description of assessment functionality. If None
+            will default to first line of class docstring
+        long_description : str
+            Long description of assessment functionality. If None
+            will default to first line of class docstring
+        """
         self.name = name
         self.module = module
         self.initialized_module = None
@@ -30,6 +60,10 @@ class CredoAssessment(ABC):
         if requirements is None:
             requirements = AssessmentRequirements()
         self.requirements = requirements
+        # descriptions, automatically parsed fro docstring if not set
+        self.short_description = short_description
+        self.long_description = long_description
+        self._set_description_from_doc()
 
     @abstractmethod
     def init_module(self, *, model=None, data=None):
@@ -60,7 +94,7 @@ class CredoAssessment(ABC):
 
     def prepare_results(self, metadata=None, **kwargs):
         results = self.initialized_module.prepare_results(**kwargs)
-        results = self._standardize_results(results)
+        results = self._standardize_prepared_results(results)
         self._validate_results(results)
         # add metadata
         metadata = metadata or {}
@@ -68,23 +102,38 @@ class CredoAssessment(ABC):
         results = results.assign(**metadata)
         # return results (and ensure no NaN floats remain)
         return results.fillna('NA')
-    
+
+    def get_description(self):
+        return {'short': self.short_description,
+                'long': self.long_description}
+
     def get_results(self):
         return self.initialized_module.get_results()
 
-    def create_report(self, filename=None):
-        """Creates a report
-        
+    def get_reporter(self):
+        """Gets reporter to visualize the assessment
+
         Does nothing if not overwritten
-        
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        """   
-        pass
-    
-    def _standardize_results(self, results):
+        """
+        pass   
+
+    def _set_description_from_doc(self):
+        docs = self.__doc__
+        # underline title of next section
+        try:
+            description = docs[:(docs.index('---')-5)]
+        except ValueError:
+            description = docs
+        # remove last line (title of next section)
+        description = description[:description.rfind('\n')].lstrip()
+        short = description.split('\n')[0]
+        long = description[len(short)+2:]
+        if self.short_description is None:
+            self.short_description = short
+        if self.long_description is None:
+            self.long_description = long
+
+    def _standardize_prepared_results(self, results):
         if type(results) == dict:
             results = pd.Series(results, name='value').to_frame()
             results.index.name = 'metric_type'

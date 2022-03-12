@@ -1,7 +1,3 @@
-# Required for notebooks
-jupyterlab
-ipywidgets>=7.6.5
-
 # required for modules.model_modules.nlp_generator.NLPGeneratorAnalyzer
 joblib>=0.14.1
 sentence-transformers>=2.1.0

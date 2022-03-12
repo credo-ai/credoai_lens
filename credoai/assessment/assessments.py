@@ -4,7 +4,8 @@ Module containing all CredoAssessmsents
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
-from credoai.reporting import FairnessReport, NLPGeneratorAnalyzerReport, DatasetModuleReport
+from credoai.reporting import (FairnessReporter, BinaryClassificationReporter,
+                              NLPGeneratorAnalyzerReporter, DatasetFairnessReporter)
 from sklearn.utils.multiclass import type_of_target
 
 from credoai.utils import InstallationError
@@ -13,10 +14,18 @@ import credoai.modules as mod
 import sys, inspect
 
 class FairnessBaseAssessment(CredoAssessment):
-    """
-    FairnessBase Assessment
+    """Basic evaluation of the fairness of ML models
     
-    Runs the FairnessModule.
+    Runs fairness analysis on models with well-defined
+    objective functions. Examples include:
+
+    * binary classification
+    * regression
+    * recommendation systems
+
+    Modules:
+    
+    * credoai.modules.fairness_base
     
     Requirements
     ------------
@@ -36,7 +45,7 @@ class FairnessBaseAssessment(CredoAssessment):
         )
     
     def init_module(self, *, model, data, metrics):
-        """ Initializes the assessment module
+        """Initializes the assessment module
 
         Transforms CredoModel and CredoData into the proper form
         to create a runnable assessment.
@@ -48,11 +57,11 @@ class FairnessBaseAssessment(CredoAssessment):
         model : CredoModel, optional
         data : CredoData, optional
         metrics : List-like
-            list of metric names as string or list of FairnessFunctions.
-            Metric strings should in list returned by credoai.utils.list_metrics.
+            list of metric names as string or list of Metrics (credoai.metrics.Metric).
+            Metric strings should in list returned by credoai.metrics.list_metrics.
             Note for performance parity metrics like 
-            "false negative rate parity" just list "false negative rate". Partiy metrics
-            are calculated automatically.
+            "false negative rate parity" just list "false negative rate". Parity metrics
+            are calculated automatically if the performance metric is supplied
 
         Example
         ---------
@@ -79,25 +88,12 @@ class FairnessBaseAssessment(CredoAssessment):
             y_prob)
         self.initialized_module = module
     
-    def create_report(self, filename=None, include_fairness=True, include_disaggregation=True):
-        """Creates a fairness report 
-        
-        Currently only supports binary classification models
-
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        include_fairness : bool, optional
-            Whether to include fairness plots, by default True
-        include_disaggregation : bool, optional
-            Whether to include performance plots broken down by
-            subgroup. Overall performance are always reported, by default True
-        """        
+    def get_reporter(self):
         if type_of_target(self.initialized_module.y_true) == 'binary':
-            self.report = FairnessReport(self.initialized_module)
-            return self.report.create_report(filename, include_fairness, include_disaggregation)
-            
+            return BinaryClassificationReporter(self)
+        else:
+            return FairnessReporter(self)
+
 class NLPEmbeddingBiasAssessment(CredoAssessment):
     """
     NLP Embedding-Bias Assessments
@@ -144,8 +140,8 @@ class NLPGeneratorAssessment(CredoAssessment):
             )
         
     def init_module(self, *, model, 
+                   assessment_functions,
                    prompts='bold_religious_ideology',
-                   assessment_functions=None,
                    comparison_models=None,
                    perspective_config=None):
         """ Initializes the assessment module
@@ -156,13 +152,6 @@ class NLPGeneratorAssessment(CredoAssessment):
         Parameters
         ------------
         model : CredoModel
-        prompts : str
-            choices are builtin datasets, which include:
-                'bold_gender', 'bold_political_ideology', 'bold_profession', 
-                'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
-                'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 
-                'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
-            or path of your own prompts csv file with columns 'group', 'subgroup', 'prompt'
         assessment_functions : dict
             keys are names of the assessment functions and values could be custom callable assessment functions 
             or name of builtin assessment functions. 
@@ -170,6 +159,13 @@ class NLPGeneratorAssessment(CredoAssessment):
                     'perspective_toxicity', 'perspective_severe_toxicity', 
                     'perspective_identify_attack', 'perspective_insult', 
                     'perspective_profanity', 'perspective_threat'
+        prompts : str
+            choices are builtin datasets, which include:
+                'bold_gender', 'bold_political_ideology', 'bold_profession', 
+                'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
+                'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 
+                'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
+            or path of your own prompts csv file with columns 'group', 'subgroup', 'prompt'
         comparison_models : dict, optional
             Dictionary of other generator functions to use. Will assess these as well against
             the prompt dataset to use for comparison. If None, gpt2 will be used. To
@@ -206,28 +202,30 @@ class NLPGeneratorAssessment(CredoAssessment):
             perspective_config)
 
         self.initialized_module = module
-        
-    def create_report(self, filename=None):
-        """Creates a report for nlp generator
+    
+    def get_reporter(self):
+        return NLPGeneratorAnalyzerReporter(self)
 
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-    """        
-        self.report = NLPGeneratorAnalyzerReport(self.initialized_module)
-        return self.report.create_report(filename)
-            
-class DatasetAssessment(CredoAssessment):
+class DatasetFairnessAssessment(CredoAssessment):
     """
     Dataset Assessment
     
-    Runs the Dataset module.
+    Runs fairness assessment on a CredoDataset. This
+    includes:
+    
+    * Distributional assessment of dataset
+    * Proxy detection
+    * Demographic Parity of outcomes
+
+    Modules:
+
+    * credoai.modules.dataset_fairness
+
     """
     def __init__(self):
         super().__init__(
-            'Dataset', 
-            mod.DatasetModule,
+            'DatasetFairness', 
+            mod.DatasetFairness,
             AssessmentRequirements(
                 data_requirements=['X', 'y', 'sensitive_features']
             )
@@ -237,18 +235,11 @@ class DatasetAssessment(CredoAssessment):
         self.initialized_module = self.module(
             data.X, 
             data.y,
-            data.sensitive_features)
+            data.sensitive_features,
+            data.categorical_features_keys)
 
-    def create_report(self, filename=None):
-        """Creates a report for dataset assessment
-
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        """        
-        self.report = DatasetModuleReport(self.initialized_module)
-        return self.report.create_report(filename)
+    def get_reporter(self):
+        return DatasetFairnessReporter(self)
         
 def list_assessments_exhaustive():
     """List all defined assessments"""

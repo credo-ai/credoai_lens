@@ -1,8 +1,13 @@
 absl-py>=1.0.0
+cloudpickle>=2.0.0
 fairlearn>=0.7.0
 json-api-doc>=0.15.0
 matplotlib>=3.0
+nest_asyncio>=1.5.4
 python-dotenv>=0.19.2
 requests>=2.25.1
 scikit-learn>=0.24
 seaborn>=0.11.2
+# Required for reporting
+jupyterlab>=3.2.8
+ipywidgets>=7.6.5
