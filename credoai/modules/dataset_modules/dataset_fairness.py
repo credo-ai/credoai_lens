@@ -168,8 +168,9 @@ class DatasetFairness(CredoModule):
         scorer = make_scorer(roc_auc_score, 
                              needs_proba=True,
                              multi_class='ovo')
+        n_folds = min(len(self.X)//5, 5)
         cv_results = cross_val_score(pipe, self.X, sensitive_features,
-                             cv = StratifiedKFold(5),
+                             cv = StratifiedKFold(n_folds),
                              scoring = scorer,
                              error_score='raise')
 
