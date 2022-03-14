@@ -298,10 +298,10 @@ def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
         Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
     """
     spec = {}
-    if use_case_id:
-        spec = get_technical_spec(use_case_id, version=version)
     if spec_path:
         spec = json.load(open(spec_path))
+    elif use_case_id:
+        spec = get_technical_spec(use_case_id, version=version)
     metric_dict = defaultdict(dict)
     metrics = spec['metrics']
     for metric in metrics:

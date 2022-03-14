@@ -148,6 +148,9 @@ class CredoGovernance:
         get_assessment_spec returns the spec associated with 
         `model_id`.
 
+        if a spec_path is provided, it will be used instead of 
+        querying the use-case.
+
         Parameters
         __________
         spec_path : string, optional
@@ -163,7 +166,7 @@ class CredoGovernance:
             Format: {"Metric1": (lower_bound, upper_bound), ...}
         """
         assessment_spec = {}
-        if self.use_case_id is not None:
+        if self.use_case_id is not None or spec_path is not None:
             assessment_spec = ci.get_assessment_spec(
                 self.use_case_id, spec_path)
         self.assessment_spec = assessment_spec
