@@ -203,7 +203,8 @@ class Lens:
         for name, assessment in self.assessments.items():
             logging.info(f"** Exporting assessment-{name}")
             prepared_results.append(self._prepare_results(assessment))
-        payload = ci.prepare_assessment_payload(prepared_results, report=report, assessed_at=self.run_time)
+        payload = ci.prepare_assessment_payload(prepared_results, report=report, 
+            assessed_at=self.run_time, for_app=(export=='credoai'))
 
         if export == 'credoai':
             model_id = self._get_credo_destination()

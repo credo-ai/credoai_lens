@@ -243,7 +243,7 @@ def record_metrics_from_dict(metrics, **metadata):
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
 
-def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
+def prepare_assessment_payload(prepared_results, report=None, assessed_at=None, for_app=False):
     """Export assessment json to file or credo
 
     Parameters
@@ -254,6 +254,8 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
         report to optionally include with assessments, by default None
     assessed_at : str, optional
         date when assessments were created, by default None
+    for_app : bool
+        Set to True if intending to send to Governance App via api
     """    
     # prepare assessments
     assessment_records = [record_metrics(r) for r in prepared_results]
@@ -272,8 +274,9 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
                "report": report_payload,
                "type": RISK,
                "$type": 'string'}
-
-    payload_json = json.dumps(serialize(data=payload), cls=NumpyEncoder)
+    if for_app:
+        payload = serialize(data=payload)
+    payload_json = json.dumps(payload, cls=NumpyEncoder)
     return payload_json
 
 
