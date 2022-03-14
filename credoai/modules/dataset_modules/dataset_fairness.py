@@ -168,8 +168,9 @@ class DatasetFairness(CredoModule):
         scorer = make_scorer(roc_auc_score, 
                              needs_proba=True,
                              multi_class='ovo')
+        n_folds = max(2, min(len(self.X)//5, 5))
         cv_results = cross_val_score(pipe, self.X, sensitive_features,
-                             cv = StratifiedKFold(5),
+                             cv = StratifiedKFold(n_folds),
                              scoring = scorer,
                              error_score='raise')
 
@@ -199,15 +200,17 @@ class DatasetFairness(CredoModule):
         # Define features tansformers
         categorical_transformer = OneHotEncoder(handle_unknown="ignore")
         
-        numeric_transformer = Pipeline(
-            steps=[("scaler", StandardScaler())]
-        )
 
+
+        transformers = []
+        if len(categorical_features):
+            categorical_transformer = OneHotEncoder(handle_unknown="ignore")
+            transformers.append(("cat", categorical_transformer, categorical_features))
+        if len(numeric_features):
+            numeric_transformer = Pipeline(steps=[("scaler", StandardScaler())])
+            transformers.append(("num", numeric_transformer, numeric_features))
         preprocessor = ColumnTransformer(
-            transformers=[
-                ("num", numeric_transformer, numeric_features),
-                ("cat", categorical_transformer, categorical_features),
-            ]
+            transformers=transformers
         )
 
         model = get_gradient_boost_model()
