@@ -108,7 +108,7 @@ def is_categorical(series, threshold=0.05):
         Whether the series is categorical or not
     """
     
-    if series.dtype.name == 'category':
+    if series.dtype.name in ['category', 'object']:
         return True
     # float columns are assumed not-categorical
     elif len(series.unique()) / len(series) < threshold:
