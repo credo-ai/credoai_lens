@@ -4,7 +4,8 @@ from collections import ChainMap, defaultdict
 from datetime import datetime
 from json_api_doc import serialize
 from credoai.utils.common import (NumpyEncoder, wrap_list,
-                                  ValidationError, dict_hash)
+                                  ValidationError, dict_hash,
+                                  huamnize_label)
 from credoai.utils.credo_api_utils import (get_technical_spec,
                                            post_assessment,
                                            register_dataset, register_model,
@@ -75,7 +76,7 @@ class Metric(Record):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
-        self.name = name or ' '.join(self.metric_type.split('_')).title()
+        self.name = name or humanize_label(self.metric_type)
         self.process = process
         self.config_hash = self._generate_config()
 

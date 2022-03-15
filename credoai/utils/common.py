@@ -51,6 +51,9 @@ def wrap_list(obj):
 def remove_suffix(text, suffix):
     return text[:-len(suffix)] if text.endswith(suffix) and len(suffix) != 0 else text
 
+def humanize_label(s):
+    return ' '.join(s.split('_')).title()
+
 class NumpyEncoder(json.JSONEncoder):
     """ Special json encoder for numpy types """
     def default(self, obj):

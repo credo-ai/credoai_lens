@@ -1,5 +1,5 @@
 from absl import logging
-from credoai.utils.common import ValidationError, remove_suffix
+from credoai.utils.common import ValidationError, remove_suffix, humanize_label
 from credoai.metrics.metric_constants import (BINARY_CLASSIFICATION_FUNCTIONS,
                                               FAIRNESS_FUNCTIONS,
                                               DATASET_METRIC_TYPES,
@@ -64,7 +64,7 @@ class Metric():
         self.metric_category = self.metric_category.upper()
         if self.metric_category not in METRIC_CATEGORIES:
             raise ValidationError(f"metric type ({self.metric_category}) isn't valid")
-        self.humanized_type = ' '.join(self.name.split('_')).title()
+        self.humanized_type = humanize_label(self.name)
 
     def __call__(self, **kwargs):
         self.fun(**kwargs)
