@@ -2,8 +2,7 @@
 
 from collections import ChainMap, defaultdict
 from datetime import datetime
-from json_api_doc import serialize
-from credoai.utils.common import (NumpyEncoder, wrap_list,
+from credoai.utils.common import (wrap_list,
                                   ValidationError, dict_hash)
 from credoai.utils.credo_api_utils import (get_technical_spec,
                                            post_assessment,
@@ -254,6 +253,8 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
         report to optionally include with assessments, by default None
     assessed_at : str, optional
         date when assessments were created, by default None
+    for_app : bool
+        Set to True if intending to send to Governance App via api
     """    
     # prepare assessments
     assessment_records = [record_metrics(r) for r in prepared_results]
@@ -272,9 +273,7 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
                "report": report_payload,
                "type": RISK,
                "$type": 'string'}
-
-    payload_json = json.dumps(serialize(data=payload), cls=NumpyEncoder)
-    return payload_json
+    return payload
 
 
 def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
