@@ -6,7 +6,6 @@ from credoai.lens import Lens
 from credoai.data._fetch_testdata import fetch_testdata
 from sklearn.linear_model import LogisticRegression
 
-np.random.seed(0)
 # set up data and models
 data = fetch_testdata()
 X = data['data'][["experience"]]
@@ -20,10 +19,10 @@ credo_data = ca.CredoData(
 
 model = LogisticRegression(random_state=0).fit(X, y)
 credo_model = ca.CredoModel(name="income_classifier", model=model)
-
+alignment_spec = {"FairnessBase": {"metrics": ["precision_score"]},
+                    "PerformanceBase": {"metrics": ["precision_score"]}}
 
 def test_lens_with_model():
-    alignment_spec = {"FairnessBase": {"metrics": ["precision_score"]}}
     lens = Lens(model=credo_model, data=credo_data, spec=alignment_spec)
 
     results = lens.run_assessments().get_results()
@@ -32,7 +31,7 @@ def test_lens_with_model():
 
     assert metric == "precision_score"
     assert score == 0.33
-    assert set(lens.assessments.keys()) == {'DatasetFairness', 'FairnessBase'} 
+    assert set(lens.assessments.keys()) == {'DatasetFairness', 'FairnessBase', 'PerformanceBase'} 
     assert lens.assessments['FairnessBase'].initialized_module.metrics == ['precision_score']
 
 def test_lens_without_model():
@@ -43,6 +42,7 @@ def test_lens_without_model():
     assert set(lens.assessments.keys()) == {'DatasetFairness'} 
 
 def test_lens_dataset_with_missing_data():
+    np.random.seed(0)
     data = fetch_testdata(add_nan=True)
     X = data['data'][["experience"]]
     y = data['target']
@@ -60,7 +60,6 @@ def test_lens_dataset_with_missing_data():
     assert set(lens.assessments.keys()) == {'DatasetFairness'} 
 
 def test_report_creation():
-    alignment_spec = {"FairnessBase": {"metrics": ["precision_score"]}}
     lens = Lens(model=credo_model, data=credo_data, spec=alignment_spec)
     lens.run_assessments()
     out = lens.create_reports()
