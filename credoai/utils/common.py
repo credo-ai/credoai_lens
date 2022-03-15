@@ -61,7 +61,11 @@ class NumpyEncoder(json.JSONEncoder):
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
-    
+
+def json_dumps(obj):
+    """Custom json dumps with encoder"""
+    return json.dumps(obj, cls=NumpyEncoder)
+
 def dict_hash(dictionary: Dict[str, Any]) -> str:
     """MD5 hash of a dictionary."""
     dhash = hashlib.md5()

@@ -7,6 +7,7 @@ from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
 from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
+    json_dumps,
     NotRunError, ValidationError, raise_or_warn)
 from credoai import __version__
 from datetime import datetime
@@ -203,8 +204,8 @@ class Lens:
         for name, assessment in self.assessments.items():
             logging.info(f"** Exporting assessment-{name}")
             prepared_results.append(self._prepare_results(assessment))
-        payload = ci.prepare_assessment_payload(prepared_results, report=report, 
-            assessed_at=self.run_time, for_app=(export=='credoai'))
+        payload = ci.prepare_assessment_payload(
+            prepared_results, report=report, assessed_at=self.run_time)
 
         if export == 'credoai':
             model_id = self._get_credo_destination()
@@ -223,7 +224,7 @@ class Lens:
             name_for_save = f"{ci.RISK}_model-{names['model']}_data-{names['dataset']}.json"
             output_file = path.join(export, name_for_save)
             with open(output_file, 'w') as f:
-                f.write(payload)
+                f.write(json_dumps(payload))
 
     def get_assessments(self):
         return self.assessments

@@ -2,8 +2,7 @@
 
 from collections import ChainMap, defaultdict
 from datetime import datetime
-from json_api_doc import serialize
-from credoai.utils.common import (NumpyEncoder, wrap_list,
+from credoai.utils.common import (wrap_list,
                                   ValidationError, dict_hash)
 from credoai.utils.credo_api_utils import (get_technical_spec,
                                            post_assessment,
@@ -243,7 +242,7 @@ def record_metrics_from_dict(metrics, **metadata):
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
 
-def prepare_assessment_payload(prepared_results, report=None, assessed_at=None, for_app=False):
+def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
     """Export assessment json to file or credo
 
     Parameters
@@ -274,10 +273,7 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None, 
                "report": report_payload,
                "type": RISK,
                "$type": 'string'}
-    if for_app:
-        payload = serialize(data=payload)
-    payload_json = json.dumps(payload, cls=NumpyEncoder)
-    return payload_json
+    return payload
 
 
 def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
