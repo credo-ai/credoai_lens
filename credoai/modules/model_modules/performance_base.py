@@ -10,7 +10,7 @@ import pandas as pd
 
 class PerformanceModule(CredoModule):
     """
-    Fairness module for Credo AI. Handles any metric that can be
+    Performance module for Credo AI. Handles any metric that can be
     calculated on a set of ground truth labels and predictions, 
     e.g., binary classification, multiclass classification, regression.
 
