@@ -272,7 +272,12 @@ class Lens:
                 kwargs['model'] = self.model
             if reqs['data_requirements']:
                 kwargs['data'] = self.data
-            assessment.init_module(**kwargs)
+            try:
+                assessment.init_module(**kwargs)
+            except:
+                raise ValidationError(f"Assessment {assessment.name} could not be initialized. "
+                "Ensure the assessment spec is passing the required parameters"
+                )
 
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment.name)
@@ -289,10 +294,17 @@ class Lens:
         return d
 
     def _select_assessments(self):
-        return list(get_usable_assessments(self.model, self.data).values())
+        usable_assessments = get_usable_assessments(self.model, self.data)
+        assessment_text = "Automatically Selected Assessments\n--"+ '\n--'.join(usable_assessments.keys())
+        logging.info(assessment_text)
+        return list(usable_assessments.values())
 
     def _validate_assessments(self, assessments):
         for assessment in assessments:
             if not assessment.check_requirements(self.model, self.data):
                 raise ValidationError(
                     f"Model or Data does not conform to {assessment.name} assessment's requirements")
+
+def set_logging_level(logging_level):
+    """Alias for absl.logging.set_verbosity"""
+    logging.set_verbosity(logging_level)

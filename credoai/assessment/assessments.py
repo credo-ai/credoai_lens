@@ -13,6 +13,82 @@ import credoai.utils as cutils
 import credoai.modules as mod
 import sys, inspect
 
+class PerformanceBaseAssessment(CredoAssessment):
+    """Basic evaluation of the performance of ML models
+    
+    Runs performance analysis on models with well-defined
+    objective functions. Examples include:
+
+    * binary classification
+    * regression
+    * recommendation systems
+
+    Modules:
+    
+    * credoai.modules.fairness_base
+    
+    Requirements
+    ------------
+    Requires that the CredoModel defines either `pred_fun` or `prob_fun` (or both).
+    - `pred_fun` should return the model's predictions.
+    - `prob_fun` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
+       Only applicable in classification scenarios.
+    """
+    def __init__(self):
+        super().__init__(
+            'PerformanceBase', 
+            mod.PerformanceModule,
+            AssessmentRequirements(
+                model_requirements=[('prob_fun', 'pred_fun')],
+                data_requirements=['X', 'y']
+            )
+        )
+    
+    def init_module(self, *, model, data, metrics):
+        """Initializes the assessment module
+
+        Transforms CredoModel and CredoData into the proper form
+        to create a runnable assessment.
+
+        See the lens_customization notebook for examples
+
+        Parameters
+        ------------
+        model : CredoModel, optional
+        data : CredoData, optional
+        metrics : List-like
+            list of metric names as string or list of Metrics (credoai.metrics.Metric).
+            Metric strings should in list returned by credoai.metrics.list_metrics.
+            Note for performance parity metrics like 
+            "false negative rate parity" just list "false negative rate". Parity metrics
+            are calculated automatically if the performance metric is supplied
+
+        Example
+        ---------
+        def build(self, ...):
+            y_pred = CredoModel.pred_fun(CredoData.X)
+            y = CredoData.y
+            self.initialized_module = self.module(y_pred, y)
+
+        """
+        try:
+            y_pred = model.pred_fun(data.X)
+        except AttributeError:
+            y_pred = None
+        try:
+            y_prob = model.prob_fun(data.X)
+        except AttributeError:
+            y_prob = None
+            
+        module = self.module(
+            metrics,
+            data.y,
+            y_pred,
+            y_prob,
+            data.sensitive_features)
+        self.initialized_module = module
+    
+
 class FairnessBaseAssessment(CredoAssessment):
     """Basic evaluation of the fairness of ML models
     

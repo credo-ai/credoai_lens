@@ -351,10 +351,12 @@ class CredoData:
         Label of the dataset
     data : pd.DataFrame
         Dataset dataframe that includes all features and labels
-    sensitive_feature_key : str
-        Name of the sensitive feature column, like 'race' or 'gender'
     label_key : str
         Name of the label column
+    sensitive_feature_key : str, optional
+        Name of the sensitive feature column, which will be used for disaggregating performance
+        metrics. This can a column you want to perform segmentation analysis on, or
+        a feature related to fairness like 'race' or 'gender'
     categorical_features_keys : list[str], optional
         Names of categorical features. If the sensitive feature is categorical, include it in this list.
         Note - ordinal features should not be included. 
@@ -380,8 +382,8 @@ class CredoData:
     def __init__(self,
                  name: str,
                  data: pd.DataFrame,
-                 sensitive_feature_key: str,
                  label_key: str,
+                 sensitive_feature_key: str = None,
                  categorical_features_keys: Optional[List[str]] = None,
                  unused_features_keys: Optional[List[str]] = None,
                  drop_sensitive_feature: bool = True,
@@ -422,15 +424,17 @@ class CredoData:
             imputed = self.nan_strategy.fit_transform(data)
             data.iloc[:,:] = imputed
         # set up sensitive features, y and X
-        self.sensitive_features = data[self.sensitive_feature_key]
         self.y = data[self.label_key]
-
-        # drop columns from X
         to_drop = [self.label_key]
         if self.unused_features_keys:
             to_drop += self.unused_features_keys
-        if self.drop_sensitive_feature:
-            to_drop.append(self.sensitive_feature_key)
+
+        if self.sensitive_feature_key:
+            self.sensitive_features = data[self.sensitive_feature_key]
+            if self.drop_sensitive_feature:
+                to_drop.append(self.sensitive_feature_key)
+
+        # drop columns from X
         X = data.drop(columns=to_drop, axis=1)
         self.X = X
 
