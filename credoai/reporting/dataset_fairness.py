@@ -257,7 +257,7 @@ class DatasetFairnessReporter(CredoReporter):
                 max_pair_key, max_pair_values = k, v
                 abs_sum_new = abs_sum
 
-        if not max_pair_values:  # do not plot when standardized_group_diffs is empty, which happens when none of the features are numeric 
+        if abs_sum == -1:  # do not plot when standardized_group_diffs is empty, which happens when none of the features are numeric 
             return
 
         with plot_utils.get_style(figsize=self.size, figure_ratio=0.7):
