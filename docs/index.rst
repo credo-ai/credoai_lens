@@ -73,7 +73,7 @@ thought of as a module (inherit from the abstract `CredoModule <https://github.c
 Because the class of modules is literally unconstrained, we need a way to standardize
 their API. We do that in the form of CredoAssessments. CredoAssessments are 
 wrappers around one or more modules that allow them to connect to 
-CredoModels and Data (:ref:`Credo Model/Data`).
+CredoModels and Data (:ref:`Credo Artifacts: Model, Data, & Governance`).
 
 Assessments have certain functionality requirements, which the CredoModel/Data must meet to be run.
 Essentially, we use "duck typing" for models. Assessments require certain functionality and can
