@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import warnings
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError, is_categorical
 from credoai.utils.dataset_utils import ColumnTransformerUtil
@@ -132,7 +133,9 @@ class DatasetFairness(CredoModule):
                 Key: name of feature
                 Value: standardized mean difference
         """
-        group_means = self.X.groupby(self.sensitive_features).mean()
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            group_means = self.X.groupby(self.sensitive_features).mean()
         std = self.X.std(numeric_only=True)
         diffs = {}
         for group1, group2 in combinations(group_means.index, 2):
@@ -325,23 +328,25 @@ class DatasetFairness(CredoModule):
         )
         balance_results["sample_balance"] = sample_balance
 
-        # Distribution of samples across groups
-        label_balance = (
-            self.data.groupby([self.sensitive_features, self.y.name])
-            .size()
-            .unstack(fill_value=0)
-            .stack()
-            .reset_index(name="count")
-            .to_dict(orient="records")
-        )
-        balance_results["label_balance"] = label_balance
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            # Distribution of samples across groups
+            label_balance = (
+                self.data.groupby([self.sensitive_features, self.y.name])
+                .size()
+                .unstack(fill_value=0)
+                .stack()
+                .reset_index(name="count")
+                .to_dict(orient="records")
+            )
+            balance_results["label_balance"] = label_balance
 
-        # Fairness metrics
-        r = self.data.groupby([self.sensitive_features, self.y.name])\
-                        .agg({self.y.name: 'count'})\
-                        .groupby(level=0).apply(lambda x: x / float(x.sum()))\
-                        .rename({self.y.name:'ratio'}, inplace=False, axis=1)\
-                        .reset_index(inplace=False)
+            # Fairness metrics
+            r = self.data.groupby([self.sensitive_features, self.y.name])\
+                            .agg({self.y.name: 'count'})\
+                            .groupby(level=0).apply(lambda x: x / float(x.sum()))\
+                            .rename({self.y.name:'ratio'}, inplace=False, axis=1)\
+                            .reset_index(inplace=False)
 
         # Compute the maximum difference between any two pairs of groups
         demographic_parity_difference = r.groupby(self.y.name)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
