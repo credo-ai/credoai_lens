@@ -62,4 +62,4 @@ def test_lens_dataset_with_missing_data():
 def test_report_creation():
     lens = Lens(model=credo_model, data=credo_data, spec=alignment_spec)
     lens.run_assessments()
-    out = lens.create_reports()
+    out = lens.create_report()
