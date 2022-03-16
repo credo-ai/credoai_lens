@@ -31,10 +31,12 @@ Lens is made of a few components.
 * **CredoModel / CredoData** are wrappers to bring models and data into the Lens Framework
 * **Modules** are tools to perform assessment-related functions on models and/or data. A bias assessment is a type of module.
 * **Assessments** are the connective tissue between CredoModels and CredoData and modules.
+* **Reporters** handle displaying the results of an assessment.
 
 Usage of Lens boils down to creating the artifacts you want to assess (CredoModel and/or CredoData), articulating the
 assessments you want run, how you want them to be run ("alignment") and running Lens. Most steps along this path
-can be automated by Lens or fully customized by the user.
+can be automated by Lens or fully customized by the user. The end product is a report that summarizes
+all assessments.
 
 Lens
 ----
@@ -97,6 +99,14 @@ the CredoModel to be automatically set up, though further customization is possi
 
 **Credo Data** are simple objects that contain features (X), outputs (y) and (optionally) a sensitive feature.
 Data assessments are run on these.
+
+Reports
+-------
+Lens supports visualizing assessments using a set of `Reporters`. These reporters handle
+plotting and describing in plain-text the assessments. While the reporters can be used to display
+plots in-line, their full functionality is in creating standalone reports 
+(either html or jupyter notebooks). These stand-alone reports organize plots from different
+assessments along with automatically generated markdown to describe the plots.
 
 The Alignment Spec
 ------------------
