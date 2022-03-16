@@ -293,6 +293,8 @@ class DatasetFairnessAssessment(CredoAssessment):
     * Proxy detection
     * Demographic Parity of outcomes
 
+    Note: this assessment runs on the the scrubbed data (see CredoData.get_scrubbed_data).
+
     Modules:
 
     * credoai.modules.dataset_fairness
@@ -308,10 +310,11 @@ class DatasetFairnessAssessment(CredoAssessment):
         )
 
     def init_module(self, *, data):
+        scrubbed_data = data.get_scrubbed_data()
         self.initialized_module = self.module(
-            data.X, 
-            data.y,
-            data.sensitive_features,
+            scrubbed_data['X'], 
+            scrubbed_data['y'],
+            scrubbed_data['sensitive_features'],
             data.categorical_features_keys)
 
     def get_reporter(self):
