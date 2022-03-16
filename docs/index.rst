@@ -28,6 +28,7 @@ If you are connecting to the Credo AI Governance App, see the :ref:`governance i
    :local:
    :backlinks: none
 
+
 Overview
 --------
 Lens is made of a few components.
@@ -42,6 +43,7 @@ Usage of Lens boils down to creating the artifacts you want to assess (CredoMode
 assessments you want run, how you want them to be run ("alignment") and running Lens. Most steps along this path
 can be automated by Lens or fully customized by the user. The end product is a report that summarizes
 all assessments.
+
 
 Lens
 ----

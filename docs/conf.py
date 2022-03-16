@@ -35,6 +35,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints', # needs to be AFTER napoleon
+    'sphinx_rtd_theme',
     'nbsphinx'
 ]
 
@@ -54,7 +55,7 @@ autoclass_content = 'both'
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
 nbsphinx_allow_errors = True  # Continue through Jupyter errors
-nbsphinx_execute = 'never'
+nbsphinx_execute = 'never' # do not execute jupyter notebooks
 autodoc_mock_imports = [
     'absl',
     'cloudpickle',
@@ -88,9 +89,16 @@ autodoc_mock_imports = [
 # Readthedocs theme
 # on_rtd is whether on readthedocs.org, this line of code grabbed from docs.readthedocs.org...
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-html_css_files = ["readthedocs-custom.css"] # Override some CSS settings
+html_static_path = ['_static']
+html_css_files = ["css/readthedocs-custom.css"] # Override some CSS settings
+
+if not on_rtd:  # only import and set the theme if we're building docs locally
+  import sphinx_rtd_theme
+  html_theme = 'sphinx_rtd_theme'
+  html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+
+
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
