@@ -258,7 +258,7 @@ class CredoModel:
     functionality specified in the model_config will overwrite and inferences
     made from the model itself.
 
-    See the quickstart and lens_customization notebooks for examples.
+    See the `quickstart notebooks <https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html#CredoModel>`_ for more information about usage
 
 
     Parameters
@@ -344,6 +344,8 @@ class CredoData:
 
     Passed to Lens for certain assessments. Either will be used
     by a CredoModel to make predictions or analyzed itself. 
+
+    See the `quickstart notebooks <https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html#CredoData>`_ for more information about usage
 
     Parameters
     -------------

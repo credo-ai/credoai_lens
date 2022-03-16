@@ -248,7 +248,7 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
     Parameters
     ----------
     prepared_results : list
-        prepared of prepared_results from credo_assessments. See lens.export_assessments for example
+        prepared of prepared_results from credo_assessments. See lens.export for example
     report : credo.reporting.NotebookReport, optional
         report to optionally include with assessments, by default None
     assessed_at : str, optional
