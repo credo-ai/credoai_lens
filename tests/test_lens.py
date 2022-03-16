@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-from credoai.lens import Lens
+import credoai.lens as cl
 from credoai.data._fetch_testdata import fetch_testdata
 from sklearn.linear_model import LogisticRegression
 
