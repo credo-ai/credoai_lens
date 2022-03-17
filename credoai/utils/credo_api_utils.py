@@ -3,11 +3,11 @@ import os
 import pandas as pd
 import requests
 import time
+from credoai.utils.constants import CREDO_URL
 from credoai.utils.common import get_project_root, json_dumps, IntegrationError
 from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
 
-CREDO_URL = "https://api.credo.ai"
 
 def read_config():
     config_file = os.path.join(os.path.expanduser('~'),
