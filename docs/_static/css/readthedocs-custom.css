@@ -21,9 +21,29 @@
 /* Override hyperlink colour */
 /* a {
     color: #b2355c;
-}*/
+} */
 
 /* Make content width wider*/
 .wy-nav-content {
     max-width: 60% !important;
+}
+
+div.topic {
+    background-color: #EEE;
+    border: 1px solid #ccc;
+    padding: 7px;
+    margin: 10px 0 10px 0;
+}
+
+#notebook-container {
+    width: 100%;
+}
+
+.wy-menu-vertical a {
+    line-height: 18px;
+    padding: 0.4045em 1.618em;
+    display: block;
+    position: relative;
+    font-size: 90%;
+    color: #d9d9d9;
 }
