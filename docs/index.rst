@@ -7,7 +7,7 @@
    Home page <self>
    Setup <setup>
    Jupyter tutorials <tutorials>
-   Example report <report>
+   Reporting <report>
    API reference <_autosummary/credoai>
 
 
@@ -22,11 +22,6 @@ streamlines integration with the Credo AI Governance App.
 Check out the :ref:`quickstart tutorial <quickstart>` to get started.
 
 If you are connecting to the Credo AI Governance App, see the :ref:`governance integration tutorial <Connecting with the Credo AI Governance App>`.
-
-.. contents:: Table of Contents
-   :depth: 1
-   :local:
-   :backlinks: none
 
 
 Overview
@@ -115,13 +110,8 @@ for that use-case.
 
 Reports
 -------
-Lens supports visualizing assessments using a set of `Reporters`. These reporters handle
-plotting and describing in plain-text the assessments. While the reporters can be used to display
-plots in-line, their full functionality is in creating standalone reports 
-(either html or jupyter notebooks). These stand-alone reports organize plots from different
-assessments along with automatically generated markdown to describe the plots.
+Lens has robust reporting, which is described :ref:`here <Reporting>`. 
 
-The :ref:`quickstart tutorial <quickstart>` has an example report which can be found :ref:`here <Example Report>`.  
 
 
 The Alignment Spec

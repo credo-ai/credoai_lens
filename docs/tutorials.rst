@@ -9,10 +9,11 @@ Start here!
 
 .. toctree::
    :maxdepth: 1
-
+   
    notebooks/quickstart
    notebooks/governance_integration
    notebooks/lens_customization
+
 
 **Quickstart Demo**
 
@@ -60,7 +61,13 @@ Lens assess language generation models like GPT3 for bias, toxicity, etc. See ho
 Module Demos
 ------------
 Demos of using the modules directly. We **do not recommend** this method of interacting
-with modules. However, it can be occasionally be useful if you know what you are doing!
+with modules - generally using Lens will be cleaner, more dependable and will ensure
+that your taking advantage of all Lens has to offer. 
+
+They also do not make use of CredoData or CredoModels, and have varying APIs.
+
+However, using modules can be occasionally be useful if you know what you are doing, 
+and gives you more flexibility !
 
 .. toctree::
    :maxdepth: 1
