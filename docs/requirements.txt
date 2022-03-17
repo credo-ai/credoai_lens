@@ -1,5 +1,6 @@
 # required for documentation
 ipykernel
+furo==2022.3.4
 nbsphinx==0.8.7
 pandoc==1.1.0
 prompt-toolkit<3.0.0
