@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import os
 import requests
+import sklearn.utils as skutils
 from absl import logging
 from pathlib import Path
 from typing import Dict, Any
