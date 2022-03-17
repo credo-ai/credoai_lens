@@ -258,7 +258,7 @@ class CredoModel:
     functionality specified in the model_config will overwrite and inferences
     made from the model itself.
 
-    See the quickstart and lens_customization notebooks for examples.
+    See the `quickstart notebooks <https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html#CredoModel>`_ for more information about usage
 
 
     Parameters
@@ -345,6 +345,8 @@ class CredoData:
     Passed to Lens for certain assessments. Either will be used
     by a CredoModel to make predictions or analyzed itself. 
 
+    See the `quickstart notebooks <https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html#CredoData>`_ for more information about usage
+
     Parameters
     -------------
     name : str
@@ -369,7 +371,9 @@ class CredoData:
         in your model, this argument should be True. Otherwise, set to False.
         Default, True
     nan_strategy : str or callable, optional
-        The strategy for dealing with NaNs. 
+        The strategy for dealing with NaNs when get_scrubbed_data is called. Note, only some
+        assessments used the scrubbed data. In general, recommend you deal with NaNs before
+        passing your data to Lens. 
         
         -- If "ignore" do nothing,
         -- If "drop" drop any rows with any NaNs. 
@@ -398,17 +402,29 @@ class CredoData:
         self.unused_features_keys = unused_features_keys
         self.drop_sensitive_feature = drop_sensitive_feature
         self.nan_strategy = nan_strategy
-
-        self.X = None
-        self.y = None
-        self.sensitive_features = None
-        self._process_data(self.data.copy())
+        self.X, self.y, self.sensitive_features = self._process_data(self.data).values()
 
     def __post_init__(self):
         self.metadata = self.metadata or {}
         self._validate_data()
 
-    def _process_data(self, data):
+    def get_scrubbed_data(self):
+        """Return scrubbed data
+
+        Implements NaN strategy indicated by nan_strategy before returning
+        X, y and sensitive_features dataframes/series.
+
+        Returns
+        -------
+        pd.DataFrame, pd.pd.Series
+            X, y, sensitive_features
+
+        Raises
+        ------
+        ValueError
+            ValueError raised for nan_strategy cannot be used by SimpleImputer
+        """
+        data = self.data.copy()
         if self.nan_strategy == 'drop':
             data = data.dropna()
         elif self.nan_strategy == 'ignore':
@@ -423,20 +439,24 @@ class CredoData:
         else:
             imputed = self.nan_strategy.fit_transform(data)
             data.iloc[:,:] = imputed
+        return self._process_data(data)
+
+    def _process_data(self, data):
         # set up sensitive features, y and X
-        self.y = data[self.label_key]
+        y = data[self.label_key]
         to_drop = [self.label_key]
         if self.unused_features_keys:
             to_drop += self.unused_features_keys
 
+        sensitive_features = None
         if self.sensitive_feature_key:
-            self.sensitive_features = data[self.sensitive_feature_key]
+            sensitive_features = data[self.sensitive_feature_key]
             if self.drop_sensitive_feature:
                 to_drop.append(self.sensitive_feature_key)
 
         # drop columns from X
         X = data.drop(columns=to_drop, axis=1)
-        self.X = X
+        return {'X': X, 'y': y, 'sensitive_features': sensitive_features}
 
     def _validate_data(self):
         # Validate the types

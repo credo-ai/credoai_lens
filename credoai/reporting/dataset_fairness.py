@@ -110,9 +110,12 @@ class DatasetFairnessReporter(CredoReporter):
         - Demographic parity metrics for different preferred label value possibilities
         """
         with plot_utils.get_style(figsize=self.size, rc={'font.size': self.size*1.5}):
-            f, axes = plt.subplots(nrows=3)
-            plt.subplots_adjust(hspace=1.8)
             results_all = self.module.get_results()
+            n_rows = 3 if 'label_balance' in results_all else 1
+            f, axes = plt.subplots(nrows=n_rows)
+            axes = f.get_axes()
+            
+            plt.subplots_adjust(hspace=1.8)
 
             # Generate sample balance barplots
             results = results_all["sample_balance"]
@@ -134,63 +137,64 @@ class DatasetFairnessReporter(CredoReporter):
             ax.set_ylabel("")
 
             # Generate label balance barplots
-            results = results_all["label_balance"]
-            df = pd.DataFrame(results)
-            label_name = list(df.drop([sensitive_feature_name, "count"], axis=1).columns)[0]
+            if 'label_balance' in results_all:
+                results = results_all["label_balance"]
+                df = pd.DataFrame(results)
+                label_name = list(df.drop([sensitive_feature_name, "count"], axis=1).columns)[0]
 
-            num_classes = df[label_name].nunique()
-            ax = sns.barplot(
-                x="count",
-                y=sensitive_feature_name,
-                hue=label_name,
-                data=df,
-                palette=plot_utils.credo_diverging_palette(num_classes),
-                alpha=1,
-                ax=axes[1],
-            )
-            f.patch.set_facecolor("white")
-            sns.despine()
-            ax.set_title(
-                "Data balance across "
-                + sensitive_feature_name
-                + " subgroups and label values"
-            )
-            ax.set_xlabel("Number of data samples")
-            ax.set_ylabel("")
-            ax.get_legend().set_visible(False)
-            
-            # Generate parity metrics barplots
-            # only using demographic_parity_ratio, ignoring difference
-            metric_keys = ['demographic_parity_ratio']
+                num_classes = df[label_name].nunique()
+                ax = sns.barplot(
+                    x="count",
+                    y=sensitive_feature_name,
+                    hue=label_name,
+                    data=df,
+                    palette=plot_utils.credo_diverging_palette(num_classes),
+                    alpha=1,
+                    ax=axes[1],
+                )
+                f.patch.set_facecolor("white")
+                sns.despine()
+                ax.set_title(
+                    "Data balance across "
+                    + sensitive_feature_name
+                    + " subgroups and label values"
+                )
+                ax.set_xlabel("Number of data samples")
+                ax.set_ylabel("")
+                ax.get_legend().set_visible(False)
+                
+                # Generate parity metrics barplots
+                # only using demographic_parity_ratio, ignoring difference
+                metric_keys = ['demographic_parity_ratio']
 
-            lst = []
-            for metric in metric_keys:
-                temp = pd.DataFrame(results_all[metric])
-                temp["metric"] = metric.replace("_", " ")
-                lst.append(temp)
+                lst = []
+                for metric in metric_keys:
+                    temp = pd.DataFrame(results_all[metric])
+                    temp["metric"] = metric.replace("_", " ")
+                    lst.append(temp)
 
-            df = pd.concat(lst)
-            ax = sns.barplot(
-                x="value",
-                y="metric",
-                hue=label_name,
-                data=df,
-                palette=plot_utils.credo_diverging_palette(num_classes),
-                ax=axes[2],
-            )
-            f.patch.set_facecolor("white")
-            sns.despine()
-            plt.title("Parity metrics for different preferred label value possibilities")
-            plt.xlabel("Value")
-            plt.ylabel("")
-            plt.legend(
-                bbox_to_anchor=(1.2, 0.5), 
-                loc="center",
-                frameon=False,
-                ncol=num_classes,
-                title=label_name
-            )
-            ax.legend_.set_title(label_name)
+                df = pd.concat(lst)
+                ax = sns.barplot(
+                    x="value",
+                    y="metric",
+                    hue=label_name,
+                    data=df,
+                    palette=plot_utils.credo_diverging_palette(num_classes),
+                    ax=axes[2],
+                )
+                f.patch.set_facecolor("white")
+                sns.despine()
+                plt.title("Parity metrics for different preferred label value possibilities")
+                plt.xlabel("Value")
+                plt.ylabel("")
+                plt.legend(
+                    bbox_to_anchor=(1.2, 0.5), 
+                    loc="center",
+                    frameon=False,
+                    ncol=num_classes,
+                    title=label_name
+                )
+                ax.legend_.set_title(label_name)
         self.figs.append(f)
 
     def _write_sensitive_feature_prediction(self):

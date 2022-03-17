@@ -31,10 +31,12 @@ extensions = [
     'sphinx.ext.autodoc', # Core library for html generation from docstrings
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.autosummary', # Create neat summary tables
+    'sphinx_copybutton',
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints', # needs to be AFTER napoleon
+    'sphinx_rtd_theme',
     'nbsphinx'
 ]
 
@@ -54,7 +56,7 @@ autoclass_content = 'both'
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
 nbsphinx_allow_errors = True  # Continue through Jupyter errors
-nbsphinx_execute = 'never'
+nbsphinx_execute = 'never' # do not execute jupyter notebooks
 autodoc_mock_imports = [
     'absl',
     'cloudpickle',
@@ -84,13 +86,12 @@ autodoc_mock_imports = [
 #
 
 
+# documentation for furo: https://pradyunsg.me/furo/quickstart/
+import furo
+html_theme = 'furo'
 
-# Readthedocs theme
-# on_rtd is whether on readthedocs.org, this line of code grabbed from docs.readthedocs.org...
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-html_css_files = ["readthedocs-custom.css"] # Override some CSS settings
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# import sphinx_rtd_theme
+# html_theme = 'sphinx_rtd_theme'
+# html_theme_options = {
+#    'navigation_depth': 6
+# }

@@ -9,14 +9,15 @@ Start here!
 
 .. toctree::
    :maxdepth: 1
-
+   
    notebooks/quickstart
    notebooks/governance_integration
    notebooks/lens_customization
 
+
 **Quickstart Demo**
 
-Our journey starts here. We will assess a payment default prediction model for gender fairness 
+Get started here. We will assess a payment default prediction model for gender fairness 
 using Lens, in 5 minutes.
 
 **Connecting with the Credo AI Governance App Demo**
@@ -24,7 +25,7 @@ using Lens, in 5 minutes.
 Lens is primarily a framework for comprehensive assessment of AI models. However, it is also the 
 primary way to integrate assessment analysis with 
 `Credo AI’s Governance App <https://www.credo.ai/product>`__. 
-This notebook walks you through the steps to set up the connection.
+This tutorial walks you through the steps to set up the connection.
 
 **Customizing Lens Demo**
 
@@ -60,7 +61,13 @@ Lens assess language generation models like GPT3 for bias, toxicity, etc. See ho
 Module Demos
 ------------
 Demos of using the modules directly. We **do not recommend** this method of interacting
-with modules. However, it can be occasionally be useful if you know what you are doing!
+with modules - generally using Lens will be cleaner, more dependable and will ensure
+that your taking advantage of all Lens has to offer. 
+
+They also do not make use of CredoData or CredoModels, and have varying APIs.
+
+However, using modules can be occasionally be useful if you know what you are doing, 
+and gives you more flexibility !
 
 .. toctree::
    :maxdepth: 1
