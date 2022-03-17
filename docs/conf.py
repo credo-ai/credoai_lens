@@ -31,6 +31,7 @@ extensions = [
     'sphinx.ext.autodoc', # Core library for html generation from docstrings
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.autosummary', # Create neat summary tables
+    'sphinx_copybutton',
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon',
@@ -89,8 +90,8 @@ autodoc_mock_imports = [
 import furo
 html_theme = 'furo'
 
-#import sphinx_rtd_theme
-#html_theme = 'sphinx_rtd_theme'
-#html_theme_options = {
+# import sphinx_rtd_theme
+# html_theme = 'sphinx_rtd_theme'
+# html_theme_options = {
 #    'navigation_depth': 6
-#}
+# }
