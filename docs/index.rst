@@ -15,9 +15,16 @@
 .. image:: _static/images/credo_ai-lens.png
    :width: 400
 
-Lens is Credo AI's AI Assessment Framework. It supports assessment
-of AI systems, with a focus on responsible AI assessment. It also
-streamlines integration with the Credo AI Governance App.
+Lens is an AI Assessment Framework. With a focus on responsible AI, Lens makes
+comprehensive AI assessment streamlined, structured and interpretable to diverse audiences. Lens
+aims to be the single entrypoint to a broad ecosystem of open source assessment
+tools developed in industry and academia. It is also extensible, and can accomodate
+your own assessment pipeline as custom modules.
+
+
+Lens is developed by Credo AI, and integrates easily with the Credo AI Governance App. comprehensive
+is the foundation of AI Governance, but it is only one component! The Governance App helps with 
+the rest.
 
 Check out the :ref:`quickstart tutorial <quickstart>` to get started.
 
@@ -91,7 +98,7 @@ solve this issue we introduce two artifacts: CredoModels and CredoData.
 
 **Credo Models** are not "models" in the traditional sense - they are connector objects
 that instantiate functions necessary for an assessment. For instance, to evaluate
-fairness using the "FairnessBase" assessment, the CredoModel must instantiate
+fairness using the "Fairness" assessment, the CredoModel must instantiate
 a `prob_fun` or `pred_fun`. The nature of these functions can be quite general.
 
 The simplest case is you setting `pred_fun` to the `predict` method of your model.

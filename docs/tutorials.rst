@@ -78,7 +78,7 @@ and gives you more flexibility !
 
 **Binary Classification Demo**
 
-Same as the Lens demo, but using the FairnessBase module directly.
+Same as the Lens demo, but using the Fairness module directly.
 
 **Word Embedding Models Bias Assessment Demo**
 

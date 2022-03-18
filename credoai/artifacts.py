@@ -88,7 +88,7 @@ class CredoGovernance:
         metrics = self.assessment_spec
         if self.model_id in metrics.keys():
             spec['metrics'] = list(metrics[self.model_id].keys())
-        return {"FairnessBase": spec}
+        return {"Fairness": spec}
 
     def get_info(self):
         """Return Credo AI Governance IDs"""

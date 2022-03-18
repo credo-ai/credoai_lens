@@ -13,7 +13,7 @@ import credoai.utils as cutils
 import credoai.modules as mod
 import sys, inspect
 
-class PerformanceBaseAssessment(CredoAssessment):
+class PerformanceAssessment(CredoAssessment):
     """Basic evaluation of the performance of ML models
     
     Runs performance analysis on models with well-defined
@@ -36,7 +36,7 @@ class PerformanceBaseAssessment(CredoAssessment):
     """
     def __init__(self):
         super().__init__(
-            'PerformanceBase', 
+            'Performance', 
             mod.PerformanceModule,
             AssessmentRequirements(
                 model_requirements=[('prob_fun', 'pred_fun')],
@@ -89,7 +89,7 @@ class PerformanceBaseAssessment(CredoAssessment):
         self.initialized_module = module
     
 
-class FairnessBaseAssessment(CredoAssessment):
+class FairnessAssessment(CredoAssessment):
     """Basic evaluation of the fairness of ML models
     
     Runs fairness analysis on models with well-defined
@@ -112,7 +112,7 @@ class FairnessBaseAssessment(CredoAssessment):
     """
     def __init__(self):
         super().__init__(
-            'FairnessBase', 
+            'Fairness', 
             mod.FairnessModule,
             AssessmentRequirements(
                 model_requirements=[('prob_fun', 'pred_fun')],
