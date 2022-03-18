@@ -91,7 +91,7 @@ solve this issue we introduce two artifacts: CredoModels and CredoData.
 
 **Credo Models** are not "models" in the traditional sense - they are connector objects
 that instantiate functions necessary for an assessment. For instance, to evaluate
-fairness using the "FairnessBase" assessment, the CredoModel must instantiate
+fairness using the "Fairness" assessment, the CredoModel must instantiate
 a `prob_fun` or `pred_fun`. The nature of these functions can be quite general.
 
 The simplest case is you setting `pred_fun` to the `predict` method of your model.

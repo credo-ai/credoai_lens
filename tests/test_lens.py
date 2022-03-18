@@ -19,20 +19,20 @@ credo_data = cl.CredoData(
 
 model = LogisticRegression(random_state=0).fit(X, y)
 credo_model = cl.CredoModel(name="income_classifier", model=model)
-alignment_spec = {"FairnessBase": {"metrics": ["precision_score"]},
-                    "PerformanceBase": {"metrics": ["precision_score"]}}
+alignment_spec = {"Fairness": {"metrics": ["precision_score"]},
+                    "Performance": {"metrics": ["precision_score"]}}
 
 def test_lens_with_model():
     lens = cl.Lens(model=credo_model, data=credo_data, spec=alignment_spec)
 
     results = lens.run_assessments().get_results()
-    metric = results["FairnessBase"]["fairness"].index[0]
-    score = round(results["FairnessBase"]["fairness"].iloc[0]["value"], 2)
+    metric = results["Fairness"]["fairness"].index[0]
+    score = round(results["Fairness"]["fairness"].iloc[0]["value"], 2)
 
     assert metric == "precision_score"
     assert score == 0.33
-    assert set(lens.assessments.keys()) == {'DatasetFairness', 'FairnessBase', 'PerformanceBase'} 
-    assert lens.assessments['FairnessBase'].initialized_module.metrics == ['precision_score']
+    assert set(lens.assessments.keys()) == {'DatasetFairness', 'Fairness', 'Performance'} 
+    assert lens.assessments['Fairness'].initialized_module.metrics == ['precision_score']
 
 def test_lens_without_model():
     lens = cl.Lens(data=credo_data)
