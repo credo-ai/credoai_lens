@@ -23,8 +23,10 @@
 from credoai.utils.common import IntegrationError, ValidationError, raise_or_warn
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
-                                           get_model_project_by_name)
-from typing import List, Optional
+                                           get_model_project_by_name,
+                                           get_use_case_by_name)
+from sklearn.impute import SimpleImputer
+from typing import List, Optional, Union, Callable
 import credoai.integration as ci   
 import pandas as pd
 
@@ -86,7 +88,7 @@ class CredoGovernance:
         metrics = self.assessment_spec
         if self.model_id in metrics.keys():
             spec['metrics'] = list(metrics[self.model_id].keys())
-        return {"FairnessBase": spec}
+        return {"Fairness": spec}
 
     def get_info(self):
         """Return Credo AI Governance IDs"""
@@ -148,6 +150,9 @@ class CredoGovernance:
         get_assessment_spec returns the spec associated with 
         `model_id`.
 
+        if a spec_path is provided, it will be used instead of 
+        querying the use-case.
+
         Parameters
         __________
         spec_path : string, optional
@@ -163,7 +168,7 @@ class CredoGovernance:
             Format: {"Metric1": (lower_bound, upper_bound), ...}
         """
         assessment_spec = {}
-        if self.use_case_id is not None:
+        if self.use_case_id is not None or spec_path is not None:
             assessment_spec = ci.get_assessment_spec(
                 self.use_case_id, spec_path)
         self.assessment_spec = assessment_spec
@@ -253,7 +258,7 @@ class CredoModel:
     functionality specified in the model_config will overwrite and inferences
     made from the model itself.
 
-    See the quickstart and lens_customization notebooks for examples.
+    See the `quickstart notebooks <https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html#CredoModel>`_ for more information about usage
 
 
     Parameters
@@ -340,16 +345,20 @@ class CredoData:
     Passed to Lens for certain assessments. Either will be used
     by a CredoModel to make predictions or analyzed itself. 
 
+    See the `quickstart notebooks <https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html#CredoData>`_ for more information about usage
+
     Parameters
     -------------
     name : str
         Label of the dataset
     data : pd.DataFrame
         Dataset dataframe that includes all features and labels
-    sensitive_feature_key : str
-        Name of the sensitive feature column, like 'race' or 'gender'
     label_key : str
         Name of the label column
+    sensitive_feature_key : str, optional
+        Name of the sensitive feature column, which will be used for disaggregating performance
+        metrics. This can a column you want to perform segmentation analysis on, or
+        a feature related to fairness like 'race' or 'gender'
     categorical_features_keys : list[str], optional
         Names of categorical features. If the sensitive feature is categorical, include it in this list.
         Note - ordinal features should not be included. 
@@ -361,17 +370,28 @@ class CredoData:
         unused_features_keys. If you do not explicitly use the sensitive feature
         in your model, this argument should be True. Otherwise, set to False.
         Default, True
-
+    nan_strategy : str or callable, optional
+        The strategy for dealing with NaNs when get_scrubbed_data is called. Note, only some
+        assessments used the scrubbed data. In general, recommend you deal with NaNs before
+        passing your data to Lens. 
+        
+        -- If "ignore" do nothing,
+        -- If "drop" drop any rows with any NaNs. 
+        -- If any other string, pass to the "strategy" argument of `Simple Imputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
+        
+        You can also supply your own imputer with
+        the same API as `SimpleImputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
     """
 
     def __init__(self,
                  name: str,
                  data: pd.DataFrame,
-                 sensitive_feature_key: str,
                  label_key: str,
+                 sensitive_feature_key: str = None,
                  categorical_features_keys: Optional[List[str]] = None,
                  unused_features_keys: Optional[List[str]] = None,
-                 drop_sensitive_feature: bool = True
+                 drop_sensitive_feature: bool = True,
+                 nan_strategy: Union[str, Callable] = 'drop'
                  ):
 
         self.name = name
@@ -381,29 +401,62 @@ class CredoData:
         self.categorical_features_keys = categorical_features_keys
         self.unused_features_keys = unused_features_keys
         self.drop_sensitive_feature = drop_sensitive_feature
-
-        self.X = None
-        self.y = None
-        self.sensitive_features = None
-        self._process_data(self.data)
+        self.nan_strategy = nan_strategy
+        self.X, self.y, self.sensitive_features = self._process_data(self.data).values()
 
     def __post_init__(self):
         self.metadata = self.metadata or {}
         self._validate_data()
 
+    def get_scrubbed_data(self):
+        """Return scrubbed data
+
+        Implements NaN strategy indicated by nan_strategy before returning
+        X, y and sensitive_features dataframes/series.
+
+        Returns
+        -------
+        pd.DataFrame, pd.pd.Series
+            X, y, sensitive_features
+
+        Raises
+        ------
+        ValueError
+            ValueError raised for nan_strategy cannot be used by SimpleImputer
+        """
+        data = self.data.copy()
+        if self.nan_strategy == 'drop':
+            data = data.dropna()
+        elif self.nan_strategy == 'ignore':
+            pass
+        elif isinstance(self.nan_strategy, str):
+            try:
+                imputer = SimpleImputer(strategy=self.nan_strategy)
+                imputed = imputer.fit_transform(data)
+                data.iloc[:,:] = imputed
+            except ValueError:
+                raise ValueError("CredoData's nan_strategy could not be successfully passed to SimpleImputer as a 'strategy' argument")
+        else:
+            imputed = self.nan_strategy.fit_transform(data)
+            data.iloc[:,:] = imputed
+        return self._process_data(data)
+
     def _process_data(self, data):
         # set up sensitive features, y and X
-        self.sensitive_features = data[self.sensitive_feature_key]
-        self.y = data[self.label_key]
-
-        # drop columns from X
+        y = data[self.label_key]
         to_drop = [self.label_key]
         if self.unused_features_keys:
             to_drop += self.unused_features_keys
-        if self.drop_sensitive_feature:
-            to_drop.append(self.sensitive_feature_key)
+
+        sensitive_features = None
+        if self.sensitive_feature_key:
+            sensitive_features = data[self.sensitive_feature_key]
+            if self.drop_sensitive_feature:
+                to_drop.append(self.sensitive_feature_key)
+
+        # drop columns from X
         X = data.drop(columns=to_drop, axis=1)
-        self.X = X
+        return {'X': X, 'y': y, 'sensitive_features': sensitive_features}
 
     def _validate_data(self):
         # Validate the types

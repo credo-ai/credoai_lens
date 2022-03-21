@@ -2,8 +2,7 @@
 
 from collections import ChainMap, defaultdict
 from datetime import datetime
-from json_api_doc import serialize
-from credoai.utils.common import (NumpyEncoder, wrap_list,
+from credoai.utils.common import (humanize_label, wrap_list,
                                   ValidationError, dict_hash)
 from credoai.utils.credo_api_utils import (get_technical_spec,
                                            post_assessment,
@@ -75,7 +74,7 @@ class Metric(Record):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
-        self.name = name or ' '.join(self.metric_type.split('_')).title()
+        self.name = name or humanize_label(self.metric_type)
         self.process = process
         self.config_hash = self._generate_config()
 
@@ -249,11 +248,13 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
     Parameters
     ----------
     prepared_results : list
-        prepared of prepared_results from credo_assessments. See lens.export_assessments for example
+        prepared of prepared_results from credo_assessments. See lens.export for example
     report : credo.reporting.NotebookReport, optional
         report to optionally include with assessments, by default None
     assessed_at : str, optional
         date when assessments were created, by default None
+    for_app : bool
+        Set to True if intending to send to Governance App via api
     """    
     # prepare assessments
     assessment_records = [record_metrics(r) for r in prepared_results]
@@ -272,9 +273,7 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
                "report": report_payload,
                "type": RISK,
                "$type": 'string'}
-
-    payload_json = json.dumps(serialize(data=payload), cls=NumpyEncoder)
-    return payload_json
+    return payload
 
 
 def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
@@ -298,10 +297,10 @@ def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
         Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
     """
     spec = {}
-    if use_case_id:
-        spec = get_technical_spec(use_case_id, version=version)
     if spec_path:
         spec = json.load(open(spec_path))
+    elif use_case_id:
+        spec = get_technical_spec(use_case_id, version=version)
     metric_dict = defaultdict(dict)
     metrics = spec['metrics']
     for metric in metrics:

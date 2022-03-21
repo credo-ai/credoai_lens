@@ -125,7 +125,7 @@ class FairnessReporter(CredoReporter):
         # create df
         df = self.module.get_fairness_results()
         # add parity to names
-        df.index = [i+'_parity' if row['kind'] == 'parity' else i
+        df.index = [i+'_parity' if row['subtype'] == 'parity' else i
                     for i, row in df.iterrows()]
         df = df['value']
         df.index.name = 'Fairness Metric'
@@ -142,9 +142,9 @@ class FairnessReporter(CredoReporter):
     def _plot_disaggregated_metrics(self, ax):
         # create df
         sensitive_feature = self.module.sensitive_features.name
-        df =  self.module.get_disaggregated_performance(False) \
+        df =  self.module.get_disaggregated_performance() \
                     .reset_index() \
-                    .melt(id_vars=sensitive_feature,
+                    .melt(id_vars=['subtype', sensitive_feature],
                           var_name='Performance Metric',
                           value_name='Value')
         # plot

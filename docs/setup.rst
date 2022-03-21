@@ -5,12 +5,15 @@ Installation
 -------------
 
 The latest stable release (and required dependencies) can be installed from PyPI.
-Note this installation only includes dependencies needed for a small set of modules
+
+.. note::
+   This installation only includes dependencies needed for a small set of modules
 
 ``pip install credoai-lens``
 
-To include additional dependencies needed for some modules and demos, use the 
-following installation command. 
+.. note::
+   To include additional dependencies needed for some modules and demos, use the 
+   following installation command. 
 
 On Mac
 ``pip install 'credoai-lens[extras]'``

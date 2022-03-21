@@ -3,11 +3,11 @@ import os
 import pandas as pd
 import requests
 import time
-from credoai.utils.common import get_project_root, IntegrationError
+from credoai.utils.constants import CREDO_URL
+from credoai.utils.common import get_project_root, json_dumps, IntegrationError
 from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
 
-CREDO_URL = "https://api.credo.ai"
 
 def read_config():
     config_file = os.path.join(os.path.expanduser('~'),
@@ -170,7 +170,7 @@ def get_use_case_by_name(use_case_nmae):
 
 def post_assessment(use_case_id, model_id, data):
     end_point = get_end_point(f"use_cases/{use_case_id}/models/{model_id}/assessments")
-    request =  submit_request('post', end_point, data=data, 
+    request =  submit_request('post', end_point, data=json_dumps(serialize(data)), 
                           headers={"content-type": "application/vnd.api+json"})
     assessment_id = deserialize(request.json())['id']
     return get_assessment(assessment_id)

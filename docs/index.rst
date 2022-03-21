@@ -7,6 +7,7 @@
    Home page <self>
    Setup <setup>
    Jupyter tutorials <tutorials>
+   Reporting <report>
    API reference <_autosummary/credoai>
 
 
@@ -14,14 +15,21 @@
 .. image:: _static/images/credo_ai-lens.png
    :width: 400
 
-Lens is Credo AI's AI Assessment Framework. It supports assessment
-of AI systems, with a focus on responsible AI assessment. It also
-streamlines integration with the Credo AI Governance App.
+Lens is an AI Assessment Framework. With a focus on responsible AI, Lens makes
+comprehensive AI assessment streamlined, structured and interpretable to diverse audiences. Lens
+aims to be the single entrypoint to a broad ecosystem of open source assessment
+tools developed in industry and academia. It is also extensible, and can accomodate
+your own assessment pipeline as custom modules.
 
-Check out the `quickstart tutorial <https://credoai-lens.readthedocs.io/en/latest/notebooks/quickstart.html>`_
-to get started.
 
-If you are connecting to the Credo AI Governance App, see the `governance integration tutorial <https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html>`_.
+Lens is developed by Credo AI, and integrates easily with the Credo AI Governance App. comprehensive
+is the foundation of AI Governance, but it is only one component! The Governance App helps with 
+the rest.
+
+Check out the :ref:`quickstart tutorial <quickstart>` to get started.
+
+If you are connecting to the Credo AI Governance App, see the :ref:`governance integration tutorial <Connecting with the Credo AI Governance App>`.
+
 
 Overview
 --------
@@ -31,10 +39,13 @@ Lens is made of a few components.
 * **CredoModel / CredoData** are wrappers to bring models and data into the Lens Framework
 * **Modules** are tools to perform assessment-related functions on models and/or data. A bias assessment is a type of module.
 * **Assessments** are the connective tissue between CredoModels and CredoData and modules.
+* **Reporters** handle displaying the results of an assessment.
 
 Usage of Lens boils down to creating the artifacts you want to assess (CredoModel and/or CredoData), articulating the
 assessments you want run, how you want them to be run ("alignment") and running Lens. Most steps along this path
-can be automated by Lens or fully customized by the user.
+can be automated by Lens or fully customized by the user. The end product is a report that summarizes
+all assessments.
+
 
 Lens
 ----
@@ -56,6 +67,7 @@ defining your own assessments, you are able to override Lens' automatic selectio
 of assessments, and change almost any parameter of the underlying modules you should
 care to.
 
+
 Modules & Assessments
 ---------------------
 Modules are a broad class. They can be anything - any tool you'd want to run on a model
@@ -65,7 +77,7 @@ thought of as a module (inherit from the abstract `CredoModule <https://github.c
 Because the class of modules is literally unconstrained, we need a way to standardize
 their API. We do that in the form of CredoAssessments. CredoAssessments are 
 wrappers around one or more modules that allow them to connect to 
-CredoModels and Data (:ref:`Credo Model/Data`).
+CredoModels and Data (:ref:`Credo Artifacts: Model, Data, & Governance`).
 
 Assessments have certain functionality requirements, which the CredoModel/Data must meet to be run.
 Essentially, we use "duck typing" for models. Assessments require certain functionality and can
@@ -77,15 +89,16 @@ You can easily define your own assessment by inheriting from the abstract `Credo
 .. image:: _static/images/assessments_modules_schematic.png
    :width: 600
 
-Credo Model/Data
-----------------
+
+Credo Artifacts: Model, Data, & Governance
+-------------------------------------------
 AI Models and Datasets take many forms. This flexibility has many benefits, but is
 an obstacle when your goal is to connect any model or dataset to any assessment! To
 solve this issue we introduce two artifacts: CredoModels and CredoData.
 
 **Credo Models** are not "models" in the traditional sense - they are connector objects
 that instantiate functions necessary for an assessment. For instance, to evaluate
-fairness using the "FairnessBase" assessment, the CredoModel must instantiate
+fairness using the "Fairness" assessment, the CredoModel must instantiate
 a `prob_fun` or `pred_fun`. The nature of these functions can be quite general.
 
 The simplest case is you setting `pred_fun` to the `predict` method of your model.
@@ -95,8 +108,18 @@ the `pred_fun` may be an API call.
 Some functions can be inferred from well-known frameworks like scikit-learn. This allows
 the CredoModel to be automatically set up, though further customization is possible.
 
-**Credo Data** are simple objects that contain features (X), outputs (y) and (optionally) a sensitive feature.
+**Credo Data** are simple objects that normalize datasets.
 Data assessments are run on these.
+
+**CredoGovernance** is the connection between Lens and the Governance App. This is only relevant
+for that use-case.
+
+
+Reports
+-------
+Lens has robust reporting, which is described :ref:`here <Reporting>`. 
+
+
 
 The Alignment Spec
 ------------------
