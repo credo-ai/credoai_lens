@@ -10,11 +10,22 @@ import numpy as np
 import seaborn as sns
 import sklearn.metrics as sk_metrics
 
+from credoai.reporting.credo_reporter import CredoReporter
+from credoai.reporting.plot_utils import (get_style,
+                                          credo_classification_palette, 
+                                          format_label, get_axis_size,
+                                          DEFAULT_COLOR)
+from numpy import pi
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+import sklearn.metrics as sk_metrics
+
 class FairnessReporter(CredoReporter):
-    def __init__(self, assessment, infographic_shape=(3,5), size=3):
+    def __init__(self, assessment, size=3):
         super().__init__(assessment)
         self.size = size
-        self.infographic_shape = infographic_shape
     
     def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
         """Creates a fairness report for binary classification model
@@ -34,16 +45,11 @@ class FairnessReporter(CredoReporter):
         array of figures
         """        
         df = self.module.get_df()
+        
         # plot
         # comparison plots
         if include_fairness:
             self.figs.append(self.plot_fairness())
-        # individual group performance plots
-        self.figs.append(self.plot_performance_infographic(df['true'], df['pred'], 'Overall'))
-        if include_disaggregation:
-            for group, sub_df in df.groupby('sensitive'):
-                self.figs.append(self.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
-
         # display
         plt.show()
         # save
@@ -55,14 +61,7 @@ class FairnessReporter(CredoReporter):
         # report cells
         cells = [
             self._write_fairness(),
-            ("reporter.plot_fairness();", 'code'),
-            self._write_performance_infographic(),
-            ("""\
-            df = reporter.module.get_df()
-            reporter.plot_performance_infographic(df['true'], df['pred'], 'Overall')
-            for group, sub_df in df.groupby('sensitive'):
-                reporter.plot_performance_infographic(sub_df['true'], sub_df['pred'], group)
-            """, 'code')
+            ("reporter.plot_fairness();", 'code')
         ]
         return cells
 
@@ -109,7 +108,10 @@ class FairnessReporter(CredoReporter):
         if self.module.metric_frames != {}:
             plot_disaggregated = True
         n_plots = 1+plot_disaggregated
-        with get_style(figsize=self.size, n_cols=n_plots):
+        # ratio based on number of metrics and sensitive featurers
+        r = self.module.get_results()['disaggregated_performance'].shape
+        ratio = max(r[0]*r[1]/30, 1)
+        with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
             f, axes = plt.subplots(1, n_plots)
             plt.subplots_adjust(wspace=0.7)
             axes = axes.flat
@@ -118,6 +120,114 @@ class FairnessReporter(CredoReporter):
             if plot_disaggregated:
                 self._plot_disaggregated_metrics(axes[1])
         return f
+
+    def _plot_fairness_metrics(self, ax):
+        # create df
+        df = self.module.get_fairness_results()
+        # add parity to names
+        df.index = [i+'_parity' if row['subtype'] == 'parity' else i
+                    for i, row in df.iterrows()]
+        df = df['value']
+        df.index.name = 'Fairness Metric'
+        df.name = 'Value'
+        # plot
+        sns.barplot(data=df.reset_index(), 
+                    y='Fairness Metric', 
+                    x='Value',
+                    edgecolor='w',
+                    color = DEFAULT_COLOR,
+                    ax=ax)
+        self._style_barplot(ax)
+        
+    def _plot_disaggregated_metrics(self, ax):
+        # create df
+        sensitive_feature = self.module.sensitive_features.name
+        df =  self.module.get_disaggregated_performance() \
+                    .reset_index() \
+                    .melt(id_vars=['subtype', sensitive_feature],
+                          var_name='Performance Metric',
+                          value_name='Value')
+        # plot
+        num_cats = len(df[sensitive_feature].unique())
+        palette = sns.color_palette('Purples', num_cats)
+        palette[-1] = [.4,.4,.4]
+        sns.barplot(data=df, 
+                    y='Performance Metric', 
+                    x='Value', 
+                    hue=sensitive_feature,
+                    palette=palette,
+                    edgecolor='w',
+                    ax=ax)
+        self._style_barplot(ax)
+        plt.legend(bbox_to_anchor=(1.01, 1.02))
+        
+    def _style_barplot(self, ax):
+        sns.despine()
+        ax.set_xlabel(ax.get_xlabel(), fontweight='bold')
+        ax.set_ylabel(ax.get_ylabel(), fontweight='bold')
+        # format metric labels
+        ax.set_yticklabels([format_label(label.get_text()) 
+                            for label in ax.get_yticklabels()])
+    
+
+class BinaryClassificationReporter(FairnessReporter):
+    def __init__(self, assessment, infographic_shape=(3,5), size=3):
+        super().__init__(assessment, size)
+        self.infographic_shape = infographic_shape
+    
+    def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
+        """Creates a fairness report for binary classification model
+
+        Parameters
+        ----------
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
+        include_fairness : bool, optional
+            Whether to include fairness plots, by default True
+        include_disaggregation : bool, optional
+            Whether to include performance plots broken down by
+            subgroup. Overall performance are always reported, by default True
+            
+        Returns
+        -------
+        array of figures
+        """        
+        df = self.module.get_df()
+        if df['true'].dtype.name == 'category':
+            df['true'] = df['true'].cat.codes
+        # plot
+        # comparison plots
+        if include_fairness:
+            self.figs.append(self.plot_fairness())
+        # individual group performance plots
+        self.figs.append(self.plot_performance_infographic(df['true'], df['pred'], 'Overall'))
+        if include_disaggregation:
+            for group, sub_df in df.groupby('sensitive'):
+                self.figs.append(self.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
+
+        # display
+        plt.show()
+        # save
+        if filename is not None:
+            self.export_report(filename)
+        return self.figs
+
+    def _create_report_cells(self):
+        # report cells
+        cells = [
+            self._write_fairness(),
+            ("reporter.plot_fairness();", 'code'),
+            self._write_performance_infographic(),
+            ("""\
+            df = reporter.module.get_df()
+            if df['true'].dtype.name == 'category':
+                df['true'] = df['true'].cat.codes
+            reporter.plot_performance_infographic(df['true'], df['pred'], 'Overall')
+            for group, sub_df in df.groupby('sensitive'):
+                reporter.plot_performance_infographic(sub_df['true'], sub_df['pred'], group)
+            """, 'code')
+        ]
+        return cells
 
     def _write_performance_infographic(self):
         cell = ("""
@@ -310,52 +420,3 @@ class FairnessReporter(CredoReporter):
         for x, y, s, kwargs in text_objects:
             ax.text(x, y, s, transform = ax.transAxes, ha='center', **kwargs)
         return ax
-    
-    def _plot_fairness_metrics(self, ax):
-        # create df
-        df = self.module.get_fairness_results()
-        # add parity to names
-        df.index = [i+'_parity' if row['kind'] == 'parity' else i
-                    for i, row in df.iterrows()]
-        df = df['value']
-        df.index.name = 'Fairness Metric'
-        df.name = 'Value'
-        # plot
-        sns.barplot(data=df.reset_index(), 
-                    y='Fairness Metric', 
-                    x='Value',
-                    edgecolor='w',
-                    color = DEFAULT_COLOR,
-                    ax=ax)
-        self._style_barplot(ax)
-        
-    def _plot_disaggregated_metrics(self, ax):
-        # create df
-        sensitive_feature = self.module.sensitive_features.name
-        df =  self.module.get_disaggregated_performance(False) \
-                    .reset_index() \
-                    .melt(id_vars=sensitive_feature,
-                          var_name='Performance Metric',
-                          value_name='Value')
-        # plot
-        num_cats = len(df[sensitive_feature].unique())
-        palette = sns.color_palette('Purples', num_cats)
-        palette[-1] = [.4,.4,.4]
-        sns.barplot(data=df, 
-                    y='Performance Metric', 
-                    x='Value', 
-                    hue=sensitive_feature,
-                    palette=palette,
-                    edgecolor='w',
-                    ax=ax)
-        self._style_barplot(ax)
-        plt.legend(bbox_to_anchor=(1.01, 1.02))
-        
-    def _style_barplot(self, ax):
-        sns.despine()
-        ax.set_xlabel(ax.get_xlabel(), fontweight='bold')
-        ax.set_ylabel(ax.get_ylabel(), fontweight='bold')
-        # format metric labels
-        ax.set_yticklabels([format_label(label.get_text()) 
-                            for label in ax.get_yticklabels()])
-    

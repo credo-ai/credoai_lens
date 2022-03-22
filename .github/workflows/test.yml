@@ -27,7 +27,10 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Run tests
         run: |
-          scripts/test.sh | tee pytest-coverage.txt
+          scripts/test.sh > pytest-coverage.txt 2>&1
+          retval=$?
+          cat pytest-coverage.txt
+          exit $retval
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         with:

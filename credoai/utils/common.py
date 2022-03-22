@@ -1,10 +1,11 @@
 import json
 import hashlib
-from absl import logging
 import numpy as np
 import pandas as pd
 import os
 import requests
+import sklearn.utils as skutils
+from absl import logging
 from pathlib import Path
 from typing import Dict, Any
 
@@ -51,6 +52,9 @@ def wrap_list(obj):
 def remove_suffix(text, suffix):
     return text[:-len(suffix)] if text.endswith(suffix) and len(suffix) != 0 else text
 
+def humanize_label(s):
+    return ' '.join(s.split('_')).title()
+
 class NumpyEncoder(json.JSONEncoder):
     """ Special json encoder for numpy types """
     def default(self, obj):
@@ -61,7 +65,11 @@ class NumpyEncoder(json.JSONEncoder):
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
-    
+
+def json_dumps(obj):
+    """Custom json dumps with encoder"""
+    return json.dumps(obj, cls=NumpyEncoder)
+
 def dict_hash(dictionary: Dict[str, Any]) -> str:
     """MD5 hash of a dictionary."""
     dhash = hashlib.md5()
@@ -108,7 +116,7 @@ def is_categorical(series, threshold=0.05):
         Whether the series is categorical or not
     """
     
-    if series.dtype.name == 'category':
+    if series.dtype.name in ['category', 'object']:
         return True
     # float columns are assumed not-categorical
     elif len(series.unique()) / len(series) < threshold:

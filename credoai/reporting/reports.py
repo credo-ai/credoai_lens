@@ -1,12 +1,19 @@
 import nbformat as nbf 
 import os
-import pickle
+import cloudpickle
 import textwrap
-from credoai.utils.credo_api_utils import post_use_case_report
 from datetime import datetime
 from inspect import cleandoc
 from nbclient import NotebookClient
-from jupyterlab_nbconvert_nocode.nbconvert_functions import HTMLHideCodeExporter
+from traitlets.config import Config
+import asyncio
+import nbconvert
+import nest_asyncio
+
+HTML_CONFIG = Config()
+HTML_CONFIG.TemplateExporter.exclude_input = True
+HTML_CONFIG.TemplateExporter.exclude_input_prompt = True
+HTML_CONFIG.TemplateExporter.exclude_output_prompt = True
 
 class NotebookReport():
     def __init__(self):
@@ -22,30 +29,21 @@ class NotebookReport():
                 self.nb['cells'].append(nbf.v4.new_markdown_cell(content))
             elif cell_type == 'code':
                 self.nb['cells'].append(nbf.v4.new_code_cell(content))
-    
-    def send_to_credo(self, use_case_id, model_id):
-        """Writes notebook to html"""
-        post_use_case_report(self._to_html(), use_case_id, model_id)
-        return self
         
-    def write_notebook(self, file_loc, as_html=False):
+    def write_notebook(self, file_loc):
         """Write notebook to file
 
         Parameters
         ----------
         file_loc : str
             file location to save notebook
-        as_html : bool, optional
-            Whether to convert the notebook to an html before saving.
-            Note that all code input blocks will be stripped from the
-            saved html - only outputs will remain, by default False
             
         Returns
         -------
         self
         """        
-        if as_html:
-            html = self._to_html()
+        if file_loc.endswith('.html'):
+            html = self.to_html()
             with open(file_loc, 'w') as f:
                 f.write(html)
         else:
@@ -72,19 +70,20 @@ class NotebookReport():
     def run_notebook(self):
         client = NotebookClient(self.nb, timeout=600, 
                     kernel_name='python3')
-
-        client.execute()
+        loop = asyncio.new_event_loop()
+        nest_asyncio.apply(loop)
+        loop.run_until_complete(client.async_execute())
         return self
 
+    def to_html(self):
+        """Converts notebook to html"""
+        html_exporter = nbconvert.HTMLExporter(config=HTML_CONFIG)
+        (body, resources) = html_exporter.from_notebook_node(self.nb)
+        return body
+    
     def _preprocess_cell_content(self, cells):
         return [(cleandoc(content), cell_type) 
                 for content, cell_type in cells]
-
-    def _to_html(self):
-        """Converts notebook to html"""
-        html_exporter = HTMLHideCodeExporter()
-        (body, resources) = html_exporter.from_notebook_node(self.nb)
-        return body
 
 class AssessmentReport(NotebookReport):
     def __init__(self, needed_artifacts=None):
@@ -98,9 +97,9 @@ class AssessmentReport(NotebookReport):
         super().__init__()
         self.needed_artifacts = needed_artifacts
         # set up reporter
-        load_code="import pickle\n"
+        load_code="import cloudpickle\n"
         for key, val in self.needed_artifacts.items():
-            load_code += f"{key} = pickle.load(open('{key}.pkl','rb'))\n"
+            load_code += f"{key} = cloudpickle.load(open('{key}.pkl','rb'))\n"
         load_code += "%config InlineBackend.figure_formats = ['svg', 'png']"
         self.add_cells([(load_code, 'code')])
     
@@ -108,11 +107,12 @@ class AssessmentReport(NotebookReport):
         pickle_files = []
         for key, val in self.needed_artifacts.items():
             pickle_files.append(f'{key}.pkl')
-            pickle.dump(val, open(pickle_files[-1], 'wb'))
+            cloudpickle.dump(val, open(pickle_files[-1], 'wb'))
         client = NotebookClient(self.nb, timeout=600, 
                     kernel_name='python3')
-
-        client.execute()
+        loop = asyncio.new_event_loop()
+        nest_asyncio.apply(loop)
+        loop.run_until_complete(client.async_execute())
         for f in pickle_files:
             os.remove(f)
         return self

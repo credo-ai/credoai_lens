@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
+import warnings
 from credoai.modules.credo_module import CredoModule
+from credoai.utils.constants import MULTICLASS_THRESH
 from credoai.utils.common import NotRunError, is_categorical
 from credoai.utils.dataset_utils import ColumnTransformerUtil
 from credoai.utils.model_utils import get_gradient_boost_model
@@ -75,7 +77,7 @@ class DatasetFairness(CredoModule):
         return self  
     
     def prepare_results(self):
-        """Prepares results for export to Credo AI's governance platform
+        """Prepares results for export to Credo AI's Governance App
 
         Structures a subset of results for export as a dataframe with appropriate structure
         for exporting. See credoai.modules.credo_module.
@@ -132,7 +134,9 @@ class DatasetFairness(CredoModule):
                 Key: name of feature
                 Value: standardized mean difference
         """
-        group_means = self.X.groupby(self.sensitive_features).mean()
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            group_means = self.X.groupby(self.sensitive_features).mean()
         std = self.X.std(numeric_only=True)
         diffs = {}
         for group1, group2 in combinations(group_means.index, 2):
@@ -168,8 +172,9 @@ class DatasetFairness(CredoModule):
         scorer = make_scorer(roc_auc_score, 
                              needs_proba=True,
                              multi_class='ovo')
+        n_folds = max(2, min(len(self.X)//5, 5))
         cv_results = cross_val_score(pipe, self.X, sensitive_features,
-                             cv = StratifiedKFold(5),
+                             cv = StratifiedKFold(n_folds),
                              scoring = scorer,
                              error_score='raise')
 
@@ -199,15 +204,17 @@ class DatasetFairness(CredoModule):
         # Define features tansformers
         categorical_transformer = OneHotEncoder(handle_unknown="ignore")
         
-        numeric_transformer = Pipeline(
-            steps=[("scaler", StandardScaler())]
-        )
 
+
+        transformers = []
+        if len(categorical_features):
+            categorical_transformer = OneHotEncoder(handle_unknown="ignore")
+            transformers.append(("cat", categorical_transformer, categorical_features))
+        if len(numeric_features):
+            numeric_transformer = Pipeline(steps=[("scaler", StandardScaler())])
+            transformers.append(("num", numeric_transformer, numeric_features))
         preprocessor = ColumnTransformer(
-            transformers=[
-                ("num", numeric_transformer, numeric_features),
-                ("cat", categorical_transformer, categorical_features),
-            ]
+            transformers=transformers
         )
 
         model = get_gradient_boost_model()
@@ -322,30 +329,35 @@ class DatasetFairness(CredoModule):
         )
         balance_results["sample_balance"] = sample_balance
 
-        # Distribution of samples across groups
-        label_balance = (
-            self.data.groupby([self.sensitive_features, self.y.name])
-            .size()
-            .unstack(fill_value=0)
-            .stack()
-            .reset_index(name="count")
-            .to_dict(orient="records")
-        )
-        balance_results["label_balance"] = label_balance
+        # only calculate demographic parity and label balance when there are a reasonable
+        # number of categories
+        if len(self.y.unique()) < MULTICLASS_THRESH:
+            with warnings.catch_warnings():
+                warnings.simplefilter(action='ignore', category=FutureWarning)
+                # Distribution of samples across groups
+                label_balance = (
+                    self.data.groupby([self.sensitive_features, self.y.name])
+                    .size()
+                    .unstack(fill_value=0)
+                    .stack()
+                    .reset_index(name="count")
+                    .to_dict(orient="records")
+                )
+                balance_results["label_balance"] = label_balance
 
-        # Fairness metrics
-        r = self.data.groupby([self.sensitive_features, self.y.name])\
-                        .agg({self.y.name: 'count'})\
-                        .groupby(level=0).apply(lambda x: x / float(x.sum()))\
-                        .rename({self.y.name:'ratio'}, inplace=False, axis=1)\
-                        .reset_index(inplace=False)
+                # Fairness metrics
+                r = self.data.groupby([self.sensitive_features, self.y.name])\
+                                .agg({self.y.name: 'count'})\
+                                .groupby(level=0).apply(lambda x: x / float(x.sum()))\
+                                .rename({self.y.name:'ratio'}, inplace=False, axis=1)\
+                                .reset_index(inplace=False)
 
-        # Compute the maximum difference between any two pairs of groups
-        demographic_parity_difference = r.groupby(self.y.name)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
+            # Compute the maximum difference between any two pairs of groups
+            demographic_parity_difference = r.groupby(self.y.name)['ratio'].apply(lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
 
-        # Compute the minimum ratio between any two pairs of groups
-        demographic_parity_ratio = r.groupby(self.y.name)['ratio'].apply(lambda x: np.min(x)/np.max(x)).reset_index(name='value').to_dict(orient='records')
-        
-        balance_results['demographic_parity_difference'] = demographic_parity_difference
-        balance_results['demographic_parity_ratio'] = demographic_parity_ratio
+            # Compute the minimum ratio between any two pairs of groups
+            demographic_parity_ratio = r.groupby(self.y.name)['ratio'].apply(lambda x: np.min(x)/np.max(x)).reset_index(name='value').to_dict(orient='records')
+            
+            balance_results['demographic_parity_difference'] = demographic_parity_difference
+            balance_results['demographic_parity_ratio'] = demographic_parity_ratio
         return balance_results

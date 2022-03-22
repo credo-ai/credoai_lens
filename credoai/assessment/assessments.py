@@ -4,7 +4,8 @@ Module containing all CredoAssessmsents
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
-from credoai.reporting import FairnessReporter, NLPGeneratorAnalyzerReporter, DatasetFairnessReporter, DatasetProfilingReporter
+from credoai.reporting import (FairnessReporter, BinaryClassificationReporter,
+                              NLPGeneratorAnalyzerReporter, DatasetFairnessReporter)
 from sklearn.utils.multiclass import type_of_target
 from credoai.reporting.dataset_profiling import DatasetProfilingReporter
 
@@ -13,19 +14,18 @@ import credoai.utils as cutils
 import credoai.modules as mod
 import sys, inspect
 
-class FairnessBaseAssessment(CredoAssessment):
-    """
-    Basic evaluation of the fairness of ML models
+class PerformanceAssessment(CredoAssessment):
+    """Basic evaluation of the performance of ML models
     
-    Runs fairness analysis on models with well-defined
+    Runs performance analysis on models with well-defined
     objective functions. Examples include:
 
     * binary classification
     * regression
     * recommendation systems
 
-    Modules
-    -------
+    Modules:
+    
     * credoai.modules.fairness_base
     
     Requirements
@@ -37,7 +37,83 @@ class FairnessBaseAssessment(CredoAssessment):
     """
     def __init__(self):
         super().__init__(
-            'FairnessBase', 
+            'Performance', 
+            mod.PerformanceModule,
+            AssessmentRequirements(
+                model_requirements=[('prob_fun', 'pred_fun')],
+                data_requirements=['X', 'y']
+            )
+        )
+    
+    def init_module(self, *, model, data, metrics):
+        """Initializes the assessment module
+
+        Transforms CredoModel and CredoData into the proper form
+        to create a runnable assessment.
+
+        See the lens_customization notebook for examples
+
+        Parameters
+        ------------
+        model : CredoModel, optional
+        data : CredoData, optional
+        metrics : List-like
+            list of metric names as string or list of Metrics (credoai.metrics.Metric).
+            Metric strings should in list returned by credoai.metrics.list_metrics.
+            Note for performance parity metrics like 
+            "false negative rate parity" just list "false negative rate". Parity metrics
+            are calculated automatically if the performance metric is supplied
+
+        Example
+        ---------
+        def build(self, ...):
+            y_pred = CredoModel.pred_fun(CredoData.X)
+            y = CredoData.y
+            self.initialized_module = self.module(y_pred, y)
+
+        """
+        try:
+            y_pred = model.pred_fun(data.X)
+        except AttributeError:
+            y_pred = None
+        try:
+            y_prob = model.prob_fun(data.X)
+        except AttributeError:
+            y_prob = None
+            
+        module = self.module(
+            metrics,
+            data.y,
+            y_pred,
+            y_prob,
+            data.sensitive_features)
+        self.initialized_module = module
+    
+
+class FairnessAssessment(CredoAssessment):
+    """Basic evaluation of the fairness of ML models
+    
+    Runs fairness analysis on models with well-defined
+    objective functions. Examples include:
+
+    * binary classification
+    * regression
+    * recommendation systems
+
+    Modules:
+    
+    * credoai.modules.fairness_base
+    
+    Requirements
+    ------------
+    Requires that the CredoModel defines either `pred_fun` or `prob_fun` (or both).
+    - `pred_fun` should return the model's predictions.
+    - `prob_fun` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
+       Only applicable in classification scenarios.
+    """
+    def __init__(self):
+        super().__init__(
+            'Fairness', 
             mod.FairnessModule,
             AssessmentRequirements(
                 model_requirements=[('prob_fun', 'pred_fun')],
@@ -58,11 +134,11 @@ class FairnessBaseAssessment(CredoAssessment):
         model : CredoModel, optional
         data : CredoData, optional
         metrics : List-like
-            list of metric names as string or list of FairnessFunctions.
-            Metric strings should in list returned by credoai.utils.list_metrics.
+            list of metric names as string or list of Metrics (credoai.metrics.Metric).
+            Metric strings should in list returned by credoai.metrics.list_metrics.
             Note for performance parity metrics like 
-            "false negative rate parity" just list "false negative rate". Partiy metrics
-            are calculated automatically.
+            "false negative rate parity" just list "false negative rate". Parity metrics
+            are calculated automatically if the performance metric is supplied
 
         Example
         ---------
@@ -91,6 +167,8 @@ class FairnessBaseAssessment(CredoAssessment):
     
     def get_reporter(self):
         if type_of_target(self.initialized_module.y_true) == 'binary':
+            return BinaryClassificationReporter(self)
+        else:
             return FairnessReporter(self)
 
 class NLPEmbeddingBiasAssessment(CredoAssessment):
@@ -216,8 +294,10 @@ class DatasetFairnessAssessment(CredoAssessment):
     * Proxy detection
     * Demographic Parity of outcomes
 
-    Modules
-    -------
+    Note: this assessment runs on the the scrubbed data (see CredoData.get_scrubbed_data).
+
+    Modules:
+
     * credoai.modules.dataset_fairness
 
     """
@@ -231,10 +311,11 @@ class DatasetFairnessAssessment(CredoAssessment):
         )
 
     def init_module(self, *, data):
+        scrubbed_data = data.get_scrubbed_data()
         self.initialized_module = self.module(
-            data.X, 
-            data.y,
-            data.sensitive_features,
+            scrubbed_data['X'], 
+            scrubbed_data['y'],
+            scrubbed_data['sensitive_features'],
             data.categorical_features_keys)
 
     def get_reporter(self):
@@ -256,15 +337,14 @@ class DatasetProfilingAssessment(CredoAssessment):
             'DatasetProfiling', 
             mod.DatasetProfiling,
             AssessmentRequirements(
-                data_requirements=['X', 'y', 'sensitive_features']
+                data_requirements=['X', 'y']
             )
         )
 
     def init_module(self, *, data):
         self.initialized_module = self.module(
             data.X, 
-            data.y,
-            data.sensitive_features)
+            data.y)
 
     def get_reporter(self):
         return DatasetProfilingReporter(self)
