@@ -3,6 +3,7 @@
 from collections import ChainMap, defaultdict
 from datetime import datetime
 from credoai.utils.common import (humanize_label, wrap_list,
+                                  IntegrationError,
                                   ValidationError, dict_hash)
 from credoai.utils.credo_api_utils import (get_technical_spec,
                                            post_assessment,
@@ -301,6 +302,8 @@ def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
         spec = json.load(open(spec_path))
     elif use_case_id:
         spec = get_technical_spec(use_case_id, version=version)
+    if spec is None:
+        raise IntegrationError("No assessment spec found!")
     metric_dict = defaultdict(dict)
     metrics = spec['metrics']
     for metric in metrics:

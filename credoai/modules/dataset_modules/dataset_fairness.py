@@ -93,11 +93,13 @@ class DatasetFairness(CredoModule):
         """
         if self.results is not None:
             metric_types = ['sensitive_feature_prediction_score',
-           'demographic_parity_difference',
-           'demographic_parity_ratio']
+                            'demographic_parity_difference',
+                            'demographic_parity_ratio']
             index = []
             prepared_arr = []
             for metric_type in metric_types:
+                if metric_type not in self.results:
+                    continue
                 val = self.results[metric_type]
                 # if multiple values were calculated for metric_type
                 # add them all. Assumes each element of list is a dictionary with a "value" key,
