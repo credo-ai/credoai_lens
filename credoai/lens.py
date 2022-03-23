@@ -198,7 +198,11 @@ class Lens:
         prepared_results = []
         for name, assessment in self.assessments.items():
             logging.info(f"** Exporting assessment-{name}")
-            prepared_results.append(self._prepare_results(assessment))
+            tmp_results = self._prepare_results(assessment)
+            if len(tmp_results):
+                prepared_results.append(tmp_results)
+            else:
+                logging.warning(f"Prepared results for assessment ({name}) were empty!")
         if self.report is None:
             logging.warning("No report is included. To include a report, run create_reports first")
         payload = ci.prepare_assessment_payload(

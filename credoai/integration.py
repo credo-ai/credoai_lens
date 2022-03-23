@@ -258,7 +258,7 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
     """    
     # prepare assessments
     assessment_records = [record_metrics(r) for r in prepared_results]
-    assessment_records = MultiRecord(assessment_records)
+    assessment_records = MultiRecord(assessment_records).struct() if assessment_records else {}
 
     # set up report
     default_html = '<html><body><h3 style="text-align:center">No Report Included With Assessment</h1></body></html>'
@@ -268,7 +268,7 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
         report_payload['content'] = report.to_html()
     
     payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
-               "metrics": assessment_records.struct(),
+               "metrics": assessment_records,
                "charts": None,
                "report": report_payload,
                "type": RISK,

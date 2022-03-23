@@ -14,30 +14,31 @@ class DatasetProfiling(CredoModule):
         The features
     y : pandas.Series
         The outcome labels
-    sensitive_features : pandas.Series
-        A series of the sensitive feature labels (e.g., "male", "female")
+    profile_kwargs 
+        Passed to pandas_profiling.ProfileReport
     """
     def __init__(self,
                 X: pd.DataFrame,
                 y: pd.Series,
-                sensitive_features: pd.Series):
-
-        self.data = pd.concat([X, sensitive_features, y], axis=1)
+                **profile_kwargs):
+        self.profile_kwargs = profile_kwargs
+        self.data = pd.concat([X, y], axis=1)
+        self.results = {}
     
-    def profile_data(self):
-        """Generates data profile reports
 
-        """        
-        # Initialize the report
-        profile = ProfileReport(self.data, title="Dataset", explorative=True)
-        
-        return profile.to_notebook_iframe()
+    def profile_data(self):
+        return self._create_reporter().to_notebook_iframe()
 
     def run(self):
-        return None
+        """Generates data profile reports"""     
+        self.results = self._create_reporter().get_description()
+        return self
     
     def prepare_results(self):
-        return None
-
-    def get_results(self):
-        return None
+        return {}
+        
+    def _create_reporter(self):
+        default_kwargs = {'title': 'Dataset',
+                          'minimal': True}
+        default_kwargs.update(self.profile_kwargs)
+        return  ProfileReport(self.data, **default_kwargs)
