@@ -19,7 +19,7 @@
 # CredoData and a module, which performs some assessment.
 
 # This file defines CredoGovernance, CredoModel and CredoData
-
+from copy import deepcopy
 from credoai.utils.common import IntegrationError, ValidationError, raise_or_warn
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
@@ -88,7 +88,7 @@ class CredoGovernance:
         metrics = self.assessment_spec
         if self.model_id in metrics.keys():
             spec['metrics'] = list(metrics[self.model_id].keys())
-        return {"Fairness": spec, "Performance": spec}
+        return {"Fairness": spec, "Performance": deepcopy(spec)}
 
     def get_info(self):
         """Return Credo AI Governance IDs"""
