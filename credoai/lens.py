@@ -29,7 +29,8 @@ class Lens:
         data: CredoData = None,
         user_id: str = None,
         dev_mode: Union[bool, float] = False,
-        warning_level=1
+        logging_level: Union[str, int] = 'info',
+        warning_level = 1
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance
 
@@ -69,6 +70,11 @@ class Lens:
             A float<1 can also be provided which will determine the fraction of data to retain.
             Defaults to 0.1 when dev_mode is set to True.
             Default, False
+        logging_level : int or str
+            Sets logging and verbosity. Calls lens.set_logging_level. Options include:
+            * 'info'
+            * 'warning'
+            * 'error'
         warning_level : int
             warning level. 
                 0: warnings are off
@@ -83,6 +89,7 @@ class Lens:
         self.data = data
         self.user_id = user_id
         self.spec = {}
+        set_logging_level(logging_level)
         self.warning_level = warning_level
         self.dev_mode = dev_mode
         self.run_time = False
