@@ -255,6 +255,7 @@ class Lens:
         return {'process': f'Lens-{assessment_name}',
                 'model_label': names['model'],
                 'dataset_label': names['dataset'],
+                'dataset_id': self.gov.dataset_id,
                 'user_id': self.user_id,
                 'assessment': assessment_name,
                 'lens_version': f'Lens-v{__version__}'}

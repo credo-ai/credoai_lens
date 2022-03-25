@@ -53,8 +53,10 @@ class Metric(Record):
         a list of standard metric families.
     value : float
         metric value
-    name : string, optional
-        Specific identifier for particular metric. Defaults to the metric_type
+    subtype : string, optional
+        subtype of metric. Defaults to base
+    dataset_id : str, optional
+        ID of dataset. Should match a dataset on Governance App
     process : string, optional
         String reflecting the process used to create the metric. E.g.,
         name of a particular Lens assessment, or link to code.
@@ -69,13 +71,15 @@ class Metric(Record):
     def __init__(self,
                  metric_type,
                  value,
-                 name=None,
+                 subtype="base",
+                 dataset_id=None,
                  process=None,
                  **metadata):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
-        self.name = name or humanize_label(self.metric_type)
+        self.subtype = subtype
+        self.dataset_id = dataset_id
         self.process = process
         self.config_hash = self._generate_config()
 
@@ -83,8 +87,9 @@ class Metric(Record):
         return {
             'key': self.config_hash,
             'type': self.metric_type,
-            'name': self.name,
+            'subtype': self.subtype,
             'value': self.value,
+            'dataset_id': self.dataset_id,
             'process': self.process,
             'metadata': self.metadata,
             'value_updated_at': self.creation_time,
