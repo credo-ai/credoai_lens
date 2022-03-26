@@ -86,7 +86,7 @@ class Lens:
         else:
             self.gov = governance or CredoGovernance(warning_level=warning_level)
         self.model = model
-        self.data = data
+        self.dataset = data
         self.user_id = user_id
         self.spec = {}
         set_logging_level(logging_level)
@@ -107,10 +107,10 @@ class Lens:
         self.reporters = {}
 
         # if data is defined and dev mode, convert data
-        if self.data and self.dev_mode:
+        if self.dataset and self.dev_mode:
             if self.dev_mode == True:
                 self.dev_mode = 0.1
-            self.data.dev_mode(self.dev_mode)
+            self.dataset.dev_mode(self.dev_mode)
 
         # if governance is defined, pull down spec for
         # use_case / model
@@ -235,7 +235,7 @@ class Lens:
 
     def get_artifact_names(self):
         model_name = self.model.name if self.model else 'NA'
-        data_name = self.data.name if self.data else 'NA'
+        data_name = self.dataset.name if self.dataset else 'NA'
         return {'model': model_name, 'dataset': data_name}
 
     def get_assessments(self):
@@ -261,16 +261,19 @@ class Lens:
                 'lens_version': f'Lens-v{__version__}'}
 
     def _get_credo_destination(self, to_model=True):
-        if self.gov.model_id is None and to_model:
+        to_register = {}
+        if self.gov.model_id is None:
             raise_or_warn(ValidationError,
                           "No model_id supplied to export to Credo AI.")
             logging.info(f"**** Registering model ({self.model.name})")
-            self.gov.register_model(self.model.name)
-        if self.gov.model_id is None and not to_model:
+            to_register['model_name'] = self.model.name
+        if self.gov.model_id is None:
             raise_or_warn(ValidationError,
                           "No dataset_id supplied to export to Credo AI.")
             logging.info(f"**** Registering dataset ({self.dataset.name})")
-            self.gov.register_dataset(self.dataset.name)
+            to_register['dataset_name'] = self.dataset.name
+        if to_register:
+            self.gov.register(**to_register)
         destination = self.gov.model_id if to_model else self.gov.dataset_id
         label = 'model' if to_model else 'dataset'
         logging.info(f"**** Destination for export: {label} id-{destination}")
@@ -284,7 +287,7 @@ class Lens:
             if reqs['model_requirements']:
                 kwargs['model'] = self.model
             if reqs['data_requirements']:
-                kwargs['data'] = self.data
+                kwargs['data'] = self.dataset
             try:
                 assessment.init_module(**kwargs)
             except:
@@ -307,14 +310,14 @@ class Lens:
         return d
 
     def _select_assessments(self):
-        usable_assessments = get_usable_assessments(self.model, self.data)
+        usable_assessments = get_usable_assessments(self.model, self.dataset)
         assessment_text = "Automatically Selected Assessments\n--"+ '\n--'.join(usable_assessments.keys())
         logging.info(assessment_text)
         return list(usable_assessments.values())
 
     def _validate_assessments(self, assessments):
         for assessment in assessments:
-            if not assessment.check_requirements(self.model, self.data):
+            if not assessment.check_requirements(self.model, self.dataset):
                 raise ValidationError(
                     f"Model or Data does not conform to {assessment.name} assessment's requirements")
 

@@ -147,21 +147,12 @@ def get_model_by_name(model_name):
     returned = _get_by_name(model_name, 'models')
     if returned:
         return {'name': model_name,
-                'model_id': returned['id'],
-                'model_project_id': returned['model_project_id']}
+                'model_id': returned['id']}
     return None
 
-
-def get_model_project_by_name(project_name):
-    """Returns governance info (ids) for model_project using its name"""
-    returned = _get_by_name(project_name, 'models')
-    if returned:
-        return {'name': project_name,
-                'dataset_id': returned['id']}
-    return None
 
 def get_use_case_by_name(use_case_nmae):
-    """Returns governance info (ids) for model_project using its name"""
+    """Returns governance info (ids) for use case using its name"""
     returned = _get_by_name(use_case_nmae, 'use_cases')
     if returned:
         return {'name': use_case_nmae,
@@ -197,17 +188,13 @@ def register_dataset(dataset_name):
     return {'name': dataset_name, 'dataset_id': response['id']}
 
 
-def register_model(model_name, model_project_id=None):
+def register_model(model_name):
     """Registers a model  on Credo AI's Governance App
 
     Parameters
     ----------
     model_name : string
         Name for Model on Credo AI's Governance App
-    model_project_id : string
-        Identifier for Project on Credo AI's Governance App.
-        If not provided, a Project will automatically be created
-        with the name {model_name} project.
 
     Returns
     --------
@@ -215,43 +202,23 @@ def register_model(model_name, model_project_id=None):
         Dictionary with Identifiers for Model and Project
         on Credo AI's Governance App
     """
-    if model_project_id is None:
-        model_project_id = register_project(f'{model_name} project')[
-            'model_project_id']
     end_point = get_end_point(f"models")
     model = {"name": model_name,
              "version": "1.0",
-             "model_project_id": model_project_id,
              "$type": "string"}
     data = json.dumps(serialize(model))
     response = _register_artifact(data, end_point)
-    return {'name': model_name, 'model_id': response['id'], 'model_project_id': model_project_id}
-
-
-def register_project(project_name):
-    """Registers a model project on Credo AI's Governance App
-
-    Parameters
-    ----------
-    project_name : string
-        Name for Project on Credo AI's Governance App
-
-    Returns
-    --------
-    dict : str
-        Dictionary with Identifiers for Project
-        on Credo AI's Governance App
-    """
-    end_point = get_end_point(f"model_projects")
-    project = {"name": project_name, "$type": "string"}
-    data = json.dumps(serialize(project))
-    response = _register_artifact(data, end_point)
-    return {'name': project_name, 'model_project_id': response['id']}
+    return {'name': model_name, 'model_id': response['id']}
     
 def register_model_to_use_case(use_case_id, model_id):
     data = {"data": [{"id": model_id, "type": "models"}]}
     end_point = get_end_point(f"use_cases/{use_case_id}/relationships/models")
     submit_request('post', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
+
+def register_dataset_to_model(model_id, dataset_id):
+    data = {"data": {"id": dataset_id, "type": "datasets"}}
+    end_point = get_end_point(f"models/{model_id}/relationships/dataset")
+    submit_request('patch', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
 
 def _register_artifact(data, end_point):
     try:

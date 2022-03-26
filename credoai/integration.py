@@ -7,9 +7,10 @@ from credoai.utils.common import (humanize_label, wrap_list,
                                   ValidationError, dict_hash)
 from credoai.utils.credo_api_utils import (get_technical_spec,
                                            post_assessment,
-                                           register_dataset, register_model,
-                                           register_project,
-                                           register_model_to_use_case)
+                                           register_dataset, 
+                                           register_model,
+                                           register_model_to_use_case,
+                                           register_dataset_to_model)
 import base64
 import credoai
 import json

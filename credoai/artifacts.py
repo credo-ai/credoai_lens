@@ -19,11 +19,11 @@
 # CredoData and a module, which performs some assessment.
 
 # This file defines CredoGovernance, CredoModel and CredoData
+from absl import logging
 from copy import deepcopy
 from credoai.utils.common import IntegrationError, ValidationError, raise_or_warn
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
-                                           get_model_project_by_name,
                                            get_use_case_by_name)
 from sklearn.impute import SimpleImputer
 from typing import List, Optional, Union, Callable
@@ -37,8 +37,8 @@ class CredoGovernance:
     """Class to store governance data.
 
     This information is used to interact with the CredoAI
-    Governance App. Artifacts (Use Cases, model projects,
-    models, and datasets) are identified by a unique ID which 
+    Governance App. Artifacts (Use Cases, models, and datasets) 
+    are identified by a unique ID which 
     can be found on the platform.
 
     To make use of Governance App a .credo_config file must
@@ -48,8 +48,6 @@ class CredoGovernance:
     ----------
     use_case_id : str, optional
         ID of Use Case on Credo AI Governance app, by default None
-    model_project_id : str, optional
-        ID of model project on Credo AI Governance app, by default None
     model_id : str, optional
         ID of model on Credo AI Governance app, by default None
     dataset_id : str, optional
@@ -62,12 +60,10 @@ class CredoGovernance:
     """
     def __init__(self,
                  use_case_id: str = None,
-                 model_project_id: str = None,
                  model_id: str = None,
                  dataset_id: str = None,
                  warning_level=1):
         self.use_case_id = use_case_id
-        self.model_project_id = model_project_id
         self.model_id = model_id
         self.dataset_id = dataset_id
         self.assessment_spec = {}
@@ -101,45 +97,25 @@ class CredoGovernance:
         """Return IDS that have been defined"""
         return [k for k, v in self.get_info().items() if v]
 
-    def set_governance_info_by_name(self,
-                                    *,
-                                    use_case_name=None,
-                                    model_name=None,
-                                    dataset_name=None,
-                                    model_project_name=None):
-        """Sets governance info by name
+    def register(self,  
+                 model_name=None,
+                 dataset_name=None):
+        """Registers artifacts to Credo AI Governance App
 
-        Sets model_id, model_project_id and/or dataset_id
-        using names
+        Convenience function to register multiple artifacts at once
 
         Parameters
         ----------
-        use_case_name : str
-            name of a use_case
         model_name : str
             name of a model
-        model_name : str
+        dataset_name : str
             name of a dataset
-        model_name : str
-            name of a model project
-        """
-        if use_case_name:
-            ids = get_use_case_by_name(use_case_name)
-            if ids is not None:
-                self.use_case_id = ids['use_case_id']
+
+        """        
         if model_name:
-            ids = get_model_by_name(model_name)
-            if ids is not None:
-                self.model_id = ids['model_id']
-                self.model_project_id = ids['model_project_id']
+            self._register_model(model_name)
         if dataset_name:
-            ids = get_dataset_by_name(dataset_name)
-            if ids is not None:
-                self.dataset_id = ids['dataset_id']
-        if model_project_name and not model_name:
-            ids = get_model_project_by_name(model_project_name)
-            if ids is not None:
-                self.model_project_id = ids['id']
+            self._register_dataset(dataset_name)
 
     def retrieve_assessment_spec(self, spec_path=None):
         """Retrieve assessment spec
@@ -174,23 +150,56 @@ class CredoGovernance:
         self.assessment_spec = assessment_spec
         return self.assessment_spec
 
-    def register_dataset(self, dataset_name):
-        """Registers a dataset
+    def set_governance_info_by_name(self,
+                                    *,
+                                    use_case_name=None,
+                                    model_name=None,
+                                    dataset_name=None):
+        """Sets governance info by name
 
-        If a project has not been registered, a new project will be created to
-        register the dataset under.
+        Sets model_id, and/or dataset_id
+        using names. This assumes that artifacts have already
+        been registered
+
+        Parameters
+        ----------
+        use_case_name : str
+            name of a use_case
+        model_name : str
+            name of a model
+        dataset_name : str
+            name of a dataset
+        """
+        if use_case_name:
+            ids = get_use_case_by_name(use_case_name)
+            if ids is not None:
+                self.use_case_id = ids['use_case_id']
+        if model_name:
+            ids = get_model_by_name(model_name)
+            if ids is not None:
+                self.model_id = ids['model_id']
+        if dataset_name:
+            ids = get_dataset_by_name(dataset_name)
+            if ids is not None:
+                self.dataset_id = ids['dataset_id']
+
+    def _register_dataset(self, dataset_name):
+        """Registers a dataset
         """
         try:
             ids = ci.register_dataset(dataset_name=dataset_name)
-            self.model_id = ids['dataset_id']
+            self.dataset_id = ids['dataset_id']
         except IntegrationError:
             self.set_governance_info_by_name(dataset_name=dataset_name)
             raise_or_warn(IntegrationError,
                           f"The dataset ({dataset_name}) is already registered.",
                           f"The dataset ({dataset_name}) is already registered. Using registered dataset",
                           self.warning_level)
+        if self.model_id:
+            logging.info(f"Registering dataset ({dataset_name}) to model ({self.model_id})")
+            ci.register_dataset_to_model(self.model_id, self.dataset_id)
 
-    def register_model(self, model_name):
+    def _register_model(self, model_name):
         """Registers a model
 
         If a project has not been registered, a new project will be created to
@@ -200,10 +209,8 @@ class CredoGovernance:
         solution.
         """
         try:
-            ids = ci.register_model(model_name=model_name,
-                                    model_project_id=self.model_project_id)
+            ids = ci.register_model(model_name=model_name)
             self.model_id = ids['model_id']
-            self.model_project_id = ids['model_project_id']
         except IntegrationError:
             self.set_governance_info_by_name(model_name=model_name)
             raise_or_warn(IntegrationError,
@@ -211,23 +218,8 @@ class CredoGovernance:
                           f"The model ({model_name}) is already registered. Using registered model",
                           self.warning_level)
         if self.use_case_id:
+            logging.info(f"Registering model ({model_name}) to Use Case ({self.use_case_id})")
             ci.register_model_to_use_case(self.use_case_id, self.model_id)
-
-    def register_project(self, model_project_name):
-        """Registers a model project"""
-        if self.model_project_id is not None:
-            raise ValidationError("Trying to register a project when a project ID ",
-                                  "was already provided to CredoGovernance.")
-        try:
-            ids = ci.register_project(model_project_name)
-            self.model_project_id = ids['model_project_id']
-        except IntegrationError:
-            self.set_governance_info_by_name(
-                model_project_name=model_project_name)
-            raise_or_warn(IntegrationError,
-                          f"The model project ({model_project_name}) is already registered.",
-                          f"The model project ({model_project_name}) is already registered. Using registered model project",
-                          self.warning_level)
 
 
 class CredoModel:
