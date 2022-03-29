@@ -25,7 +25,6 @@ META = {
     'source': 'credoai_ml_library',
     'version': credoai.__version__
 }
-RISK = "fairness"
 
 
 class Record:
@@ -278,7 +277,7 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
                "metrics": assessment_records.struct(),
                "charts": None,
                "report": report_payload,
-               "type": RISK,
+               "type": 'fairness',
                "$type": 'string'}
     return payload
 

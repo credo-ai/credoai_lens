@@ -43,6 +43,8 @@ def get_project_root() -> Path:
 def wrap_list(obj):
     if type(obj) == str:
         obj = [obj]
+    elif obj is None:
+        return None
     try:
         iter(obj)
     except TypeError:

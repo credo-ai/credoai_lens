@@ -124,7 +124,6 @@ class MainReport(NotebookReport):
         self.reporters = reporters
 
     def create_boiler_plate(self, lens):
-        names = lens.get_artifact_names()
         toc = self.get_toc()
         boiler_plate=f"""\
         # <span style="color:#3b07b4;font-weight:bold">{self.name}</span>
@@ -133,12 +132,7 @@ class MainReport(NotebookReport):
 """\
         f"{textwrap.indent(toc, ' '*8)}"\
         f"""
-        
-        **Basic Information**
-        
         * Creation time: {datetime.now().strftime("%Y-%m-%d %H:%M")}
-        * Model: {names['model']}
-        * Dataset: {names['dataset']}
         """
         html_code = """\
         from IPython.display import HTML

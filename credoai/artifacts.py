@@ -51,7 +51,10 @@ class CredoGovernance:
     model_id : str, optional
         ID of model on Credo AI Governance app, by default None
     dataset_id : str, optional
-        ID of dataset on Credo AI Governance app, by default None
+        ID of assessment dataset on Credo AI Governance app, by default None
+    training_dataset_id : str, optional
+        ID of training dataset on Credo AI Governance app. This dataset will
+        not be used for assessment, but may be analyzed itself, by default None
     warning_level : int
         warning level. 
             0: warnings are off
@@ -62,10 +65,12 @@ class CredoGovernance:
                  use_case_id: str = None,
                  model_id: str = None,
                  dataset_id: str = None,
+                 training_dataset_id: str = None,
                  warning_level=1):
         self.use_case_id = use_case_id
         self.model_id = model_id
         self.dataset_id = dataset_id
+        self.training_dataset_id = training_dataset_id
         self.assessment_spec = {}
         self.warning_level = warning_level
 
@@ -99,7 +104,8 @@ class CredoGovernance:
 
     def register(self,  
                  model_name=None,
-                 dataset_name=None):
+                 dataset_name=None,
+                 training_dataset_name=None):
         """Registers artifacts to Credo AI Governance App
 
         Convenience function to register multiple artifacts at once
@@ -109,13 +115,17 @@ class CredoGovernance:
         model_name : str
             name of a model
         dataset_name : str
-            name of a dataset
+            name of a dataset used to assess the model
+        training_dataset_name : str
+            name of a dataset used to train the model
 
         """        
         if model_name:
             self._register_model(model_name)
         if dataset_name:
             self._register_dataset(dataset_name)
+        if training_dataset_name:
+            self._register_dataset(training_dataset_name, log_as_training=True)
 
     def retrieve_assessment_spec(self, spec_path=None):
         """Retrieve assessment spec
@@ -154,10 +164,11 @@ class CredoGovernance:
                                     *,
                                     use_case_name=None,
                                     model_name=None,
-                                    dataset_name=None):
+                                    dataset_name=None,
+                                    training_dataset_name=None):
         """Sets governance info by name
 
-        Sets model_id, and/or dataset_id
+        Sets model_id, and/or dataset_id(s)
         using names. This assumes that artifacts have already
         been registered
 
@@ -168,7 +179,9 @@ class CredoGovernance:
         model_name : str
             name of a model
         dataset_name : str
-            name of a dataset
+            name of a dataset used to assess the model
+        training_dataset_name : str
+            name of a dataset used to train the model
         """
         if use_case_name:
             ids = get_use_case_by_name(use_case_name)
@@ -183,8 +196,16 @@ class CredoGovernance:
             if ids is not None:
                 self.dataset_id = ids['dataset_id']
 
-    def _register_dataset(self, dataset_name):
+    def _register_dataset(self, dataset_name, log_as_training=False):
         """Registers a dataset
+
+        Parameters
+        ----------
+        dataset_name : str
+            name of a dataset
+        log_as_training : bool
+            If True and model_id is defined, log dataset to model as training data, 
+            default False
         """
         try:
             ids = ci.register_dataset(dataset_name=dataset_name)
@@ -195,7 +216,7 @@ class CredoGovernance:
                           f"The dataset ({dataset_name}) is already registered.",
                           f"The dataset ({dataset_name}) is already registered. Using registered dataset",
                           self.warning_level)
-        if self.model_id:
+        if log_as_training and self.model_id:
             logging.info(f"Registering dataset ({dataset_name}) to model ({self.model_id})")
             ci.register_dataset_to_model(self.model_id, self.dataset_id)
 

@@ -5,6 +5,7 @@ Defines abstract base class for all CredoAssessments
 from abc import ABC, abstractmethod
 from credoai.utils.common import ValidationError
 import pandas as pd
+import uuid
 
 # Class Docstring below is a template used for all assessments __init__
 # Following this template helps for consistency, and filters down
@@ -54,16 +55,23 @@ class CredoAssessment(ABC):
             will default to first line of class docstring
         """
         self.name = name
+        self.id = uuid.uuid4().hex[:6] # unique identifier
         self.module = module
         self.initialized_module = None
         self.report = None
         if requirements is None:
             requirements = AssessmentRequirements()
         self.requirements = requirements
-        # descriptions, automatically parsed fro docstring if not set
+        # placeholders for model and data names
+        self.model_name = None
+        self.data_name = None
+        # descriptions, automatically parsed fro, docstring if not set
         self.short_description = short_description
         self.long_description = long_description
         self._set_description_from_doc()
+
+    def __repr__(self):
+        return self.get_id()
 
     @abstractmethod
     def init_module(self, *, model=None, data=None):
@@ -87,7 +95,11 @@ class CredoAssessment(ABC):
             self.initialized_module = self.module(y_pred, y)
 
         """
-        pass
+        if model:
+            self.model_name = model.name
+        if data:
+            self.data_name = data.name
+        
 
     def run(self, **kwargs):
         return self.initialized_module.run(**kwargs)
@@ -107,6 +119,10 @@ class CredoAssessment(ABC):
         return {'short': self.short_description,
                 'long': self.long_description}
 
+    def get_id(self):
+        """Returns unique id for assessment"""
+        return f"{self.name}_{self.id}"
+
     def get_results(self):
         return self.initialized_module.get_results()
 
@@ -116,6 +132,26 @@ class CredoAssessment(ABC):
         Does nothing if not overwritten
         """
         pass   
+
+    def get_requirements(self):
+        return self.requirements.get_requirements()
+
+    def check_requirements(self,
+                           credo_model=None,
+                           credo_data=None):
+        """
+        Defines the functionality needed by the assessment
+
+        Returns a list of functions that a CredoModel must
+        instantiate to run. Defining this function supports
+        automated assessment inference by Lens. 
+
+        Returns
+        ----------
+        credo.asseesment.AssessmentRequirements
+        """
+        return self.requirements.check_requirements(credo_model,
+                                                    credo_data)
 
     def _set_description_from_doc(self):
         docs = self.__doc__
@@ -153,25 +189,6 @@ class CredoAssessment(ABC):
             raise ValidationError(
                 f'{self.name} assessment results not in correct format')
 
-    def check_requirements(self,
-                           credo_model=None,
-                           credo_data=None):
-        """
-        Defines the functionality needed by the assessment
-
-        Returns a list of functions that a CredoModel must
-        instantiate to run. Defining this function supports
-        automated assessment inference by Lens. 
-
-        Returns
-        ----------
-        credo.asseesment.AssessmentRequirements
-        """
-        return self.requirements.check_requirements(credo_model,
-                                                    credo_data)
-
-    def get_requirements(self):
-        return self.requirements.get_requirements()
 
 
 class AssessmentRequirements:
