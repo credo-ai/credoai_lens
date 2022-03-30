@@ -21,6 +21,7 @@
 # This file defines CredoGovernance, CredoModel and CredoData
 from absl import logging
 from copy import deepcopy
+from credoai.metrics.metrics import find_metrics
 from credoai.utils.common import IntegrationError, ValidationError, raise_or_warn
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
@@ -88,7 +89,14 @@ class CredoGovernance:
         spec = {}
         metrics = self.assessment_spec
         if self.model_id in metrics.keys():
-            spec['metrics'] = list(metrics[self.model_id].keys())
+            metrics = list(metrics[self.model_id].keys())
+            for m in metrics:
+                found = bool(find_metrics(m))
+                if not found:
+                    logging.warning(f"Metric ({m}) is defined in the assessment spec but is not defined by Credo AI.\n"
+                                     "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
+                                     "assessment spec passed to lens")
+            spec['metrics'] = metrics
         return {"Fairness": spec, "Performance": deepcopy(spec)}
 
     def get_info(self):
