@@ -5,7 +5,6 @@ Defines abstract base class for all CredoAssessments
 from abc import ABC, abstractmethod
 from credoai.utils.common import ValidationError
 import pandas as pd
-import uuid
 
 # Class Docstring below is a template used for all assessments __init__
 # Following this template helps for consistency, and filters down
@@ -55,7 +54,6 @@ class CredoAssessment(ABC):
             will default to first line of class docstring
         """
         self.name = name
-        self.id = uuid.uuid4().hex[:6] # unique identifier
         self.module = module
         self.initialized_module = None
         self.report = None
@@ -73,9 +71,6 @@ class CredoAssessment(ABC):
     def __str__(self):
         data_name = self.data_name or "NA"
         return f"{self.name} (Dataset: {data_name})"
-
-    def __repr__(self):
-        return self.get_id()
 
     @abstractmethod
     def init_module(self, *, model=None, data=None):
@@ -123,9 +118,13 @@ class CredoAssessment(ABC):
         return {'short': self.short_description,
                 'long': self.long_description}
 
-    def get_id(self):
-        """Returns unique id for assessment"""
-        return f"{self.name}_{self.id}"
+    def get_name(self):
+        """Returns unique id for assessment
+
+        For any model, an assessment is defined
+        by the dataset
+        """
+        return self.name
 
     def get_results(self):
         return self.initialized_module.get_results()

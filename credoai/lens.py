@@ -66,11 +66,11 @@ class Lens:
             CredoModel to assess, by default None
         data : CredoData or list of CredoData, optional
             CredoData used to assess the model 
-            (and/or assessed itself), by default None
+            (and/or assessed itself). Called the "validation" dataset, by default None
         training_data : CredoData, optional
             CredoData object containing the training data used for the model. Will not be
-            used to assess the model, but will be assessed itself if provided,
-            by default None
+            used to assess the model, but will be assessed itself if provided. Called
+            the "training" dataset, by default None
         user_id : str, optional
             Label for user running assessments, by default None
         dev_mode : bool or float, optional
@@ -142,8 +142,8 @@ class Lens:
         self
         """
         assessment_kwargs = assessment_kwargs or {}
-        for assessment in self.get_assessments():
-            logging.info(f"Running assessment-{assessment.get_id()}")
+        for assessment in self.get_assessments(flatten=True):
+            logging.info(f"Running assessment-{assessment.get_name()}")
             kwargs = assessment_kwargs.get(assessment.name, {})
             assessment.run(**kwargs).get_results()
         self.run_time = datetime.now().isoformat()
@@ -174,8 +174,8 @@ class Lens:
             raise NotRunError(
                 "Results not created yet. Call 'run_assessments' first"
             )
-        for assessment in self.get_assessments():
-            name = assessment.get_id()
+        for assessment in self.get_assessments(flatten=True):
+            name = assessment.get_name()
             reporter = assessment.get_reporter()
             if reporter is not None:
                 logging.info(
@@ -206,13 +206,13 @@ class Lens:
             -- Any other string, save assessment json to the output_directory indicated by the string.
         """
         prepared_results = []
-        for assessment in self.get_assessments():
+        for assessment in self.get_assessments(flatten=True):
             try:
-                logging.info(f"** Exporting assessment-{assessment.get_id()}")
+                logging.info(f"** Exporting assessment-{assessment.get_name()}")
                 prepared_results.append(self._prepare_results(assessment))
             except:
                 raise Exception(
-                    f"Assessment ({assessment.get_id()}) failed preparation")
+                    f"Assessment ({assessment.get_name()}) failed preparation")
         if self.report is None:
             logging.warning(
                 "No report is included. To include a report, run create_reports first")
@@ -237,38 +237,33 @@ class Lens:
             with open(output_file, 'w') as f:
                 f.write(json_dumps(payload))
 
-    def get_assessments(self, dataset=None, assessment_name=None):
+    def get_assessments(self, flatten=False):
         """Return assessments defined
 
         Parameters
         ----------
-        dataset : CredoData, optional
-            If provided, only return assessments associated with the corresponding dataset
-        assessment_name : str, optional
-            If provided, only return assessments with the corresponding name,
-            e.g. "Performance", by default None
+        flatten: bool, optional
+            If True, return one list of assessments. Otherwise return dictionary
+            of the form {dataset: [list of assessments]}, default to False
 
         Returns
         -------
-        list
-            list of assessments
+        list or dict
+            list or dict of assessments
         """
-        all_assessments = []
-        for assessment_dataset, assessments in self.assessments.items():
-            if dataset is not None and assessment_dataset != dataset.name:
-                continue
-            if assessment_name:
-                all_assessments += [a for a in assessments if a.name == assessment_name]
-            else:
-                all_assessments += assessments
-        return all_assessments
+        if flatten:
+            all_assessments = []
+            for assessment_dataset, assessments in self.assessments.items():
+                all_assessments += assessments.values()
+            return all_assessments
+        return self.assessments
 
     def get_datasets(self):
-        datasets = []
+        datasets = {}
         if self.assessment_dataset is not None:
-            datasets.append(self.assessment_dataset)
+            datasets['validation'] = self.assessment_dataset
         if self.training_dataset is not None:
-            datasets.append(self.training_dataset)
+            datasets['training'] = self.training_dataset
         return datasets
 
     def get_governance(self):
@@ -278,7 +273,10 @@ class Lens:
         return self.report
 
     def get_results(self):
-        return {a.get_id(): a.get_results() for a in self.get_assessments()}
+        """Return results of assessments"""
+        return {dataset: {a.get_name(): a.get_results() for a in assessments.values()}
+                for dataset, assessments in self.get_assessments().items()}
+
 
     def _apply_dev_mode(self, dev_mode):
         if dev_mode:
@@ -331,10 +329,10 @@ class Lens:
 
     def _init_assessments(self):
         """Initializes modules in each assessment"""
-        for dataset in self.get_datasets():
+        for dataset_type, dataset in self.get_datasets().items():
             logging.info(
-                f"Initializing assessments for dataset: {dataset.name}")
-            assessments = self.assessments[dataset.name]
+                f"Initializing assessments for {dataset_type} dataset: {dataset.name}")
+            assessments = self.assessments[dataset_type].values()
             for assessment in assessments:
                 kwargs = deepcopy(self.spec.get(assessment.name, {}))
                 reqs = assessment.get_requirements()
@@ -345,7 +343,7 @@ class Lens:
                 try:
                     assessment.init_module(**kwargs)
                 except:
-                    raise ValidationError(f"Assessment ({assessment.get_id()}) could not be initialized."
+                    raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
                                           "Ensure the assessment spec is passing the required parameters"
                                           )
 
@@ -366,16 +364,16 @@ class Lens:
     def _select_assessments(self, candidate_assessments=None):
         selected_assessments = {}
         # get assesments for each assessment dataset
-        for dataset in self.get_datasets():
+        for dataset_type, dataset in self.get_datasets().items():
             if dataset == self.training_dataset:
                 model = None
             else:
                 model = self.model
-            usable_assessments = get_usable_assessments(model, dataset)
-            assessment_text = f"Automatically Selected Assessments for dataset: {dataset.name}\n--" + \
+            usable_assessments = get_usable_assessments(model, dataset, candidate_assessments)
+            assessment_text = f"Automatically Selected Assessments for {dataset_type} dataset: {dataset.name}\n--" + \
                 '\n--'.join(usable_assessments.keys())
             logging.info(assessment_text)
-            selected_assessments[dataset.name] = list(usable_assessments.values())
+            selected_assessments[dataset_type] = usable_assessments
         return selected_assessments
 
 
