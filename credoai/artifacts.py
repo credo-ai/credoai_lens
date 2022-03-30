@@ -90,13 +90,16 @@ class CredoGovernance:
         metrics = self.assessment_spec
         if self.model_id in metrics.keys():
             metrics = list(metrics[self.model_id].keys())
+            passed_metrics = []
             for m in metrics:
                 found = bool(find_metrics(m))
                 if not found:
                     logging.warning(f"Metric ({m}) is defined in the assessment spec but is not defined by Credo AI.\n"
                                      "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
                                      "assessment spec passed to lens")
-            spec['metrics'] = metrics
+                else:
+                    passed_metrics.append(m)
+            spec['metrics'] = passed_metrics
         return {"Fairness": spec, "Performance": deepcopy(spec)}
 
     def get_info(self):

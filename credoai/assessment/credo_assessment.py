@@ -60,8 +60,7 @@ class CredoAssessment(ABC):
         if requirements is None:
             requirements = AssessmentRequirements()
         self.requirements = requirements
-        # placeholders for model and data names
-        self.model_name = None
+        # placeholders for data name
         self.data_name = None
         # descriptions, automatically parsed fro, docstring if not set
         self.short_description = short_description
@@ -94,8 +93,6 @@ class CredoAssessment(ABC):
             self.initialized_module = self.module(y_pred, y)
 
         """
-        if model:
-            self.model_name = model.name
         if data:
             self.data_name = data.name
         
