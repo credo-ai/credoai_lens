@@ -1,4 +1,4 @@
-import nbformat as nbf 
+import nbformat as nbf
 import os
 import cloudpickle
 import textwrap
@@ -15,12 +15,13 @@ HTML_CONFIG.TemplateExporter.exclude_input = True
 HTML_CONFIG.TemplateExporter.exclude_input_prompt = True
 HTML_CONFIG.TemplateExporter.exclude_output_prompt = True
 
+
 class NotebookReport():
     def __init__(self):
         self.nb = nbf.v4.new_notebook()
         self.cells = []
         self.add_cells([self.get_style_cell()])
-    
+
     def add_cells(self, cells):
         cells = self._preprocess_cell_content(cells)
         self.cells += cells
@@ -29,7 +30,7 @@ class NotebookReport():
                 self.nb['cells'].append(nbf.v4.new_markdown_cell(content))
             elif cell_type == 'code':
                 self.nb['cells'].append(nbf.v4.new_code_cell(content))
-        
+
     def write_notebook(self, file_loc):
         """Write notebook to file
 
@@ -37,11 +38,11 @@ class NotebookReport():
         ----------
         file_loc : str
             file location to save notebook
-            
+
         Returns
         -------
         self
-        """        
+        """
         if file_loc.endswith('.html'):
             html = self.to_html()
             with open(file_loc, 'w') as f:
@@ -64,12 +65,12 @@ class NotebookReport():
         }
         </style>
         """, "code"
-        )
+                )
         return cell
-        
+
     def run_notebook(self):
-        client = NotebookClient(self.nb, timeout=600, 
-                    kernel_name='python3')
+        client = NotebookClient(self.nb, timeout=600,
+                                kernel_name='python3')
         loop = asyncio.new_event_loop()
         nest_asyncio.apply(loop)
         loop.run_until_complete(client.async_execute())
@@ -80,15 +81,16 @@ class NotebookReport():
         html_exporter = nbconvert.HTMLExporter(config=HTML_CONFIG)
         (body, resources) = html_exporter.from_notebook_node(self.nb)
         return body
-    
+
     def _preprocess_cell_content(self, cells):
-        return [(cleandoc(content), cell_type) 
+        return [(cleandoc(content), cell_type)
                 for content, cell_type in cells]
+
 
 class AssessmentReport(NotebookReport):
     def __init__(self, needed_artifacts=None):
         """Assessment version of the report
-        
+
         Parameters
         ---------
         needed_artifacts : dict
@@ -97,25 +99,26 @@ class AssessmentReport(NotebookReport):
         super().__init__()
         self.needed_artifacts = needed_artifacts
         # set up reporter
-        load_code="import cloudpickle\n"
+        load_code = "import cloudpickle\n"
         for key, val in self.needed_artifacts.items():
             load_code += f"{key} = cloudpickle.load(open('{key}.pkl','rb'))\n"
         load_code += "%config InlineBackend.figure_formats = ['svg', 'png']"
         self.add_cells([(load_code, 'code')])
-    
+
     def run_notebook(self):
         pickle_files = []
         for key, val in self.needed_artifacts.items():
             pickle_files.append(f'{key}.pkl')
             cloudpickle.dump(val, open(pickle_files[-1], 'wb'))
-        client = NotebookClient(self.nb, timeout=600, 
-                    kernel_name='python3')
+        client = NotebookClient(self.nb, timeout=600,
+                                kernel_name='python3')
         loop = asyncio.new_event_loop()
         nest_asyncio.apply(loop)
         loop.run_until_complete(client.async_execute())
         for f in pickle_files:
             os.remove(f)
         return self
+
 
 class MainReport(NotebookReport):
     def __init__(self, report_name, reporters):
@@ -125,13 +128,13 @@ class MainReport(NotebookReport):
 
     def create_boiler_plate(self, lens):
         toc = self.get_toc()
-        boiler_plate=f"""\
+        boiler_plate = f"""\
         # <span style="color:#3b07b4;font-weight:bold">{self.name}</span>
         
         **Table of Contents**\n
 """\
         f"{textwrap.indent(toc, ' '*8)}"\
-        f"""
+            f"""
         * Creation time: {datetime.now().strftime("%Y-%m-%d %H:%M")}
         """
         html_code = """\
@@ -154,18 +157,18 @@ class MainReport(NotebookReport):
                  (html_code, 'code')
                  ]
         self.add_cells(cells)
-    
+
     def get_toc(self):
         toc = """1. [Basic Information](#Basic-Information)
         1. [Technical Reports](#Technical-Reports)
         """
         toc = cleandoc(toc)
         for reporter in self.reporters:
-            tmp = f"\n1. [{reporter.assessment.name} Report](#{reporter.assessment.name}-Report)"
+            tmp = f"\n1. [{str(reporter.assessment)} Report](#{str(reporter.assessment).replace(' ', '-')}-Report)"
             toc += textwrap.indent(tmp, '    ')
-            result_link  = f"\n1. [{reporter.assessment.name} Results](#{reporter.assessment.name}-Results)"
+            result_link = f"\n1. [{str(reporter.assessment)} Results](#{str(reporter.assessment).replace(' ', '-')}-Results)"
             toc += textwrap.indent(result_link, '        ')
-            result_table_link  = f"\n1. [{reporter.assessment.name} Result Tables](#{reporter.assessment.name}-Result-Tables)"
+            result_table_link = f"\n1. [{str(reporter.assessment)} Result Tables](#{str(reporter.assessment).replace(' ', '-')}-Result-Tables)"
             toc += textwrap.indent(result_table_link, '        ')
         return toc
 
@@ -189,7 +192,8 @@ class MainReport(NotebookReport):
             else:
                 second_notebook = technical_notebook.nb
             # Creating a new notebook
-            cat_notebook = nbf.v4.new_notebook(metadata=first_notebook.metadata)
+            cat_notebook = nbf.v4.new_notebook(
+                metadata=first_notebook.metadata)
             # Concatenating the notebooks
             cat_notebook.cells = first_notebook.cells + second_notebook.cells
             self.nb = cat_notebook

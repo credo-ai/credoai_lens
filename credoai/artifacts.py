@@ -125,7 +125,7 @@ class CredoGovernance:
         if dataset_name:
             self._register_dataset(dataset_name)
         if training_dataset_name:
-            self._register_dataset(training_dataset_name, log_as_training=True)
+            self._register_dataset(training_dataset_name, register_as_training=True)
 
     def retrieve_assessment_spec(self, spec_path=None):
         """Retrieve assessment spec
@@ -195,30 +195,38 @@ class CredoGovernance:
             ids = get_dataset_by_name(dataset_name)
             if ids is not None:
                 self.dataset_id = ids['dataset_id']
+        if training_dataset_name:
+            ids = get_dataset_by_name(dataset_name)
+            if ids is not None:
+                self.training_dataset_id = ids['dataset_id']
 
-    def _register_dataset(self, dataset_name, log_as_training=False):
+    def _register_dataset(self, dataset_name, register_as_training=False):
         """Registers a dataset
 
         Parameters
         ----------
         dataset_name : str
             name of a dataset
-        log_as_training : bool
-            If True and model_id is defined, log dataset to model as training data, 
+        register_as_training : bool
+            If True and model_id is defined, register dataset to model as training data, 
             default False
         """
+        prefix = ''
+        if register_as_training:
+            prefix = 'training_'
         try:
             ids = ci.register_dataset(dataset_name=dataset_name)
-            self.dataset_id = ids['dataset_id']
+            setattr(self, f'{prefix}dataset_id', ids['dataset_id'])
         except IntegrationError:
-            self.set_governance_info_by_name(dataset_name=dataset_name)
+            self.set_governance_info_by_name(**{f'{prefix}dataset_name': dataset_name})
             raise_or_warn(IntegrationError,
                           f"The dataset ({dataset_name}) is already registered.",
                           f"The dataset ({dataset_name}) is already registered. Using registered dataset",
                           self.warning_level)
-        if log_as_training and self.model_id:
+        if register_as_training and self.model_id and self.training_dataset_id:
             logging.info(f"Registering dataset ({dataset_name}) to model ({self.model_id})")
-            ci.register_dataset_to_model(self.model_id, self.dataset_id)
+            ci.register_dataset_to_model(self.model_id, self.training_dataset_id)
+
 
     def _register_model(self, model_name):
         """Registers a model

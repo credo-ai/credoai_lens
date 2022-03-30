@@ -70,6 +70,10 @@ class CredoAssessment(ABC):
         self.long_description = long_description
         self._set_description_from_doc()
 
+    def __str__(self):
+        data_name = self.data_name or "NA"
+        return f"{self.name} (Dataset: {data_name})"
+
     def __repr__(self):
         return self.get_id()
 
