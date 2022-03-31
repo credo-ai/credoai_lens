@@ -197,12 +197,11 @@ class Lens:
         """        
         prepared_results = []
         for name, assessment in self.assessments.items():
-            logging.info(f"** Exporting assessment-{name}")
-            tmp_results = self._prepare_results(assessment)
-            if len(tmp_results):
-                prepared_results.append(tmp_results)
-            else:
-                logging.warning(f"Prepared results for assessment ({name}) were empty!")
+            try:
+                logging.info(f"** Exporting assessment-{name}")
+                prepared_results.append(self._prepare_results(assessment))
+            except:
+                raise Exception(f"Assessment ({name}) failed preparation") 
         if self.report is None:
             logging.warning("No report is included. To include a report, run create_reports first")
         payload = ci.prepare_assessment_payload(
@@ -281,7 +280,7 @@ class Lens:
             try:
                 assessment.init_module(**kwargs)
             except:
-                raise ValidationError(f"Assessment {assessment.name} could not be initialized. "
+                raise ValidationError(f"Assessment ({assessment.name}) could not be initialized. "
                 "Ensure the assessment spec is passing the required parameters"
                 )
 
