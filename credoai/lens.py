@@ -26,7 +26,7 @@ class Lens:
         spec: dict = None,
         assessments: List[CredoAssessment] = None,
         model: CredoModel = None,
-        data: Union[CredoData, List[CredoData]] = None,
+        data: CredoData = None,
         training_data: CredoData = None,
         user_id: str = None,
         dev_mode: Union[bool, float] = False,
@@ -56,15 +56,17 @@ class Lens:
             an assessment name (CredoAssessment.name), with each value
             being a dictionary of kwargs. Passed to the init_module function
             as kwargs for each assessment
-        assessments : liar of CredoAssessment, optional
+        assessments : list of CredoAssessment, optional
             List of assessments to select from. If None, selects from all eligible assessments.
             Assessments are ultimately selected from the ones that the model and 
-            assessment datasets and/or training dataset support.
+            assessment datasets and/or training dataset support. If a list of assessments
+            are provided, but aren't supported by the supplied credomodel/credodata a warning
+            will be logged.
             Assessments must be selected from a set of CredoLens assessments 
             (defined by credoai.lens.ASSESSMENTS), by default None
         model : CredoModel, optional
             CredoModel to assess, by default None
-        data : CredoData or list of CredoData, optional
+        data : CredoData, optional
             CredoData used to assess the model 
             (and/or assessed itself). Called the "validation" dataset, by default None
         training_data : CredoData, optional

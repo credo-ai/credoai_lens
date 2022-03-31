@@ -31,11 +31,11 @@ def get_usable_assessments(credo_model, credo_data, candidate_assessments=None):
         _description_
     """
     if candidate_assessments is None:
-        to_check = ASSESSMENTS
+        to_check = [a[1] for a in ASSESSMENTS]
     else:
         to_check = candidate_assessments
     assessments = {}
-    for name, assessment_class in to_check:
+    for assessment_class in to_check:
         assessment = assessment_class()
         if assessment.check_requirements(credo_model, credo_data):
             assessments[assessment.get_name()] = assessment

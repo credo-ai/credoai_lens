@@ -135,7 +135,7 @@ def get_model_name(model_id):
 
 def get_dataset_by_name(dataset_name):
     """Returns governance info (ids) for dataset using its name"""
-    returned = _get_by_name(dataset_name, 'models')
+    returned = _get_by_name(dataset_name, 'datasets')
     if returned:
         return {'name': dataset_name,
                 'dataset_id': returned['id']}
