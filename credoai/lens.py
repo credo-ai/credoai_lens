@@ -91,12 +91,13 @@ class Lens:
                 1: warnings are raised (default)
                 2: warnings are raised as exceptions.
         """
-        if isinstance(governance, str):
-            self.gov = CredoGovernance(
-                use_case_id=governance, warning_level=warning_level)
+        if governance:
+            if isinstance(governance, str):
+                self.gov = CredoGovernance(
+                    use_case_id=governance, warning_level=warning_level)
+            self._register_artifacts()
         else:
-            self.gov = governance or CredoGovernance(
-                warning_level=warning_level)
+            self.gov = CredoGovernance(warning_level=warning_level)
         self.model = model
         self.assessment_dataset = data
         self.training_dataset = training_data
@@ -304,26 +305,7 @@ class Lens:
 
     def _get_credo_destination(self, to_model=True):
         """Get destination for export and ensure all artifacts are registered"""
-        to_register = {}
-        if self.gov.model_id is None and self.model:
-            raise_or_warn(ValidationError,
-                          "No model_id supplied to export to Credo AI.")
-            logging.info(f"**** Registering model ({self.model.name})")
-            to_register['model_name'] = self.model.name
-        if self.gov.dataset_id is None and self.assessment_dataset:
-            raise_or_warn(ValidationError,
-                          "No dataset_id supplied to export to Credo AI.")
-            logging.info(
-                f"**** Registering assessment dataset ({self.assessment_dataset.name})")
-            to_register['dataset_name'] = self.assessment_dataset.name
-        if self.gov.training_dataset_id is None and self.training_dataset:
-            raise_or_warn(ValidationError,
-                          "No training dataset_id supplied to export to Credo AI.")
-            logging.info(
-                f"**** Registering training dataset ({self.training_dataset.name})")
-            to_register['training_dataset_name'] = self.training_dataset.name
-        if to_register:
-            self.gov.register(**to_register)
+        self._register_artifacts()
         destination = self.gov.model_id if to_model else self.gov.dataset_id
         label = 'model' if to_model else 'dataset'
         logging.info(f"**** Destination for export: {label} id-{destination}")
@@ -362,6 +344,28 @@ class Lens:
             else:
                 d[k] = v
         return d
+
+    def _register_artifacts(self):
+        to_register = {}
+        if self.gov.model_id is None and self.model:
+            raise_or_warn(ValidationError,
+                          "No model_id supplied to export to Credo AI.")
+            logging.info(f"**** Registering model ({self.model.name})")
+            to_register['model_name'] = self.model.name
+        if self.gov.dataset_id is None and self.assessment_dataset:
+            raise_or_warn(ValidationError,
+                          "No dataset_id supplied to export to Credo AI.")
+            logging.info(
+                f"**** Registering assessment dataset ({self.assessment_dataset.name})")
+            to_register['dataset_name'] = self.assessment_dataset.name
+        if self.gov.training_dataset_id is None and self.training_dataset:
+            raise_or_warn(ValidationError,
+                          "No training dataset_id supplied to export to Credo AI.")
+            logging.info(
+                f"**** Registering training dataset ({self.training_dataset.name})")
+            to_register['training_dataset_name'] = self.training_dataset.name
+        if to_register:
+            self.gov.register(**to_register)
 
     def _select_assessments(self, candidate_assessments=None):
         selected_assessments = {}
