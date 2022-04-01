@@ -5,7 +5,7 @@ from datetime import datetime
 from credoai.utils.common import (humanize_label, wrap_list,
                                   IntegrationError,
                                   ValidationError, dict_hash)
-from credoai.utils.credo_api_utils import (get_technical_spec,
+from credoai.utils.credo_api_utils import (get_assessment_plan,
                                            post_assessment,
                                            register_dataset, 
                                            register_model,
@@ -282,7 +282,7 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
     return payload
 
 
-def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
+def get_assessment_spec(use_case_id=None, model_id=None, spec_path=None):
     """Get aligned metrics from Credo's Governance App or file
 
     At least one of the use_case_id or spec_path must be provided! If both
@@ -290,12 +290,15 @@ def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
 
     Parameters
     ----------
-    use_case_id : string, optional
-        Identifier for Use Case on Credo AI's Governance App
+    use_case_id : str, optional
+        ID of Use Case on Credo AI Governance app, by default None
+    model_id : str, optional
+        ID of model on Credo AI Governance app, by default None
     spec_path : string, optional
         The file location for the technical spec json downloaded from
         the technical requirements of an Use Case on Credo AI's
         Governance App
+
     Returns
     -------
     dict
@@ -306,12 +309,11 @@ def get_assessment_spec(use_case_id=None, spec_path=None, version='latest'):
     if spec_path:
         spec = json.load(open(spec_path))
     elif use_case_id:
-        spec = get_technical_spec(use_case_id, version=version)
-    if spec is None:
-        raise IntegrationError("No assessment spec found!")
+        spec = get_assessment_plan(use_case_id, model_id)
     metric_dict = defaultdict(dict)
     metrics = spec['metrics']
+    risk_spec = defaultdict(list)
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        metric_dict[metric['model_id']][metric['type']] = bounds
-    return metric_dict
+        risk_spec[metric['risk_issue']].append({'type': metric['type'], 'bounds': bounds})
+    return risk_spec

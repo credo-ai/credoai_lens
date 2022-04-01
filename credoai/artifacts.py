@@ -22,7 +22,7 @@
 from absl import logging
 from copy import deepcopy
 from credoai.metrics.metrics import find_metrics
-from credoai.utils.common import IntegrationError, ValidationError, raise_or_warn
+from credoai.utils.common import IntegrationError, ValidationError, raise_or_warn, flatten_list
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
                                            get_use_case_by_name)
@@ -87,19 +87,18 @@ class CredoGovernance:
         if not self.assessment_spec:
             self.retrieve_assessment_spec()
         spec = {}
-        metrics = self.assessment_spec
-        if self.model_id in metrics.keys():
-            metrics = list(metrics[self.model_id].keys())
-            passed_metrics = []
-            for m in metrics:
-                found = bool(find_metrics(m))
-                if not found:
-                    logging.warning(f"Metric ({m}) is defined in the assessment spec but is not defined by Credo AI.\n"
-                                     "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
-                                     "assessment spec passed to lens")
-                else:
-                    passed_metrics.append(m)
-            spec['metrics'] = passed_metrics
+        risk_spec = self.assessment_spec
+        metrics = flatten_list([[m['type'] for m in metrics] for metrics in risk_spec.values()])
+        passed_metrics = []
+        for m in metrics:
+            found = bool(find_metrics(m))
+            if not found:
+                logging.warning(f"Metric ({m}) is defined in the assessment spec but is not defined by Credo AI.\n"
+                                    "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
+                                    "assessment spec passed to lens")
+            else:
+                passed_metrics.append(m)
+        spec['metrics'] = passed_metrics
         return {"Fairness": spec, "Performance": deepcopy(spec)}
 
     def get_info(self):
@@ -167,7 +166,7 @@ class CredoGovernance:
         assessment_spec = {}
         if self.use_case_id is not None or spec_path is not None:
             assessment_spec = ci.get_assessment_spec(
-                self.use_case_id, spec_path)
+                self.use_case_id, self.model_id, spec_path)
         self.assessment_spec = assessment_spec
         return self.assessment_spec
 

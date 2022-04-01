@@ -40,6 +40,9 @@ class SupressSettingWithCopyWarning:
 def get_project_root() -> Path:
     return Path(__file__).parent.parent
 
+def flatten_list(lst):
+    return [item for sublist in lst for item in sublist]
+
 def wrap_list(obj):
     if type(obj) == str:
         obj = [obj]

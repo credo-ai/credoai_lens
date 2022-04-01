@@ -71,33 +71,15 @@ def get_associated_models(use_case_id):
     end_point = get_end_point(f"use_cases/{use_case_id}?include=models")
     return deserialize(submit_request('get', end_point).json())['models']
 
-def get_technical_spec(use_case_id, version='latest'):
-    """Get technical specifications for an Use Case from Credo AI Governance App
-
-    Parameters
-    ----------
-    use_case_id : string
-        identifier for Use Case on Credo AI Governance App
-    version : str
-        "latest", for latest published spec, or "draft". If "latest"
-        cannot be found, will look for a draft.
-
-    Returns
-    -------
-    dict
-        The spec for the Use Case
-    """
-    base_end_point = get_end_point(f"use_cases/{use_case_id}/scopes")
-    if version is not None:
-        end_point = os.path.join(base_end_point, version)
+def get_assessment_plan(use_case_id, model_id):
     try:
-        return deserialize(submit_request('get', end_point).json())
+        end_point = get_end_point(f"use_cases/{use_case_id}/models/{model_id}/assessment_plans/latest")
+        assessment_plan_id = deserialize(submit_request('get', end_point).json())['id']
+        end_point = get_end_point(f"assessment_plans/{assessment_plan_id}/metrics")
+        return {'metrics': deserialize(submit_request('get', end_point).json())}
     except requests.exceptions.HTTPError:
-        try: 
-            end_point = os.path.join(base_end_point, 'draft')
-            return deserialize(submit_request('get', end_point).json())
-        except requests.exceptions.HTTPError:
-            raise IntegrationError("Failed to download technical spec. Check that your Use Case ID exists")
+        raise IntegrationError("Failed to download assessment plan. Check that an assessment "
+                        f"plan has been published for use case ({use_case_id}) and model ({model_id})")
 
 
 def get_survey_results(use_case_id, survey_key='FAIR'):
