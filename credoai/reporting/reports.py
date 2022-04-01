@@ -31,13 +31,19 @@ class NotebookReport():
             elif cell_type == 'code':
                 self.nb['cells'].append(nbf.v4.new_code_cell(content))
 
-    def write_notebook(self, file_loc):
-        """Write notebook to file
+    def write_report(self, file_loc):
+        """Write report to file
+
+        You can save the notebook as an html or jupyter notebook. Note that
+        the if you save as a jupyter notebook, the report will not be runnable.
+        HTML is the recommended notebook format.
 
         Parameters
         ----------
         file_loc : str
-            file location to save notebook
+            file location to save notebook. If the file_loc
+            ends with ".html" an html will be saved. Otherwise
+            a jupyter notebook will be saved.
 
         Returns
         -------

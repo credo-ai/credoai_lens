@@ -105,14 +105,14 @@ class CredoAssessment(ABC):
 
     def prepare_results(self, metadata=None, **kwargs):
         results = self.initialized_module.prepare_results(**kwargs)
-        results = self._standardize_prepared_results(results)
+        results = self._standardize_prepared_results(results).fillna('NA')
         self._validate_results(results)
         # add metadata
         metadata = metadata or {}
         metadata['assessment'] = self.name
         results = results.assign(**metadata)
         # return results (and ensure no NaN floats remain)
-        return results.fillna('NA')
+        return results
 
     def get_description(self):
         return {'short': self.short_description,

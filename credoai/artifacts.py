@@ -84,6 +84,8 @@ class CredoGovernance:
         If not retrieved yet, attempt to retrieve the spec first
         from the AI Governance app. 
         """
+        if not (self.use_case_id and self.model_id):
+            return {}
         if not self.assessment_spec:
             self.retrieve_assessment_spec()
         spec = {}
@@ -206,7 +208,7 @@ class CredoGovernance:
             if ids is not None:
                 self.dataset_id = ids['dataset_id']
         if training_dataset_name:
-            ids = get_dataset_by_name(dataset_name)
+            ids = get_dataset_by_name(training_dataset_name)
             if ids is not None:
                 self.training_dataset_id = ids['dataset_id']
 

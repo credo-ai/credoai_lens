@@ -86,6 +86,7 @@ class Metric(Record):
     def struct(self):
         return {
             'key': self.config_hash,
+            'name': self.metric_type,
             'type': self.metric_type,
             'subtype': self.subtype,
             'value': self.value,
@@ -277,7 +278,6 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
                "metrics": assessment_records.struct(),
                "charts": None,
                "report": report_payload,
-               "type": 'fairness',
                "$type": 'string'}
     return payload
 
