@@ -91,13 +91,6 @@ class Lens:
                 1: warnings are raised (default)
                 2: warnings are raised as exceptions.
         """
-        if governance:
-            if isinstance(governance, str):
-                self.gov = CredoGovernance(
-                    use_case_id=governance, warning_level=warning_level)
-            self._register_artifacts()
-        else:
-            self.gov = CredoGovernance(warning_level=warning_level)
         self.model = model
         self.assessment_dataset = data
         self.training_dataset = training_data
@@ -107,6 +100,15 @@ class Lens:
         self.warning_level = warning_level
         self.dev_mode = dev_mode
         self.run_time = False
+
+        # set up governance
+        if governance:
+            if isinstance(governance, str):
+                self.gov = CredoGovernance(
+                    use_case_id=governance, warning_level=warning_level)
+            self._register_artifacts()
+        else:
+            self.gov = CredoGovernance(warning_level=warning_level)
 
         # set up assessments
         self.assessments = self._select_assessments(assessments)
@@ -376,7 +378,10 @@ class Lens:
             else:
                 model = self.model
             usable_assessments = get_usable_assessments(model, dataset, candidate_assessments)
-            assessment_text = f"Automatically Selected Assessments for {dataset_type} dataset: {dataset.name}\n--" + \
+            artifact_text = f"{dataset_type} dataset: {dataset.name}"
+            if model:
+                artifact_text = f"model: {model.name} and {artifact_text}"                
+            assessment_text = f"Automatically Selected Assessments for {artifact_text}\n--" + \
                 '\n--'.join(usable_assessments.keys())
             logging.info(assessment_text)
             selected_assessments[dataset_type] = usable_assessments

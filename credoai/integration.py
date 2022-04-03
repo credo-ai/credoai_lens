@@ -1,5 +1,6 @@
 """Credo AI Governance App Integration Functionality"""
 
+from absl import logging
 from collections import ChainMap, defaultdict
 from datetime import datetime
 from credoai.utils.common import (humanize_label, wrap_list,
@@ -309,7 +310,11 @@ def get_assessment_spec(use_case_id=None, model_id=None, spec_path=None):
     if spec_path:
         spec = json.load(open(spec_path))
     elif use_case_id:
-        spec = get_assessment_plan(use_case_id, model_id)
+        try:
+            spec = get_assessment_plan(use_case_id, model_id)
+        except IntegrationError:
+            logging.warning(f"No spec found for model ({model_id}) under model use case ({use_case_id})")
+            return spec
     metric_dict = defaultdict(dict)
     metrics = spec['metrics']
     risk_spec = defaultdict(list)

@@ -70,7 +70,7 @@ class CredoAssessment(ABC):
 
     def __str__(self):
         data_name = self.data_name or "NA"
-        return f"{self.name} (Dataset: {data_name})"
+        return f"{self.name} - Dataset: {data_name}"
 
     @abstractmethod
     def init_module(self, *, model=None, data=None):
