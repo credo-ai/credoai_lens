@@ -165,9 +165,7 @@ class MainReport(NotebookReport):
         self.add_cells(cells)
 
     def get_toc(self):
-        toc = """1. [Basic Information](#Basic-Information)
-        1. [Technical Reports](#Technical-Reports)
-        """
+        toc = """1. [Technical Reports](#Technical-Reports)"""
         toc = cleandoc(toc)
         for reporter in self.reporters:
             tmp = f"\n1. [{str(reporter.assessment)} Report](#{str(reporter.assessment).replace(' ', '-')}-Report)"
