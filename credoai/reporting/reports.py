@@ -165,15 +165,14 @@ class MainReport(NotebookReport):
         self.add_cells(cells)
 
     def get_toc(self):
-        toc = """1. [Technical Reports](#Technical-Reports)"""
+        toc = ""
         toc = cleandoc(toc)
         for reporter in self.reporters:
-            tmp = f"\n1. [{str(reporter.assessment)} Report](#{str(reporter.assessment).replace(' ', '-')}-Report)"
-            toc += textwrap.indent(tmp, '    ')
+            toc += f"\n1. [{str(reporter.assessment)} Report](#{str(reporter.assessment).replace(' ', '-')}-Report)"
             result_link = f"\n1. [{str(reporter.assessment)} Results](#{str(reporter.assessment).replace(' ', '-')}-Results)"
-            toc += textwrap.indent(result_link, '        ')
+            toc += textwrap.indent(result_link, '    ')
             result_table_link = f"\n1. [{str(reporter.assessment)} Result Tables](#{str(reporter.assessment).replace(' ', '-')}-Result-Tables)"
-            toc += textwrap.indent(result_table_link, '        ')
+            toc += textwrap.indent(result_table_link, '    ')
         return toc
 
     def create_report(self, lens):
