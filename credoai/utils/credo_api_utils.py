@@ -18,14 +18,16 @@ def read_config():
                   'TENANT': 'empty'}
     else:
         config = dotenv_values(config_file)
-    config['API_URL'] = os.path.join(config.get('CREDO_URL', CREDO_URL), "api/v1/credoai")
+    config['API_URL'] = os.path.join(config.get(
+        'CREDO_URL', CREDO_URL), "api/v1/credoai")
     return config
 
 
 def exchange_token():
     data = {"api_token": CONFIG['API_KEY'], "tenant": CONFIG['TENANT']}
     headers = {'content-type': 'application/json', 'charset': 'utf-8'}
-    auth_url = os.path.join(CONFIG.get('CREDO_URL', CREDO_URL), 'auth', 'exchange')
+    auth_url = os.path.join(CONFIG.get(
+        'CREDO_URL', CREDO_URL), 'auth', 'exchange')
     r = requests.post(auth_url, json=data, headers=headers)
     return f"Bearer {r.json()['access_token']}"
 
@@ -63,39 +65,45 @@ def submit_request(request, end_point, **kwargs):
     response = SESSION.request(request, end_point, **kwargs)
     return response
 
+
 def get_assessment(assessment_id):
     end_point = get_end_point(f"assessments/{assessment_id}")
     return deserialize(submit_request('get', end_point).json())
+
 
 def get_associated_models(use_case_id):
     end_point = get_end_point(f"use_cases/{use_case_id}?include=models")
     return deserialize(submit_request('get', end_point).json())['models']
 
+
 def get_assessment_plan(use_case_id, model_id):
     try:
-        end_point = get_end_point(f"use_cases/{use_case_id}/models/{model_id}/assessment_plans/latest")
-        assessment_plan_id = deserialize(submit_request('get', end_point).json())['id']
-        end_point = get_end_point(f"assessment_plans/{assessment_plan_id}/metrics")
+        end_point = get_end_point(
+            f"use_cases/{use_case_id}/models/{model_id}/assessment_plans/latest")
+        assessment_plan_id = deserialize(
+            submit_request('get', end_point).json())['id']
+        end_point = get_end_point(
+            f"assessment_plans/{assessment_plan_id}/metrics")
         return {'metrics': deserialize(submit_request('get', end_point).json())}
     except requests.exceptions.HTTPError:
         raise IntegrationError("Failed to download assessment plan. Check that an assessment "
-                        f"plan has been published for use case ({use_case_id}) and model ({model_id})")
+                               f"plan has been published for use case ({use_case_id}) and model ({model_id})")
 
 
-def get_survey_results(use_case_id, survey_key='FAIR'):
-    survey_end_point = get_end_point(f"use_cases/{use_case_id}/surveys")
-    answer_end_point = get_end_point(f"use_cases/{use_case_id}"
-                                     "/scopes/draft/final_survey_answers")
-    all_surveys = deserialize(submit_request('get', survey_end_point).json())
-    all_answers = deserialize(submit_request('get', answer_end_point).json())
-    # filter
-    survey = [s for s in all_surveys if s['id'] == survey_key][0]['questions']
-    answers = [a for a in all_answers if a['survey_key']
-               == survey_key][0]['answers']
-    # combine
-    survey = pd.DataFrame(survey).set_index('id')
-    survey = pd.concat([survey, pd.Series(answers, name='answer')], axis=1)
-    return survey
+def get_dataset_name(dataset_id):
+    """Get dataset name form a dataset ID from Credo AI Governance App
+
+    Parameters
+    ----------
+    dataset_id : string
+        Identifier for Model on Credo AI Governance App
+
+    Returns
+    -------
+    str
+        The name of the Model
+    """
+    return _get_name(dataset_id, 'datasets')
 
 
 def get_model_name(model_id):
@@ -111,8 +119,23 @@ def get_model_name(model_id):
     str
         The name of the Model
     """
-    end_point = get_end_point(f"models/{model_id}")
-    return deserialize(submit_request('get', end_point).json())['name']
+    return _get_name(model_id, 'models')
+
+
+def get_use_case_name(use_case_id):
+    """Get use_case name form a use_case ID from Credo AI Governance App
+
+    Parameters
+    ----------
+    use_case_id : string
+        Identifier for Model on Credo AI Governance App
+
+    Returns
+    -------
+    str
+        The name of the Model
+    """
+    return _get_name(use_case_id, 'use_cases')
 
 
 def get_dataset_by_name(dataset_name):
@@ -141,10 +164,12 @@ def get_use_case_by_name(use_case_nmae):
                 'use_case_id': returned['id']}
     return None
 
+
 def post_assessment(use_case_id, model_id, data):
-    end_point = get_end_point(f"use_cases/{use_case_id}/models/{model_id}/assessments")
-    request =  submit_request('post', end_point, data=json_dumps(serialize(data)), 
-                          headers={"content-type": "application/vnd.api+json"})
+    end_point = get_end_point(
+        f"use_cases/{use_case_id}/models/{model_id}/assessments")
+    request = submit_request('post', end_point, data=json_dumps(serialize(data)),
+                             headers={"content-type": "application/vnd.api+json"})
     assessment_id = deserialize(request.json())['id']
     return get_assessment(assessment_id)
 
@@ -191,16 +216,21 @@ def register_model(model_name):
     data = json.dumps(serialize(model))
     response = _register_artifact(data, end_point)
     return {'name': model_name, 'model_id': response['id']}
-    
+
+
 def register_model_to_use_case(use_case_id, model_id):
     data = {"data": [{"id": model_id, "type": "models"}]}
     end_point = get_end_point(f"use_cases/{use_case_id}/relationships/models")
-    submit_request('post', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
+    submit_request('post', end_point, data=json.dumps(data), headers={
+                   "content-type": "application/vnd.api+json"})
+
 
 def register_dataset_to_model(model_id, dataset_id):
     data = {"data": {"id": dataset_id, "type": "datasets"}}
     end_point = get_end_point(f"models/{model_id}/relationships/dataset")
-    submit_request('patch', end_point, data=json.dumps(data), headers={"content-type": "application/vnd.api+json"})
+    submit_request('patch', end_point, data=json.dumps(data), headers={
+                   "content-type": "application/vnd.api+json"})
+
 
 def _register_artifact(data, end_point):
     try:
@@ -216,6 +246,7 @@ def _register_artifact(data, end_point):
 
 
 def _get_by_name(name, endpoint):
+    """Given a name, return the id"""
     end_point = get_end_point(endpoint)
     params = {"filter[name][value]": name,
               "filter[name][type]": "match"}
@@ -224,3 +255,13 @@ def _get_by_name(name, endpoint):
     if len(returned) == 1:
         return returned[0]
     return None
+
+
+def _get_name(artifact_id, artifact_type):
+    """Given an ID, return the name"""
+    try:
+        end_point = get_end_point(f"{artifact_type}/{artifact_id}")
+        return deserialize(submit_request('get', end_point).json())['name']
+    except requests.exceptions.HTTPError as err:
+        if err.response.status_code == 400:
+            raise IntegrationError(f"No {artifact_type} found with id: {artifact_id}")

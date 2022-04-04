@@ -230,7 +230,7 @@ class Lens:
             if len({'model_id', 'use_case_id'}.intersection(defined_ids)) == 2:
                 logging.info(
                     f"Exporting assessments to Credo AI's Governance App")
-                return ci.post_assessment(self.gov.use_case_id, self.gov.model_id, payload)
+                ci.post_assessment(self.gov.use_case_id, self.gov.model_id, payload)
             else:
                 logging.warning("Couldn't upload assessment to Credo AI's Governance App. "
                                 "Ensure use_case_id is defined in CredoGovernance")

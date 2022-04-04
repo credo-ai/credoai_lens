@@ -25,7 +25,10 @@ from credoai.metrics.metrics import find_metrics
 from credoai.utils.common import IntegrationError, ValidationError, raise_or_warn, flatten_list
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
-                                           get_use_case_by_name)
+                                           get_use_case_by_name, 
+                                           get_dataset_name,
+                                           get_model_name,
+                                           get_use_case_name)
 from sklearn.impute import SimpleImputer
 from typing import List, Optional, Union, Callable
 import credoai.integration as ci   
@@ -74,6 +77,7 @@ class CredoGovernance:
         self.training_dataset_id = training_dataset_id
         self.assessment_spec = {}
         self.warning_level = warning_level
+        self._validate_ids()
 
     def get_assessment_spec(self):
         """Get assessment spec
@@ -261,6 +265,17 @@ class CredoGovernance:
             logging.info(f"Registering model ({model_name}) to Use Case ({self.use_case_id})")
             ci.register_model_to_use_case(self.use_case_id, self.model_id)
 
+    def _validate_ids(self):
+        ids = self.get_info()
+        for key, artifact_id in ids.items():
+            if artifact_id is None:
+                continue
+            if key == 'use_case_id':
+                get_use_case_name(artifact_id)
+            elif key == 'model_id':
+                get_model_name(artifact_id)
+            else:
+                get_dataset_name(artifact_id)
 
 class CredoModel:
     """Class wrapper around model-to-be-assessed
