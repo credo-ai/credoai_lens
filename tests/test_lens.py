@@ -31,7 +31,7 @@ def test_lens_with_model():
 
     assert metric == "precision_score"
     assert score == 0.33
-    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'Fairness', 'Performance'} 
+    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'DatasetProfiling', 'Fairness', 'Performance'} 
     assert lens.assessments["validation"]['Fairness'].initialized_module.metrics == ['precision_score']
 
 def test_lens_without_model():
@@ -39,7 +39,7 @@ def test_lens_without_model():
     results = lens.run_assessments().get_results()
     metric_score = results["validation"]['DatasetFairness']["demographic_parity_ratio"][0]['value']
     assert metric_score == 0.5
-    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness'} 
+    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'DatasetProfiling'} 
 
 def test_lens_dataset_with_missing_data():
     np.random.seed(0)
@@ -57,7 +57,7 @@ def test_lens_dataset_with_missing_data():
     results = lens.run_assessments().get_results()
     metric_score = results["validation"]['DatasetFairness']["demographic_parity_ratio"][0]['value']
     assert metric_score == 0.375
-    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness'} 
+    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'DatasetProfiling'} 
 
 def test_report_creation():
     lens = cl.Lens(model=credo_model, data=credo_data, spec=alignment_spec)
