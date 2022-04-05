@@ -347,6 +347,7 @@ class DatasetProfilingAssessment(CredoAssessment):
         )
 
     def init_module(self, *, data):
+        super().init_module(data=data)
         self.initialized_module = self.module(
             data.X, 
             data.y)

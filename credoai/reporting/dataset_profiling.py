@@ -6,6 +6,9 @@ class DatasetProfilingReporter(CredoReporter):
         super().__init__(assessment)
         self.size = size
 
+    def plot_results(self):
+        self.module.profile_data()
+
     def display_results_tables(self):
         pass
 
