@@ -71,6 +71,7 @@ class PerformanceAssessment(CredoAssessment):
             self.initialized_module = self.module(y_pred, y)
 
         """
+        super().init_module(model=model, data=data)
         try:
             y_pred = model.pred_fun(data.X)
         except AttributeError:
@@ -147,6 +148,7 @@ class FairnessAssessment(CredoAssessment):
             self.initialized_module = self.module(y_pred, y)
 
         """
+        super().init_module(model=model, data=data)
         try:
             y_pred = model.pred_fun(data.X)
         except AttributeError:
@@ -188,6 +190,7 @@ class NLPEmbeddingBiasAssessment(CredoAssessment):
               group_embeddings=None, 
               comparison_categories=None, 
               include_default=True):
+        super().init_module(model=model)
         module = self.module(model.embedding_fun)
         if group_embeddings:
             module.set_group_embeddings(group_embeddings)
@@ -252,6 +255,7 @@ class NLPGeneratorAssessment(CredoAssessment):
                 'rpm_limit': request per minute limit of your Perspective API account
 
         """
+        super().init_module(model=model)
         # set up default assessments
         if assessment_functions is None:
             try:
@@ -310,6 +314,7 @@ class DatasetFairnessAssessment(CredoAssessment):
         )
 
     def init_module(self, *, data):
+        super().init_module(data=data)
         scrubbed_data = data.get_scrubbed_data()
         self.initialized_module = self.module(
             scrubbed_data['X'], 

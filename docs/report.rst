@@ -11,4 +11,4 @@ plots in-line, their full functionality is in creating standalone reports.
 The :ref:`quickstart tutorial <quickstart>` creates an example report, which we reproduce here.
 Reports are able to be downloaded localled or sent directly to Credo AI's Governance Platform.
  
-:ref:`See Report <Fairness Report>` 
+:ref:`See Report <Assessment Report>` 
