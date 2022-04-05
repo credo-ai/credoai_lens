@@ -292,7 +292,7 @@ class DatasetFairnessReporter(CredoReporter):
                 <details open>
                 <summary>Assessment Description:</summary>
                 <br>
-                The previous plot served as a simple descriptive analysis
+                Feature Balance serves as a simple descriptive analysis
                 of sensitive feature parity. A more rigorous method is to calculate
                 the <a href="https://simple.wikipedia.org/wiki/Mutual_information">mutual information</a> between
                 the features and the sensitive feature.

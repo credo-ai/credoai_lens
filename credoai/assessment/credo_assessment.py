@@ -60,10 +60,17 @@ class CredoAssessment(ABC):
         if requirements is None:
             requirements = AssessmentRequirements()
         self.requirements = requirements
-        # descriptions, automatically parsed fro docstring if not set
+        # placeholders for artifact names
+        self.model_name = None
+        self.data_name = None
+        # descriptions, automatically parsed fro, docstring if not set
         self.short_description = short_description
         self.long_description = long_description
         self._set_description_from_doc()
+
+    def __str__(self):
+        data_name = self.data_name or "NA"
+        return f"{self.name} - Dataset: {data_name}"
 
     @abstractmethod
     def init_module(self, *, model=None, data=None):
@@ -87,25 +94,37 @@ class CredoAssessment(ABC):
             self.initialized_module = self.module(y_pred, y)
 
         """
-        pass
+        if model:
+            self.model_name = model.name
+        if data:
+            self.data_name = data.name
+        
 
     def run(self, **kwargs):
         return self.initialized_module.run(**kwargs)
 
     def prepare_results(self, metadata=None, **kwargs):
         results = self.initialized_module.prepare_results(**kwargs)
-        results = self._standardize_prepared_results(results)
+        results = self._standardize_prepared_results(results).fillna('NA')
         self._validate_results(results)
         # add metadata
         metadata = metadata or {}
         metadata['assessment'] = self.name
         results = results.assign(**metadata)
         # return results (and ensure no NaN floats remain)
-        return results.fillna('NA')
+        return results
 
     def get_description(self):
         return {'short': self.short_description,
                 'long': self.long_description}
+
+    def get_name(self):
+        """Returns unique id for assessment
+
+        For any model, an assessment is defined
+        by the dataset
+        """
+        return self.name
 
     def get_results(self):
         return self.initialized_module.get_results()
@@ -116,6 +135,26 @@ class CredoAssessment(ABC):
         Does nothing if not overwritten
         """
         pass   
+
+    def get_requirements(self):
+        return self.requirements.get_requirements()
+
+    def check_requirements(self,
+                           credo_model=None,
+                           credo_data=None):
+        """
+        Defines the functionality needed by the assessment
+
+        Returns a list of functions that a CredoModel must
+        instantiate to run. Defining this function supports
+        automated assessment inference by Lens. 
+
+        Returns
+        ----------
+        credo.asseesment.AssessmentRequirements
+        """
+        return self.requirements.check_requirements(credo_model,
+                                                    credo_data)
 
     def _set_description_from_doc(self):
         docs = self.__doc__
@@ -153,25 +192,6 @@ class CredoAssessment(ABC):
             raise ValidationError(
                 f'{self.name} assessment results not in correct format')
 
-    def check_requirements(self,
-                           credo_model=None,
-                           credo_data=None):
-        """
-        Defines the functionality needed by the assessment
-
-        Returns a list of functions that a CredoModel must
-        instantiate to run. Defining this function supports
-        automated assessment inference by Lens. 
-
-        Returns
-        ----------
-        credo.asseesment.AssessmentRequirements
-        """
-        return self.requirements.check_requirements(credo_model,
-                                                    credo_data)
-
-    def get_requirements(self):
-        return self.requirements.get_requirements()
 
 
 class AssessmentRequirements:
