@@ -7,6 +7,7 @@ from credoai.data.utils import get_data_path
 from credoai.reporting import (FairnessReporter, BinaryClassificationReporter,
                               NLPGeneratorAnalyzerReporter, DatasetFairnessReporter)
 from sklearn.utils.multiclass import type_of_target
+from credoai.reporting.dataset_profiling import DatasetProfilingReporter
 
 from credoai.utils import InstallationError
 import credoai.utils as cutils
@@ -324,7 +325,36 @@ class DatasetFairnessAssessment(CredoAssessment):
 
     def get_reporter(self):
         return DatasetFairnessReporter(self)
-        
+
+class DatasetProfilingAssessment(CredoAssessment):
+    """
+    Dataset Profiling
+    
+    Generate profile reports 
+
+    Modules
+    -------
+    * credoai.modules.dataset_profiling
+
+    """
+    def __init__(self):
+        super().__init__(
+            'DatasetProfiling', 
+            mod.DatasetProfiling,
+            AssessmentRequirements(
+                data_requirements=['X', 'y']
+            )
+        )
+
+    def init_module(self, *, data):
+        super().init_module(data=data)
+        self.initialized_module = self.module(
+            data.X, 
+            data.y)
+
+    def get_reporter(self):
+        return DatasetProfilingReporter(self)
+
 def list_assessments_exhaustive():
     """List all defined assessments"""
     return inspect.getmembers(sys.modules[__name__], 
