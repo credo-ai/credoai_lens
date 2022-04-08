@@ -154,44 +154,23 @@ class Lens:
         self.run_time = datetime.now().isoformat()
         return self
 
-    def create_report(self, display_results=False):
+    def create_report(self):
         """Creates notebook report
 
         Creates jupyter notebook reports for every assessment that
         has reporting functionality defined. It then concatenates the reports into
         one final report. 
 
-        Parameters
-        ----------
-        display_results : bool
-            If True, display results. Calls credo_reporter.plot_results and 
-            credo_reporter.display_table_results
-
         Returns
         -------
-        reporters : dict
-            dictionary of reporters (credoai.reporting.credo_reporter). Each reporter is
-            responsible for creating visualizations and reports for a particular assessment
-        final_report : credoai.reports.MainReport
-            The final report. This object is responsible for managing notebook report creation.
+        self
         """
         if self.run_time == False:
             raise NotRunError(
                 "Results not created yet. Call 'run_assessments' first"
             )
-        for assessment in self.get_assessments(flatten=True):
-            name = assessment.get_name()
-            reporter = assessment.get_reporter()
-            if reporter is not None:
-                logging.info(
-                    f"Reporter creating notebook for assessment-{name}")
-                reporter.create_notebook()
-                self.reporters[name] = reporter
-                if display_results:
-                    reporter.display_results_tables()
-                    reporter.plot_results()
-            else:
-                logging.info(f"No reporter found for assessment-{name}")
+        if not self.reporters:
+            self._create_reporters()
         self.report = MainReport(f"Assessment Report", self.reporters.values())
         self.report.create_report(self)
         return self
@@ -213,7 +192,8 @@ class Lens:
         prepared_results = []
         for assessment in self.get_assessments(flatten=True):
             try:
-                logging.info(f"** Exporting assessment-{assessment.get_name()}")
+                logging.info(
+                    f"** Exporting assessment-{assessment.get_name()}")
                 prepared_results.append(self._prepare_results(assessment))
             except:
                 raise Exception(
@@ -230,7 +210,8 @@ class Lens:
             if len({'model_id', 'use_case_id'}.intersection(defined_ids)) == 2:
                 logging.info(
                     f"Exporting assessments to Credo AI's Governance App")
-                ci.post_assessment(self.gov.use_case_id, self.gov.model_id, payload)
+                ci.post_assessment(self.gov.use_case_id,
+                                   self.gov.model_id, payload)
             else:
                 logging.warning("Couldn't upload assessment to Credo AI's Governance App. "
                                 "Ensure use_case_id is defined in CredoGovernance")
@@ -282,6 +263,24 @@ class Lens:
         return {dataset: {a.get_name(): a.get_results() for a in assessments.values()}
                 for dataset, assessments in self.get_assessments().items()}
 
+    def display_results(self, assessments=None):
+        """Display results from all assessment reporters
+        
+        Parameters
+        ----------
+        assessments : str or list of assessment names, optional
+            List of assessments to display results from. If None, display
+            all assessments. Assessments should be taken from the list
+            of assessments returned by lens.get_assessments
+        """
+        assessments = wrap_list(assessments)
+        if not self.reporters:
+            self._create_reporters()
+        for name, reporter in self.reporters.items():
+            if assessments and name not in assessments:
+                continue
+            reporter.display_results_tables()
+            reporter.plot_results()
 
     def _apply_dev_mode(self, dev_mode):
         if dev_mode:
@@ -291,6 +290,18 @@ class Lens:
                 self.assessment_dataset.dev_mode(self.dev_mode)
             if self.training_dataset:
                 self.training_dataset.dev_mode(self.dev_mode)
+
+    def _create_reporters(self):
+        for assessment in self.get_assessments(flatten=True):
+            name = assessment.get_name()
+            reporter = assessment.get_reporter()
+            if reporter is not None:
+                logging.info(
+                    f"Reporter creating notebook for assessment-{name}")
+                reporter.create_notebook()
+                self.reporters[name] = reporter
+            else:
+                logging.info(f"No reporter found for assessment-{name}")
 
     def _gather_meta(self, assessment):
         if assessment.data_name == self.assessment_dataset.name:
@@ -377,10 +388,11 @@ class Lens:
                 model = None
             else:
                 model = self.model
-            usable_assessments = get_usable_assessments(model, dataset, candidate_assessments)
+            usable_assessments = get_usable_assessments(
+                model, dataset, candidate_assessments)
             artifact_text = f"{dataset_type} dataset: {dataset.name}"
             if model:
-                artifact_text = f"model: {model.name} and {artifact_text}"                
+                artifact_text = f"model: {model.name} and {artifact_text}"
             assessment_text = f"Automatically Selected Assessments for {artifact_text}\n--" + \
                 '\n--'.join(usable_assessments.keys())
             logging.info(assessment_text)

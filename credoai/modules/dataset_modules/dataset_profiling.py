@@ -1,7 +1,12 @@
 import pandas as pd
 
 from credoai.modules.credo_module import CredoModule
+# reset style after pandas profiler
+import matplotlib
+backend = matplotlib.get_backend()
+# load pands profiler, which sets backend to Agg
 from pandas_profiling import ProfileReport
+matplotlib.use(backend)
 
 class DatasetProfiling(CredoModule):
     """Dataset profiling module for Credo AI.
