@@ -38,7 +38,7 @@ class DatasetFairness(CredoModule):
     def __init__(self,
                 X,
                 y,
-                sensitive_features: pd.Series,
+                sensitive_features: pd.DataFrame,
                 categorical_features_keys: Optional[List[str]]=None,
                 categorical_threshold: float=0.05):
 
@@ -50,9 +50,10 @@ class DatasetFairness(CredoModule):
         # set up categorical features
         if categorical_features_keys:
             self.categorical_features_keys = categorical_features_keys.copy()
-            if self.sensitive_features.name in self.categorical_features_keys:
-                self.sensitive_features = self.sensitive_features.astype('category')
-                self.categorical_features_keys.remove(self.sensitive_features.name)
+            for sensitive_feature_name in self.sensitive_features:
+                if sensitive_feature_name in self.categorical_features_keys:
+                    self.sensitive_features[sensitive_feature_name] = self.sensitive_features[sensitive_feature_name].astype('category')
+                    self.categorical_features_keys.remove(sensitive_feature_name)
         else:
             self.categorical_features_keys = self._find_categorical_features(categorical_threshold)
     
@@ -64,16 +65,19 @@ class DatasetFairness(CredoModule):
         dict, nested
             Key: assessment category
             Values: detailed results associated with each category
-        """        
-        sensitive_feature_prediction_results = self._run_cv()
-        group_differences = self._group_differences()
-        normalized_mutual_information = self._calculate_mutual_information()
-        balance_metrics = self._assess_balance_metrics()
-        self.results = {**balance_metrics,
-                        **sensitive_feature_prediction_results,
-                        'standardized_group_diffs': group_differences,
-                        'normalized_mutual_information': normalized_mutual_information,
-                        }  
+        """
+        self.results = {}
+        for sensitive_feature_name in self.sensitive_features:
+            sensitive_feature_series = self.sensitive_features[sensitive_feature_name]
+            sensitive_feature_prediction_results = self._run_cv(sensitive_feature_series)
+            group_differences = self._group_differences(sensitive_feature_series)
+            normalized_mutual_information = self._calculate_mutual_information()
+            balance_metrics = self._assess_balance_metrics()
+            self.results[sensitive_feature_name] = {**balance_metrics,
+                            **sensitive_feature_prediction_results,
+                            'standardized_group_diffs': group_differences,
+                            'normalized_mutual_information': normalized_mutual_information,
+                            }  
         return self  
     
     def prepare_results(self):
@@ -123,7 +127,7 @@ class DatasetFairness(CredoModule):
                 "Results not created yet. Call 'run' to create results"
             )
     
-    def _group_differences(self):
+    def _group_differences(self, sensitive_feature_series):
         """Calculates standardized mean differences
 
         It is performed for all numeric features and all possible group pairs combinations present in the sensitive feature.
@@ -138,7 +142,7 @@ class DatasetFairness(CredoModule):
         """
         with warnings.catch_warnings():
             warnings.simplefilter(action='ignore', category=FutureWarning)
-            group_means = self.X.groupby(self.sensitive_features).mean()
+            group_means = self.X.groupby(sensitive_feature_series).mean()
         std = self.X.std(numeric_only=True)
         diffs = {}
         for group1, group2 in combinations(group_means.index, 2):
@@ -146,7 +150,7 @@ class DatasetFairness(CredoModule):
             diffs[f'{group1}-{group2}'] = diff.to_dict()
         return diffs
     
-    def _run_cv(self):
+    def _run_cv(self, sensitive_feature_series):
         """Determines redundant encoding
 
         A model is trained on the features to predict the sensitive attribute.
@@ -165,10 +169,10 @@ class DatasetFairness(CredoModule):
             Cross-validation score
         """
         results = {}
-        if is_categorical(self.sensitive_features):
-            sensitive_features = self.sensitive_features.cat.codes
+        if is_categorical(sensitive_feature_series):
+            sensitive_features = sensitive_feature_series.cat.codes
         else:
-            sensitive_features = self.sensitive_features
+            sensitive_features = sensitive_feature_series
         
         pipe = self._make_pipe()
         scorer = make_scorer(roc_auc_score, 
@@ -205,8 +209,6 @@ class DatasetFairness(CredoModule):
 
         # Define features tansformers
         categorical_transformer = OneHotEncoder(handle_unknown="ignore")
-        
-
 
         transformers = []
         if len(categorical_features):
@@ -243,7 +245,7 @@ class DatasetFairness(CredoModule):
                 cat_cols.append(name)
         return cat_cols
 
-    def _calculate_mutual_information(self, normalize=True):
+    def _calculate_mutual_information(self, sensitive_feature_series, normalize=True):
         """Calculates normalized mutual information between sensitive feature and other features
 
         Mutual information is the "amount of information" obtained about the sensitive feature by observing another feature.
@@ -270,11 +272,11 @@ class DatasetFairness(CredoModule):
         ]
         
         # Use the right mutual information methods based on the feature type of the sensitive attribute
-        if is_categorical(self.sensitive_features):
-            sensitive_feature = self.sensitive_features.cat.codes
+        if is_categorical(sensitive_feature_series):
+            sensitive_feature = sensitive_feature_series.cat.codes
             mi = mutual_info_classif(
                 self.X,
-                self.sensitive_features.cat.codes,
+                sensitive_feature.cat.codes,
                 discrete_features=discrete_features,
                 random_state=42,
             )
@@ -283,12 +285,12 @@ class DatasetFairness(CredoModule):
         else:
             mi = mutual_info_regression(
                 self.X,
-                self.sensitive_features,
+                sensitive_feature_series,
                 discrete_features=discrete_features,
                 random_state=42,
             )
             ref = mutual_info_regression(self.sensitive_feature.values[:,None], 
-                                         self.sensitive_features,
+                                         sensitive_feature_series,
                                          random_state=42)[0]
 
         # Normalize the mutual information values, if requested
@@ -307,7 +309,7 @@ class DatasetFairness(CredoModule):
 
         return mutual_information_results
     
-    def _assess_balance_metrics(self):
+    def _assess_balance_metrics(self, sensitive_feature_series):
         """Calculate dataset balance statistics and metrics 
 
         Returns
@@ -321,7 +323,7 @@ class DatasetFairness(CredoModule):
 
         # Distribution of samples across groups
         sample_balance = (
-            self.y.groupby(self.sensitive_features)
+            self.y.groupby(sensitive_feature_series)
             .agg(
                 count=(len),
                 percentage=(lambda x: 100.0 * len(x) / len(self.y)),
@@ -338,7 +340,7 @@ class DatasetFairness(CredoModule):
                 warnings.simplefilter(action='ignore', category=FutureWarning)
                 # Distribution of samples across groups
                 label_balance = (
-                    self.data.groupby([self.sensitive_features, self.y.name])
+                    self.data.groupby([sensitive_feature_series, self.y.name])
                     .size()
                     .unstack(fill_value=0)
                     .stack()
@@ -348,7 +350,7 @@ class DatasetFairness(CredoModule):
                 balance_results["label_balance"] = label_balance
 
                 # Fairness metrics
-                r = self.data.groupby([self.sensitive_features, self.y.name])\
+                r = self.data.groupby([sensitive_feature_series, self.y.name])\
                                 .agg({self.y.name: 'count'})\
                                 .groupby(level=0).apply(lambda x: x / float(x.sum()))\
                                 .rename({self.y.name:'ratio'}, inplace=False, axis=1)\
@@ -362,4 +364,5 @@ class DatasetFairness(CredoModule):
             
             balance_results['demographic_parity_difference'] = demographic_parity_difference
             balance_results['demographic_parity_ratio'] = demographic_parity_ratio
+        
         return balance_results
