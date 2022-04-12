@@ -215,7 +215,7 @@ class Lens:
                 ci.post_assessment(self.gov.use_case_id,
                                    self.gov.model_id, payload)
             else:
-                logging.warning("Couldn't upload assessment to Credo AI's Governance App. "
+                logging.error("Couldn't upload assessment to Credo AI's Governance App. "
                                 "Ensure use_case_id is defined in CredoGovernance")
         else:
             if not path.exists(destination):
