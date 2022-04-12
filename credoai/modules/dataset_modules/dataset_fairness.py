@@ -96,32 +96,37 @@ class DatasetFairness(CredoModule):
             If results have not been run, raise
         """
         if self.results is not None:
-            metric_types = ['sensitive_feature_prediction_score',
-                            'demographic_parity_difference',
-                            'demographic_parity_ratio']
-            index = []
-            prepared_arr = []
-            for metric_type in metric_types:
-                if metric_type not in self.results:
-                    continue
-                val = self.results[metric_type]
-                # if multiple values were calculated for metric_type
-                # add them all. Assumes each element of list is a dictionary with a "value" key,
-                # and other optional keys as metricmetadata
-                if isinstance(val, list):
-                    for l in val:
+            prepared_results = []
+            for sensitive_feature_name, results in self.results:
+                metric_types = ['sensitive_feature_prediction_score',
+                                'demographic_parity_difference',
+                                'demographic_parity_ratio']
+                index = []
+                prepared_arr = []
+                for metric_type in metric_types:
+                    if metric_type not in results:
+                        continue
+                    val = results[metric_type]
+                    # if multiple values were calculated for metric_type
+                    # add them all. Assumes each element of list is a dictionary with a "value" key,
+                    # and other optional keys as metricmetadata
+                    if isinstance(val, list):
+                        for l in val:
+                            index.append(metric_type)
+                            prepared_arr.append(l)
+                    else:
+                        # assumes the dictionary has a "value" key, along with other optional keys
+                        # as metric metadata
+                        if isinstance(val, dict):
+                            tmp = val
+                        elif isinstance(val, (int, float)):
+                            tmp = {'value': val}
                         index.append(metric_type)
-                        prepared_arr.append(l)
-                else:
-                    # assumes the dictionary has a "value" key, along with other optional keys
-                    # as metric metadata
-                    if isinstance(val, dict):
-                        tmp = val
-                    elif isinstance(val, (int, float)):
-                        tmp = {'value': val}
-                    index.append(metric_type)
-                    prepared_arr.append(tmp)
-            return pd.DataFrame(prepared_arr, index=index).rename_axis(index='metric_type')
+                        prepared_arr.append(tmp)
+                temp = pd.DataFrame(prepared_arr, index=index).rename_axis(index='metric_type')
+                temp['sensitive_feature_name'] = sensitive_feature_name
+                prepared_results.append(temp)
+            return pd.concat(prepared_results)
         else:
             raise NotRunError(
                 "Results not created yet. Call 'run' to create results"
@@ -237,8 +242,9 @@ class DatasetFairness(CredoModule):
         list
             Names of categorical features
         """
-        if is_categorical(self.sensitive_features, threshold=threshold):
-            self.sensitive_features = self.sensitive_features.astype('category')
+        for sensitive_feature_name in self.sensitive_features:
+            if is_categorical(self.sensitive_features[sensitive_feature_name], threshold=threshold):
+                self.sensitive_features[sensitive_feature_name] = self.sensitive_features[sensitive_feature_name].astype('category')
         cat_cols = []
         for name, column in self.X.iteritems():
             if is_categorical(column, threshold=threshold):
