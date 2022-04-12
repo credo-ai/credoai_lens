@@ -178,7 +178,7 @@ class MultiRecord(Record):
     def __init__(self, records):
         self.records = wrap_list(records)
         if len(set(type(r) for r in self.records)) != 1:
-            raise ValidationError
+            raise ValidationError("Individual records must all be of the same type")
         super().__init__(self.records[0].json_header)
 
     def struct(self):

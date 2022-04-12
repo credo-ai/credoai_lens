@@ -194,7 +194,9 @@ class Lens:
             try:
                 logging.info(
                     f"** Exporting assessment-{assessment.get_name()}")
-                prepared_results.append(self._prepare_results(assessment))
+                prepared_assessment = self._prepare_results(assessment)
+                if prepared_assessment is not None:
+                    prepared_results.append(prepared_assessment)
             except:
                 raise Exception(
                     f"Assessment ({assessment.get_name()}) failed preparation")

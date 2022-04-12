@@ -40,7 +40,7 @@ class DatasetProfiling(CredoModule):
         return self
     
     def prepare_results(self):
-        return {}
+        return None
         
     def _create_reporter(self):
         default_kwargs = {'title': 'Dataset',
