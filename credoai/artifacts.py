@@ -22,13 +22,16 @@
 from absl import logging
 from copy import deepcopy
 from credoai.metrics.metrics import find_metrics
-from credoai.utils.common import IntegrationError, ValidationError, raise_or_warn, flatten_list
+from credoai.utils.common import (IntegrationError, ValidationError, 
+                                  json_dumps, raise_or_warn, flatten_list)
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
                                            get_use_case_by_name, 
                                            get_dataset_name,
                                            get_model_name,
                                            get_use_case_name)
+from datetime import datetime
+from os import makedirs, path
 from sklearn.impute import SimpleImputer
 from typing import List, Optional, Union, Callable
 import credoai.integration as ci   
@@ -140,6 +143,48 @@ class CredoGovernance:
             self._register_dataset(dataset_name)
         if training_dataset_name:
             self._register_dataset(training_dataset_name, register_as_training=True)
+
+    def export_assessment_results(self, 
+                                  assessment_results, 
+                                  destination = 'credoai',
+                                  report=None,
+                                  assessed_at=None
+                                  ):
+        """Export assessment json to file or credo
+
+        Parameters
+        ----------
+        assessment_results : dict or list
+            dictionary of metrics or
+            list of prepared_results from credo_assessments. See lens.export for example
+        destination : str
+            Where to send the report
+            -- "credoai", a special string to send to Credo AI Governance App.
+            -- Any other string, save assessment json to the output_directory indicated by the string.
+        report : credo.reporting.NotebookReport, optional
+            report to optionally include with assessments, by default None
+        assessed_at : str, optional
+            date when assessments were created, by default None
+        """
+        assessed_at = assessed_at or datetime.now().isoformat()
+        payload = ci.prepare_assessment_payload(
+            assessment_results, report=report, assessed_at=assessed_at)
+        if destination == 'credoai':
+            if self.use_case_id and self.model_id:
+                ci.post_assessment(self.use_case_id,
+                               self.model_id, payload)
+                logging.info(
+                    f"Exporting assessments to Credo AI's Governance App")
+            else:
+                logging.error("Couldn't upload assessment to Credo AI's Governance App. "
+                                "Ensure use_case_id is defined in CredoGovernance")
+        else:
+            if not path.exists(destination):
+                makedirs(destination, exist_ok=False)
+            name_for_save = f"assessment_run-{assessed_at}.json"
+            output_file = path.join(destination, name_for_save)
+            with open(output_file, 'w') as f:
+                f.write(json_dumps(payload))
 
     def retrieve_assessment_spec(self, spec_path=None):
         """Retrieve assessment spec
