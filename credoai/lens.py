@@ -194,7 +194,9 @@ class Lens:
             try:
                 logging.info(
                     f"** Exporting assessment-{assessment.get_name()}")
-                prepared_results.append(self._prepare_results(assessment))
+                prepared_assessment = self._prepare_results(assessment)
+                if prepared_assessment is not None:
+                    prepared_results.append(prepared_assessment)
             except:
                 raise Exception(
                     f"Assessment ({assessment.get_name()}) failed preparation")
@@ -213,7 +215,7 @@ class Lens:
                 ci.post_assessment(self.gov.use_case_id,
                                    self.gov.model_id, payload)
             else:
-                logging.warning("Couldn't upload assessment to Credo AI's Governance App. "
+                logging.error("Couldn't upload assessment to Credo AI's Governance App. "
                                 "Ensure use_case_id is defined in CredoGovernance")
         else:
             if not path.exists(destination):
