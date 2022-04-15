@@ -53,7 +53,7 @@ class DatasetFairness(CredoModule):
             for sensitive_feature_name in self.sensitive_features:
                 if sensitive_feature_name in self.categorical_features_keys:
                     self.sensitive_features[sensitive_feature_name] = self.sensitive_features[sensitive_feature_name].astype('category')
-                    self.categorical_features_keys.remove(sensitive_feature_name)
+                    # self.categorical_features_keys.remove(sensitive_feature_name)
         else:
             self.categorical_features_keys = self._find_categorical_features(categorical_threshold)
     
@@ -71,8 +71,8 @@ class DatasetFairness(CredoModule):
             sensitive_feature_series = self.sensitive_features[sensitive_feature_name]
             sensitive_feature_prediction_results = self._run_cv(sensitive_feature_series)
             group_differences = self._group_differences(sensitive_feature_series)
-            normalized_mutual_information = self._calculate_mutual_information()
-            balance_metrics = self._assess_balance_metrics()
+            normalized_mutual_information = self._calculate_mutual_information(sensitive_feature_series)
+            balance_metrics = self._assess_balance_metrics(sensitive_feature_series)
             self.results[sensitive_feature_name] = {**balance_metrics,
                             **sensitive_feature_prediction_results,
                             'standardized_group_diffs': group_differences,
@@ -97,7 +97,7 @@ class DatasetFairness(CredoModule):
         """
         if self.results is not None:
             prepared_results = []
-            for sensitive_feature_name, results in self.results:
+            for sensitive_feature_name, results in self.results.items():
                 metric_types = ['sensitive_feature_prediction_score',
                                 'demographic_parity_difference',
                                 'demographic_parity_ratio']
@@ -282,7 +282,7 @@ class DatasetFairness(CredoModule):
             sensitive_feature = sensitive_feature_series.cat.codes
             mi = mutual_info_classif(
                 self.X,
-                sensitive_feature.cat.codes,
+                sensitive_feature,
                 discrete_features=discrete_features,
                 random_state=42,
             )
