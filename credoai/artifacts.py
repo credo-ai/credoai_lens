@@ -283,6 +283,10 @@ class CredoGovernance:
                           f"The dataset ({dataset_name}) is already registered.",
                           f"The dataset ({dataset_name}) is already registered. Using registered dataset",
                           self.warning_level)
+        if not register_as_training and self.model_id and self.use_case_id:
+            ci.register_dataset_to_model_usecase(
+                use_case_id=self.use_case_id, model_id=self.model_id, dataset_id=self.dataset_id
+            )
         if register_as_training and self.model_id and self.training_dataset_id:
             logging.info(f"Registering dataset ({dataset_name}) to model ({self.model_id})")
             ci.register_dataset_to_model(self.model_id, self.training_dataset_id)
@@ -308,7 +312,7 @@ class CredoGovernance:
                           self.warning_level)
         if self.use_case_id:
             logging.info(f"Registering model ({model_name}) to Use Case ({self.use_case_id})")
-            ci.register_model_to_use_case(self.use_case_id, self.model_id)
+            ci.register_model_to_usecase(self.use_case_id, self.model_id)
 
     def _validate_ids(self):
         ids = self.get_info()
