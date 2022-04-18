@@ -14,7 +14,7 @@ def get_assessment_requirements():
             for name, assessment_class in ASSESSMENTS}
 
 
-def get_usable_assessments(credo_model, credo_data, candidate_assessments=None):
+def get_usable_assessments(credo_model=None, credo_data=None, candidate_assessments=None):
     """Selects usable assessments based on model and data capabililties
 
     Parameters
@@ -27,8 +27,8 @@ def get_usable_assessments(credo_model, credo_data, candidate_assessments=None):
 
     Returns
     -------
-    _type_
-        _description_
+    dict
+        dictionary of assessments, {name: assessment, ...}
     """
     if candidate_assessments is None:
         to_check = [a[1] for a in ASSESSMENTS]

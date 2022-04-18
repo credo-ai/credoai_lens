@@ -311,11 +311,15 @@ class Lens:
 
     def _init_assessments(self):
         """Initializes modules in each assessment"""
-        for dataset_type, dataset in self.get_datasets().items():
-            logging.info(
-                f"Initializing assessments for {dataset_type} dataset: {dataset.name}")
-            assessments = self.assessments[dataset_type].values()
-            for assessment in assessments:
+        datasets = self.get_datasets()
+        for dataset_type, assessments in self.get_assessments().items():
+            dataset = datasets.get(dataset_type)
+            if dataset:
+                logging.info(
+                    f"Initializing assessments for {dataset_type} dataset: {dataset.name}")
+            else:
+                logging.info(f"Initializing assessments for model without dataset")
+            for assessment in assessments.values():
                 kwargs = deepcopy(self.spec.get(assessment.name, {}))
                 reqs = assessment.get_requirements()
                 if reqs['model_requirements']:
@@ -367,6 +371,12 @@ class Lens:
 
     def _select_assessments(self, candidate_assessments=None):
         selected_assessments = {}
+        model_assessments = get_usable_assessments(self.model, None, candidate_assessments)
+        if model_assessments:
+            assessment_text = f"Automatically Selected Assessments for Model without data\n--" + \
+                    '\n--'.join(model_assessments.keys())
+            logging.info(assessment_text)
+            selected_assessments['no_data'] = model_assessments
         # get assesments for each assessment dataset
         for dataset_type, dataset in self.get_datasets().items():
             if dataset == self.training_dataset:
