@@ -312,7 +312,7 @@ class CredoGovernance:
                           self.warning_level)
         if self.use_case_id:
             logging.info(f"Registering model ({model_name}) to Use Case ({self.use_case_id})")
-            ci.register_model_to_use_case(self.use_case_id, self.model_id)
+            ci.register_model_to_usecase(self.use_case_id, self.model_id)
 
     def _validate_ids(self):
         ids = self.get_info()
