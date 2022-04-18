@@ -11,7 +11,8 @@ from credoai.utils.credo_api_utils import (get_assessment_plan,
                                            register_dataset, 
                                            register_model,
                                            register_model_to_use_case,
-                                           register_dataset_to_model)
+                                           register_dataset_to_model,
+                                           register_dataset_to_model_usecase)
 import base64
 import credoai
 import json
