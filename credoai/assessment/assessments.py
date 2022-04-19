@@ -7,6 +7,7 @@ from credoai.data.utils import get_data_path
 from credoai.reporting import (FairnessReporter, BinaryClassificationReporter,
                               NLPGeneratorAnalyzerReporter, DatasetFairnessReporter)
 from sklearn.utils.multiclass import type_of_target
+from credoai.reporting.dataset_profiling import DatasetProfilingReporter
 
 from credoai.utils import InstallationError
 import credoai.utils as cutils
@@ -71,6 +72,7 @@ class PerformanceAssessment(CredoAssessment):
             self.initialized_module = self.module(y_pred, y)
 
         """
+        super().init_module(model=model, data=data)
         try:
             y_pred = model.pred_fun(data.X)
         except AttributeError:
@@ -147,6 +149,7 @@ class FairnessAssessment(CredoAssessment):
             self.initialized_module = self.module(y_pred, y)
 
         """
+        super().init_module(model=model, data=data)
         try:
             y_pred = model.pred_fun(data.X)
         except AttributeError:
@@ -188,6 +191,7 @@ class NLPEmbeddingBiasAssessment(CredoAssessment):
               group_embeddings=None, 
               comparison_categories=None, 
               include_default=True):
+        super().init_module(model=model)
         module = self.module(model.embedding_fun)
         if group_embeddings:
             module.set_group_embeddings(group_embeddings)
@@ -252,6 +256,7 @@ class NLPGeneratorAssessment(CredoAssessment):
                 'rpm_limit': request per minute limit of your Perspective API account
 
         """
+        super().init_module(model=model)
         # set up default assessments
         if assessment_functions is None:
             try:
@@ -310,6 +315,7 @@ class DatasetFairnessAssessment(CredoAssessment):
         )
 
     def init_module(self, *, data):
+        super().init_module(data=data)
         scrubbed_data = data.get_scrubbed_data()
         self.initialized_module = self.module(
             scrubbed_data['X'], 
@@ -319,7 +325,36 @@ class DatasetFairnessAssessment(CredoAssessment):
 
     def get_reporter(self):
         return DatasetFairnessReporter(self)
-        
+
+class DatasetProfilingAssessment(CredoAssessment):
+    """
+    Dataset Profiling
+    
+    Generate profile reports 
+
+    Modules
+    -------
+    * credoai.modules.dataset_profiling
+
+    """
+    def __init__(self):
+        super().__init__(
+            'DatasetProfiling', 
+            mod.DatasetProfiling,
+            AssessmentRequirements(
+                data_requirements=['X', 'y']
+            )
+        )
+
+    def init_module(self, *, data):
+        super().init_module(data=data)
+        self.initialized_module = self.module(
+            data.X, 
+            data.y)
+
+    def get_reporter(self):
+        return DatasetProfilingReporter(self)
+
 def list_assessments_exhaustive():
     """List all defined assessments"""
     return inspect.getmembers(sys.modules[__name__], 

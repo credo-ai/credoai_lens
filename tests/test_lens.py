@@ -26,20 +26,20 @@ def test_lens_with_model():
     lens = cl.Lens(model=credo_model, data=credo_data, spec=alignment_spec)
 
     results = lens.run_assessments().get_results()
-    metric = results["Fairness"]["fairness"].index[0]
-    score = round(results["Fairness"]["fairness"].iloc[0]["value"], 2)
+    metric = results["validation"]["Fairness"]["fairness"].index[0]
+    score = round(results["validation"]["Fairness"]["fairness"].iloc[0]["value"], 2)
 
     assert metric == "precision_score"
     assert score == 0.33
-    assert set(lens.assessments.keys()) == {'DatasetFairness', 'Fairness', 'Performance'} 
-    assert lens.assessments['Fairness'].initialized_module.metrics == ['precision_score']
+    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'DatasetProfiling', 'Fairness', 'Performance'} 
+    assert lens.assessments["validation"]['Fairness'].initialized_module.metrics == ['precision_score']
 
 def test_lens_without_model():
     lens = cl.Lens(data=credo_data)
     results = lens.run_assessments().get_results()
-    metric_score = results['DatasetFairness']["demographic_parity_ratio"][0]['value']
+    metric_score = results["validation"]['DatasetFairness']["demographic_parity_ratio"][0]['value']
     assert metric_score == 0.5
-    assert set(lens.assessments.keys()) == {'DatasetFairness'} 
+    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'DatasetProfiling'} 
 
 def test_lens_dataset_with_missing_data():
     np.random.seed(0)
@@ -55,9 +55,9 @@ def test_lens_dataset_with_missing_data():
 
     lens = cl.Lens(data=credo_data)
     results = lens.run_assessments().get_results()
-    metric_score = results['DatasetFairness']["demographic_parity_ratio"][0]['value']
+    metric_score = results["validation"]['DatasetFairness']["demographic_parity_ratio"][0]['value']
     assert metric_score == 0.375
-    assert set(lens.assessments.keys()) == {'DatasetFairness'} 
+    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'DatasetProfiling'} 
 
 def test_report_creation():
     lens = cl.Lens(model=credo_model, data=credo_data, spec=alignment_spec)
