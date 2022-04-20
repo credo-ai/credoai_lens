@@ -287,7 +287,7 @@ class DatasetFairness(CredoModule):
                 discrete_features=discrete_features,
                 random_state=42,
             )
-            ref = mutual_info_regression(self.sensitive_feature.values[:,None], 
+            ref = mutual_info_regression(self.sensitive_features.values[:,None], 
                                          self.sensitive_features,
                                          random_state=42)[0]
 
