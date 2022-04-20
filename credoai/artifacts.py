@@ -379,7 +379,7 @@ class CredoModel:
         self.name = name
         self.config = {}
         assert model is not None or model_config is not None
-        if model is not None:
+        if model is not None and model_config is None:
             self._init_config(model)
         if model_config is not None:
             self.config.update(model_config)

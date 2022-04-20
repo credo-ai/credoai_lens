@@ -62,3 +62,19 @@ DATASET_METRIC_TYPES = [
     "demographic_parity_ratio",
     "demographic_parity_difference"
 ]
+
+# REGRESSION METRICS
+REGRESSION_FUNCTIONS = {
+    'explained_variance_score': sk_metrics.explained_variance_score,
+    'max_error': sk_metrics.max_error,
+    'mean_absolute_error': sk_metrics.mean_absolute_error,
+    'mean_squared_error': sk_metrics.mean_squared_error,
+    'mean_squared_log_error': sk_metrics.mean_squared_log_error,
+    'mean_absolute_percentage_error': sk_metrics.mean_absolute_percentage_error,
+    'median_absolute_error': sk_metrics.median_absolute_error,
+    'r2_score': sk_metrics.r2_score,
+    'mean_poisson_deviance': sk_metrics.mean_poisson_deviance,
+    'mean_gamma_deviance': sk_metrics.mean_gamma_deviance,
+    'd2_tweedie_score': sk_metrics.d2_tweedie_score,
+    'mean_pinball_loss': sk_metrics.mean_pinball_loss
+}
