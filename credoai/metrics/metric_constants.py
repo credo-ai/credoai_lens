@@ -56,7 +56,7 @@ METRIC_EQUIVALENTS = {
     'equal_opportunity_difference': ['equal_opportunity'], 
     'equalized_odds_difference': ['equalized_odds'],
     'mean_absolute_error': ['MAE'],
-    'mean_squared_error': ['MSE'],
+    'mean_squared_error': ['MSE', 'MSD', 'mean_squared_deviation'],
     'root_mean_squared_error': ['RMSE'],
     'r2_score': ['r_squared', 'r2']
 }
