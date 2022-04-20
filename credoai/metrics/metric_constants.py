@@ -58,7 +58,7 @@ METRIC_EQUIVALENTS = {
     'mean_absolute_error': ['MAE'],
     'mean_squared_error': ['MSE'],
     'root_mean_squared_error': ['RMSE'],
-    'r2_score': ['r_squared']
+    'r2_score': ['r_squared', 'r2']
 }
 
 # DATASET METRICS
