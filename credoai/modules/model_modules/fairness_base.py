@@ -205,8 +205,10 @@ class FairnessModule(PerformanceModule):
                 metric = find_metrics(metric, MODEL_METRIC_CATEGORIES)
                 if len(metric) == 1:
                     metric = metric[0]
+                elif len(metric) == 0:
+                    raise Exception("Returned no metrics when searching using a metric name. Expected to find one matching metric.")
                 else:
-                    raise Exception("Returned multiple metrics when searching using a metric name. Expected to find only one matching metric")
+                    raise Exception("Returned multiple metrics when searching using a metric name. Expected to find only one matching metric.")
             else:
                 metric_name = metric.name
             if not isinstance(metric, Metric):
