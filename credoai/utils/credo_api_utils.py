@@ -19,7 +19,7 @@ def read_config():
     else:
         config = dotenv_values(config_file)
     config['API_URL'] = os.path.join(config.get(
-        'CREDO_URL', CREDO_URL), "api/v1/credoai")
+        'CREDO_URL', CREDO_URL), f"api/v1/{config['TENANT']}")
     return config
 
 

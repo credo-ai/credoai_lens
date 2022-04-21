@@ -27,18 +27,13 @@ class FairnessReporter(CredoReporter):
         super().__init__(assessment)
         self.size = size
     
-    def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
+    def plot_results(self, filename=None):
         """Creates a fairness report for binary classification model
 
         Parameters
         ----------
         filename : string, optional
             If given, the location where the generated pdf report will be saved, by default None
-        include_fairness : bool, optional
-            Whether to include fairness plots, by default True
-        include_disaggregation : bool, optional
-            Whether to include performance plots broken down by
-            subgroup. Overall performance are always reported, by default True
             
         Returns
         -------
@@ -47,9 +42,7 @@ class FairnessReporter(CredoReporter):
         df = self.module.get_df()
         
         # plot
-        # comparison plots
-        if include_fairness:
-            self.figs.append(self.plot_fairness())
+        self.figs.append(self.plot_fairness())
         # display
         plt.show()
         # save
