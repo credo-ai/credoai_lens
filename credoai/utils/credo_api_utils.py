@@ -218,7 +218,7 @@ def register_model(model_name):
     return {'name': model_name, 'model_id': response['id']}
 
 
-def register_model_to_use_case(use_case_id, model_id):
+def register_model_to_usecase(use_case_id, model_id):
     data = {"data": [{"id": model_id, "type": "models"}]}
     end_point = get_end_point(f"use_cases/{use_case_id}/relationships/models")
     submit_request('post', end_point, data=json.dumps(data), headers={
@@ -230,6 +230,17 @@ def register_dataset_to_model(model_id, dataset_id):
     end_point = get_end_point(f"models/{model_id}/relationships/dataset")
     submit_request('patch', end_point, data=json.dumps(data), headers={
                    "content-type": "application/vnd.api+json"})
+
+
+def register_dataset_to_model_usecase(use_case_id, model_id, dataset_id):
+    data = serialize({"dataset_id": dataset_id, '$type': 'string', 'id': 'resource-id'})
+    end_point = get_end_point(f"use_cases/{use_case_id}/models/{model_id}/config")
+    submit_request(
+        "patch",
+        end_point,
+        data=json.dumps(data),
+        headers={"content-type": "application/vnd.api+json"},
+    )
 
 
 def _register_artifact(data, end_point):

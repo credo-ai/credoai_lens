@@ -22,13 +22,16 @@
 from absl import logging
 from copy import deepcopy
 from credoai.metrics.metrics import find_metrics
-from credoai.utils.common import IntegrationError, ValidationError, raise_or_warn, flatten_list
+from credoai.utils.common import (IntegrationError, ValidationError, 
+                                  json_dumps, raise_or_warn, flatten_list)
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
                                            get_use_case_by_name, 
                                            get_dataset_name,
                                            get_model_name,
                                            get_use_case_name)
+from datetime import datetime
+from os import makedirs, path
 from sklearn.impute import SimpleImputer
 from typing import List, Optional, Union, Callable
 import credoai.integration as ci   
@@ -141,6 +144,48 @@ class CredoGovernance:
         if training_dataset_name:
             self._register_dataset(training_dataset_name, register_as_training=True)
 
+    def export_assessment_results(self, 
+                                  assessment_results, 
+                                  destination = 'credoai',
+                                  report=None,
+                                  assessed_at=None
+                                  ):
+        """Export assessment json to file or credo
+
+        Parameters
+        ----------
+        assessment_results : dict or list
+            dictionary of metrics or
+            list of prepared_results from credo_assessments. See lens.export for example
+        destination : str
+            Where to send the report
+            -- "credoai", a special string to send to Credo AI Governance App.
+            -- Any other string, save assessment json to the output_directory indicated by the string.
+        report : credo.reporting.NotebookReport, optional
+            report to optionally include with assessments, by default None
+        assessed_at : str, optional
+            date when assessments were created, by default None
+        """
+        assessed_at = assessed_at or datetime.now().isoformat()
+        payload = ci.prepare_assessment_payload(
+            assessment_results, report=report, assessed_at=assessed_at)
+        if destination == 'credoai':
+            if self.use_case_id and self.model_id:
+                ci.post_assessment(self.use_case_id,
+                               self.model_id, payload)
+                logging.info(
+                    f"Exporting assessments to Credo AI's Governance App")
+            else:
+                logging.error("Couldn't upload assessment to Credo AI's Governance App. "
+                                "Ensure use_case_id is defined in CredoGovernance")
+        else:
+            if not path.exists(destination):
+                makedirs(destination, exist_ok=False)
+            name_for_save = f"assessment_run-{assessed_at}.json"
+            output_file = path.join(destination, name_for_save)
+            with open(output_file, 'w') as f:
+                f.write(json_dumps(payload))
+
     def retrieve_assessment_spec(self, spec_path=None):
         """Retrieve assessment spec
 
@@ -238,6 +283,10 @@ class CredoGovernance:
                           f"The dataset ({dataset_name}) is already registered.",
                           f"The dataset ({dataset_name}) is already registered. Using registered dataset",
                           self.warning_level)
+        if not register_as_training and self.model_id and self.use_case_id:
+            ci.register_dataset_to_model_usecase(
+                use_case_id=self.use_case_id, model_id=self.model_id, dataset_id=self.dataset_id
+            )
         if register_as_training and self.model_id and self.training_dataset_id:
             logging.info(f"Registering dataset ({dataset_name}) to model ({self.model_id})")
             ci.register_dataset_to_model(self.model_id, self.training_dataset_id)
@@ -263,7 +312,7 @@ class CredoGovernance:
                           self.warning_level)
         if self.use_case_id:
             logging.info(f"Registering model ({model_name}) to Use Case ({self.use_case_id})")
-            ci.register_model_to_use_case(self.use_case_id, self.model_id)
+            ci.register_model_to_usecase(self.use_case_id, self.model_id)
 
     def _validate_ids(self):
         ids = self.get_info()
@@ -330,7 +379,7 @@ class CredoModel:
         self.name = name
         self.config = {}
         assert model is not None or model_config is not None
-        if model is not None:
+        if model is not None and model_config is None:
             self._init_config(model)
         if model_config is not None:
             self.config.update(model_config)

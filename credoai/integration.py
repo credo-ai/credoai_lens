@@ -10,8 +10,9 @@ from credoai.utils.credo_api_utils import (get_assessment_plan,
                                            post_assessment,
                                            register_dataset, 
                                            register_model,
-                                           register_model_to_use_case,
-                                           register_dataset_to_model)
+                                           register_model_to_usecase,
+                                           register_dataset_to_model,
+                                           register_dataset_to_model_usecase)
 import base64
 import credoai
 import json
@@ -178,7 +179,7 @@ class MultiRecord(Record):
     def __init__(self, records):
         self.records = wrap_list(records)
         if len(set(type(r) for r in self.records)) != 1:
-            raise ValidationError
+            raise ValidationError("Individual records must all be of the same type")
         super().__init__(self.records[0].json_header)
 
     def struct(self):
@@ -246,17 +247,20 @@ def record_metrics_from_dict(metrics, **metadata):
     metadata : dict, optional
         Arbitrary keyword arguments to append to metric as metadata
     """
+    if len(metrics) == 0:
+        raise ValidationError("Empty dictionary of metrics provided")
     metric_df = pd.Series(metrics, name='value').to_frame()
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
 
-def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
+def prepare_assessment_payload(assessment_results, report=None, assessed_at=None):
     """Export assessment json to file or credo
 
     Parameters
     ----------
-    prepared_results : list
-        prepared of prepared_results from credo_assessments. See lens.export for example
+    assessment_results : dict or list
+        dictionary of metrics to pass to record_metrics_from _dict or
+        list of prepared_results from credo_assessments. See lens.export for example
     report : credo.reporting.NotebookReport, optional
         report to optionally include with assessments, by default None
     assessed_at : str, optional
@@ -265,8 +269,11 @@ def prepare_assessment_payload(prepared_results, report=None, assessed_at=None):
         Set to True if intending to send to Governance App via api
     """    
     # prepare assessments
-    assessment_records = [record_metrics(r) for r in prepared_results]
-    assessment_records = MultiRecord(assessment_records).struct() if assessment_records else {}
+    if isinstance(assessment_results, dict):
+        assessment_records = record_metrics_from_dict(assessment_results).struct()
+    else:
+        assessment_records = [record_metrics(r) for r in assessment_results]
+        assessment_records = MultiRecord(assessment_records).struct() if assessment_records else {}
 
     # set up report
     default_html = '<html><body><h3 style="text-align:center">No Report Included With Assessment</h1></body></html>'

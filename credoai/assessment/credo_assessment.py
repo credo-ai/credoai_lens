@@ -105,6 +105,8 @@ class CredoAssessment(ABC):
 
     def prepare_results(self, metadata=None, **kwargs):
         results = self.initialized_module.prepare_results(**kwargs)
+        if results is None:
+            return None
         results = self._standardize_prepared_results(results).fillna('NA')
         self._validate_results(results)
         # add metadata

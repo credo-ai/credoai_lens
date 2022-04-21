@@ -7,8 +7,8 @@ from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
 from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
-    json_dumps, wrap_list,
-    NotRunError, ValidationError, raise_or_warn)
+    raise_or_warn, wrap_list,
+    NotRunError, ValidationError)
 from credoai import __version__
 from datetime import datetime
 from os import listdir, makedirs, path
@@ -106,6 +106,8 @@ class Lens:
             if isinstance(governance, str):
                 self.gov = CredoGovernance(
                     use_case_id=governance, warning_level=warning_level)
+            else:
+                self.gov = governance
             self._register_artifacts()
         else:
             self.gov = CredoGovernance(warning_level=warning_level)
@@ -194,34 +196,17 @@ class Lens:
             try:
                 logging.info(
                     f"** Exporting assessment-{assessment.get_name()}")
-                prepared_results.append(self._prepare_results(assessment))
+                prepared_assessment = self._prepare_results(assessment)
+                if prepared_assessment is not None:
+                    prepared_results.append(prepared_assessment)
             except:
                 raise Exception(
                     f"Assessment ({assessment.get_name()}) failed preparation")
         if self.report is None:
             logging.warning(
                 "No report is included. To include a report, run create_reports first")
-        payload = ci.prepare_assessment_payload(
-            prepared_results, report=self.report, assessed_at=self.run_time)
+        self.gov.export_assessment_results(prepared_results, destination, self.report, self.run_time)
 
-        if destination == 'credoai':
-            model_id = self._get_credo_destination()
-            defined_ids = self.gov.get_defined_ids()
-            if len({'model_id', 'use_case_id'}.intersection(defined_ids)) == 2:
-                logging.info(
-                    f"Exporting assessments to Credo AI's Governance App")
-                ci.post_assessment(self.gov.use_case_id,
-                                   self.gov.model_id, payload)
-            else:
-                logging.warning("Couldn't upload assessment to Credo AI's Governance App. "
-                                "Ensure use_case_id is defined in CredoGovernance")
-        else:
-            if not path.exists(destination):
-                makedirs(destination, exist_ok=False)
-            name_for_save = f"assessment_run-{self.run_time}.json"
-            output_file = path.join(destination, name_for_save)
-            with open(output_file, 'w') as f:
-                f.write(json_dumps(payload))
 
     def get_assessments(self, flatten=False):
         """Return assessments defined
@@ -326,11 +311,15 @@ class Lens:
 
     def _init_assessments(self):
         """Initializes modules in each assessment"""
-        for dataset_type, dataset in self.get_datasets().items():
-            logging.info(
-                f"Initializing assessments for {dataset_type} dataset: {dataset.name}")
-            assessments = self.assessments[dataset_type].values()
-            for assessment in assessments:
+        datasets = self.get_datasets()
+        for dataset_type, assessments in self.get_assessments().items():
+            dataset = datasets.get(dataset_type)
+            if dataset:
+                logging.info(
+                    f"Initializing assessments for {dataset_type} dataset: {dataset.name}")
+            else:
+                logging.info(f"Initializing assessments for model without dataset")
+            for assessment in assessments.values():
                 kwargs = deepcopy(self.spec.get(assessment.name, {}))
                 reqs = assessment.get_requirements()
                 if reqs['model_requirements']:
@@ -382,6 +371,12 @@ class Lens:
 
     def _select_assessments(self, candidate_assessments=None):
         selected_assessments = {}
+        model_assessments = get_usable_assessments(self.model, None, candidate_assessments)
+        if model_assessments:
+            assessment_text = f"Automatically Selected Assessments for Model without data\n--" + \
+                    '\n--'.join(model_assessments.keys())
+            logging.info(assessment_text)
+            selected_assessments['no_data'] = model_assessments
         # get assesments for each assessment dataset
         for dataset_type, dataset in self.get_datasets().items():
             if dataset == self.training_dataset:
