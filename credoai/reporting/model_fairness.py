@@ -431,7 +431,7 @@ class RegressionReporter(FairnessReporter):
         array of figures
         """        
         df = self.module.get_df()
- 
+        self.figs.append(self.plot_fairness())
         self.figs.append(self._plot_true_vs_pred_scatter(df, 'Disaggregated Performance'))
 
         plt.show()
@@ -444,12 +444,13 @@ class RegressionReporter(FairnessReporter):
     def _create_report_cells(self):
         # report cells
         cells = [
+            self._write_fairness(),
+            ("reporter.plot_fairness();", 'code'),
             self._write_true_vs_pred_scatter(),
             ("""\
-                df = reporter.module.get_df()
-                reporter._plot_true_vs_pred_scatter(df, 'Disaggregated Performance')""",
-                'code'
-            )
+            df = reporter.module.get_df()
+            reporter._plot_true_vs_pred_scatter(df, 'Disaggregated Performance')
+            """, 'code')
         ]
         return cells
 
@@ -510,8 +511,9 @@ class RegressionReporter(FairnessReporter):
                 for regression models.</pr>
                 
                 <p>Disaggregated across the demographic groups, this plot also provides visual insights into
-                how the model may be performing differently across groups.
-                Ideally, all the points should be close to the 45-degree dotted line.</pr>
+                how the model may be performing differently across groups.</pr>
+                
+                <p>Ideally, all the points should be close to the 45-degree dotted line.</pr>
 
                 </details>
                 """, 'markdown')
