@@ -432,7 +432,7 @@ class RegressionReporter(FairnessReporter):
         """        
         df = self.module.get_df()
         self.figs.append(self.plot_fairness())
-        self.figs.append(self._plot_true_vs_pred_scatter(df, 'Disaggregated Performance'))
+        self._plot_true_vs_pred_scatter(df, 'Disaggregated Performance')
 
         plt.show()
 
@@ -490,7 +490,7 @@ class RegressionReporter(FairnessReporter):
             ax.set_ylabel("Predicted Values")
             ax.legend_.set_title('')
 
-        return f
+        self.figs.append(f)
 
     def _write_true_vs_pred_scatter(self):
         """generates report cells
