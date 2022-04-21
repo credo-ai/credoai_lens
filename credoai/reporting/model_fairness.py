@@ -2,7 +2,8 @@ from credoai.reporting.credo_reporter import CredoReporter
 from credoai.reporting.plot_utils import (get_style,
                                           credo_classification_palette, 
                                           format_label, get_axis_size,
-                                          DEFAULT_COLOR)
+                                          DEFAULT_COLOR,
+                                          credo_diverging_palette)
 from numpy import pi
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -76,7 +77,7 @@ class FairnessReporter(CredoReporter):
                     metrics, and (2) performance metrics. The former help describe how equitable
                     your AI system, while the latter describes how performant the system is.</p.
                     
-                <p>Fairness metrics summarize whether your AI system is performing similarlty across all groups.
+                <p>Fairness metrics summarize whether your AI system is performing similarly across all groups.
                     These metrics may well-known "fairness metrics" like "equal opportunity", 
                     or performance parity metrics. Performance parity captures the idea that the
                     AI system should work similarly well for all groups. Some "fairness metrics"
@@ -108,7 +109,7 @@ class FairnessReporter(CredoReporter):
         if self.module.metric_frames != {}:
             plot_disaggregated = True
         n_plots = 1+plot_disaggregated
-        # ratio based on number of metrics and sensitive featurers
+        # ratio based on number of metrics and sensitive features
         r = self.module.get_results()['disaggregated_performance'].shape
         ratio = max(r[0]*r[1]/30, 1)
         with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
@@ -307,8 +308,6 @@ class BinaryClassificationReporter(FairnessReporter):
         text_ax = self._plot_text(f, text_objects)
         return f
         
-
-        
     def _create_data(self, y_true, y_pred):
         n = self.infographic_shape[0] * self.infographic_shape[1]
         true_pos_n = int(np.mean(y_true)*n)
@@ -420,3 +419,108 @@ class BinaryClassificationReporter(FairnessReporter):
         for x, y, s, kwargs in text_objects:
             ax.text(x, y, s, transform = ax.transAxes, ha='center', **kwargs)
         return ax
+
+
+class RegressionReporter(FairnessReporter):
+    def __init__(self, assessment, size=3):
+        super().__init__(assessment, size)
+    
+    def plot_results(self, filename=None):
+        """Creates a disaggregated performancereport for regression model
+
+        Parameters
+        ----------
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
+            
+        Returns
+        -------
+        array of figures
+        """        
+        df = self.module.get_df()
+ 
+        self.figs.append(self._plot_true_vs_pred_scatter(df, 'Disaggregated Performance'))
+
+        plt.show()
+
+        if filename is not None:
+            self.export_report(filename)
+
+        return self.figs
+
+    def _create_report_cells(self):
+        # report cells
+        cells = [
+            self._write_true_vs_pred_scatter(),
+            ("""\
+                df = reporter.module.get_df()
+                reporter._plot_true_vs_pred_scatter(df, 'Disaggregated Performance')""",
+                'code'
+            )
+        ]
+        return cells
+
+    def _plot_true_vs_pred_scatter(self, df, label):
+        """generates disaggregated scatter plot
+
+        Parameters
+        ----------
+        df : pandas.dataframe
+            dataframe of true and predicted values, including also the associated demographic groups
+        label : str
+            plot title
+
+        Returns
+        -------
+        matplotlib figure
+        """        
+        y_true, y_pred = df['true'], df['pred']
+        num_cats = len(df['sensitive'].unique())
+        palette = credo_diverging_palette(num_cats)
+        with get_style(figsize=self.size, figure_ratio=0.7):
+            f, ax = plt.subplots()
+            p1 = min(min(y_pred), min(y_true))
+            p2 = max(max(y_pred), max(y_true))
+            plt.plot([p1, p2], [p1, p2], ':', color=DEFAULT_COLOR,linewidth=.6)
+            sns.scatterplot(
+                x='true',
+                y='pred',
+                hue='sensitive',
+                style='sensitive',
+                palette=palette,
+                data=df,
+                alpha=1
+            )
+            ax.set_title(label)
+            ax.set_xlabel("True Values")
+            ax.set_ylabel("Predicted Values")
+            ax.legend_.set_title('')
+
+        return f
+
+    def _write_true_vs_pred_scatter(self):
+        """generates report cells
+
+        Returns
+        -------
+        tuple
+            report cell
+        """
+        cell = ("""
+                #### Regression Model Predictions vs Ground Truth
+            
+                <details>
+                <summary>Assessment Description:</summary>
+                <br>
+                
+                <pr>Scatter plot of true vs predicted values is a rich form of data visualization
+                for regression models.</pr>
+                
+                <p>Disaggregated across the demographic groups, this plot also provides visual insights into
+                how the model may be performing differently across groups.
+                Ideally, all the points should be close to the 45-degree dotted line.</pr>
+
+                </details>
+                """, 'markdown')
+        
+        return cell
