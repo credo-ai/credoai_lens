@@ -454,7 +454,7 @@ class RegressionReporter(FairnessReporter):
         ]
         return cells
 
-    def _plot_true_vs_pred_scatter(self, df, label):
+    def _plot_true_vs_pred_scatter(self, df, label, sampling_size=200):
         """generates disaggregated scatter plot
 
         Parameters
@@ -463,11 +463,16 @@ class RegressionReporter(FairnessReporter):
             dataframe of true and predicted values, including also the associated demographic groups
         label : str
             plot title
+        sampling_size : int
+            the upper limit on the number of data points to plot by sampling without replacement
 
         Returns
         -------
         matplotlib figure
-        """        
+        """
+        df = df.groupby('sensitive').apply(
+            lambda x: x.sample(min(sampling_size, len(x)), random_state=10)
+            ).reset_index(drop=True)
         y_true, y_pred = df['true'], df['pred']
         num_cats = len(df['sensitive'].unique())
         palette = credo_diverging_palette(num_cats)
@@ -483,7 +488,8 @@ class RegressionReporter(FairnessReporter):
                 style='sensitive',
                 palette=palette,
                 data=df,
-                alpha=1
+                alpha=1,
+                s=10
             )
             ax.set_title(label)
             ax.set_xlabel("True Values")
