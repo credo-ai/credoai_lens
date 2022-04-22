@@ -140,10 +140,10 @@ def false_discovery_rate(y_true, y_pred, **kwargs):
     return 1.0 - sk_metrics.precision_score(y_true, y_pred, **kwargs)
 
 def false_omission_rate(y_true, y_pred, **kwargs):
-    """Compute the false discovery rate.
+    """Compute the false omission rate.
 
     False omission rate is ``fn / (tn + fn)`` where ``fn`` is the number of
-    false negatives and ``tn`` the number of true negatives. The false discovery rate is
+    false negatives and ``tn`` the number of true negatives. The false omission rate is
     intuitively the rate at which the classifier will be wrong when
     labeling an example as negative.
 

@@ -214,7 +214,7 @@ class DatasetFairnessReporter(CredoReporter):
 
                 <p>To evaluate this, we train a model that tries to predict the sensitive feature from the
                 dataset. The score ranges from 0.5 - 1.0. If the score is 0.5, the model is random, and
-                no information about the senstive feature is likely contained in the dataset. A value
+                no information about the sensitive feature is likely contained in the dataset. A value
                 of 1 means the sensitive feature is able to be perfectly reconstructed.</p>
 
                 <p>The <a href="#Feature-Balance>Feature Balance</a> and <a href="#Feature-Proxy-Detection>Feature Proxy Detection</a>
