@@ -2,9 +2,11 @@
 
 Accuracy is the fraction of predictions that a classification model got right. This metric is not robust to class imbalance.
 
+The best value is 1 and the worst value is 0.
+
 .. math::
 
-   \text{False Positive Rate} = \frac{Correct Predictions}{Total Number of Examples}
+   \text{Accuracy} = \frac{Correct Predictions}{Total Number of Examples}
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html>`__)
 
@@ -20,11 +22,11 @@ Average precision summarizes a precision-recall curve as the weighted mean of pr
 
 ``balanced_accuracy_score``
 
-The balanced accuracy in binary and multiclass classification problems to deal with imbalanced datasets. It is defined as the average of recall obtained on each class.
+The balanced accuracy in classification problems is used to deal with imbalanced datasets. It is defined as the average of recall obtained on each class.
 
-Best possible score is 1.0 and it can be negative (because the model can be arbitrarily worse). 
+The best value is 1 and the worst value is 0.
 
-(`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.d2_tweedie_score.html>`__)
+(`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.balanced_accuracy_score.html>`__)
 
 ------------
 
@@ -92,11 +94,11 @@ Best possible score is 1.0, lower values are worse.
 
 ``f1_score``
 
-Also known as balanced F-score or F-measure, the F1 score can be interpreted as a harmonic mean of the precision and recall, where an F1 score reaches its best value at 1 and worst score at 0. The relative contribution of precision and recall to the F1 score are equal. The formula for the F1 score is:
+Also known as balanced F-score or F-measure, the F1 score can be interpreted as a harmonic mean of the precision and recall, where an F1 score reaches its best value at 1 and worst score at 0. The relative contribution of precision and recall to the F1 score are equal.
 
 .. math::
 
-   \text{False Positive Rate} = \frac{2 * Precision * Recall}{Precision + Recall}
+   \text{False Positive Rate} = \frac{2 \times Precision \times Recall}{Precision + Recall}
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html>`__)
 
@@ -166,8 +168,6 @@ Equivalents: ``fpr``, ``fallout_rate``
 
 The Matthews correlation coefficient is a measure of the quality of a classification model. It takes into account true and false positives and negatives and is generally regarded as a balanced measure which can be used even if the classes are of very different sizes.
 
-The MCC is in essence a correlation coefficient value between -1 and +1. A coefficient of +1 represents a perfect prediction, 0 an average random prediction and -1 an inverse prediction. The statistic is also known as the phi coefficient. 
-
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.matthews_corrcoef.html>`__)
 
 ------------
@@ -188,7 +188,7 @@ Mean absolute error is the expected value of the absolute error loss or l1-norm 
 
 Equivalents: ``MAE``
 
-(`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.max_error.html>`__)
+(`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html>`__)
 
 ------------
 
