@@ -1,6 +1,23 @@
 Metrics
 =======
 
+Lens supports many metrics out-of-the-box. These metrics can be accessed simply, 
+by providing their name as a string to the Lens's assessment spec. 
+Below are some of the metrics we support. For a comprehensive list, 
+the following can be run in your python environment:
+
+::
+
+   from credoai.metrics import list_metrics
+   list_metrics()
+
+
+Other metrics are easily incorporated by using the `Metric` class, which can accommodate 
+any assessment function.
+
+Metric list
+-----------
+
 ``accuracy_score``
 
 Accuracy is the fraction of predictions that a classification model got right. This metric is not robust to class imbalance.
