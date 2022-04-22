@@ -1,3 +1,6 @@
+Metrics
+======
+
 ``accuracy_score``
 
 Accuracy is the fraction of predictions that a classification model got right. This metric is not robust to class imbalance.
