@@ -129,7 +129,7 @@ False negative rate  is defined as follows:
 
 .. math::
 
-   \text{False \ Negative \ Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Positives}
+   \text{False Negative Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Positives}
 
 Equivalents: ``fnr``, ``miss_rate``
 
@@ -145,7 +145,7 @@ The best value is 0 and the worst value is 1.
 
 .. math::
 
-   \text{False \ Omission \ Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Negatives}
+   \text{False Omission Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Negatives}
 
 (`source <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__)
 
@@ -157,7 +157,7 @@ False positive rate is defined as follows:
 
 .. math::
 
-   \text{False \ Positive \ Rate} = \frac{False \ Positives}{False \ Positives + True \ Negatives}
+   \text{False Positive Rate} = \frac{False \ Positives}{False \ Positives + True \ Negatives}
 
 Equivalents: ``fpr``, ``fallout_rate``
 
@@ -333,7 +333,7 @@ True negative rate (also called specificity or selectivity) refers to the probab
 
 .. math::
 
-   \text{True \ Negative \ Rate} = \frac{True \ Negatives}{True \ Negatives + False \ Positives }
+   \text{True Negative Rate} = \frac{True \ Negatives}{True \ Negatives + False \ Positives }
 
 Equivalents: ``tnr``, ``specificity``
 
