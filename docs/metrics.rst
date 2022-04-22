@@ -1,5 +1,5 @@
 Metrics
-======
+=======
 
 ``accuracy_score``
 
