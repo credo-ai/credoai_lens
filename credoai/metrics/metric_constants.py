@@ -1,5 +1,5 @@
 from credoai.metrics.credoai_metrics import (
-    equal_opportunity_difference, false_discovery_rate, false_omission_rate
+    equal_opportunity_difference, false_discovery_rate, false_omission_rate, ks_statistic
 )
 from functools import partial
 from fairlearn import metrics as fl_metrics
@@ -82,5 +82,6 @@ REGRESSION_FUNCTIONS = {
     'mean_poisson_deviance': sk_metrics.mean_poisson_deviance,
     'mean_gamma_deviance': sk_metrics.mean_gamma_deviance,
     'd2_tweedie_score': sk_metrics.d2_tweedie_score,
-    'mean_pinball_loss': sk_metrics.mean_pinball_loss
+    'mean_pinball_loss': sk_metrics.mean_pinball_loss,
+    'ks_statistic': ks_statistic
 }

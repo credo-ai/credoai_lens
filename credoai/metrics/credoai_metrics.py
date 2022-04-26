@@ -197,3 +197,13 @@ def equal_opportunity_difference(
     fun = make_derived_metric(
         metric=true_positive_rate, transform='difference')
     return fun(y_true, y_pred, sensitive_features=sensitive_features, method=method, sample_weight=sample_weight)
+
+def ks_statistic(
+        y_true,
+        y_pred) -> float:
+
+    ks_stat = st.ks_2samp(y_true, y_pred).statistic
+
+    return ks_stat
+
+
