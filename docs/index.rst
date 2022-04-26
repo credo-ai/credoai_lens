@@ -8,6 +8,7 @@
    Setup <setup>
    Jupyter tutorials <tutorials>
    Reporting <report>
+   Metrics <metrics>
    API reference <_autosummary/credoai>
 
 
@@ -18,7 +19,7 @@
 Lens is an AI Assessment Framework. With a focus on responsible AI, Lens makes
 comprehensive AI assessment streamlined, structured and interpretable to diverse audiences. Lens
 aims to be the single entrypoint to a broad ecosystem of open source assessment
-tools developed in industry and academia. It is also extensible, and can accomodate
+tools developed in industry and academia. It is also extensible, and can accommodate
 your own assessment pipeline as custom modules.
 
 

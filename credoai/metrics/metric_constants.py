@@ -40,7 +40,7 @@ FAIRNESS_FUNCTIONS['equal_opportunity_difference'] = equal_opportunity_differenc
 
 
 # Define functions that require probabilities ***
-PROBABILITY_FUNCTIONS = {"average_precision_score", "roc_auc_score"}
+PROBABILITY_FUNCTIONS = {'average_precision_score', 'roc_auc_score'}
 
 # *** Define Alternative Naming ***
 METRIC_EQUIVALENTS = {
@@ -63,9 +63,9 @@ METRIC_EQUIVALENTS = {
 
 # DATASET METRICS
 DATASET_METRIC_TYPES = [
-    "sensitive_feature_prediction_score",
-    "demographic_parity_ratio",
-    "demographic_parity_difference"
+    'sensitive_feature_prediction_score',
+    'demographic_parity_ratio',
+    'demographic_parity_difference'
 ]
 
 # REGRESSION METRICS
