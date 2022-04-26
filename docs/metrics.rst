@@ -238,7 +238,7 @@ Mean pinball loss is used to evaluate the predictive performance of quantile reg
 
 ``mean_poisson_deviance``
 
-Mean Gamma deviance is the mean `Tweedie deviance <https://en.wikipedia.org/wiki/Tweedie_distribution#The_Tweedie_deviance>`__ error with a power parameter 1. This is a metric that elicits predicted expectation values of regression targets.
+Mean Poisson deviance is the mean `Tweedie deviance <https://en.wikipedia.org/wiki/Tweedie_distribution#The_Tweedie_deviance>`__ error with a power parameter 1. This is a metric that elicits predicted expectation values of regression targets.
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_poisson_deviance.html>`__)
 
@@ -341,6 +341,20 @@ To evaluate this, a model is trained that tries to predict the sensitive feature
 The score ranges from 0.5 - 1.0. If the score is 0.5, the model is random, and no information about the sensitive feature is likely contained in the dataset. A value of 1 means the sensitive feature is able to be perfectly reconstructed.
 
 (`source <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/modules/dataset_modules/dataset_fairness.py>`__)
+
+------------
+
+``target_ks_statistic``
+
+The two-sample Kolmogorov-Smirnov test (two-sided) statistic for target and prediction arrays
+    
+The test compares the underlying continuous distributions F(x) and G(x) of two independent samples.
+The null hypothesis is that the two distributions are identical, F(x)=G(x)
+If the KS statistic is small or the p-value is high, then we cannot reject the null hypothesis in favor of the alternative.
+
+For practical purposes, if the statistic value is higher than `the critical value <https://sparky.rice.edu//astr360/kstest.pdf>`__, the two distributions are different.
+
+(`source <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__)
 
 ------------
 
