@@ -331,7 +331,7 @@ class Lens:
                     assessment.init_module(**kwargs)
                 except:
                     raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
-                                          "Ensure the assessment spec is passing the required parameters"
+                                          " Ensure the assessment spec is passing the required parameters"
                                           )
 
     def _prepare_results(self, assessment, **kwargs):
