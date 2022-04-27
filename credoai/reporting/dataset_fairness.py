@@ -131,7 +131,7 @@ class DatasetFairnessReporter(CredoReporter):
                 palette=plot_utils.credo_diverging_palette(1),
                 ax=axes[0],
             )
-            self._add_bar_percentages(ax)
+            self._add_bar_percentages(ax, self.size*1.5)
 
             f.patch.set_facecolor("white")
             sns.despine()
@@ -155,7 +155,7 @@ class DatasetFairnessReporter(CredoReporter):
                     alpha=1,
                     ax=axes[1],
                 )
-                self._add_bar_percentages(ax)
+                self._add_bar_percentages(ax, self.size*1.5)
                 f.patch.set_facecolor("white")
                 sns.despine()
                 ax.set_title(
@@ -186,7 +186,6 @@ class DatasetFairnessReporter(CredoReporter):
                     palette=plot_utils.credo_diverging_palette(num_classes),
                     ax=axes[2],
                 )
-                self._add_bar_percentages(ax)
                 f.patch.set_facecolor("white")
                 sns.despine()
                 plt.title("Parity metrics for different preferred label value possibilities")
@@ -362,28 +361,34 @@ class DatasetFairnessReporter(CredoReporter):
             ax.legend(loc='upper right')
         self.figs.append(f)
 
-    def _add_bar_percentages(self, ax):
+    def _add_bar_percentages(self, ax, fontsize=10):
+        n_containers = len(ax.containers)
         bar_groups = list(zip(*ax.containers))
         totals = [sum([c.get_width() for c in containers]) for containers in bar_groups]
-            
+        overall_total = sum(totals)
+        if n_containers == 1:
+            totals = [overall_total for i in totals]
         for containers in ax.containers:
             widths = [c.get_width() for c in containers]
             percentages = [100*w/totals[i] for i,w in enumerate(widths)]
+            overall_percentages = [100*w/overall_total for i,w in enumerate(widths)]
             percentage_text = [f'{i:.1f}%' for i in percentages]
-            if min(percentages) > 10:
+            if min(overall_percentages) > 10:
                 ax.bar_label(
                     containers,
                     labels=percentage_text,
                     color='white',
-                    label_type='center'
+                    label_type='center',
+                    fontsize=fontsize/n_containers
                 )
             else:
                 ax.bar_label(
-                        containers,
-                        labels=percentage_text,
-                        color=plot_utils.credo_diverging_palette(1)[0],
-                        padding=2
-                    )
+                    containers,
+                    labels=percentage_text,
+                    color=plot_utils.credo_diverging_palette(1)[0],
+                    padding=2,
+                    fontsize=fontsize/n_containers
+                )
 
 
 
