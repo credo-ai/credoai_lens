@@ -117,7 +117,7 @@ class Lens:
 
         # set up reporter objects
         self.report = None
-        self.reporters = {}
+        self.reporters = []
 
         # if data is defined and dev mode, convert data
         self._apply_dev_mode(self.dev_mode)
@@ -173,7 +173,7 @@ class Lens:
             )
         if not self.reporters:
             self._create_reporters()
-        self.report = MainReport(f"Assessment Report", self.reporters.values())
+        self.report = MainReport(f"Assessment Report", self.reporters)
         self.report.create_report(self)
         return self
 
@@ -261,11 +261,13 @@ class Lens:
         assessments = wrap_list(assessments)
         if not self.reporters:
             self._create_reporters()
-        for name, reporter in self.reporters.items():
+        for reporter in self.reporters:
+            name = reporter.assessment.name
             if assessments and name not in assessments:
                 continue
             reporter.display_results_tables()
             reporter.plot_results()
+        return self
 
     def _apply_dev_mode(self, dev_mode):
         if dev_mode:
@@ -284,7 +286,7 @@ class Lens:
                 logging.info(
                     f"Reporter creating notebook for assessment-{name}")
                 reporter.create_notebook()
-                self.reporters[name] = reporter
+                self.reporters.append(reporter)
             else:
                 logging.info(f"No reporter found for assessment-{name}")
 

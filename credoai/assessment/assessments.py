@@ -5,7 +5,7 @@ Module containing all CredoAssessmsents
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
 from credoai.reporting import (FairnessReporter, BinaryClassificationReporter,
-                              NLPGeneratorAnalyzerReporter, DatasetFairnessReporter)
+                              NLPGeneratorAnalyzerReporter, DatasetFairnessReporter, RegressionReporter)
 from sklearn.utils.multiclass import type_of_target
 from credoai.reporting.dataset_profiling import DatasetProfilingReporter
 
@@ -170,6 +170,8 @@ class FairnessAssessment(CredoAssessment):
     def get_reporter(self):
         if type_of_target(self.initialized_module.y_true) == 'binary':
             return BinaryClassificationReporter(self)
+        elif type_of_target(self.initialized_module.y_true) == 'continuous':
+            return RegressionReporter(self)
         else:
             return FairnessReporter(self)
 

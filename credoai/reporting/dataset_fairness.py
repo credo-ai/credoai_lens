@@ -1,3 +1,4 @@
+from turtle import color
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import pandas as pd
@@ -130,6 +131,8 @@ class DatasetFairnessReporter(CredoReporter):
                 palette=plot_utils.credo_diverging_palette(1),
                 ax=axes[0],
             )
+            self._add_bar_percentages(ax, self.size*1.5)
+
             f.patch.set_facecolor("white")
             sns.despine()
             ax.set_title("Data balance across " + sensitive_feature_name + " subgroups")
@@ -152,6 +155,7 @@ class DatasetFairnessReporter(CredoReporter):
                     alpha=1,
                     ax=axes[1],
                 )
+                self._add_bar_percentages(ax, self.size*1.5)
                 f.patch.set_facecolor("white")
                 sns.despine()
                 ax.set_title(
@@ -214,7 +218,7 @@ class DatasetFairnessReporter(CredoReporter):
 
                 <p>To evaluate this, we train a model that tries to predict the sensitive feature from the
                 dataset. The score ranges from 0.5 - 1.0. If the score is 0.5, the model is random, and
-                no information about the senstive feature is likely contained in the dataset. A value
+                no information about the sensitive feature is likely contained in the dataset. A value
                 of 1 means the sensitive feature is able to be perfectly reconstructed.</p>
 
                 <p>The <a href="#Feature-Balance>Feature Balance</a> and <a href="#Feature-Proxy-Detection>Feature Proxy Detection</a>
@@ -356,4 +360,35 @@ class DatasetFairnessReporter(CredoReporter):
             ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
             ax.legend(loc='upper right')
         self.figs.append(f)
+
+    def _add_bar_percentages(self, ax, fontsize=10):
+        n_containers = len(ax.containers)
+        bar_groups = list(zip(*ax.containers))
+        totals = [sum([c.get_width() for c in containers]) for containers in bar_groups]
+        overall_total = sum(totals)
+        if n_containers == 1:
+            totals = [overall_total for i in totals]
+        for containers in ax.containers:
+            widths = [c.get_width() for c in containers]
+            percentages = [100*w/totals[i] for i,w in enumerate(widths)]
+            overall_percentages = [100*w/overall_total for i,w in enumerate(widths)]
+            percentage_text = [f'{i:.1f}%' for i in percentages]
+            if min(overall_percentages) > 10:
+                ax.bar_label(
+                    containers,
+                    labels=percentage_text,
+                    color='white',
+                    label_type='center',
+                    fontsize=fontsize/n_containers
+                )
+            else:
+                ax.bar_label(
+                    containers,
+                    labels=percentage_text,
+                    color=plot_utils.credo_diverging_palette(1)[0],
+                    padding=2,
+                    fontsize=fontsize/n_containers
+                )
+
+
 
