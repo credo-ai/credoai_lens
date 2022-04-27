@@ -1,3 +1,4 @@
+from turtle import color
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import pandas as pd
@@ -130,6 +131,16 @@ class DatasetFairnessReporter(CredoReporter):
                 palette=plot_utils.credo_diverging_palette(1),
                 ax=axes[0],
             )
+            percentages = []
+            for c in ax.containers[0]:
+                percentages.append(100 * c.get_width() / df['count'].sum())
+            percentages = [f'{i:.1f}%' for i in percentages]
+            ax.bar_label(
+                ax.containers[0],
+                labels=percentages,
+                color=plot_utils.credo_diverging_palette(1)[0]
+            )
+
             f.patch.set_facecolor("white")
             sns.despine()
             ax.set_title("Data balance across " + sensitive_feature_name + " subgroups")
