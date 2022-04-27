@@ -69,44 +69,53 @@ class DatasetFairness(CredoModule):
         self.results = {}
         for sensitive_feature_name in self.sensitive_features:
             sensitive_feature_series = self.sensitive_features[sensitive_feature_name]
+
             sensitive_feature_prediction_results = self._run_cv(sensitive_feature_series)
+            sensitive_feature_prediction_results = {
+                sensitive_feature_name + '-' + str(key): val for key, val in sensitive_feature_prediction_results.items()
+            }
+
             group_differences = self._group_differences(sensitive_feature_series)
+
             normalized_mutual_information = self._calculate_mutual_information(sensitive_feature_series)
+
             balance_metrics = self._assess_balance_metrics(sensitive_feature_series)
-            self.results[sensitive_feature_name] = {**balance_metrics,
-                            **sensitive_feature_prediction_results,
-                            'standardized_group_diffs': group_differences,
-                            'normalized_mutual_information': normalized_mutual_information,
-                            }  
+            balance_metrics = {sensitive_feature_name + '-' + str(key): val for key, val in balance_metrics.items()}
+
+            self.results.update({
+                **balance_metrics,
+                **sensitive_feature_prediction_results,
+                sensitive_feature_name + '-' + 'standardized_group_diffs': group_differences,
+                sensitive_feature_name + '-' + 'normalized_mutual_information': normalized_mutual_information
+                })
         return self  
     
     def prepare_results(self):
         """Prepares results for export to Credo AI's Governance App
-
         Structures a subset of results for export as a dataframe with appropriate structure
         for exporting. See credoai.modules.credo_module.
-
         Returns
         -------
         pd.DataFrame
-
         Raises
         ------
         NotRunError
             If results have not been run, raise
         """
         if self.results is not None:
-            prepared_results = []
-            for sensitive_feature_name, results in self.results.items():
-                metric_types = ['sensitive_feature_prediction_score',
-                                'demographic_parity_difference',
-                                'demographic_parity_ratio']
-                index = []
-                prepared_arr = []
+            metric_types_names = [
+                'sensitive_feature_prediction_score',
+                'demographic_parity_difference',
+                'demographic_parity_ratio'
+            ]
+            prepared_arr = []
+            index = []
+            for sensitive_feature_name in self.sensitive_features:
+                metric_types = [sensitive_feature_name + '-' + x for x in metric_types_names]
                 for metric_type in metric_types:
-                    if metric_type not in results:
+                    if metric_type not in self.results:
                         continue
-                    val = results[metric_type]
+                    val = self.results[metric_type]
                     # if multiple values were calculated for metric_type
                     # add them all. Assumes each element of list is a dictionary with a "value" key,
                     # and other optional keys as metricmetadata
@@ -123,10 +132,10 @@ class DatasetFairness(CredoModule):
                             tmp = {'value': val}
                         index.append(metric_type)
                         prepared_arr.append(tmp)
-                temp = pd.DataFrame(prepared_arr, index=index).rename_axis(index='metric_type')
-                temp['sensitive_feature_name'] = sensitive_feature_name
-                prepared_results.append(temp)
-            return pd.concat(prepared_results)
+            res = pd.DataFrame(prepared_arr, index=index).rename_axis(index='metric_type')
+            res['sensitive_feature'] = res.index.to_series().apply(lambda x: x.split('-')[0])
+            res.index = res.index.to_series().apply(lambda x: x.split('-')[1])
+            return res
         else:
             raise NotRunError(
                 "Results not created yet. Call 'run' to create results"
