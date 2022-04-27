@@ -267,6 +267,7 @@ class Lens:
                 continue
             reporter.display_results_tables()
             reporter.plot_results()
+        return self
 
     def _apply_dev_mode(self, dev_mode):
         if dev_mode:
