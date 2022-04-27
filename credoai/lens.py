@@ -294,13 +294,8 @@ class Lens:
             dataset_id = self.gov.dataset_id
         elif assessment.data_name == self.training_dataset.name:
             dataset_id = self.gov.training_dataset_id
-        return {'process': f'Lens-{assessment.name}',
-                'model_label': assessment.model_name,
-                'dataset_label': assessment.data_name,
-                'dataset_id': dataset_id,
-                'user_id': self.user_id,
-                'assessment': assessment.name,
-                'lens_version': f'Lens-v{__version__}'}
+        return {'process': f'Lens-v{__version__}_{assessment.name}',
+                'dataset_id': dataset_id}
 
     def _get_credo_destination(self, to_model=True):
         """Get destination for export and ensure all artifacts are registered"""
