@@ -63,7 +63,8 @@ class Metric(Record):
         String reflecting the process used to create the metric. E.g.,
         name of a particular Lens assessment, or link to code.
     metadata : dict, optional
-        Arbitrary keyword arguments to append to metric as metadata
+        Arbitrary keyword arguments to append to metric as metadata. These will be
+        displayed in the governance app
 
     Example
     ---------
@@ -94,7 +95,7 @@ class Metric(Record):
             'value': self.value,
             'dataset_id': self.dataset_id,
             'process': self.process,
-            'metadata': self.metadata,
+            'labels': self.metadata,
             'value_updated_at': self.creation_time,
         }
 
