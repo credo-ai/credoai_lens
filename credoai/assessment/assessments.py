@@ -30,9 +30,9 @@ class PerformanceAssessment(CredoAssessment):
     
     Requirements
     ------------
-    Requires that the CredoModel defines either `pred_fun` or `prob_fun` (or both).
-    - `pred_fun` should return the model's predictions.
-    - `prob_fun` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
+    Requires that the CredoModel defines either `predict` or `predict_proba` (or both).
+    - `predict` should return the model's predictions.
+    - `predict_proba` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
        Only applicable in classification scenarios.
     """
     def __init__(self):
@@ -40,7 +40,7 @@ class PerformanceAssessment(CredoAssessment):
             'Performance', 
             mod.PerformanceModule,
             AssessmentRequirements(
-                model_requirements=[('prob_fun', 'pred_fun')],
+                model_requirements=[('predict_proba', 'predict')],
                 data_requirements=['X', 'y']
             )
         )
@@ -67,18 +67,18 @@ class PerformanceAssessment(CredoAssessment):
         Example
         ---------
         def build(self, ...):
-            y_pred = CredoModel.pred_fun(CredoData.X)
+            y_pred = CredoModel.predict(CredoData.X)
             y = CredoData.y
             self.initialized_module = self.module(y_pred, y)
 
         """
         super().init_module(model=model, data=data)
         try:
-            y_pred = model.pred_fun(data.X)
+            y_pred = model.predict(data.X)
         except AttributeError:
             y_pred = None
         try:
-            y_prob = model.prob_fun(data.X)
+            y_prob = model.predict_proba(data.X)
         except AttributeError:
             y_prob = None
             
@@ -107,9 +107,9 @@ class FairnessAssessment(CredoAssessment):
     
     Requirements
     ------------
-    Requires that the CredoModel defines either `pred_fun` or `prob_fun` (or both).
-    - `pred_fun` should return the model's predictions.
-    - `prob_fun` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
+    Requires that the CredoModel defines either `predict` or `predict_proba` (or both).
+    - `predict` should return the model's predictions.
+    - `predict_proba` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
        Only applicable in classification scenarios.
     """
     def __init__(self):
@@ -117,7 +117,7 @@ class FairnessAssessment(CredoAssessment):
             'Fairness', 
             mod.FairnessModule,
             AssessmentRequirements(
-                model_requirements=[('prob_fun', 'pred_fun')],
+                model_requirements=[('predict_proba', 'predict')],
                 data_requirements=['X', 'y', 'sensitive_features']
             )
         )
@@ -144,18 +144,18 @@ class FairnessAssessment(CredoAssessment):
         Example
         ---------
         def build(self, ...):
-            y_pred = CredoModel.pred_fun(CredoData.X)
+            y_pred = CredoModel.predict(CredoData.X)
             y = CredoData.y
             self.initialized_module = self.module(y_pred, y)
 
         """
         super().init_module(model=model, data=data)
         try:
-            y_pred = model.pred_fun(data.X)
+            y_pred = model.predict(data.X)
         except AttributeError:
             y_pred = None
         try:
-            y_prob = model.prob_fun(data.X)
+            y_prob = model.predict_proba(data.X)
         except AttributeError:
             y_prob = None
             

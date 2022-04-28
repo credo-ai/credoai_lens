@@ -100,11 +100,11 @@ solve this issue we introduce two artifacts: CredoModels and CredoData.
 **Credo Models** are not "models" in the traditional sense - they are connector objects
 that instantiate functions necessary for an assessment. For instance, to evaluate
 fairness using the "Fairness" assessment, the CredoModel must instantiate
-a `prob_fun` or `pred_fun`. The nature of these functions can be quite general.
+a `predict_proba` or `predict`. The nature of these functions can be quite general.
 
-The simplest case is you setting `pred_fun` to the `predict` method of your model.
+The simplest case is you setting CredoModel's `predict` to the `predict` method of your model.
 But your "model" may actually be an API call that you want to assess, in which case
-the `pred_fun` may be an API call.
+the `predict` may be an API call.
 
 Some functions can be inferred from well-known frameworks like scikit-learn. This allows
 the CredoModel to be automatically set up, though further customization is possible.
