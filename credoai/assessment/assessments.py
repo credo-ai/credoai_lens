@@ -434,11 +434,10 @@ class PrivacyAssessment(CredoAssessment):
 
         """
         super().init_module(model=model, data=data)
-            
+
         module = self.module(
             model,
             data.X,
-            data.y,
-            data.sensitive_features)
+            data.y)
             
         self.initialized_module = module
