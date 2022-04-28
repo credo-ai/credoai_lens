@@ -1,3 +1,4 @@
+from dis import dis
 import numpy as np
 import pandas as pd
 import warnings
@@ -53,7 +54,7 @@ class DatasetFairness(CredoModule):
             for sensitive_feature_name in self.sensitive_features:
                 if sensitive_feature_name in self.categorical_features_keys:
                     self.sensitive_features[sensitive_feature_name] = self.sensitive_features[sensitive_feature_name].astype('category')
-                    # self.categorical_features_keys.remove(sensitive_feature_name)
+                    self.categorical_features_keys.remove(sensitive_feature_name)
         else:
             self.categorical_features_keys = self._find_categorical_features(categorical_threshold)
     

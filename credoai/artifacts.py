@@ -545,7 +545,7 @@ class CredoData:
             to_drop += self.unused_features_keys
 
         sensitive_features = None
-        if self.sensitive_feature_key:
+        if self.sensitive_feature_keys:
             sensitive_features = data[self.sensitive_feature_keys]
             if self.drop_sensitive_feature:
                 to_drop.extend(self.sensitive_feature_keys)
