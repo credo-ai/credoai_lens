@@ -378,8 +378,11 @@ class CredoModel:
     ):
         self.name = name
         self.config = {}
+        self.model = model
+        self.framework = None
         assert model is not None or model_config is not None
-        if model is not None and model_config is None:
+        if model is not None:
+            self.framework = self._get_model_type(model)
             self._init_config(model)
         if model_config is not None:
             self.config.update(model_config)
@@ -396,10 +399,9 @@ class CredoModel:
 
     def _init_config(self, model):
         config = {}
-        framework = self._get_model_type(model)
-        if framework == 'sklearn':
+        if self.framework == 'sklearn':
             config = self._init_sklearn(model)
-        elif framework == 'xgboost':
+        elif self.framework == 'xgboost':
             config = self._init_xgboost(model)
         self.config = config
 
@@ -426,7 +428,7 @@ class CredoModel:
 
     def _get_model_type(self, model):
         try:
-            framework = model.__module__.split('.')[0]
+            framework = model.__class__.__module__.split('.')[0]
         except AttributeError:
             framework = None
         if framework in BASE_CONFIGS:

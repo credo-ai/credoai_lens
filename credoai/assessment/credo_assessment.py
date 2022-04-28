@@ -199,21 +199,33 @@ class CredoAssessment(ABC):
 class AssessmentRequirements:
     def __init__(self,
                  model_requirements=None,
-                 data_requirements=None):
+                 data_requirements=None,
+                 supported_frameworks=None):
         """
         Defines requirements for an assessment
 
         Parameters
         ------------
-        requirements : List(Union[List, str])
+        model_requirements : List(Union[List, str])
             Requirements as a list. Each element
             can be a single string representing a CredoModel
             function or a list of such functions. If a list,
             only one of those functions are needed to satisfy
             the requirements.
+        data_requirements : List(Union[List, str])
+            Requirements as a list. Each element
+            can be a single string representing a CredoData
+            attribute or a list of such attributes. If a list,
+            only one of those attributes are needed to satisfy
+            the requirements.
+        supported_frameworks : List(str)
+            Frameworks the assessment supports as a list. If None,
+            all frameworks are assumed to be supported. Frameworks
+            must be taken from credoai.artifacts.BASE_CONFIGS
         """
         self.model_requirements = model_requirements or []
         self.data_requirements = data_requirements or []
+        self.supported_frameworks = supported_frameworks or []
 
     def check_requirements(self, credo_model=None, credo_data=None):
         for artifact, requirements in \
@@ -233,6 +245,9 @@ class AssessmentRequirements:
                 else:
                     if not functionality.intersection(requirement):
                         return False
+            # check for framework
+            if self.supported_frameworks and credo_model.framework not in self.supported_frameworks:
+                return False
         return True
 
     def get_requirements(self):
