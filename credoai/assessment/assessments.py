@@ -373,3 +373,72 @@ def list_assessments():
         except AttributeError:
             pass
     return usable_assessments
+
+
+class PrivacyAssessment(CredoAssessment):
+    """Basic evaluation of the privacy of ML models
+    
+    Runs privacy analysis on models with well-defined
+    objective functions. Examples include:
+
+    * classification
+    * regression
+
+    Supports models from  the following libraries:
+
+    * Scikit-learn
+
+    Modules:
+    
+    * credoai.modules.model_modules.privacy
+    
+    Requirements
+    ------------
+    Requires that the CredoModel defines is a Scikit-learn model
+    """
+    def __init__(self):
+        super().__init__(
+            'Privacy', 
+            mod.PrivacyModule,
+            AssessmentRequirements(
+                model_requirements=[('pred_fun')],
+                data_requirements=['X', 'y']
+            )
+        )
+    
+    def init_module(self, *, model, data, metrics):
+        """Initializes the assessment module
+
+        Transforms CredoModel and CredoData into the proper form
+        to create a runnable assessment.
+
+        See the lens_customization notebook for examples
+
+        Parameters
+        ------------
+        model : CredoModel
+        data : CredoData
+        metrics : List-like
+            list of metric names as string or list of Metrics (credoai.metrics.Metric).
+            Metric strings should in list returned by credoai.metrics.list_metrics.
+            Note for performance parity metrics like 
+            "false negative rate parity" just list "false negative rate". Parity metrics
+            are calculated automatically if the performance metric is supplied
+
+        Example
+        ---------
+        def build(self, ...):
+            y_pred = CredoModel.pred_fun(CredoData.X)
+            y = CredoData.y
+            self.initialized_module = self.module(model, data)
+
+        """
+        super().init_module(model=model, data=data)
+            
+        module = self.module(
+            model,
+            data.X,
+            data.y,
+            data.sensitive_features)
+            
+        self.initialized_module = module
