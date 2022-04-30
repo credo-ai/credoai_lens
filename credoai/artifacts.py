@@ -22,6 +22,7 @@
 from absl import logging
 from copy import deepcopy
 from credoai.metrics.metrics import find_metrics
+from credoai.utils.constants import RISK_ISSUE_MAPPING
 from credoai.utils.common import (IntegrationError, ValidationError, 
                                   json_dumps, raise_or_warn, flatten_list)
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
@@ -95,18 +96,25 @@ class CredoGovernance:
             self.retrieve_assessment_spec()
         spec = {}
         risk_spec = self.assessment_spec
-        metrics = flatten_list([[m['type'] for m in metrics] for metrics in risk_spec.values()])
-        passed_metrics = []
-        for m in metrics:
-            found = bool(find_metrics(m))
-            if not found:
-                logging.warning(f"Metric ({m}) is defined in the assessment spec but is not defined by Credo AI.\n"
-                                    "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
-                                    "assessment spec passed to lens")
-            else:
-                passed_metrics.append(m)
-        spec['metrics'] = passed_metrics
-        return {"Fairness": spec, "Performance": deepcopy(spec)}
+        missing_metrics = []
+        for risk_issue, plan in risk_spec.items():
+            metrics = [m['type'] for m in plan]
+            passed_metrics = []
+            for m in metrics:
+                found = bool(find_metrics(m))
+                if not found:
+                    missing_metrics.append(m)
+                else:
+                    passed_metrics.append(m)
+            if risk_issue in RISK_ISSUE_MAPPING:
+                spec[RISK_ISSUE_MAPPING[risk_issue]] = {'metrics': passed_metrics}
+        # alert about missing metrics
+        for m in missing_metrics:
+            logging.warning(f"Metric ({m}) is defined in the assessment spec but is not defined by Credo AI.\n"
+                            "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
+                            "assessment spec passed to lens")
+        return spec
+    
 
     def get_info(self):
         """Return Credo AI Governance IDs"""
