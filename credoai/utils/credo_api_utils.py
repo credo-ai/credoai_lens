@@ -170,7 +170,6 @@ def post_assessment(use_case_id, model_id, data):
         f"use_cases/{use_case_id}/models/{model_id}/assessments")
     request = submit_request('post', end_point, data=json_dumps(serialize(data)),
                              headers={"content-type": "application/vnd.api+json"})
-    import pdb; pdb.set_trace()
     assessment_id = deserialize(request.json())['id']
     return get_assessment(assessment_id)
 
