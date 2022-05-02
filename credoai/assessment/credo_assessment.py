@@ -111,7 +111,6 @@ class CredoAssessment(ABC):
         self._validate_results(results)
         # add metadata
         metadata = metadata or {}
-        metadata['assessment'] = self.name
         results = results.assign(**metadata)
         # return results (and ensure no NaN floats remain)
         return results

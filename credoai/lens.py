@@ -368,25 +368,25 @@ class Lens:
 
     def _select_assessments(self, candidate_assessments=None):
         selected_assessments = {}
+        logging.info("Automatically Selected Assessments for Model without data\n")
         model_assessments = get_usable_assessments(self.model, None, candidate_assessments)
         if model_assessments:
-            assessment_text = f"Automatically Selected Assessments for Model without data\n--" + \
-                    '\n--'.join(model_assessments.keys())
+            assessment_text = f"Selected assessments...\n--" + '\n--'.join(model_assessments.keys())
             logging.info(assessment_text)
             selected_assessments['no_data'] = model_assessments
         # get assesments for each assessment dataset
         for dataset_type, dataset in self.get_datasets().items():
+            artifact_text = f"{dataset_type} dataset: {dataset.name}"
             if dataset == self.training_dataset:
                 model = None
             else:
                 model = self.model
-            usable_assessments = get_usable_assessments(
-                model, dataset, candidate_assessments)
-            artifact_text = f"{dataset_type} dataset: {dataset.name}"
             if model:
                 artifact_text = f"model: {model.name} and {artifact_text}"
-            assessment_text = f"Automatically Selected Assessments for {artifact_text}\n--" + \
-                '\n--'.join(usable_assessments.keys())
+            logging.info(f"Automatically Selected Assessments for {artifact_text}\n--")
+            usable_assessments = get_usable_assessments(
+                model, dataset, candidate_assessments)
+            assessment_text = 'Selected assessments...\n--' + '\n--'.join(usable_assessments.keys())
             logging.info(assessment_text)
             selected_assessments[dataset_type] = usable_assessments
         return selected_assessments

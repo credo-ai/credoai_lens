@@ -67,7 +67,7 @@ def submit_request(request, end_point, **kwargs):
 
 
 def get_assessment(assessment_id):
-    end_point = get_end_point(f"assessments/{assessment_id}")
+    end_point = get_end_point(f"use_case_assessments/{assessment_id}")
     return deserialize(submit_request('get', end_point).json())
 
 
