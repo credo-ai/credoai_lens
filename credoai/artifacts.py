@@ -343,7 +343,7 @@ class CredoModel:
     agnostic to framework. As long as the functions serve the needs of the
     assessments, they'll work.
 
-    E.g. {'prob_fun': model.predict}
+    E.g. {'predict': model.predict}
 
     The model_config can also be inferred automatically, from well-known packages
     (call CredoModel.supported_frameworks for a list.) If supported, a model
@@ -366,7 +366,7 @@ class CredoModel:
         by CredoModel's automated inference. model_config is a more
         flexible and reliable method of interaction, by default None
     model_config : dict, optional
-        dictionary containing mappings between CredoModel function names (e.g., "prob_fun")
+        dictionary containing mappings between CredoModel function names (e.g., "predict")
         and functions (e.g., "model.predict"), by default None
     """
 
@@ -410,17 +410,18 @@ class CredoModel:
         return self._sklearn_style_config(model)
 
     def _sklearn_style_config(self, model):
+        config = {'predict': model.predict}
         # if binary classification, only return
         # the positive classes probabilities by default
-        if len(model.classes_) == 2:
-            def prob_fun(X): return model.predict_proba(X)[:, 1]
-        else:
-            prob_fun = model.predict_proba
+        try:
+            if len(model.classes_) == 2:
+                def predict_proba(X): return model.predict_proba(X)[:, 1]
+            else:
+                predict_proba = model.predict_proba
 
-        config = {
-            'pred_fun': model.predict,
-            'prob_fun': prob_fun
-        }
+            config['predict_proba'] = predict_proba
+        except AttributeError:
+            pass
         return config
 
     def _get_model_type(self, model):
