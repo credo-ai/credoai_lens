@@ -155,22 +155,31 @@ class FairnessModule(PerformanceModule):
         """
 
         results = {}
-        for metric_name, metric in self.fairness_metrics.items():
-            results[metric_name] = metric.fun(y_true=self.y_true,
-                                              y_pred=self.y_pred,
-                                              sensitive_features=self.sensitive_features,
-                                              method=method)
-        for metric_name, metric in self.fairness_prob_metrics.items():
-            results[metric_name] = metric.fun(y_true=self.y_true,
-                                              y_prob=self.y_prob,
-                                              sensitive_features=self.sensitive_features,
-                                              method=method)
+        for sensitive_feature_name in self.sensitive_features:
+            sensitive_feature_series = self.sensitive_features[sensitive_feature_name]
+            fairness_metrics_feature = {k:v for k,v in self.fairness_metrics.items() if k.startswith(sensitive_feature_name)}
+            for metric_name, metric in fairness_metrics_feature.items():
+                results[sensitive_feature_name + '-' + metric_name] = metric.fun(y_true=self.y_true,
+                                                y_pred=self.y_pred,
+                                                sensitive_features=sensitive_feature_series,
+                                                method=method)
+            for metric_name, metric in self.fairness_prob_metrics.items():
+                results[metric_name] = metric.fun(y_true=self.y_true,
+                                                y_prob=self.y_prob,
+                                                sensitive_features=sensitive_feature_series,
+                                                method=method)
+
         results = pd.Series(results, dtype=float, name='value')
+        
         # add parity results
         parity_results = pd.Series(dtype=float)
-        for metric_frame in self.metric_frames.values():
-            parity_results = pd.concat(
-                [parity_results, metric_frame.difference(method=method)])
+        for sensitive_feature_name in self.sensitive_features:
+            metric_frames_feature = {k:v for k,v in self.metric_frames.items() if k.startswith(sensitive_feature_name)}
+            for metric_frame in metric_frames_feature.values():
+                diffs = metric_frame.difference(method=method)
+                diffs.index = sensitive_feature_name + '-' + diffs.index
+                parity_results = pd.concat(
+                    [parity_results, diffs])
         parity_results.name = 'value'
 
         results = pd.concat([results, parity_results]).convert_dtypes().to_frame()
