@@ -187,7 +187,7 @@ class DatasetFairness(CredoModule):
         col_names = ColumnTransformerUtil.get_ct_feature_names(preprocessor)
         feature_importances = pd.Series(model.feature_importances_, 
             index=col_names).sort_values(ascending=False)
-        results['sensitive_feature_prediction_score'] = cv_results.mean()
+        results['sensitive_feature_prediction_score'] = cv_results.mean() * 2 - 1 # move to 0-1 range
         results['sensitive_feature_prediction_feature_importances'] = feature_importances.to_dict()
 
         return results
