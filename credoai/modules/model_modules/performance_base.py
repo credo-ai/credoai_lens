@@ -77,7 +77,9 @@ class PerformanceModule(CredoModule):
         """
         self.results = {'overall_performance': self.get_overall_metrics()}
         if self.perform_disaggregation:
-            self.results['disaggregated_performance'] = self.get_disaggregated_performance()
+            for sensitive_feature_name in self.sensitive_features:
+                prefix = sensitive_feature_name + '-'
+                self.results[prefix + 'disaggregated_performance'] = self.get_disaggregated_performance(sensitive_feature_name)
         return self
         
     def prepare_results(self, filter=None):
@@ -109,12 +111,16 @@ class PerformanceModule(CredoModule):
             else:
                 results = pd.DataFrame()
             # melt disaggregated df before combinding
-            if 'disaggregated_performance' in self.results:
-                disaggregated_df = self.results['disaggregated_performance']
-                disaggregated_df = disaggregated_df.reset_index() \
-                    .melt(id_vars=[disaggregated_df.index.name, 'subtype'], var_name='metric_type')\
-                    .set_index('metric_type')
-                results = pd.concat([results, disaggregated_df])
+            # if 'disaggregated_performance' in self.results:
+            if self.perform_disaggregation:
+                for sensitive_feature_name in self.sensitive_features:
+                    prefix = sensitive_feature_name + '-'
+                    disaggregated_df = self.results[prefix + 'disaggregated_performance']
+                    disaggregated_df = disaggregated_df.reset_index() \
+                        .melt(id_vars=[disaggregated_df.index.name, 'subtype'], var_name='metric_type')\
+                        .set_index('metric_type')
+                    results = pd.concat([results, disaggregated_df])
+            
             if filter:
                 results = results.filter(regex=filter)
             return results
@@ -169,14 +175,18 @@ class PerformanceModule(CredoModule):
         pandas.Series
             The overall performance metrics
         """
-        overall_metrics = [metric_frame.overall for metric_frame in self.metric_frames.values()]
+        # retrive overall metrics for one of the sensitive features only as they are the same
+        sensitive_feature_name = self.sensitive_features.columns[0]
+        metric_frames_feature = {k:v for k,v in self.metric_frames.items() if k.startswith(sensitive_feature_name)}
+
+        overall_metrics = [metric_frame.overall for metric_frame in metric_frames_feature.values()]
         output_series = pd.concat(overall_metrics, axis=0) \
                           .rename(index='value') \
                           .to_frame() \
                           .assign(subtype='overall_performance')
         return output_series
 
-    def get_disaggregated_performance(self):
+    def get_disaggregated_performance(self, sensitive_feature_name):
         """Return performance metrics for each group
 
         Parameters
@@ -190,7 +200,8 @@ class PerformanceModule(CredoModule):
             The disaggregated performance metrics
         """
         disaggregated_df = pd.DataFrame()
-        for metric_frame in self.metric_frames.values():
+        metric_frames_feature = {k:v for k,v in self.metric_frames.items() if k.startswith(sensitive_feature_name)}
+        for metric_frame in metric_frames_feature.values():
             df = metric_frame.by_group.copy().convert_dtypes()
             disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
         return disaggregated_df.assign(subtype='disaggregated_performance')
@@ -239,24 +250,31 @@ class PerformanceModule(CredoModule):
         return (performance_metrics, prob_metrics,
                 failed_metrics)
 
-    def _create_metric_frame(self, metrics, y_pred):
+    def _create_metric_frame(self, metrics, y_pred, sensitive_feature_series):
         """Creates metric frame from dictionary of key:Metric"""
         metrics = {name: metric.fun for name, metric in metrics.items()}
         return MetricFrame(metrics=metrics,
                            y_true=self.y_true,
                            y_pred=y_pred,
-                           sensitive_features=self.sensitive_features)
+                           sensitive_features=sensitive_feature_series)
     
     def _setup_metric_frames(self):
         self.metric_frames = {}
-        if self.y_pred is not None and self.performance_metrics:
-            self.metric_frames['pred'] = self._create_metric_frame(
-                self.performance_metrics, self.y_pred)
-        # for metrics that require the probabilities
-        self.prob_metric_frame = None
-        if self.y_prob is not None and self.prob_metrics:
-            self.metric_frames['prob'] = self._create_metric_frame(
-                self.prob_metrics, self.y_prob)
+        for sensitive_feature_name in self.sensitive_features:
+            prefix = sensitive_feature_name + '-'
+            sensitive_feature_series = self.sensitive_features[sensitive_feature_name]
+
+            if self.y_pred is not None and self.performance_metrics:
+                self.metric_frames[prefix + 'pred'] = self._create_metric_frame(
+                    self.performance_metrics, self.y_pred,
+                    sensitive_feature_series=sensitive_feature_series)
+
+                # for metrics that require the probabilities
+                self.prob_metric_frame = None
+                if self.y_prob is not None and self.prob_metrics:
+                    self.metric_frames[prefix + 'prob'] = self._create_metric_frame(
+                        self.prob_metrics, self.y_prob,
+                        sensitive_feature_series=sensitive_feature_series)
             
     def _validate_inputs(self):
         check_consistent_length(self.y_true, self.y_pred,
