@@ -68,26 +68,24 @@ class DatasetFairness(CredoModule):
             Values: detailed results associated with each category
         """
         self.results = {}
-        for sensitive_feature_name in self.sensitive_features:
-            sensitive_feature_series = self.sensitive_features[sensitive_feature_name]
-
-            sensitive_feature_prediction_results = self._run_cv(sensitive_feature_series)
+        for sf_name, sf_series in self.sensitive_features.items():
+            sensitive_feature_prediction_results = self._run_cv(sf_series)
             sensitive_feature_prediction_results = {
-                sensitive_feature_name + '-' + str(key): val for key, val in sensitive_feature_prediction_results.items()
+                f'{sf_name}-{key}': val for key, val in sensitive_feature_prediction_results.items()
             }
 
-            group_differences = self._group_differences(sensitive_feature_series)
+            group_differences = self._group_differences(sf_series)
 
-            normalized_mutual_information = self._calculate_mutual_information(sensitive_feature_series)
+            normalized_mutual_information = self._calculate_mutual_information(sf_series)
 
-            balance_metrics = self._assess_balance_metrics(sensitive_feature_series)
-            balance_metrics = {sensitive_feature_name + '-' + str(key): val for key, val in balance_metrics.items()}
+            balance_metrics = self._assess_balance_metrics(sf_series)
+            balance_metrics = {f'{sf_name}-{key}': val for key, val in balance_metrics.items()}
 
             self.results.update({
                 **balance_metrics,
                 **sensitive_feature_prediction_results,
-                sensitive_feature_name + '-' + 'standardized_group_diffs': group_differences,
-                sensitive_feature_name + '-' + 'normalized_mutual_information': normalized_mutual_information
+                f'{sf_name}-standardized_group_diffs': group_differences,
+                f'{sf_name}-normalized_mutual_information': normalized_mutual_information
                 })
         return self  
     
