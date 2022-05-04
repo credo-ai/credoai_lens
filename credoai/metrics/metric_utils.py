@@ -30,7 +30,7 @@ def bootstrap_CI(metric_fun, fun_inputs, CI=.95,
     CI : float, optional
         The confidence interval. Defaults to .95
     reps : int, optional
-        Number of bootstrap samples to create, by default 100
+        Number of bootstrap samples to create, by default 1000
     method : str, optional
         method of calculate bootstrapped confidence interval:
             "se": standard error. This method uses the estimated mean
