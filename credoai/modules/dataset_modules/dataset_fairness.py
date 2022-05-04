@@ -150,7 +150,8 @@ class DatasetFairness(CredoModule):
         """Determines redundant encoding
 
         A model is trained on the features to predict the sensitive attribute.
-        The score is cross-validated ROC-AUC score.
+        The score, called "sensitive-feature-prediction-score" is a cross-validated ROC-AUC score. 
+        We scale the score from typical ROC range of 0.5-1 to 0-1.
         It quantifies the performance of this prediction. 
         A high score means the data collectively serves as a proxy.
 
