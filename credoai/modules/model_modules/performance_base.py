@@ -119,6 +119,7 @@ class PerformanceModule(CredoModule):
                     disaggregated_df = disaggregated_df.reset_index() \
                         .melt(id_vars=[disaggregated_df.index.name, 'subtype'], var_name='metric_type')\
                         .set_index('metric_type')
+                    disaggregated_df['sensitive_feature'] = sensitive_feature_name
                     results = pd.concat([results, disaggregated_df])
             
             if filter:

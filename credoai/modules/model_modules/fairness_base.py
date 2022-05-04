@@ -1,3 +1,4 @@
+from dis import dis
 from absl import logging
 from credoai.utils.common import to_array, NotRunError, ValidationError
 from credoai.metrics import Metric, find_metrics, MODEL_METRIC_CATEGORIES 
@@ -154,36 +155,49 @@ class FairnessModule(PerformanceModule):
             The returned fairness metrics
         """
 
-        results = {}
+        results = []
         for sensitive_feature_name in self.sensitive_features:
             sensitive_feature_series = self.sensitive_features[sensitive_feature_name]
-            fairness_metrics_feature = {k:v for k,v in self.fairness_metrics.items() if k.startswith(sensitive_feature_name)}
-            for metric_name, metric in fairness_metrics_feature.items():
-                results[sensitive_feature_name + '-' + metric_name] = metric.fun(y_true=self.y_true,
+            for metric_name, metric in self.fairness_metrics.items():
+                metric_value = metric.fun(y_true=self.y_true,
                                                 y_pred=self.y_pred,
                                                 sensitive_features=sensitive_feature_series,
                                                 method=method)
+
+                results.append({
+                    'metric_type': metric_name,
+                    'value': metric_value,
+                    'sensitive_feature': sensitive_feature_name
+                    })
+
             for metric_name, metric in self.fairness_prob_metrics.items():
-                results[metric_name] = metric.fun(y_true=self.y_true,
+                metric_value = metric.fun(y_true=self.y_true,
                                                 y_prob=self.y_prob,
                                                 sensitive_features=sensitive_feature_series,
                                                 method=method)
+                results.append({
+                    'metric_type': metric_name,
+                    'value': metric_value,
+                    'sensitive_feature': sensitive_feature_name
+                    })
 
-        results = pd.Series(results, dtype=float, name='value')
+        results = pd.DataFrame.from_dict(results)
         
         # add parity results
         parity_results = pd.Series(dtype=float)
+        parity_results = []
         for sensitive_feature_name in self.sensitive_features:
             metric_frames_feature = {k:v for k,v in self.metric_frames.items() if k.startswith(sensitive_feature_name)}
             for metric_frame in metric_frames_feature.values():
                 diffs = metric_frame.difference(method=method)
-                diffs.index = sensitive_feature_name + '-' + diffs.index
-                parity_results = pd.concat(
-                    [parity_results, diffs])
-        parity_results.name = 'value'
+                diffs = pd.DataFrame({'metric_type':diffs.index, 'value':diffs.values})
+                diffs['sensitive_feature'] = sensitive_feature_name
+                parity_results.append(diffs)
 
-        results = pd.concat([results, parity_results]).convert_dtypes().to_frame()
-        results.index.name = 'metric_type'
+        parity_results = pd.concat(parity_results)
+
+        results = pd.concat([results, parity_results])
+        results.set_index('metric_type', inplace=True)
         # add kind
         results['subtype'] = ['fairness'] * len(results)
         results.loc[results.index[-len(parity_results):], 'subtype'] = 'parity'
