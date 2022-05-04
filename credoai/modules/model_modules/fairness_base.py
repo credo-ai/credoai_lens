@@ -156,29 +156,28 @@ class FairnessModule(PerformanceModule):
         """
 
         results = []
-        for sensitive_feature_name in self.sensitive_features:
-            sensitive_feature_series = self.sensitive_features[sensitive_feature_name]
+        for sf_name, sf_series in self.sensitive_features.items():
             for metric_name, metric in self.fairness_metrics.items():
                 metric_value = metric.fun(y_true=self.y_true,
-                                                y_pred=self.y_pred,
-                                                sensitive_features=sensitive_feature_series,
-                                                method=method)
+                                          y_pred=self.y_pred,
+                                          sensitive_features=sf_series,
+                                          method=method)
 
                 results.append({
                     'metric_type': metric_name,
                     'value': metric_value,
-                    'sensitive_feature': sensitive_feature_name
+                    'sensitive_feature': sf_name
                     })
 
             for metric_name, metric in self.fairness_prob_metrics.items():
                 metric_value = metric.fun(y_true=self.y_true,
-                                                y_prob=self.y_prob,
-                                                sensitive_features=sensitive_feature_series,
-                                                method=method)
+                                          y_prob=self.y_prob,
+                                          sensitive_features=sf_series,
+                                          method=method)
                 results.append({
                     'metric_type': metric_name,
                     'value': metric_value,
-                    'sensitive_feature': sensitive_feature_name
+                    'sensitive_feature': sf_name
                     })
 
         results = pd.DataFrame.from_dict(results)
@@ -186,12 +185,11 @@ class FairnessModule(PerformanceModule):
         # add parity results
         parity_results = pd.Series(dtype=float)
         parity_results = []
-        for sensitive_feature_name in self.sensitive_features:
-            metric_frames_feature = {k:v for k,v in self.metric_frames.items() if k.startswith(sensitive_feature_name)}
-            for metric_frame in metric_frames_feature.values():
+        for sf_name, metric_frames in self.metric_frames.items():
+            for metric_frame in metric_frames.values():
                 diffs = metric_frame.difference(method=method)
                 diffs = pd.DataFrame({'metric_type':diffs.index, 'value':diffs.values})
-                diffs['sensitive_feature'] = sensitive_feature_name
+                diffs['sensitive_feature'] = sf_name
                 parity_results.append(diffs)
 
         parity_results = pd.concat(parity_results)
