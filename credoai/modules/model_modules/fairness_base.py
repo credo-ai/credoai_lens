@@ -199,7 +199,7 @@ class FairnessModule(PerformanceModule):
         # add kind
         results['subtype'] = ['fairness'] * len(results)
         results.loc[results.index[-len(parity_results):], 'subtype'] = 'parity'
-        return results
+        return results.sort_values(by='sensitive_feature')
 
     def _process_metrics(self, metrics):
         """Separates metrics
