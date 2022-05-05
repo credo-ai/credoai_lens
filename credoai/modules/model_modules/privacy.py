@@ -27,17 +27,19 @@ class PrivacyModule(CredoModule):
         A trained ML model
     """    
     def __init__(self,
+                model,
                 x_train,
                 y_train,
                 x_test,
                 y_test,
-                model):
+                attack_train_ratio=0.50):
 
         self.x_train = x_train.to_numpy()
         self.y_train = y_train.to_numpy()
         self.x_test = x_test.to_numpy()
         self.y_test = y_test.to_numpy()
         self.model = model
+
         self.attack_model = SklearnClassifier(model)
 
     def run(self):
@@ -49,7 +51,6 @@ class PrivacyModule(CredoModule):
             Key: metric name
             Value: metric value
         """
-
         rule_based_attack_performance = self._rule_based_attack()
         model_based_attack_performance = self._model_based_attack()
  
@@ -74,12 +75,10 @@ class PrivacyModule(CredoModule):
             If results have not been run, raise
         """
         if self.results is not None:
-            metric_types = ['rule_based_attack_accuracy_score',
-            'rule_based_attack_f1_score',
-            'rule_based_attack_roc_auc_score',
-            'model_based_attack_accuracy_score',
-            'model_based_attack_f1_score',
-            'model_based_attack_roc_auc_score']
+            metric_types = [
+                'rule_based_attack_accuracy_score',
+                'model_based_attack_accuracy_score'
+            ]
 
             index = []
             prepared_arr = []
@@ -140,12 +139,10 @@ class PrivacyModule(CredoModule):
             )
         accuracy_score = sk_metrics.accuracy_score(y_true, y_pred)
         f1_score = sk_metrics.f1_score(y_true, y_pred)
-        roc_auc_score = sk_metrics.roc_auc_score(y_true, y_pred)
+        matthews_score = sk_metrics.matthews_corrcoef(y_true, y_pred)
 
         attack_performance = {
-            'rule_based_attack_accuracy_score': accuracy_score,
-            'rule_based_attack_f1_score': f1_score,
-            'rule_based_attack_roc_auc_score': roc_auc_score
+            'rule_based_attack_accuracy_score': accuracy_score
             }
         
         return attack_performance
@@ -189,12 +186,10 @@ class PrivacyModule(CredoModule):
             )
         accuracy_score = sk_metrics.accuracy_score(y_true, y_pred)
         f1_score = sk_metrics.f1_score(y_true, y_pred)
-        roc_auc_score = sk_metrics.roc_auc_score(y_true, y_pred)
+        matthews_score = sk_metrics.matthews_corrcoef(y_true, y_pred)
 
         attack_performance = {
-            'model_based_attack_accuracy_score': accuracy_score,
-            'model_based_attack_f1_score': f1_score,
-            'model_based_attack_roc_auc_score': roc_auc_score
+            'model_based_attack_accuracy_score': accuracy_score
             }
         
         return attack_performance

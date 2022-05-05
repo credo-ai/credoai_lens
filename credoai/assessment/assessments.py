@@ -382,7 +382,6 @@ class PrivacyAssessment(CredoAssessment):
     objective functions. Examples include:
 
     * classification
-    * regression
 
     Supports models from  the following libraries:
 
@@ -402,11 +401,12 @@ class PrivacyAssessment(CredoAssessment):
             mod.PrivacyModule,
             AssessmentRequirements(
                 model_requirements=[('pred_fun')],
-                data_requirements=['X', 'y']
+                data_requirements=['X', 'y'],
+                training_data_requirements=['X', 'y']
             )
         )
     
-    def init_module(self, *, model, data, metrics):
+    def init_module(self, *, model, data, training_data, metrics):
         """Initializes the assessment module
 
         Transforms CredoModel and CredoData into the proper form
@@ -418,6 +418,7 @@ class PrivacyAssessment(CredoAssessment):
         ------------
         model : CredoModel
         data : CredoData
+        training_data: CredoData
         metrics : List-like
             list of metric names as string or list of Metrics (credoai.metrics.Metric).
             Metric strings should in list returned by credoai.metrics.list_metrics.
@@ -437,7 +438,9 @@ class PrivacyAssessment(CredoAssessment):
 
         module = self.module(
             model,
-            data.X,
-            data.y)
+            training_data.X_train,
+            training_data.y_train,
+            data.X_train,
+            data.y_train,)
             
         self.initialized_module = module
