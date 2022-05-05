@@ -1,5 +1,5 @@
 """
-Module containing all CredoAssessmsents
+Module containing all CredoAssessments
 """
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
