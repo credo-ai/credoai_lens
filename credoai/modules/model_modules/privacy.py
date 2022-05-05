@@ -15,6 +15,8 @@ class PrivacyModule(CredoModule):
 
     Parameters
     ----------
+    model : model
+        A trained ML model
     x_train : pandas.DataFrame
         The training features
     y_train : pandas.Series
@@ -23,8 +25,6 @@ class PrivacyModule(CredoModule):
         The test features
     y_test : pandas.Series
         The test outcome labels
-    model : model
-        A trained ML model
     """    
     def __init__(self,
                 model,
@@ -138,8 +138,6 @@ class PrivacyModule(CredoModule):
             np.zeros(len(inferred_test.flatten()), dtype=int)]
             )
         accuracy_score = sk_metrics.accuracy_score(y_true, y_pred)
-        f1_score = sk_metrics.f1_score(y_true, y_pred)
-        matthews_score = sk_metrics.matthews_corrcoef(y_true, y_pred)
 
         attack_performance = {
             'rule_based_attack_accuracy_score': accuracy_score
@@ -161,9 +159,8 @@ class PrivacyModule(CredoModule):
             Key: metric name
             Value: metric value
         """   
-        attack_train_ratio = 0.5
-        attack_train_size = int(len(self.x_train) * attack_train_ratio)
-        attack_test_size = int(len(self.x_test) * attack_train_ratio)
+        attack_train_size = int(len(self.x_train) * self.attack_train_ratio)
+        attack_test_size = int(len(self.x_test) * self.attack_train_ratio)
 
         bb_attack = MembershipInferenceBlackBox(self.attack_model)
 
@@ -185,8 +182,6 @@ class PrivacyModule(CredoModule):
             np.zeros(len(inferred_test_bb.flatten()), dtype=int)]
             )
         accuracy_score = sk_metrics.accuracy_score(y_true, y_pred)
-        f1_score = sk_metrics.f1_score(y_true, y_pred)
-        matthews_score = sk_metrics.matthews_corrcoef(y_true, y_pred)
 
         attack_performance = {
             'model_based_attack_accuracy_score': accuracy_score

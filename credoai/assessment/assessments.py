@@ -406,7 +406,7 @@ class PrivacyAssessment(CredoAssessment):
             )
         )
     
-    def init_module(self, *, model, data, training_data, metrics):
+    def init_module(self, *, model, data, training_data):
         """Initializes the assessment module
 
         Transforms CredoModel and CredoData into the proper form
@@ -434,13 +434,18 @@ class PrivacyAssessment(CredoAssessment):
             self.initialized_module = self.module(model, data)
 
         """
-        super().init_module(model=model, data=data)
+        super().init_module(
+            model=model,
+            data=data,
+            training_data=training_data
+        )
 
         module = self.module(
             model,
-            training_data.X_train,
-            training_data.y_train,
-            data.X_train,
-            data.y_train,)
+            training_data.X,
+            training_data.y,
+            data.X,
+            data.y
+        )
             
         self.initialized_module = module
