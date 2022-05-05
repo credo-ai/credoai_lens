@@ -39,6 +39,7 @@ class PrivacyModule(CredoModule):
         self.x_test = x_test.to_numpy()
         self.y_test = y_test.to_numpy()
         self.model = model
+        self.attack_train_ratio = attack_train_ratio
 
         self.attack_model = SklearnClassifier(model)
 
