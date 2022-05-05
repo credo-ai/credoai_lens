@@ -14,8 +14,12 @@ def get_assessment_requirements():
             for name, assessment_class in ASSESSMENTS}
 
 
-def get_usable_assessments(credo_model=None, credo_data=None, candidate_assessments=None):
-    """Selects usable assessments based on model and data capabililties
+def get_usable_assessments(
+    credo_model=None,
+    credo_data=None,
+    candidate_assessments=None,
+    credo_training_data=None):
+    """Selects usable assessments based on model and data capabilities
 
     Parameters
     ----------
@@ -37,7 +41,7 @@ def get_usable_assessments(credo_model=None, credo_data=None, candidate_assessme
     assessments = {}
     for assessment_class in to_check:
         assessment = assessment_class()
-        if assessment.check_requirements(credo_model, credo_data):
+        if assessment.check_requirements(credo_model, credo_data, credo_training_data):
             assessments[assessment.get_name()] = assessment
         elif candidate_assessments is not None:
             logging.warning(f"Model or Data does not conform to {assessment.name} assessment's requirements.\nAssessment will not be run")
