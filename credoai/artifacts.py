@@ -46,22 +46,21 @@ class CredoGovernance:
 
     This information is used to interact with the CredoAI
     Governance App. Artifacts (Use Cases, models, and datasets) 
-    are identified by a unique ID which 
-    can be found on the platform.
+    are identified by names. If names are supplied, they will be 
 
     To make use of Governance App a .credo_config file must
     also be set up (see README)
 
     Parameters
     ----------
-    use_case_id : str, optional
-        ID of Use Case on Credo AI Governance app, by default None
-    model_id : str, optional
-        ID of model on Credo AI Governance app, by default None
-    dataset_id : str, optional
-        ID of assessment dataset on Credo AI Governance app, by default None
-    training_dataset_id : str, optional
-        ID of training dataset on Credo AI Governance app. This dataset will
+    use_case_name : str, optional
+        Name of Use Case on Credo AI Governance app, by default None
+    model_name : str, optional
+        Name of model on Credo AI Governance app, by default None
+    dataset_name : str, optional
+        Name of assessment dataset on Credo AI Governance app, by default None
+    training_dataset_name : str, optional
+        Name of training dataset on Credo AI Governance app. This dataset will
         not be used for assessment, but may be analyzed itself, by default None
     warning_level : int
         warning level. 
@@ -70,18 +69,22 @@ class CredoGovernance:
             2: warnings are raised as exceptions.
     """
     def __init__(self,
-                 use_case_id: str = None,
-                 model_id: str = None,
-                 dataset_id: str = None,
-                 training_dataset_id: str = None,
+                 use_case_name: str,
+                 model_name: str = None,
+                 dataset_name: str = None,
+                 training_dataset_name: str = None,
                  warning_level=1):
-        self.use_case_id = use_case_id
-        self.model_id = model_id
-        self.dataset_id = dataset_id
-        self.training_dataset_id = training_dataset_id
+        self.use_case_name = use_case_name
+        self.model_name = model_name
+        self.dataset_name = dataset_name
+        self.training_dataset_name = training_dataset_name
+        self._set_governance_info_by_name(use_case_name=use_case_name)
+
+        self.model_id = None
+        self.dataset_id = None
+        self.training_dataset_id = None
         self.assessment_spec = {}
         self.warning_level = warning_level
-        self._validate_ids()
 
     def get_assessment_spec(self):
         """Get assessment spec
@@ -117,15 +120,11 @@ class CredoGovernance:
     
 
     def get_info(self):
-        """Return Credo AI Governance IDs"""
+        """Return Credo AI Governance Info"""
         to_return = self.__dict__.copy()
         del to_return['assessment_spec']
         del to_return['warning_level']
         return to_return
-
-    def get_defined_ids(self):
-        """Return IDS that have been defined"""
-        return [k for k, v in self.get_info().items() if v]
 
     def register(self,  
                  model_name=None,
@@ -133,7 +132,9 @@ class CredoGovernance:
                  training_dataset_name=None):
         """Registers artifacts to Credo AI Governance App
 
-        Convenience function to register multiple artifacts at once
+        Registers artifacts to Credo AI Governance app, relating all artifacts
+        to the specified use case. If artifacts are already registered, CredoGovernance
+        will not re-register them. Instead, it will associate those artifacts with the use-case.
 
         Parameters
         ----------
@@ -146,10 +147,13 @@ class CredoGovernance:
 
         """        
         if model_name:
+            self.model_name = model_name
             self._register_model(model_name)
         if dataset_name:
+            self.dataset_name = dataset_name
             self._register_dataset(dataset_name)
         if training_dataset_name:
+            self.training_dataset_name = training_dataset_name
             self._register_dataset(training_dataset_name, register_as_training=True)
 
     def export_assessment_results(self, 
@@ -178,14 +182,15 @@ class CredoGovernance:
         payload = ci.prepare_assessment_payload(
             assessment_results, report=report, assessed_at=assessed_at)
         if destination == 'credoai':
-            if self.use_case_id and self.model_id:
+            # ensure model and datasets are registered
+            if self.model_id:
                 ci.post_assessment(self.use_case_id,
-                               self.model_id, payload)
+                                   self.model_id, payload)
                 logging.info(
                     f"Exporting assessments to Credo AI's Governance App")
             else:
-                logging.error("Couldn't upload assessment to Credo AI's Governance App. "
-                                "Ensure use_case_id is defined in CredoGovernance")
+                logging.error("Couldn't upload assessment to Credo AI's Governance App. Ensure"
+                              " a model has been registered")
         else:
             if not path.exists(destination):
                 makedirs(destination, exist_ok=False)
@@ -228,7 +233,65 @@ class CredoGovernance:
         self.assessment_spec = assessment_spec
         return self.assessment_spec
 
-    def set_governance_info_by_name(self,
+    def _register_dataset(self, dataset_name, register_as_training=False):
+        """Registers a dataset
+
+        Parameters
+        ----------
+        dataset_name : str
+            name of a dataset
+        register_as_training : bool
+            If True and model_id is defined, register dataset to model as training data, 
+            default False
+        """
+        prefix = ''
+        if register_as_training:
+            prefix = 'training_'
+        try:
+            ids = ci.register_dataset(dataset_name=dataset_name)
+            setattr(self, f'{prefix}dataset_id', ids['dataset_id'])
+            logging.info(f"**** Registering dataset ({dataset_name})")
+        except IntegrationError:
+            self._set_governance_info_by_name(**{f'{prefix}dataset_name': dataset_name})
+            raise_or_warn(IntegrationError,
+                          f"The dataset ({dataset_name}) is already registered.",
+                          f"The dataset ({dataset_name}) is already registered. Using registered dataset",
+                          self.warning_level)
+        if not register_as_training and self.model_id:
+            logging.info(f"Registering dataset ({dataset_name}) as validation data for model"
+                         f" ({self.model_name}) for use case ({self.use_case_name})")
+            ci.register_dataset_to_model_usecase(
+                use_case_id=self.use_case_id, model_id=self.model_id, dataset_id=self.dataset_id
+            )
+        if register_as_training and self.model_id and self.training_dataset_id:
+            logging.info(f"Registering dataset ({dataset_name}) as training data for model"
+                         f" ({self.model_name})")
+            ci.register_dataset_to_model(self.model_id, self.training_dataset_id)
+
+
+    def _register_model(self, model_name):
+        """Registers a model
+
+        If a project has not been registered, a new project will be created to
+        register the model under.
+
+        If an AI solution has been set, the model will be registered to that
+        solution.
+        """
+        try:
+            ids = ci.register_model(model_name=model_name)
+            self.model_id = ids['model_id']
+            logging.info(f"**** Registering model ({model_name})")
+        except IntegrationError:
+            self._set_governance_info_by_name(model_name=model_name)
+            raise_or_warn(IntegrationError,
+                          f"The model ({model_name}) is already registered.",
+                          f"The model ({model_name}) is already registered. Using registered model",
+                          self.warning_level)
+        logging.info(f"Registering model ({model_name}) to Use Case ({self.use_case_id})")
+        ci.register_model_to_usecase(self.use_case_id, self.model_id)
+
+    def _set_governance_info_by_name(self,
                                     *,
                                     use_case_name=None,
                                     model_name=None,
@@ -267,72 +330,6 @@ class CredoGovernance:
             ids = get_dataset_by_name(training_dataset_name)
             if ids is not None:
                 self.training_dataset_id = ids['dataset_id']
-
-    def _register_dataset(self, dataset_name, register_as_training=False):
-        """Registers a dataset
-
-        Parameters
-        ----------
-        dataset_name : str
-            name of a dataset
-        register_as_training : bool
-            If True and model_id is defined, register dataset to model as training data, 
-            default False
-        """
-        prefix = ''
-        if register_as_training:
-            prefix = 'training_'
-        try:
-            ids = ci.register_dataset(dataset_name=dataset_name)
-            setattr(self, f'{prefix}dataset_id', ids['dataset_id'])
-        except IntegrationError:
-            self.set_governance_info_by_name(**{f'{prefix}dataset_name': dataset_name})
-            raise_or_warn(IntegrationError,
-                          f"The dataset ({dataset_name}) is already registered.",
-                          f"The dataset ({dataset_name}) is already registered. Using registered dataset",
-                          self.warning_level)
-        if not register_as_training and self.model_id and self.use_case_id:
-            ci.register_dataset_to_model_usecase(
-                use_case_id=self.use_case_id, model_id=self.model_id, dataset_id=self.dataset_id
-            )
-        if register_as_training and self.model_id and self.training_dataset_id:
-            logging.info(f"Registering dataset ({dataset_name}) to model ({self.model_id})")
-            ci.register_dataset_to_model(self.model_id, self.training_dataset_id)
-
-
-    def _register_model(self, model_name):
-        """Registers a model
-
-        If a project has not been registered, a new project will be created to
-        register the model under.
-
-        If an AI solution has been set, the model will be registered to that
-        solution.
-        """
-        try:
-            ids = ci.register_model(model_name=model_name)
-            self.model_id = ids['model_id']
-        except IntegrationError:
-            self.set_governance_info_by_name(model_name=model_name)
-            raise_or_warn(IntegrationError,
-                          f"The model ({model_name}) is already registered.",
-                          f"The model ({model_name}) is already registered. Using registered model",
-                          self.warning_level)
-        if self.use_case_id:
-            logging.info(f"Registering model ({model_name}) to Use Case ({self.use_case_id})")
-            ci.register_model_to_usecase(self.use_case_id, self.model_id)
-
-    def _validate_ids(self):
-        ids = self.get_info()
-        for key, artifact_id in ids.items():
-            if artifact_id is None:
-                continue
-            if key == 'use_case_id':
-                get_use_case_name(artifact_id)
-            elif key == 'model_id':
-                get_model_name(artifact_id)
-            else:
-                get_dataset_name(artifact_id)
 
 class CredoModel:
     """Class wrapper around model-to-be-assessed

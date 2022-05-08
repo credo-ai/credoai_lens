@@ -48,8 +48,8 @@ class Lens:
         governance : CredoGovernance or string, optional
             If CredoGovernance, object connecting
             Lens with Governance App. If string, interpreted as 
-            use-case ID on the Governance App. A CredoGovernance object
-            will be created with the string as use_case_id, by default None
+            use case name on the Governance App. A CredoGovernance object
+            will be created with the string as the use case name, by default None
         spec : dict
             key word arguments passed to each assessments `init_module` 
             function using `Lens.init_module`. Each key must correspond to
@@ -105,10 +105,9 @@ class Lens:
         if governance:
             if isinstance(governance, str):
                 self.gov = CredoGovernance(
-                    use_case_id=governance, warning_level=warning_level)
+                    use_case_name=governance, warning_level=warning_level)
             else:
                 self.gov = governance
-            self._register_artifacts()
         else:
             self.gov = CredoGovernance(warning_level=warning_level)
 
@@ -191,6 +190,9 @@ class Lens:
             -- "credoai", a special string to send to Credo AI Governance App.
             -- Any other string, save assessment json to the output_directory indicated by the string.
         """
+        if destination == 'credoai':
+            self._register_artifacts()
+            
         prepared_results = []
         for assessment in self.get_assessments(flatten=True):
             try:
@@ -292,19 +294,11 @@ class Lens:
 
     def _gather_meta(self, assessment):
         if assessment.data_name == self.assessment_dataset.name:
-            dataset_id = self.gov.dataset_id
+            dataset_name = self.gov.dataset_name
         elif assessment.data_name == self.training_dataset.name:
-            dataset_id = self.gov.training_dataset_id
+            dataset_name = self.gov.training_dataset_name
         return {'process': f'Lens-v{__version__}_{assessment.name}',
-                'dataset_id': dataset_id}
-
-    def _get_credo_destination(self, to_model=True):
-        """Get destination for export and ensure all artifacts are registered"""
-        self._register_artifacts()
-        destination = self.gov.model_id if to_model else self.gov.dataset_id
-        label = 'model' if to_model else 'dataset'
-        logging.info(f"**** Destination for export: {label} id-{destination}")
-        return destination
+                'dataset_name': dataset_name}
 
     def _init_assessments(self):
         """Initializes modules in each assessment"""
@@ -347,21 +341,10 @@ class Lens:
     def _register_artifacts(self):
         to_register = {}
         if self.gov.model_id is None and self.model:
-            raise_or_warn(ValidationError,
-                          "No model_id supplied to export to Credo AI.")
-            logging.info(f"**** Registering model ({self.model.name})")
             to_register['model_name'] = self.model.name
         if self.gov.dataset_id is None and self.assessment_dataset:
-            raise_or_warn(ValidationError,
-                          "No dataset_id supplied to export to Credo AI.")
-            logging.info(
-                f"**** Registering assessment dataset ({self.assessment_dataset.name})")
             to_register['dataset_name'] = self.assessment_dataset.name
         if self.gov.training_dataset_id is None and self.training_dataset:
-            raise_or_warn(ValidationError,
-                          "No training dataset_id supplied to export to Credo AI.")
-            logging.info(
-                f"**** Registering training dataset ({self.training_dataset.name})")
             to_register['training_dataset_name'] = self.training_dataset.name
         if to_register:
             self.gov.register(**to_register)

@@ -58,8 +58,8 @@ class Metric(Record):
         metric value
     subtype : string, optional
         subtype of metric. Defaults to base
-    dataset_id : str, optional
-        ID of dataset. Should match a dataset on Governance App
+    dataset_name : str, optional
+        Name of dataset. Should match a dataset on Governance App
     process : string, optional
         String reflecting the process used to create the metric. E.g.,
         name of a particular Lens assessment, or link to code.
@@ -76,14 +76,14 @@ class Metric(Record):
                  metric_type,
                  value,
                  subtype="base",
-                 dataset_id=None,
+                 dataset_name=None,
                  process=None,
                  **metadata):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
         self.subtype = subtype
-        self.dataset_id = dataset_id
+        self.dataset_name = dataset_name
         self.process = process
         self.config_hash = self._generate_config()
 
@@ -94,7 +94,7 @@ class Metric(Record):
             'type': self.metric_type,
             'subtype': self.subtype,
             'value': self.value,
-            'dataset_id': self.dataset_id,
+            'dataset_name': self.dataset_name,
             'process': self.process,
             'labels': self.metadata,
             'value_updated_at': self.creation_time,
