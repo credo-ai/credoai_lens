@@ -109,7 +109,7 @@ class Lens:
             else:
                 self.gov = governance
         else:
-            self.gov = CredoGovernance(warning_level=warning_level)
+            self.gov = CredoGovernance(use_case_name=None, warning_level=warning_level)
 
         # set up assessments
         self.assessments = self._select_assessments(assessments)
