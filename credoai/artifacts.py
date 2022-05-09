@@ -74,15 +74,20 @@ class CredoGovernance:
                  dataset_name: str = None,
                  training_dataset_name: str = None,
                  warning_level=1):
+        self.use_case_id = None
+        self.model_id = None
+        self.dataset_id = None
+        self.training_dataset_id = None
+
+        # set up names and retrieve ids
         self.use_case_name = use_case_name
         self.model_name = model_name
         self.dataset_name = dataset_name
         self.training_dataset_name = training_dataset_name
-        self._set_governance_info_by_name(use_case_name=use_case_name)
-
-        self.model_id = None
-        self.dataset_id = None
-        self.training_dataset_id = None
+        self._set_governance_info_by_name(use_case_name=self.use_case_name,
+                                          model_name=self.model_name,
+                                          dataset_name=self.dataset_name,
+                                          training_dataset_name=self.training_dataset_name)
         self.assessment_spec = {}
         self.warning_level = warning_level
 
