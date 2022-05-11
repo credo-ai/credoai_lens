@@ -5,95 +5,61 @@ Module containing all CredoAssessmsents
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
 from credoai.reporting import (FairnessReporter, BinaryClassificationReporter,
-                              NLPGeneratorAnalyzerReporter, DatasetFairnessReporter, RegressionReporter)
+                               NLPGeneratorAnalyzerReporter, DatasetFairnessReporter, RegressionReporter)
 from sklearn.utils.multiclass import type_of_target
 from credoai.reporting.dataset_profiling import DatasetProfilingReporter
 
 from credoai.utils import InstallationError
 import credoai.utils as cutils
 import credoai.modules as mod
-import sys, inspect
+import sys
+import inspect
 
-class PerformanceAssessment(CredoAssessment):
-    """Basic evaluation of the performance of ML models
-    
-    Runs performance analysis on models with well-defined
-    objective functions. Examples include:
+# *******************
+# Model Assessments
+# *******************
+class ComputationalEfficiencyAssessment(CredoAssessment):
+    """Basic evaluation of the computational efficiency of ML models
 
-    * binary classification
-    * regression
-    * recommendation systems
+    Runs computational efficiency evaluation on models that do inference
 
     Modules:
-    
-    * credoai.modules.fairness_base
-    
+
+    * credoai.modules.computational_efficiency
+
     Requirements
     ------------
-    Requires that the CredoModel defines either `predict` or `predict_proba` (or both).
-    - `predict` should return the model's predictions.
-    - `predict_proba` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
-       Only applicable in classification scenarios.
+    Requires that the CredoModel defines a `predict` function
     """
+
     def __init__(self):
         super().__init__(
-            'Performance', 
-            mod.PerformanceModule,
+            'ComputationalEfficiency',
+            mod.ComputationalEfficiencyModule,
             AssessmentRequirements(
-                model_requirements=[('predict_proba', 'predict')],
-                data_requirements=['X', 'y']
+                model_requirements=['predict'],
+                data_requirements=['X']
             )
         )
-    
-    def init_module(self, *, model, data, metrics):
+
+    def init_module(self, *, model, data):
         """Initializes the assessment module
-
-        Transforms CredoModel and CredoData into the proper form
-        to create a runnable assessment.
-
-        See the lens_customization notebook for examples
 
         Parameters
         ------------
-        model : CredoModel, optional
-        data : CredoData, optional
-        metrics : List-like
-            list of metric names as string or list of Metrics (credoai.metrics.Metric).
-            Metric strings should in list returned by credoai.metrics.list_metrics.
-            Note for performance parity metrics like 
-            "false negative rate parity" just list "false negative rate". Parity metrics
-            are calculated automatically if the performance metric is supplied
-
-        Example
-        ---------
-        def build(self, ...):
-            y_pred = CredoModel.predict(CredoData.X)
-            y = CredoData.y
-            self.initialized_module = self.module(y_pred, y)
-
+        model : CredoModel
+        data : CredoData
         """
         super().init_module(model=model, data=data)
-        try:
-            y_pred = model.predict(data.X)
-        except AttributeError:
-            y_pred = None
-        try:
-            y_prob = model.predict_proba(data.X)
-        except AttributeError:
-            y_prob = None
-            
+
         module = self.module(
-            metrics,
-            data.y,
-            y_pred,
-            y_prob,
-            data.sensitive_features)
+            model.predict,
+            data.X)
         self.initialized_module = module
-    
 
 class FairnessAssessment(CredoAssessment):
     """Basic evaluation of the fairness of ML models
-    
+
     Runs fairness analysis on models with well-defined
     objective functions. Examples include:
 
@@ -102,9 +68,9 @@ class FairnessAssessment(CredoAssessment):
     * recommendation systems
 
     Modules:
-    
+
     * credoai.modules.fairness_base
-    
+
     Requirements
     ------------
     Requires that the CredoModel defines either `predict` or `predict_proba` (or both).
@@ -112,28 +78,24 @@ class FairnessAssessment(CredoAssessment):
     - `predict_proba` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
        Only applicable in classification scenarios.
     """
+
     def __init__(self):
         super().__init__(
-            'Fairness', 
+            'Fairness',
             mod.FairnessModule,
             AssessmentRequirements(
                 model_requirements=[('predict_proba', 'predict')],
                 data_requirements=['X', 'y', 'sensitive_features']
             )
         )
-    
+
     def init_module(self, *, model, data, metrics):
         """Initializes the assessment module
 
-        Transforms CredoModel and CredoData into the proper form
-        to create a runnable assessment.
-
-        See the lens_customization notebook for examples
-
         Parameters
         ------------
-        model : CredoModel, optional
-        data : CredoData, optional
+        model : CredoModel
+        data : CredoData
         metrics : List-like
             list of metric names as string or list of Metrics (credoai.metrics.Metric).
             Metric strings should in list returned by credoai.metrics.list_metrics.
@@ -158,7 +120,7 @@ class FairnessAssessment(CredoAssessment):
             y_prob = model.predict_proba(data.X)
         except AttributeError:
             y_prob = None
-            
+
         module = self.module(
             metrics,
             data.sensitive_features,
@@ -166,7 +128,7 @@ class FairnessAssessment(CredoAssessment):
             y_pred,
             y_prob)
         self.initialized_module = module
-    
+
     def get_reporter(self):
         if type_of_target(self.initialized_module.y_true) == 'binary':
             return BinaryClassificationReporter(self)
@@ -175,61 +137,63 @@ class FairnessAssessment(CredoAssessment):
         else:
             return FairnessReporter(self)
 
+
 class NLPEmbeddingBiasAssessment(CredoAssessment):
     """
     NLP Embedding-Bias Assessments
-    
+
     Runs the NLPEmbeddingAnalyzer module.
     """
-    def __init__(self):    
+
+    def __init__(self):
         super().__init__(
-            'NLPEmbeddingBias', 
+            'NLPEmbeddingBias',
             mod.NLPEmbeddingAnalyzer,
             AssessmentRequirements(
                 model_requirements=['embedding_fun'])
-            )
-        
-    def init_module(self, model, 
-              group_embeddings=None, 
-              comparison_categories=None, 
-              include_default=True):
+        )
+
+    def init_module(self, model,
+                    group_embeddings=None,
+                    comparison_categories=None,
+                    include_default=True):
         super().init_module(model=model)
         module = self.module(model.embedding_fun)
         if group_embeddings:
             module.set_group_embeddings(group_embeddings)
         if comparison_categories:
-            module.set_comparison_categories(include_default, comparison_categories)
+            module.set_comparison_categories(
+                include_default, comparison_categories)
         self.initialized_module = module
+
 
 class NLPGeneratorAssessment(CredoAssessment):
     """
     NLP Generator Assessment
-    
+
     Runs the NLPGenerator module.
-    
+
     Requirements
     ------------
     Requires that the CredoModel defines a "generator_fun"
     - `generator_fun` should take in text as input and return text. 
         See `credoai.utils.nlp_utils.gpt1_text_generator` as an example
     """
-    def __init__(self):    
+
+    def __init__(self):
         super().__init__(
-            'NLPGenerator', 
+            'NLPGenerator',
             mod.NLPGeneratorAnalyzer,
             AssessmentRequirements(
                 model_requirements=['generator_fun'])
-            )
-        
-    def init_module(self, *, model, 
-                   assessment_functions,
-                   prompts='bold_religious_ideology',
-                   comparison_models=None,
-                   perspective_config=None):
-        """ Initializes the assessment module
+        )
 
-        Transforms CredoModel into the proper form
-        to create a runnable assessment.
+    def init_module(self, *, model,
+                    assessment_functions,
+                    prompts='bold_religious_ideology',
+                    comparison_models=None,
+                    perspective_config=None):
+        """ Initializes the assessment module
 
         Parameters
         ------------
@@ -264,8 +228,9 @@ class NLPGeneratorAssessment(CredoAssessment):
             try:
                 assessment_functions = cutils.nlp_utils.get_default_nlp_assessments()
             except AttributeError:
-                raise InstallationError("To use default assessment functions requires installing credoai-lens[extras]")
-            
+                raise InstallationError(
+                    "To use default assessment functions requires installing credoai-lens[extras]")
+
         # set up generation functions
         generation_functions = {model.name: model.generator_fun}
         # extract generation functions from comparisons
@@ -274,10 +239,11 @@ class NLPGeneratorAssessment(CredoAssessment):
                 generation_functions['gpt2_comparison'] = \
                     cutils.nlp_utils.gpt2_text_generator
             except AttributeError:
-                raise InstallationError("To use the default comparison model requires installing credoai-lens[extras]")
+                raise InstallationError(
+                    "To use the default comparison model requires installing credoai-lens[extras]")
         else:
             generation_functions.update(comparison_models)
-            
+
         module = self.module(
             prompts,
             generation_functions,
@@ -285,17 +251,95 @@ class NLPGeneratorAssessment(CredoAssessment):
             perspective_config)
 
         self.initialized_module = module
-    
+
     def get_reporter(self):
         return NLPGeneratorAnalyzerReporter(self)
+
+
+class PerformanceAssessment(CredoAssessment):
+    """Basic evaluation of the performance of ML models
+
+    Runs performance analysis on models with well-defined
+    objective functions. Examples include:
+
+    * binary classification
+    * regression
+    * recommendation systems
+
+    Modules:
+
+    * credoai.modules.fairness_base
+
+    Requirements
+    ------------
+    Requires that the CredoModel defines either `predict` or `predict_proba` (or both).
+    - `predict` should return the model's predictions.
+    - `predict_proba` should return probabilities associated with the predictions (like scikit-learn's `predict_proba`)
+       Only applicable in classification scenarios.
+    """
+
+    def __init__(self):
+        super().__init__(
+            'Performance',
+            mod.PerformanceModule,
+            AssessmentRequirements(
+                model_requirements=[('predict_proba', 'predict')],
+                data_requirements=['X', 'y']
+            )
+        )
+
+    def init_module(self, *, model, data, metrics):
+        """Initializes the assessment module
+
+        Parameters
+        ------------
+        model : CredoModel
+        data : CredoData
+        metrics : List-like
+            list of metric names as string or list of Metrics (credoai.metrics.Metric).
+            Metric strings should in list returned by credoai.metrics.list_metrics.
+            Note for performance parity metrics like 
+            "false negative rate parity" just list "false negative rate". Parity metrics
+            are calculated automatically if the performance metric is supplied
+
+        Example
+        ---------
+        def build(self, ...):
+            y_pred = CredoModel.predict(CredoData.X)
+            y = CredoData.y
+            self.initialized_module = self.module(y_pred, y)
+
+        """
+        super().init_module(model=model, data=data)
+        try:
+            y_pred = model.predict(data.X)
+        except AttributeError:
+            y_pred = None
+        try:
+            y_prob = model.predict_proba(data.X)
+        except AttributeError:
+            y_prob = None
+
+        module = self.module(
+            metrics,
+            data.y,
+            y_pred,
+            y_prob,
+            data.sensitive_features)
+        self.initialized_module = module
+
+# *******************
+# Dataset Assessments
+# *******************
+
 
 class DatasetFairnessAssessment(CredoAssessment):
     """
     Dataset Assessment
-    
+
     Runs fairness assessment on a CredoDataset. This
     includes:
-    
+
     * Distributional assessment of dataset
     * Proxy detection
     * Demographic Parity of outcomes
@@ -307,9 +351,10 @@ class DatasetFairnessAssessment(CredoAssessment):
     * credoai.modules.dataset_fairness
 
     """
+
     def __init__(self):
         super().__init__(
-            'DatasetFairness', 
+            'DatasetFairness',
             mod.DatasetFairness,
             AssessmentRequirements(
                 data_requirements=['X', 'y', 'sensitive_features']
@@ -320,7 +365,7 @@ class DatasetFairnessAssessment(CredoAssessment):
         super().init_module(data=data)
         scrubbed_data = data.get_scrubbed_data()
         self.initialized_module = self.module(
-            scrubbed_data['X'], 
+            scrubbed_data['X'],
             scrubbed_data['y'],
             scrubbed_data['sensitive_features'],
             data.categorical_features_keys)
@@ -328,10 +373,11 @@ class DatasetFairnessAssessment(CredoAssessment):
     def get_reporter(self):
         return DatasetFairnessReporter(self)
 
+
 class DatasetProfilingAssessment(CredoAssessment):
     """
     Dataset Profiling
-    
+
     Generate profile reports 
 
     Modules
@@ -339,9 +385,10 @@ class DatasetProfilingAssessment(CredoAssessment):
     * credoai.modules.dataset_profiling
 
     """
+
     def __init__(self):
         super().__init__(
-            'DatasetProfiling', 
+            'DatasetProfiling',
             mod.DatasetProfiling,
             AssessmentRequirements(
                 data_requirements=['X', 'y']
@@ -351,16 +398,18 @@ class DatasetProfilingAssessment(CredoAssessment):
     def init_module(self, *, data):
         super().init_module(data=data)
         self.initialized_module = self.module(
-            data.X, 
+            data.X,
             data.y)
 
     def get_reporter(self):
         return DatasetProfilingReporter(self)
 
+
 def list_assessments_exhaustive():
     """List all defined assessments"""
-    return inspect.getmembers(sys.modules[__name__], 
+    return inspect.getmembers(sys.modules[__name__],
                               lambda member: inspect.isclass(member) and member.__module__ == __name__)
+
 
 def list_assessments():
     """List subset of all defined assessments where the module is importable"""
