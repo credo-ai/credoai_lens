@@ -14,7 +14,7 @@ import pandas as pd
 class CredoAssessment(ABC):
     """{Short description of assessment}
 
-    {Longer escription of what the assessment does}
+    {Longer description of what the assessment does}
 
     Modules
     -------
@@ -43,9 +43,9 @@ class CredoAssessment(ABC):
         module : CredoModule
             CredoModule the Assessment builds
         requirements : AssessmentRequirements, optional
-            Instantiation of funtionality CredoModel and/or CredoData
-            must define to run this asssesment. If defined, enables
-            automated validation and selection of asssessment
+            Instantiation of functionality CredoModel and/or CredoData
+            must define to run this assessment. If defined, enables
+            automated validation and selection of assessment
         short_description : str
             Short description of assessment functionality. If None
             will default to first line of class docstring
@@ -63,6 +63,7 @@ class CredoAssessment(ABC):
         # placeholders for artifact names
         self.model_name = None
         self.data_name = None
+        self.training_data_name = None
         # descriptions, automatically parsed fro, docstring if not set
         self.short_description = short_description
         self.long_description = long_description
@@ -73,7 +74,7 @@ class CredoAssessment(ABC):
         return f"{self.name} - Dataset: {data_name}"
 
     @abstractmethod
-    def init_module(self, *, model=None, data=None):
+    def init_module(self, *, model=None, data=None, training_data=None):
         """ Initializes the assessment module
 
         Transforms CredoModel and CredoData into the proper form
@@ -85,6 +86,7 @@ class CredoAssessment(ABC):
         ------------
         model : CredoModel, optional
         data : CredoData, optional
+        training_data : CredoData, optional
 
         Example
         -----------
@@ -98,6 +100,8 @@ class CredoAssessment(ABC):
             self.model_name = model.name
         if data:
             self.data_name = data.name
+        if training_data:
+            self.training_data = training_data.name
         
 
     def run(self, **kwargs):
@@ -111,7 +115,6 @@ class CredoAssessment(ABC):
         self._validate_results(results)
         # add metadata
         metadata = metadata or {}
-        metadata['assessment'] = self.name
         results = results.assign(**metadata)
         # return results (and ensure no NaN floats remain)
         return results
@@ -143,7 +146,8 @@ class CredoAssessment(ABC):
 
     def check_requirements(self,
                            credo_model=None,
-                           credo_data=None):
+                           credo_data=None,
+                           credo_training_data=None):
         """
         Defines the functionality needed by the assessment
 
@@ -153,10 +157,11 @@ class CredoAssessment(ABC):
 
         Returns
         ----------
-        credo.asseesment.AssessmentRequirements
+        credo.assessment.AssessmentRequirements
         """
         return self.requirements.check_requirements(credo_model,
-                                                    credo_data)
+                                                    credo_data,
+                                                    credo_training_data)
 
     def _set_description_from_doc(self):
         docs = self.__doc__
@@ -195,11 +200,11 @@ class CredoAssessment(ABC):
                 f'{self.name} assessment results not in correct format')
 
 
-
 class AssessmentRequirements:
     def __init__(self,
                  model_requirements=None,
-                 data_requirements=None):
+                 data_requirements=None,
+                 training_data_requirements=None):
         """
         Defines requirements for an assessment
 
@@ -214,11 +219,14 @@ class AssessmentRequirements:
         """
         self.model_requirements = model_requirements or []
         self.data_requirements = data_requirements or []
+        self.training_data_requirements = training_data_requirements or []
 
-    def check_requirements(self, credo_model=None, credo_data=None):
-        for artifact, requirements in \
-            [(credo_model, self.model_requirements),
-             (credo_data, self.data_requirements)]:
+    def check_requirements(self, credo_model=None, credo_data=None, credo_training_data=None):
+        for artifact, requirements in [
+            (credo_model, self.model_requirements),
+            (credo_data, self.data_requirements),
+            (credo_training_data, self.training_data_requirements)
+             ]:
             if artifact:
                 existing_keys = [k for k, v in artifact.__dict__.items()
                                  if v is not None]
@@ -237,4 +245,5 @@ class AssessmentRequirements:
 
     def get_requirements(self):
         return {'model_requirements': self.model_requirements,
-                'data_requirements': self.data_requirements}
+                'data_requirements': self.data_requirements,
+                'training_data_requirements': self.training_data_requirements}
