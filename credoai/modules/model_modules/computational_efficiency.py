@@ -52,6 +52,7 @@ class ComputationalEfficiencyModule(CredoModule):
             )
 
     def _inference_efficiency(self):
+        """Estimates time to predict 1000 records"""
         t1 = perf_counter()
         out = self.prediction_fun(self.X)
         t2 = perf_counter()
