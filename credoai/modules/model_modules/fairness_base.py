@@ -79,7 +79,7 @@ class FairnessModule(PerformanceModule):
         return self
         
     def prepare_results(self, filter=None):
-        """prepares fairness and disaggregated results to Credo AI
+        """Prepares results for Credo AI's governance platform
 
         Structures results for export as a dataframe with appropriate structure
         for exporting. See credoai.modules.credo_module.

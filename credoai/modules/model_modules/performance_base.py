@@ -71,10 +71,7 @@ class PerformanceModule(CredoModule):
             
         Returns
         -------
-        dict
-            Dictionary containing one pandas Dataframes:
-                - "disaggregated results": The disaggregated performance metrics, along with acceptability and risk
-            as columns
+        self
         """
         self.results = {'overall_performance': self.get_overall_metrics()}
         if self.perform_disaggregation:
@@ -82,7 +79,8 @@ class PerformanceModule(CredoModule):
         return self
         
     def prepare_results(self, filter=None):
-        """prepares fairness and disaggregated results to Credo AI
+        """Prepares results for Credo AI's governance platform
+
         Structures results for export as a dataframe with appropriate structure
         for exporting. See credoai.modules.credo_module.
         Parameters
