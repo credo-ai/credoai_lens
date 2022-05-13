@@ -40,10 +40,11 @@ class FairnessReporter(CredoReporter):
         -------
         array of figures
         """        
-        df = self.module.get_df()
+        # df = self.module.get_df()
         
         # plot
-        self.figs.append(self.plot_fairness())
+        self.figs.extend(self.plot_fairness())
+
         # display
         plt.show()
         # save
@@ -103,21 +104,28 @@ class FairnessReporter(CredoReporter):
             plot_disaggregated = True
         n_plots = 1+plot_disaggregated
         # ratio based on number of metrics and sensitive features
-        r = self.module.get_results()['disaggregated_performance'].shape
-        ratio = max(r[0]*r[1]/30, 1)
-        with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
-            f, axes = plt.subplots(1, n_plots)
-            plt.subplots_adjust(wspace=0.7)
-            axes = axes.flat
-            # plot fairness
-            self._plot_fairness_metrics(axes[0])
-            if plot_disaggregated:
-                self._plot_disaggregated_metrics(axes[1])
-        return f
+        f_list = []
+        sensitive_features = self.module.sensitive_features
+        for sf_name in sensitive_features:
+            r = self.module.get_results()[f'{sf_name}-disaggregated_performance'].shape
+            ratio = max(r[0]*r[1]/30, 1)
+            with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
+                f, axes = plt.subplots(1, n_plots)
+                plt.subplots_adjust(wspace=0.7)
+                axes = axes.flat
+                # plot fairness
+                self._plot_fairness_metrics(axes[0], sf_name)
+                if plot_disaggregated:
+                    self._plot_disaggregated_metrics(axes[1], sf_name)
+            f_list.append(f)
+        
+        return f_list
 
-    def _plot_fairness_metrics(self, ax):
+    def _plot_fairness_metrics(self, ax, sf_name):
         # create df
         df = self.module.get_fairness_results()
+        df = df[df['sensitive_feature']==sf_name]
+        df.drop(['sensitive_feature'], inplace=True, axis=1)
         # add parity to names
         df.index = [i+'_parity' if row['subtype'] == 'parity' else i
                     for i, row in df.iterrows()]
@@ -133,22 +141,21 @@ class FairnessReporter(CredoReporter):
                     ax=ax)
         self._style_barplot(ax)
         
-    def _plot_disaggregated_metrics(self, ax):
+    def _plot_disaggregated_metrics(self, ax, sf_name):
         # create df
-        sensitive_feature = self.module.sensitive_features.name
-        df =  self.module.get_disaggregated_performance() \
-                    .reset_index() \
-                    .melt(id_vars=['subtype', sensitive_feature],
+        df = self.module.get_disaggregated_performance()[f'{sf_name}-disaggregated_performance']
+        df =  df.reset_index() \
+                    .melt(id_vars=['subtype', sf_name],
                           var_name='Performance Metric',
                           value_name='Value')
         # plot
-        num_cats = len(df[sensitive_feature].unique())
+        num_cats = len(df[sf_name].unique())
         palette = sns.color_palette('Purples', num_cats)
         palette[-1] = [.4,.4,.4]
         sns.barplot(data=df, 
                     y='Performance Metric', 
                     x='Value', 
-                    hue=sensitive_feature,
+                    hue=sf_name,
                     palette=palette,
                     edgecolor='w',
                     ax=ax)
@@ -193,11 +200,13 @@ class BinaryClassificationReporter(FairnessReporter):
         # comparison plots
         if include_fairness:
             self.figs.append(self.plot_fairness())
+        
         # individual group performance plots
         self.figs.append(self.plot_performance_infographic(df['true'], df['pred'], 'Overall'))
         if include_disaggregation:
-            for group, sub_df in df.groupby('sensitive'):
-                self.figs.append(self.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
+            for sf_name in self.module.sensitive_features:
+                for group, sub_df in df.groupby(sf_name):
+                    self.figs.append(self.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
 
         # display
         plt.show()
@@ -217,8 +226,9 @@ class BinaryClassificationReporter(FairnessReporter):
             if df['true'].dtype.name == 'category':
                 df['true'] = df['true'].cat.codes
             reporter.plot_performance_infographic(df['true'], df['pred'], 'Overall')
-            for group, sub_df in df.groupby('sensitive'):
-                reporter.plot_performance_infographic(sub_df['true'], sub_df['pred'], group)
+            for sf_name in reporter.module.sensitive_features:
+                for group, sub_df in df.groupby(sf_name):
+                    reporter.figs.append(reporter.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
             """, 'code')
         ]
         return cells
