@@ -83,10 +83,8 @@ class PerformanceModule(CredoModule):
         
     def prepare_results(self, filter=None):
         """prepares fairness and disaggregated results to Credo AI
-
         Structures results for export as a dataframe with appropriate structure
         for exporting. See credoai.modules.credo_module.
-
         Parameters
         ----------
         filter : str, optional
@@ -94,11 +92,9 @@ class PerformanceModule(CredoModule):
             Passed as a regex argument to pandas `filter` function applied to the
             concatenated output of Fairnessmodule.get_fairness_results and
             Fairnessmodule.get_disaggregated_performance, by default None
-
         Returns
         -------
         pd.DataFrame
-
         Raises
         ------
         NotRunError
@@ -109,14 +105,13 @@ class PerformanceModule(CredoModule):
                 results = self.results['overall_performance']
             else:
                 results = pd.DataFrame()
-            # melt disaggregated df before combinding
-            # if 'disaggregated_performance' in self.results:
+
             if self.perform_disaggregation:
                 for sf_name in self.sensitive_features:
-                    disaggregated_df = self.results[f'{sf_name}-disaggregated_performance'] \
-                        .reset_index() \
-                        .melt(id_vars=[disaggregated_df.index.name, 'subtype'], var_name='metric_type')\
-                        .set_index('metric_type')
+                    disaggregated_df = self.results[f'{sf_name}-disaggregated_performance'].copy()
+                    disaggregated_df = disaggregated_df.reset_index().melt(
+                        id_vars=[disaggregated_df.index.name, 'subtype'], var_name='metric_type'
+                        ).set_index('metric_type')
                     disaggregated_df['sensitive_feature'] = sf_name
                     results = pd.concat([results, disaggregated_df])
             
