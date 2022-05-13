@@ -9,28 +9,36 @@ The latest stable release (and required dependencies) can be installed from PyPI
 .. note::
    This installation only includes dependencies needed for a small set of modules
 
-``pip install credoai-lens``
+.. code-block::
+   pip install credoai-lens
 
 .. note::
    To include additional dependencies needed for some modules and demos, use the 
    following installation command. 
 
 On Mac
-``pip install 'credoai-lens[extras]'``
+.. code-block::
+   pip install 'credoai-lens[extras]'
 
 On Windows
-``pip install credoai-lens[extras]``
+.. code-block::
+   pip install credoai-lens[extras]
 
 
 **Virtual Environment**
 
 Lens can be installed in any python environment. The easiest way to create a working
-python environment using Anaconda you can run the following command
-before installing using pip.
+python environment is using Anaconda to create a new environment. 
 
-``conda env create --file environment.yml``
+First, download this `environment.yml <https://github.com/credo-ai/credoai_lens/blob/develop/environment.yml>`_ file.
 
-The environment.yml file is found `here <https://github.com/credo-ai/credoai_lens/blob/develop/environment.yml>`_.
+Then run...
+
+.. code-block::
+   conda env create --file {path-to-environment.yml}
+
+The above will install Lens with all dependencies (equivalent to credoai-lens[extras]) above. If
+you only want to install the basic lens, edit the environment.yml file before running.
 
 **ARM Macbook installation troubleshooting**
 
@@ -40,7 +48,8 @@ Installing these packages with the miniforge package manager seems to be
 the easiest way to circumvent this issue. Ensure you are using miniforge rather than anaconda!
 Only miniforge supports arm64 processors. E.g.:
 
-``conda install -c conda-forge -c huggingface pandas scipy scikit-learn tensorflow transformers``
+.. code-block::
+   conda install -c conda-forge -c huggingface pandas scipy scikit-learn tensorflow transformers
 
 .. warning::
    Tensorflow in particular is difficult to install on M1+ macbooks (macbooks using
@@ -51,7 +60,8 @@ If your mac has an arm64 processor, it is advisable to upgrade to Monterey or la
 so greatly simplifies tensorflow's installation. In this case you can install it directly from
 conda running the following command:
 
-``conda install -c conda-forge tensorflow``
+.. code-block::
+   conda install -c conda-forge tensorflow
 
 If you are running an earlier OS (e.g., BigSur), installation can be trickier. Below
 are some resources that could help:
