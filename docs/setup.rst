@@ -34,12 +34,28 @@ The environment.yml file is found `here <https://github.com/credo-ai/credoai_len
 
 **ARM Macbook failed pip installation - use conda**
 
-Installation sometimes fails on M1 macbooks. Specifically, pandas, scipy, and scikit-learn 
-may fail to build. Installing these packages with the anaconda package manager seems to be
-the easiest way to circumvent this issue. 
+Installation sometimes fails on arm64 macbooks. Some packages that occasionally have issues are:
+pandas, scipy, scikit-learn, tensorflow, transformers.
+Installing these packages with the anaconda package manager seems to be
+the easiest way to circumvent this issue. E.g.:
 
+``conda install -c conda-forge -c huggingface pandas scipy scikit-learn tensorflow transformers``
 
+.. warning::
+   Tensorflow in particular is difficult to install on M1+ macbooks (macbooks using
+   the arm64 processor). Full installation of lens (with extras) requires tensorflow. 
+   Resources below should help you get your installation working.
 
+If your mac has an arm64 processor, it is advisable to upgrade to Monterey or later (12.3+). Doing
+so greatly simplifies tensorflow's installation. In this case you can install it directly from
+conda running the following command:
 
+``conda install -c conda-forge tensorflow``
 
-Find more information about at `our github page <https://github.com/credo-ai/credoai_lens>`_.
+If you are running an earlier OS (e.g., BigSur), installation can be trickier. Below
+are some resources that could help:
+* Apple has `official guidance <https://github.com/apple/tensorflow_macos/issues/153>`_ here.
+
+Other tutorials:
+* https://www.mrdbourke.com/setup-apple-m1-pro-and-m1-max-for-machine-learning-and-data-science/
+* https://betterdatascience.com/install-tensorflow-2-7-on-macbook-pro-m1-pro/
