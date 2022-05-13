@@ -32,12 +32,13 @@ before installing using pip.
 
 The environment.yml file is found `here <https://github.com/credo-ai/credoai_lens/blob/develop/environment.yml>`_.
 
-**ARM Macbook failed pip installation - use conda**
+**ARM Macbook installation troubleshooting**
 
-Installation sometimes fails on arm64 macbooks. Some packages that occasionally have issues are:
+Pip installation sometimes fails on arm64 macbooks. Some packages that occasionally have issues are:
 pandas, scipy, scikit-learn, tensorflow, transformers.
-Installing these packages with the anaconda package manager seems to be
-the easiest way to circumvent this issue. E.g.:
+Installing these packages with the miniforge package manager seems to be
+the easiest way to circumvent this issue. Ensure you are using miniforge rather than anaconda!
+Only miniforge supports arm64 processors. E.g.:
 
 ``conda install -c conda-forge -c huggingface pandas scipy scikit-learn tensorflow transformers``
 
