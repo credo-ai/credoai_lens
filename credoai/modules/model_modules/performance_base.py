@@ -150,13 +150,14 @@ class PerformanceModule(CredoModule):
         pandas.DataFrame
             Dataframe containing the input arrays
         """
-        df = pd.DataFrame({'sensitive': self.sensitive_features,
-                           'true': self.y_true,
+        df = pd.DataFrame({'true': self.y_true,
                            'pred': self.y_pred}).reset_index(drop=True)
+        df = df.join(self.sensitive_features)
         if self.y_prob is not None:
             y_prob_df = pd.DataFrame(self.y_prob)
             y_prob_df.columns = [f'y_prob_{i}' for i in range(y_prob_df.shape[1])]
             df = pd.concat([df, y_prob_df], axis=1)
+
         return df
     
     def get_overall_metrics(self):
