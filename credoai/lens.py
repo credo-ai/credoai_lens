@@ -7,7 +7,7 @@ from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import get_usable_assessments
 from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
-    raise_or_warn, wrap_list,
+    raise_or_warn, update_dictionary, wrap_list,
     NotRunError, ValidationError)
 from credoai import __version__
 from datetime import datetime
@@ -23,7 +23,7 @@ class Lens:
     def __init__(
         self,
         governance: Union[CredoGovernance, str] = None,
-        spec: dict = None,
+        assessment_plan: dict = None,
         assessments: List[CredoAssessment] = None,
         model: CredoModel = None,
         data: CredoData = None,
@@ -50,7 +50,7 @@ class Lens:
             Lens with Governance App. If string, interpreted as 
             use-case ID on the Governance App. A CredoGovernance object
             will be created with the string as use_case_id, by default None
-        spec : dict
+        assessment_plan : dict
             key word arguments passed to each assessments `init_module` 
             function using `Lens.init_module`. Each key must correspond to
             an assessment name (CredoAssessment.name), with each value
@@ -95,7 +95,7 @@ class Lens:
         self.assessment_dataset = data
         self.training_dataset = training_data
         self.user_id = user_id
-        self.spec = {}
+        self.assessment_plan = {}
         set_logging_level(logging_level)
         self.warning_level = warning_level
         self.dev_mode = dev_mode
@@ -122,12 +122,12 @@ class Lens:
         # if data is defined and dev mode, convert data
         self._apply_dev_mode(self.dev_mode)
 
-        # if governance is defined, pull down spec for
+        # if governance is defined, use its assessment plan for
         # use_case / model
         if self.gov:
-            self.spec = self.gov.get_assessment_spec()
-        if spec:
-            self._update_spec(self.spec, spec)
+            self.assessment_plan = self.gov.get_assessment_plan()
+        if assessment_plan:
+            update_dictionary(self.assessment_plan, assessment_plan)
 
         # initialize
         self._init_assessments()
@@ -317,7 +317,7 @@ class Lens:
             else:
                 logging.info(f"Initializing assessments for model without dataset")
             for assessment in assessments.values():
-                kwargs = deepcopy(self.spec.get(assessment.name, {}))
+                kwargs = deepcopy(self.assessment_plan.get(assessment.name, {}))
                 reqs = assessment.get_requirements()
                 if reqs['model_requirements']:
                     kwargs['model'] = self.model
@@ -327,22 +327,12 @@ class Lens:
                     assessment.init_module(**kwargs)
                 except:
                     raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
-                                          " Ensure the assessment spec is passing the required parameters"
+                                          " Ensure the assessment plan is passing the required parameters"
                                           )
 
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment)
         return assessment.prepare_results(metadata, **kwargs)
-
-    def _update_spec(self, d, u):
-        for k, v in u.items():
-            if isinstance(v, collections.abc.Mapping):
-                d[k] = self._update_spec(d.get(k, {}), v)
-            elif isinstance(v, list):
-                d[k] = v + d.get(k, [])
-            else:
-                d[k] = v
-        return d
 
     def _register_artifacts(self):
         to_register = {}
