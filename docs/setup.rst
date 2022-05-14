@@ -9,7 +9,9 @@ The latest stable release (and required dependencies) can be installed from PyPI
 .. note::
    This installation only includes dependencies needed for a small set of modules
 
-.. code-block::
+
+::
+
    pip install credoai-lens
 
 .. note::
@@ -17,11 +19,11 @@ The latest stable release (and required dependencies) can be installed from PyPI
    following installation command. 
 
 On Mac
-.. code-block::
+::
    pip install 'credoai-lens[extras]'
 
 On Windows
-.. code-block::
+::
    pip install credoai-lens[extras]
 
 
@@ -34,7 +36,8 @@ First, download this `environment.yml <https://github.com/credo-ai/credoai_lens/
 
 Then run...
 
-.. code-block::
+::
+
    conda env create --file {path-to-environment.yml}
 
 The above will install Lens with all dependencies (equivalent to credoai-lens[extras]) above. If
@@ -48,7 +51,8 @@ Installing these packages with the miniforge package manager seems to be
 the easiest way to circumvent this issue. Ensure you are using miniforge rather than anaconda!
 Only miniforge supports arm64 processors. E.g.:
 
-.. code-block::
+::
+
    conda install -c conda-forge -c huggingface pandas scipy scikit-learn tensorflow transformers
 
 .. warning::
@@ -60,13 +64,16 @@ If your mac has an arm64 processor, it is advisable to upgrade to Monterey or la
 so greatly simplifies tensorflow's installation. In this case you can install it directly from
 conda running the following command:
 
-.. code-block::
+::
+
    conda install -c conda-forge tensorflow
 
 If you are running an earlier OS (e.g., BigSur), installation can be trickier. Below
 are some resources that could help:
+
 * Apple has `official guidance <https://github.com/apple/tensorflow_macos/issues/153>`_ here.
 
 Other tutorials:
+
 * https://www.mrdbourke.com/setup-apple-m1-pro-and-m1-max-for-machine-learning-and-data-science/
 * https://betterdatascience.com/install-tensorflow-2-7-on-macbook-pro-m1-pro/
