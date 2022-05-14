@@ -75,6 +75,20 @@ def get_associated_models(use_case_id):
     end_point = get_end_point(f"use_cases/{use_case_id}?include=models")
     return deserialize(submit_request('get', end_point).json())['models']
 
+def get_assessment_spec(use_case_id, model_id):
+    try:
+        end_point = get_end_point(
+            f"use_cases/{use_case_id}/models/{model_id}/assessment_spec")
+        assessment_spec = deserialize(submit_request('get', end_point).json())
+        assessment_plan_id = assessment_spec['assessment_plan_id']
+        end_point = get_end_point(
+            f"assessment_plans/{assessment_plan_id}/metrics")
+        assessment_plan =  {'metrics': deserialize(submit_request('get', end_point).json())}
+
+    except requests.exceptions.HTTPError:
+        raise IntegrationError("Failed to download assessment spec. Check that an assessment "
+                               f"plan has been published for use case ({use_case_id}) and model ({model_id})")
+
 
 def get_assessment_plan(use_case_id, model_id):
     try:
