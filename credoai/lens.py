@@ -122,12 +122,8 @@ class Lens:
         # if data is defined and dev mode, convert data
         self._apply_dev_mode(self.dev_mode)
 
-        # if governance is defined, pull down spec for
-        # use_case / model
-        if self.gov:
-            self.spec = self.gov.get_assessment_spec()
-        if spec:
-            self._update_spec(self.spec, spec)
+        # spec
+        self._setup_spec(spec)
 
         # initialize
         self._init_assessments()
@@ -390,6 +386,17 @@ class Lens:
             logging.info(assessment_text)
             selected_assessments[dataset_type] = usable_assessments
         return selected_assessments
+
+    def _setup_spec(self, spec):
+        # if governance is defined, pull down spec for
+        # use_case / model
+        if self.gov:
+            self.spec = self.gov.get_assessment_spec()
+        if spec:
+            self._update_spec(self.spec, spec)
+        # change spec based on overlap between different modules
+        if 'Fairness' in spec and 'Performance' in spec:
+            self.spec['Performance']['ignore_sensitive'] = True
 
 
 def set_logging_level(logging_level):
