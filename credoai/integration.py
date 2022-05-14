@@ -6,7 +6,7 @@ from datetime import datetime
 from credoai.utils.common import (humanize_label, wrap_list,
                                   IntegrationError,
                                   ValidationError, dict_hash)
-from credoai.utils.credo_api_utils import (get_assessment_plan,
+from credoai.utils.credo_api_utils import (get_assessment_spec,
                                            post_assessment,
                                            register_dataset, 
                                            register_model,
@@ -292,18 +292,20 @@ def prepare_assessment_payload(assessment_results, report=None, assessed_at=None
     return payload
 
 
-def get_assessment_spec(use_case_id=None, model_id=None, spec_path=None):
-    """Get aligned metrics from Credo's Governance App or file
+def process_assessment_spec(credo_url=None, spec_path=None):
+    """Get assessment spec from Credo's Governance App or file
 
-    At least one of the use_case_id or spec_path must be provided! If both
+    At least one of the credo_url or spec_path must be provided! If both
     are provided, the spec_path takes precedence.
+
+    The assessment spec includes all information needed to assess a model and integrate
+    with the Credo AI Governance Platform. This includes the necessary IDs, as well as 
+    the assessment plan
 
     Parameters
     ----------
-    use_case_id : str, optional
-        ID of Use Case on Credo AI Governance app, by default None
-    model_id : str, optional
-        ID of model on Credo AI Governance app, by default None
+    credo_url: str
+        end point to retrieve assessment spec from credo AI's governance platform
     spec_path : string, optional
         The file location for the technical spec json downloaded from
         the technical requirements of an Use Case on Credo AI's
@@ -312,22 +314,19 @@ def get_assessment_spec(use_case_id=None, model_id=None, spec_path=None):
     Returns
     -------
     dict
-        The aligned metrics for each model contained in the Use Case.
-        Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
+        The assessment spec, with artifacts ids and assessment plan
     """
     spec = {}
     if spec_path:
         spec = json.load(open(spec_path))
-    elif use_case_id:
-        try:
-            spec = get_assessment_plan(use_case_id, model_id)
-        except IntegrationError:
-            logging.warning(f"No spec found for model ({model_id}) under model use case ({use_case_id})")
-            return spec
+    elif credo_url:
+        spec = get_assessment_spec(credo_url)
+    # reformat assessment_spec
     metric_dict = defaultdict(dict)
-    metrics = spec['metrics']
-    risk_spec = defaultdict(list)
+    metrics = spec['assessment_plan']['metrics']
+    assessment_plan = defaultdict(list)
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        risk_spec[metric['risk_issue']].append({'type': metric['type'], 'bounds': bounds})
-    return risk_spec
+        assessment_plan[metric['risk_issue']].append({'type': metric['type'], 'bounds': bounds})
+    spec['assessment_plan'] = assessment_plan
+    return spec

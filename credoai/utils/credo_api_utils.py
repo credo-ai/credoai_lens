@@ -75,33 +75,31 @@ def get_associated_models(use_case_id):
     end_point = get_end_point(f"use_cases/{use_case_id}?include=models")
     return deserialize(submit_request('get', end_point).json())['models']
 
-def get_assessment_spec(use_case_id, model_id):
+
+def get_assessment_spec(assessment_spec_url):
+    """Get the assessment spec
+    
+    The assessment spec includes all information needed to assess a model and integrate
+    with the Credo AI Governance Platform. This includes the necessary IDs, as well as 
+    the assessment plan
+    """
     try:
-        end_point = get_end_point(
-            f"use_cases/{use_case_id}/models/{model_id}/assessment_spec")
-        assessment_spec = deserialize(submit_request('get', end_point).json())
-        assessment_plan_id = assessment_spec['assessment_plan_id']
+        end_point = get_end_point(assessment_spec_url)
+        downloaded_spec = deserialize(submit_request('get', end_point).json())
+        assessment_spec = {k: v for k,
+                           v in downloaded_spec.items() if '_id' in k}
+    except requests.exceptions.HTTPError:
+        raise IntegrationError("Failed to retrieve assessment spec. Check that the url is correct")
+    try:
+        assessment_plan_id = downloaded_spec['id']
         end_point = get_end_point(
             f"assessment_plans/{assessment_plan_id}/metrics")
-        assessment_plan =  {'metrics': deserialize(submit_request('get', end_point).json())}
-
+        assessment_plan = {'metrics': deserialize(
+            submit_request('get', end_point).json())}
+        assessment_spec['assessment_plan'] = assessment_plan
+        return assessment_spec
     except requests.exceptions.HTTPError:
-        raise IntegrationError("Failed to download assessment spec. Check that an assessment "
-                               f"plan has been published for use case ({use_case_id}) and model ({model_id})")
-
-
-def get_assessment_plan(use_case_id, model_id):
-    try:
-        end_point = get_end_point(
-            f"use_cases/{use_case_id}/models/{model_id}/assessment_plans/latest")
-        assessment_plan_id = deserialize(
-            submit_request('get', end_point).json())['id']
-        end_point = get_end_point(
-            f"assessment_plans/{assessment_plan_id}/metrics")
-        return {'metrics': deserialize(submit_request('get', end_point).json())}
-    except requests.exceptions.HTTPError:
-        raise IntegrationError("Failed to download assessment plan. Check that an assessment "
-                               f"plan has been published for use case ({use_case_id}) and model ({model_id})")
+        raise IntegrationError("Failed to get assessment plan associated with assessment spec")
 
 
 def get_dataset_name(dataset_id):
@@ -247,8 +245,10 @@ def register_dataset_to_model(model_id, dataset_id):
 
 
 def register_dataset_to_model_usecase(use_case_id, model_id, dataset_id):
-    data = serialize({"dataset_id": dataset_id, '$type': 'string', 'id': 'resource-id'})
-    end_point = get_end_point(f"use_cases/{use_case_id}/models/{model_id}/config")
+    data = serialize(
+        {"dataset_id": dataset_id, '$type': 'string', 'id': 'resource-id'})
+    end_point = get_end_point(
+        f"use_cases/{use_case_id}/models/{model_id}/config")
     submit_request(
         "patch",
         end_point,
@@ -289,4 +289,5 @@ def _get_name(artifact_id, artifact_type):
         return deserialize(submit_request('get', end_point).json())['name']
     except requests.exceptions.HTTPError as err:
         if err.response.status_code == 400:
-            raise IntegrationError(f"No {artifact_type} found with id: {artifact_id}")
+            raise IntegrationError(
+                f"No {artifact_type} found with id: {artifact_id}")

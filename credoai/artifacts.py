@@ -20,11 +20,12 @@
 
 # This file defines CredoGovernance, CredoModel and CredoData
 from absl import logging
+from collections import defaultdict
 from copy import deepcopy
 from credoai.metrics.metrics import find_metrics
 from credoai.utils.constants import RISK_ISSUE_MAPPING
-from credoai.utils.common import (IntegrationError, ValidationError, 
-                                  json_dumps, raise_or_warn, flatten_list)
+from credoai.utils.common import (IntegrationError, ValidationError, flatten_list,
+                                  json_dumps, raise_or_warn, update_dictionary)
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
                                            get_use_case_by_name, 
@@ -45,24 +46,22 @@ class CredoGovernance:
     """Class to store governance data.
 
     This information is used to interact with the CredoAI
-    Governance App. Artifacts (Use Cases, models, and datasets) 
-    are identified by a unique ID which 
-    can be found on the platform.
+    Governance App. 
+
+    At least one of the credo_url or spec_path must be provided! If both
+    are provided, the spec_path takes precedence.
 
     To make use of Governance App a .credo_config file must
     also be set up (see README)
 
     Parameters
     ----------
-    use_case_id : str, optional
-        ID of Use Case on Credo AI Governance app, by default None
-    model_id : str, optional
-        ID of model on Credo AI Governance app, by default None
-    dataset_id : str, optional
-        ID of assessment dataset on Credo AI Governance app, by default None
-    training_dataset_id : str, optional
-        ID of training dataset on Credo AI Governance app. This dataset will
-        not be used for assessment, but may be analyzed itself, by default None
+    credo_url: str
+        end point to retrieve assessment spec from credo AI's governance platform
+    spec_path : string, optional
+        The file location for the technical spec json downloaded from
+        the technical requirements of an Use Case on Credo AI's
+        Governance App
     warning_level : int
         warning level. 
             0: warnings are off
@@ -70,35 +69,32 @@ class CredoGovernance:
             2: warnings are raised as exceptions.
     """
     def __init__(self,
-                 use_case_id: str = None,
-                 model_id: str = None,
-                 dataset_id: str = None,
-                 training_dataset_id: str = None,
+                 credo_url: str = None,
+                 spec_path: str = None,
                  warning_level=1):
-        self.use_case_id = use_case_id
-        self.model_id = model_id
-        self.dataset_id = dataset_id
-        self.training_dataset_id = training_dataset_id
-        self.assessment_spec = {}
         self.warning_level = warning_level
-        self._validate_ids()
+        # set up assessment spec
+        self.assessment_spec = ci.process_assessment_spec(credo_url, spec_path)
+        self.use_case_id = self.assessment_spec['use_case_id']
+        self.model_id = self.assessment_spec['model_id']
+        self.dataset_id = self.assessment_spec['validation_dataset_id']
+        self.training_dataset_id = self.assessment_spec['training_dataset_id']
+        if credo_url:
+            self._validate_ids()
 
-    def get_assessment_spec(self):
-        """Get assessment spec
+    def get_assessment_plan(self):
+        """Get assessment plan
         
-        Return the assessment spec for the model defined
+        Return the assessment plan for the model defined
         by model_id.
         
-        If not retrieved yet, attempt to retrieve the spec first
+        If not retrieved yet, attempt to retrieve the plan first
         from the AI Governance app. 
         """
-        if not self.assessment_spec:
-            self.retrieve_assessment_spec()
-        spec = {}
-        risk_spec = self.assessment_spec
+        assessment_plan = defaultdict(dict)
         missing_metrics = []
-        for risk_issue, plan in risk_spec.items():
-            metrics = [m['type'] for m in plan]
+        for risk_issue, risk_plan in self.assessment_spec['assessment_plan'].items():
+            metrics = [m['type'] for m in risk_plan]
             passed_metrics = []
             for m in metrics:
                 found = bool(find_metrics(m))
@@ -107,13 +103,17 @@ class CredoGovernance:
                 else:
                     passed_metrics.append(m)
             if risk_issue in RISK_ISSUE_MAPPING:
-                spec[RISK_ISSUE_MAPPING[risk_issue]] = {'metrics': passed_metrics}
+                update_dictionary(assessment_plan[RISK_ISSUE_MAPPING[risk_issue]], 
+                                  {'metrics': passed_metrics})
         # alert about missing metrics
         for m in missing_metrics:
-            logging.warning(f"Metric ({m}) is defined in the assessment spec but is not defined by Credo AI.\n"
+            logging.warning(f"Metric ({m}) is defined in the assessment plan but is not defined by Credo AI.\n"
                             "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
-                            "assessment spec passed to lens")
-        return spec
+                            "assessment plan passed to lens")
+        # remove repeated metrics
+        for plan in assessment_plan.values():
+            plan['metrics'] = list(set(plan['metrics']))
+        return assessment_plan
     
 
     def get_info(self):
@@ -193,40 +193,6 @@ class CredoGovernance:
             output_file = path.join(destination, name_for_save)
             with open(output_file, 'w') as f:
                 f.write(json_dumps(payload))
-
-    def retrieve_assessment_spec(self, spec_path=None):
-        """Retrieve assessment spec
-
-        Retrieve assessment spec, either from Credo AI's 
-        Governance App or a json file. This spec will be
-        for a use-case, and may apply to multiple models.
-        get_assessment_spec returns the spec associated with 
-        `model_id`.
-
-        if a spec_path is provided, it will be used instead of 
-        querying the use-case.
-
-        Parameters
-        __________
-        spec_path : string, optional
-            The file location for the technical spec json downloaded from
-            the technical requirements of an Use Case on Credo AI's
-            Governance App. If no spec_path is provided,
-            will use the Use Case ID. Default None
-
-        Returns
-        -------
-        dict
-            The assessment spec for one Model contained in the Use Case.
-            Format: {"Metric1": (lower_bound, upper_bound), ...}
-        """
-        assessment_spec = {}
-        if ((self.use_case_id is not None and self.model_id is not None) 
-            or spec_path is not None):
-            assessment_spec = ci.get_assessment_spec(
-                self.use_case_id, self.model_id, spec_path)
-        self.assessment_spec = assessment_spec
-        return self.assessment_spec
 
     def set_governance_info_by_name(self,
                                     *,
