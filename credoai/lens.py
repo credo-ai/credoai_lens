@@ -104,6 +104,7 @@ class Lens:
         self.run_time = False
 
         # set up governance
+        self.gov = None
         if governance:
             if isinstance(governance, str):
                 self.gov = CredoGovernance(
@@ -111,8 +112,6 @@ class Lens:
             else:
                 self.gov = governance
             self._register_artifacts()
-        else:
-            self.gov = CredoGovernance(warning_level=warning_level)
 
         # set up assessments
         self.assessments = self._select_assessments(assessments)
@@ -182,9 +181,7 @@ class Lens:
     def export(self, destination="credoai"):
         """Exports assessments to file or Credo AI's governance app
 
-        Note: to export to Credo AI's Governance App, CredoGovernance must be passed
-        to Lens with a defined "use_case_id". "model_id" is also required, but if no "model_id" 
-        is explicitly provided, a model will be registered and used.
+        Note: to export to Credo AI's Governance App, CredoGovernance must be defined.
 
         Parameters
         ----------
@@ -193,6 +190,8 @@ class Lens:
             -- "credoai", a special string to send to Credo AI Governance App.
             -- Any other string, save assessment json to the output_directory indicated by the string.
         """
+        if self.gov is None:
+            raise ValidationError("CredoGovernance must be defined to export!")
         prepared_results = []
         for assessment in self.get_assessments(flatten=True):
             try:

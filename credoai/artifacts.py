@@ -72,9 +72,9 @@ class CredoGovernance:
                  credo_url: str = None,
                  spec_path: str = None,
                  warning_level=1):
+        self.warning_level = warning_level
         if credo_url is None and spec_path is None:
             raise ValidationError("Either credo_url or spec_path must be provided")
-        self.warning_level = warning_level
         # set up assessment spec
         self.assessment_spec = ci.process_assessment_spec(credo_url, spec_path)
         self.use_case_id = self.assessment_spec['use_case_id']
