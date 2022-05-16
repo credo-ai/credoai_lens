@@ -48,8 +48,8 @@ class Lens:
         governance : CredoGovernance or string, optional
             If CredoGovernance, object connecting
             Lens with Governance App. If string, interpreted as 
-            use-case ID on the Governance App. A CredoGovernance object
-            will be created with the string as use_case_id, by default None
+            a credo_url to be passed to a CredoGovernance object, 
+            by default None
         assessment_plan : dict
             key word arguments passed to each assessments `init_module` 
             function using `Lens.init_module`. Each key must correspond to
@@ -107,7 +107,7 @@ class Lens:
         if governance:
             if isinstance(governance, str):
                 self.gov = CredoGovernance(
-                    use_case_id=governance, warning_level=warning_level)
+                    credo_url=governance, warning_level=warning_level)
             else:
                 self.gov = governance
             self._register_artifacts()

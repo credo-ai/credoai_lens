@@ -59,8 +59,8 @@ class CredoGovernance:
     credo_url: str
         end point to retrieve assessment spec from credo AI's governance platform
     spec_path : string, optional
-        The file location for the technical spec json downloaded from
-        the technical requirements of an Use Case on Credo AI's
+        The file location for the assessment spec json downloaded from
+        the assessment requirements of an Use Case on Credo AI's
         Governance App
     warning_level : int
         warning level. 
@@ -72,6 +72,8 @@ class CredoGovernance:
                  credo_url: str = None,
                  spec_path: str = None,
                  warning_level=1):
+        if credo_url is None and spec_path is None:
+            raise ValidationError("Either credo_url or spec_path must be provided")
         self.warning_level = warning_level
         # set up assessment spec
         self.assessment_spec = ci.process_assessment_spec(credo_url, spec_path)
