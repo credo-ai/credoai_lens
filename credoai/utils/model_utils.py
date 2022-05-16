@@ -1,7 +1,7 @@
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
 import warnings
 
-def get_gradient_boost_model():
+def get_generic_classifier():
     with warnings.catch_warnings():
         warnings.simplefilter(action='ignore', category=FutureWarning)
         try:
@@ -11,7 +11,7 @@ def get_gradient_boost_model():
                     use_label_encoder=False,
                     eval_metric='logloss')
             except xgb.core.XGBoostError:
-                model = GradientBoostingClassifier()
+                model = RandomForestClassifier()
         except ModuleNotFoundError:
-            model = GradientBoostingClassifier()
+            model = RandomForestClassifier()
         return model

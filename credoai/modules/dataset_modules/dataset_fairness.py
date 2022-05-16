@@ -5,7 +5,7 @@ from credoai.modules.credo_module import CredoModule
 from credoai.utils.constants import MULTICLASS_THRESH
 from credoai.utils.common import NotRunError, is_categorical
 from credoai.utils.dataset_utils import ColumnTransformerUtil
-from credoai.utils.model_utils import get_gradient_boost_model
+from credoai.utils.model_utils import get_generic_classifier
 from itertools import combinations
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -220,7 +220,7 @@ class DatasetFairness(CredoModule):
             transformers=transformers
         )
 
-        model = get_gradient_boost_model()
+        model = get_generic_classifier()
 
         pipe = Pipeline(
             steps=[("preprocessor", preprocessor), ("model", model)]
