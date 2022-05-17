@@ -308,25 +308,43 @@ class Lens:
         """Initializes modules in each assessment"""
         datasets = self.get_datasets()
         for dataset_type, assessments in self.get_assessments().items():
-            dataset = datasets.get(dataset_type)
-            if dataset:
-                logging.info(
-                    f"Initializing assessments for {dataset_type} dataset: {dataset.name}")
-            else:
-                logging.info(f"Initializing assessments for model without dataset")
-            for assessment in assessments.values():
-                kwargs = deepcopy(self.spec.get(assessment.name, {}))
-                reqs = assessment.get_requirements()
-                if reqs['model_requirements']:
-                    kwargs['model'] = self.model
-                if reqs['data_requirements']:
-                    kwargs['data'] = dataset
-                try:
-                    assessment.init_module(**kwargs)
-                except:
-                    raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
-                                          " Ensure the assessment spec is passing the required parameters"
-                                          )
+            if dataset_type != 'validation_training':
+                dataset = datasets.get(dataset_type)
+                if dataset:
+                    logging.info(
+                        f"Initializing assessments for {dataset_type} dataset: {dataset.name}")
+                else:
+                    logging.info(f"Initializing assessments for model without dataset")
+                for assessment in assessments.values():
+                    kwargs = deepcopy(self.spec.get(assessment.name, {}))
+                    reqs = assessment.get_requirements()
+                    if reqs['model_requirements']:
+                        kwargs['model'] = self.model
+                    if reqs['data_requirements']:
+                        kwargs['data'] = dataset
+                    display(assessment.name, reqs, kwargs)
+                    try:
+                        assessment.init_module(**kwargs)
+                    except:
+                        raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
+                                            " Ensure the assessment spec is passing the required parameters"
+                                            )
+            elif dataset_type != 'validation_training':
+                for assessment in assessments.values():
+                    kwargs = deepcopy(self.spec.get(assessment.name, {}))
+                    reqs = assessment.get_requirements()
+                    kwargs['data'] = datasets.get('validation')
+                    kwargs['training_data'] = datasets.get('training')
+                    if reqs['model_requirements']:
+                        kwargs['model'] = self.model
+                    display(assessment.name, reqs, kwargs)
+                    try:
+                        assessment.init_module(**kwargs)
+                    except:
+                        raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
+                                            " Ensure the assessment spec is passing the required parameters"
+                                            )
+
 
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment)
@@ -390,16 +408,12 @@ class Lens:
             selected_assessments[dataset_type] = usable_assessments
 
         # get assessments that require both validation and training datasets
-        if all(dataset_type in self.get_datasets() for dataset_type in ['validation', 'training']):
-            dataset = self.get_datasets()['validation']
-            training_dataset = self.get_datasets()['training']
-            if dataset == self.training_dataset:
-                model = None
-            else:
-                model = self.model
+        if self.assessment_dataset and self.training_dataset:
             usable_assessments = get_usable_assessments(
-                model, dataset, candidate_assessments, training_dataset)
+                self.model, self.assessment_dataset, candidate_assessments, self.training_dataset)
             selected_assessments['validation_training'] = usable_assessments
+
+        display(selected_assessments)
 
         return selected_assessments
 
