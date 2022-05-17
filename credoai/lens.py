@@ -372,7 +372,8 @@ class Lens:
             assessment_text = f"Selected assessments...\n--" + '\n--'.join(model_assessments.keys())
             logging.info(assessment_text)
             selected_assessments['no_data'] = model_assessments
-        # get assesments for each assessment dataset
+        
+        # get assessments for each assessment dataset
         for dataset_type, dataset in self.get_datasets().items():
             artifact_text = f"{dataset_type} dataset: {dataset.name}"
             if dataset == self.training_dataset:
@@ -387,6 +388,19 @@ class Lens:
             assessment_text = 'Selected assessments...\n--' + '\n--'.join(usable_assessments.keys())
             logging.info(assessment_text)
             selected_assessments[dataset_type] = usable_assessments
+
+        # get assessments that require both validation and training datasets
+        if all(dataset_type in self.get_datasets() for dataset_type in ['validation', 'training']):
+            dataset = self.get_datasets()['validation']
+            training_dataset = self.get_datasets()['training']
+            if dataset == self.training_dataset:
+                model = None
+            else:
+                model = self.model
+            usable_assessments = get_usable_assessments(
+                model, dataset, candidate_assessments, training_dataset)
+            selected_assessments['validation_training'] = usable_assessments
+
         return selected_assessments
 
     def _setup_spec(self, spec):
