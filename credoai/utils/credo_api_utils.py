@@ -91,7 +91,7 @@ def get_assessment_spec(assessment_spec_url):
     except requests.exceptions.HTTPError:
         raise IntegrationError("Failed to retrieve assessment spec. Check that the url is correct")
     try:
-        assessment_plan_id = downloaded_spec['id']
+        assessment_plan_id = downloaded_spec['assessment_plan_id']
         end_point = get_end_point(
             f"assessment_plans/{assessment_plan_id}/metrics")
         assessment_plan = {'metrics': deserialize(
