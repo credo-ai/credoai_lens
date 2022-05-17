@@ -18,44 +18,6 @@ import inspect
 # *******************
 # Model Assessments
 # *******************
-class ComputationalEfficiencyAssessment(CredoAssessment):
-    """Basic evaluation of the computational efficiency of ML models
-
-    Runs computational efficiency evaluation on models that do inference
-
-    Modules:
-
-    * credoai.modules.computational_efficiency
-
-    Requirements
-    ------------
-    Requires that the CredoModel defines a `predict` function
-    """
-
-    def __init__(self):
-        super().__init__(
-            'ComputationalEfficiency',
-            mod.ComputationalEfficiencyModule,
-            AssessmentRequirements(
-                model_requirements=['predict'],
-                data_requirements=['X']
-            )
-        )
-
-    def init_module(self, *, model, data):
-        """Initializes the assessment module
-
-        Parameters
-        ------------
-        model : CredoModel
-        data : CredoData
-        """
-        super().init_module(model=model, data=data)
-
-        module = self.module(
-            model.predict,
-            data.X)
-        self.initialized_module = module
 
 class FairnessAssessment(CredoAssessment):
     """Basic evaluation of the fairness of ML models
