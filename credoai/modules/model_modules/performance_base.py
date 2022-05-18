@@ -33,8 +33,8 @@ class PerformanceModule(CredoModule):
         The predicted labels for classification
     y_prob : (List, pandas.Series, numpy.ndarray), optional
         The unthresholded predictions, confidence values or probabilities.
-    sensitive_features :  (List, pandas.Series, numpy.ndarray)
-        The segmentation features which should be used to create subgroups to analyze.
+    sensitive_features :  pandas.DatFrame
+        The segmentation feature(s) which should be used to create subgroups to analyze.
     """
 
     def __init__(self,
@@ -52,7 +52,8 @@ class PerformanceModule(CredoModule):
         self.perform_disaggregation = True
         if sensitive_features is None:
             self.perform_disaggregation = False
-            sensitive_features = ['NA'] * len(self.y_true) # only set to use metric frame
+            # only set to use metric frame
+            sensitive_features = pd.DataFrame({'NA': ['NA'] * len(self.y_true)})
         self.sensitive_features = sensitive_features
         self._validate_inputs()
         
