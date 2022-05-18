@@ -394,12 +394,22 @@ def list_assessments():
 
 
 class DummyAssessment(CredoAssessment):
+    """
+    Dummy assessment
+
+    Generate dummy reports 
+
+    Modules
+    -------
+    * credoai.modules.dummy_module
+
+    """
     def __init__(self):
         super().__init__(
-            'Dummy', 
+            'DummyModule', 
             mod.DummyModule,
             AssessmentRequirements(
-                model_requirements=[('pred_fun')],
+                model_requirements=[('predict_proba', 'predict')],
                 data_requirements=['X', 'y'],
                 training_data_requirements=['X', 'y']
             )
