@@ -28,7 +28,7 @@ def test_lens_with_model():
     results = lens.run_assessments().get_results()
     metric = results["validation"]["Fairness"]["fairness"].index[0]
     score = round(results["validation"]["Fairness"]["fairness"].iloc[0]["value"], 2)
-    expected_assessments = {'DatasetFairness', 'DatasetProfiling', 'Fairness', 'Performance', 'ComputationalEfficiency'}
+    expected_assessments = {'DatasetFairness', 'DatasetProfiling', 'Fairness', 'Performance'}
     
     assert metric == "precision_score"
     assert score == 0.33
