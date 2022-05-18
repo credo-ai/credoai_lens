@@ -90,7 +90,6 @@ class Metric():
         # lower, remove spaces, replace delimiters with underscores
         standard =  '_'.join(re.split('[- \s _]', 
                             re.sub('\s\s+', ' ', metric.lower())))
-        standard = remove_suffix(remove_suffix(standard, '_difference'), '_parity')
         return standard
 
 
