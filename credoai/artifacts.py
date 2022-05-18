@@ -56,10 +56,10 @@ class CredoGovernance:
 
     Parameters
     ----------
-    credo_url: str
-        end point to retrieve assessment spec from credo AI's governance platform
-    spec_path : string, optional
-        The file location for the assessment spec json downloaded from
+    spec_destination: str
+        Where to find the assessment spec. Two possibilities. Either:
+        * end point to retrieve assessment spec from credo AI's governance platform
+        * The file location for the assessment spec json downloaded from
         the assessment requirements of an Use Case on Credo AI's
         Governance App
     warning_level : int
@@ -69,20 +69,15 @@ class CredoGovernance:
             2: warnings are raised as exceptions.
     """
     def __init__(self,
-                 credo_url: str = None,
-                 spec_path: str = None,
+                 spec_destination: str = None,
                  warning_level=1):
         self.warning_level = warning_level
-        if credo_url is None and spec_path is None:
-            raise ValidationError("Either credo_url or spec_path must be provided")
         # set up assessment spec
-        self.assessment_spec = ci.process_assessment_spec(credo_url, spec_path)
+        self.assessment_spec = ci.process_assessment_spec(spec_destination)
         self.use_case_id = self.assessment_spec['use_case_id']
         self.model_id = self.assessment_spec['model_id']
         self.dataset_id = self.assessment_spec['validation_dataset_id']
         self.training_dataset_id = self.assessment_spec['training_dataset_id']
-        if credo_url:
-            self._validate_ids()
 
     def get_assessment_plan(self):
         """Get assessment plan
@@ -290,17 +285,6 @@ class CredoGovernance:
             logging.info(f"Registering model ({model_name}) to Use Case ({self.use_case_id})")
             ci.register_model_to_usecase(self.use_case_id, self.model_id)
 
-    def _validate_ids(self):
-        ids = self.get_info()
-        for key, artifact_id in ids.items():
-            if artifact_id is None:
-                continue
-            if key == 'use_case_id':
-                get_use_case_name(artifact_id)
-            elif key == 'model_id':
-                get_model_name(artifact_id)
-            else:
-                get_dataset_name(artifact_id)
 
 class CredoModel:
     """Class wrapper around model-to-be-assessed
@@ -354,6 +338,7 @@ class CredoModel:
     ):
         self.name = name
         self.config = {}
+        self.model = model
         assert model is not None or model_config is not None
         if model is not None and model_config is None:
             self._init_config(model)

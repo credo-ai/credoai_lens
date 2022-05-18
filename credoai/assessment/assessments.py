@@ -4,6 +4,7 @@ Module containing all CredoAssessments
 
 from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
 from credoai.data.utils import get_data_path
+from credoai.utils.model_utils import get_default_metrics
 from credoai.reporting import (FairnessReporter, BinaryClassificationReporter,
                                NLPGeneratorAnalyzerReporter, DatasetFairnessReporter, RegressionReporter)
 from sklearn.utils.multiclass import type_of_target
@@ -89,7 +90,7 @@ class FairnessAssessment(CredoAssessment):
             )
         )
 
-    def init_module(self, *, model, data, metrics):
+    def init_module(self, *, model, data, metrics=None):
         """Initializes the assessment module
 
         Parameters
@@ -120,7 +121,7 @@ class FairnessAssessment(CredoAssessment):
             y_prob = model.predict_proba(data.X)
         except AttributeError:
             y_prob = None
-
+        metrics = get_default_metrics(model.model) if metrics is None else metrics
         module = self.module(
             metrics,
             data.sensitive_features,
@@ -288,7 +289,7 @@ class PerformanceAssessment(CredoAssessment):
             )
         )
 
-    def init_module(self, *, model, data, metrics, ignore_sensitive=True):
+    def init_module(self, *, model, data, metrics=None, ignore_sensitive=True):
         """Initializes the performance module
 
         Parameters
@@ -324,6 +325,7 @@ class PerformanceAssessment(CredoAssessment):
         except AttributeError:
             y_prob = None
         
+        metrics = get_default_metrics(model.model) if metrics is None else metrics
         sensitive_features = None if ignore_sensitive else data.sensitive_features
         module = self.module(
             metrics,

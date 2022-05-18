@@ -48,7 +48,7 @@ class Lens:
         governance : CredoGovernance or string, optional
             If CredoGovernance, object connecting
             Lens with Governance App. If string, interpreted as 
-            a credo_url to be passed to a CredoGovernance object, 
+            a spec_destination to be passed to a CredoGovernance object, 
             by default None
         assessment_plan : dict
             key word arguments passed to each assessments `init_module` 
@@ -108,7 +108,7 @@ class Lens:
         if governance:
             if isinstance(governance, str):
                 self.gov = CredoGovernance(
-                    credo_url=governance, warning_level=warning_level)
+                    spec_destination=governance, warning_level=warning_level)
             else:
                 self.gov = governance
             self._register_artifacts()

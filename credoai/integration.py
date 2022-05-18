@@ -293,7 +293,7 @@ def prepare_assessment_payload(assessment_results, report=None, assessed_at=None
     return payload
 
 
-def process_assessment_spec(credo_url=None, spec_path=None):
+def process_assessment_spec(spec_destination):
     """Get assessment spec from Credo's Governance App or file
 
     At least one of the credo_url or spec_path must be provided! If both
@@ -305,11 +305,11 @@ def process_assessment_spec(credo_url=None, spec_path=None):
 
     Parameters
     ----------
-    credo_url: str
-        end point to retrieve assessment spec from credo AI's governance platform
-    spec_path : string, optional
-        The file location for the technical spec json downloaded from
-        the technical requirements of an Use Case on Credo AI's
+    spec_destination: str
+        Where to find the assessment spec. Two possibilities. Either:
+        * end point to retrieve assessment spec from credo AI's governance platform
+        * The file location for the assessment spec json downloaded from
+        the assessment requirements of an Use Case on Credo AI's
         Governance App
 
     Returns
@@ -318,10 +318,11 @@ def process_assessment_spec(credo_url=None, spec_path=None):
         The assessment spec, with artifacts ids and assessment plan
     """
     spec = {}
-    if spec_path:
-        spec = deserialize(json.load(open(spec_path)))
-    elif credo_url:
-        spec = get_assessment_spec(credo_url)
+    try:
+        spec = get_assessment_spec(spec_destination)
+    except IntegrationError:
+        spec = deserialize(json.load(open(spec_destination)))
+        
     # reformat assessment_spec
     metric_dict = defaultdict(dict)
     metrics = spec['assessment_plan']['metrics']

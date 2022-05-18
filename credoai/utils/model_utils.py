@@ -1,4 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.base import is_classifier, is_regressor
 import warnings
 
 def get_generic_classifier():
@@ -15,3 +16,11 @@ def get_generic_classifier():
         except ModuleNotFoundError:
             model = RandomForestClassifier()
         return model
+
+def get_default_metrics(model):
+    if is_classifier(model):
+        return ['accuracy_score']
+    elif is_regressor(model):
+        return ['r2_score']
+    else:
+        return None
