@@ -327,6 +327,6 @@ def process_assessment_spec(credo_url=None, spec_path=None):
     assessment_plan = defaultdict(list)
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        assessment_plan[metric['risk_issue']].append({'type': metric['type'], 'bounds': bounds})
+        assessment_plan[metric['risk_issue']].append({'type': metric['metric_type'], 'bounds': bounds})
     spec['assessment_plan'] = assessment_plan
     return spec

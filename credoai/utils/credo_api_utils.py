@@ -38,7 +38,6 @@ def refresh_token():
     HEADERS['Authorization'] = key
     SESSION.headers.update(HEADERS)
 
-
 def renew_access_token(func):
     def wrapper(*args, **kwargs):
         response = func(*args, **kwargs)
@@ -88,18 +87,10 @@ def get_assessment_spec(assessment_spec_url):
         downloaded_spec = deserialize(submit_request('get', end_point).json())
         assessment_spec = {k: v for k,
                            v in downloaded_spec.items() if '_id' in k}
+        assessment_spec['assessment_plan'] = downloaded_spec['assessment_plan']
     except requests.exceptions.HTTPError:
         raise IntegrationError("Failed to retrieve assessment spec. Check that the url is correct")
-    try:
-        assessment_plan_id = downloaded_spec['assessment_plan_id']
-        end_point = get_end_point(
-            f"assessment_plans/{assessment_plan_id}/metrics")
-        assessment_plan = {'metrics': deserialize(
-            submit_request('get', end_point).json())}
-        assessment_spec['assessment_plan'] = assessment_plan
-        return assessment_spec
-    except requests.exceptions.HTTPError:
-        raise IntegrationError("Failed to get assessment plan associated with assessment spec")
+    return assessment_spec
 
 
 def get_dataset_name(dataset_id):
