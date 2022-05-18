@@ -371,10 +371,15 @@ class Lens:
 
     def _select_assessments(self, candidate_assessments=None):
         AssessmentBunch = namedtuple('AssessmentBunch', 'name model dataset training_dataset assessments')
+        
+        # generate all possible artifacts combinations
         artifacts = self.get_artifacts()
         artifacts_combinations = []
         for i in range(1,len(artifacts)+1):
             artifacts_combinations.extend(list(map(dict, combinations(artifacts.items(), i))))
+
+        # filter undesirable combinations
+        artifacts_combinations = [c for c in artifacts_combinations if set(c.keys())!={'training', 'model'}]
 
         assessment_bunches = []
         for af_comb in artifacts_combinations:
