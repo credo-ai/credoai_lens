@@ -13,6 +13,7 @@ from credoai.utils.credo_api_utils import (get_assessment_spec,
                                            register_model_to_usecase,
                                            register_dataset_to_model,
                                            register_dataset_to_model_usecase)
+from json_api_doc import deserialize
 import base64
 import credoai
 import json
@@ -318,7 +319,7 @@ def process_assessment_spec(credo_url=None, spec_path=None):
     """
     spec = {}
     if spec_path:
-        spec = json.load(open(spec_path))
+        spec = deserialize(json.load(open(spec_path)))
     elif credo_url:
         spec = get_assessment_spec(credo_url)
     # reformat assessment_spec

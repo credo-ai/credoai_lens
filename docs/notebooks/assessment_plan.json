@@ -1,0 +1,50 @@
+{
+    "data": {
+        "attributes": {
+            "assessment_plan_id": "plan1",
+            "model_id": "model1",
+            "training_dataset_id": "training1",
+            "use_case_id": "usecase1",
+            "validation_dataset_id": "validation1"
+        },
+        "id": "spec1",
+        "relationships": {
+            "assessment_plan": {
+                "data": {
+                    "id": "plan1",
+                    "type": "lens_assessment_plan"
+                }
+            }
+        },
+        "type": "lens_assessment_spec"
+    },
+    "included": [
+        {
+            "attributes": {
+                "assessment_plan_id": "plan1",
+                "metric_type": "precision_score",
+                "risk_issue": "perf.1",
+                "lower_threshold": 0.0,
+                "upper_threshold": 1.0
+            },
+            "id": "metric1",
+            "relationships": {},
+            "type": "lens_assessment_plan_metric"
+        },
+        {
+            "attributes": {},
+            "id": "plan1",
+            "relationships": {
+                "metrics": {
+                    "data": [
+                        {
+                            "id": "metric1",
+                            "type": "lens_assessment_plan_metric"
+                        }
+                    ]
+                }
+            },
+            "type": "lens_assessment_plan"
+        }
+    ]
+}
