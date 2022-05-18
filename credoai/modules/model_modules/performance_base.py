@@ -33,7 +33,7 @@ class PerformanceModule(CredoModule):
         The predicted labels for classification
     y_prob : (List, pandas.Series, numpy.ndarray), optional
         The unthresholded predictions, confidence values or probabilities.
-    sensitive_features :  pandas.DatFrame
+    sensitive_features :  pandas.DataFrame
         The segmentation feature(s) which should be used to create subgroups to analyze.
     """
 

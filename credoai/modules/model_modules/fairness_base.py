@@ -28,7 +28,7 @@ class FairnessModule(PerformanceModule):
         Note for performance parity metrics like 
         "false negative rate parity" just list "false negative rate". Parity metrics
         are calculated automatically if the performance metric is supplied
-    sensitive_features :  pandas.DatFrame
+    sensitive_features :  pandas.DataFrame
         The segmentation feature(s) which should be used to create subgroups to analyze.
     y_true : (List, pandas.Series, numpy.ndarray)
         The ground-truth labels (for classification) or target values (for regression).
