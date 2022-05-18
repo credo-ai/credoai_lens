@@ -17,6 +17,8 @@ from typing import List, Union
 import collections.abc
 import credoai.integration as ci
 import shutil
+from collections import namedtuple
+from itertools import combinations
 
 
 class Lens:
@@ -205,7 +207,6 @@ class Lens:
                 "No report is included. To include a report, run create_reports first")
         self.gov.export_assessment_results(prepared_results, destination, self.report, self.run_time)
 
-
     def get_assessments(self, flatten=False):
         """Return assessments defined
 
@@ -222,8 +223,8 @@ class Lens:
         """
         if flatten:
             all_assessments = []
-            for assessment_dataset, assessments in self.assessments.items():
-                all_assessments += assessments.values()
+            for bunch in self.assessments:
+                all_assessments += bunch.assessments.values()
             return all_assessments
         return self.assessments
 
@@ -234,6 +235,16 @@ class Lens:
         if self.training_dataset is not None:
             datasets['training'] = self.training_dataset
         return datasets
+
+    def get_artifacts(self):
+        artifacts = {}
+        if self.assessment_dataset is not None:
+            artifacts['validation'] = self.assessment_dataset
+        if self.training_dataset is not None:
+            artifacts['training'] = self.training_dataset
+        if self.model is not None:
+            artifacts['model'] = self.model
+        return artifacts
 
     def get_governance(self):
         return self.gov
@@ -305,46 +316,22 @@ class Lens:
         return destination
 
     def _init_assessments(self):
-        """Initializes modules in each assessment"""
-        datasets = self.get_datasets()
-        for dataset_type, assessments in self.get_assessments().items():
-            if dataset_type != 'validation_training':
-                dataset = datasets.get(dataset_type)
-                if dataset:
-                    logging.info(
-                        f"Initializing assessments for {dataset_type} dataset: {dataset.name}")
-                else:
-                    logging.info(f"Initializing assessments for model without dataset")
-                for assessment in assessments.values():
-                    kwargs = deepcopy(self.spec.get(assessment.name, {}))
-                    reqs = assessment.get_requirements()
-                    if reqs['model_requirements']:
-                        kwargs['model'] = self.model
-                    if reqs['data_requirements']:
-                        kwargs['data'] = dataset
-                    display(assessment.name, reqs, kwargs)
-                    try:
-                        assessment.init_module(**kwargs)
-                    except:
-                        raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
-                                            " Ensure the assessment spec is passing the required parameters"
-                                            )
-            elif dataset_type != 'validation_training':
-                for assessment in assessments.values():
-                    kwargs = deepcopy(self.spec.get(assessment.name, {}))
-                    reqs = assessment.get_requirements()
-                    kwargs['data'] = datasets.get('validation')
-                    kwargs['training_data'] = datasets.get('training')
-                    if reqs['model_requirements']:
-                        kwargs['model'] = self.model
-                    display(assessment.name, reqs, kwargs)
-                    try:
-                        assessment.init_module(**kwargs)
-                    except:
-                        raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
-                                            " Ensure the assessment spec is passing the required parameters"
-                                            )
-
+        for bunch in self.assessments:
+            for assessment in bunch.assessments.values():
+                kwargs = deepcopy(self.spec.get(assessment.name, {}))
+                reqs = assessment.get_requirements()
+                if reqs['model_requirements']:
+                    kwargs['model'] = bunch.model
+                if reqs['data_requirements']:
+                    kwargs['data'] = bunch.dataset
+                if reqs['training_data_requirements']:
+                    kwargs['training_data'] = bunch.training_dataset
+                try:
+                    assessment.init_module(**kwargs)
+                except:
+                    raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
+                                          " Ensure the assessment spec is passing the required parameters"
+                                          )
 
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment)
@@ -383,39 +370,31 @@ class Lens:
             self.gov.register(**to_register)
 
     def _select_assessments(self, candidate_assessments=None):
-        selected_assessments = {}
-        logging.info("Automatically Selected Assessments for Model without data\n")
-        model_assessments = get_usable_assessments(self.model, None, candidate_assessments)
-        if model_assessments:
-            assessment_text = f"Selected assessments...\n--" + '\n--'.join(model_assessments.keys())
-            logging.info(assessment_text)
-            selected_assessments['no_data'] = model_assessments
+        AssessmentBunch = namedtuple('AssessmentBunch', 'name model dataset training_dataset assessments')
+        artifacts = self.get_artifacts()
+        artifacts_combinations = []
+        for i in range(1,len(artifacts)+1):
+            artifacts_combinations.extend(list(map(dict, combinations(artifacts.items(), i))))
+
+        assessment_bunches = []
+        for af_comb in artifacts_combinations:
+            bunch_name = '_'.join(list(af_comb.keys()))
+            usable_assessments = get_usable_assessments(
+                    af_comb.get('model'), af_comb.get('validation'), candidate_assessments, af_comb.get('training')
+                    )
+            if usable_assessments:
+                assessment_bunch = AssessmentBunch(
+                    bunch_name,
+                    af_comb.get('model'),
+                    af_comb.get('validation'),
+                    af_comb.get('training'),
+                    usable_assessments
+                    )
+                assessment_bunches.append(assessment_bunch)
+
+        display(assessment_bunches)
         
-        # get assessments for each assessment dataset
-        for dataset_type, dataset in self.get_datasets().items():
-            artifact_text = f"{dataset_type} dataset: {dataset.name}"
-            if dataset == self.training_dataset:
-                model = None
-            else:
-                model = self.model
-            if model:
-                artifact_text = f"model: {model.name} and {artifact_text}"
-            logging.info(f"Automatically Selected Assessments for {artifact_text}\n--")
-            usable_assessments = get_usable_assessments(
-                model, dataset, candidate_assessments)
-            assessment_text = 'Selected assessments...\n--' + '\n--'.join(usable_assessments.keys())
-            logging.info(assessment_text)
-            selected_assessments[dataset_type] = usable_assessments
-
-        # get assessments that require both validation and training datasets
-        if self.assessment_dataset and self.training_dataset:
-            usable_assessments = get_usable_assessments(
-                self.model, self.assessment_dataset, candidate_assessments, self.training_dataset)
-            selected_assessments['validation_training'] = usable_assessments
-
-        display(selected_assessments)
-
-        return selected_assessments
+        return assessment_bunches
 
     def _setup_spec(self, spec):
         # if governance is defined, pull down spec for
