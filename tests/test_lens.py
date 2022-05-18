@@ -14,7 +14,7 @@ sensitive_feature = data['data']["gender"]
 
 data = pd.concat([data['data'], y], axis=1)
 credo_data = cl.CredoData(
-    name="income_data", data=data, label_key='income', sensitive_feature_key='gender'
+    name="income_data", data=data, label_key='income', sensitive_feature_keys=['gender']
 )
 
 model = LogisticRegression(random_state=0).fit(X, y)
@@ -38,9 +38,18 @@ def test_lens_with_model():
 def test_lens_without_model():
     lens = cl.Lens(data=credo_data)
     results = lens.run_assessments().get_results()
-    metric_score = results["validation"]['DatasetFairness']["demographic_parity_ratio"][0]['value']
+    metric_score = results["validation"]['DatasetFairness']["gender-demographic_parity_ratio"][0]['value']
     assert metric_score == 0.5
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'DatasetProfiling'} 
+
+def test_lens_without_sensitive_feature():
+    credo_data = cl.CredoData(
+        name="income_data", data=data.drop('gender', axis=1), label_key='income'
+    )
+    lens = cl.Lens(model=credo_model, data=credo_data, spec=alignment_spec)
+    results = lens.run_assessments().get_results()
+    expected_assessments = {'DatasetProfiling', 'Performance'}
+    assert set([a.name for a in lens.get_assessments(flatten=True)]) == expected_assessments 
 
 def test_lens_dataset_with_missing_data():
     np.random.seed(0)
@@ -51,12 +60,12 @@ def test_lens_dataset_with_missing_data():
 
     data = pd.concat([data['data'], y], axis=1)
     credo_data = cl.CredoData(
-        name="income_data", data=data, label_key='income', sensitive_feature_key='gender'
+        name="income_data", data=data, label_key='income', sensitive_feature_keys=['gender']
     )
 
     lens = cl.Lens(data=credo_data)
     results = lens.run_assessments().get_results()
-    metric_score = results["validation"]['DatasetFairness']["demographic_parity_ratio"][0]['value']
+    metric_score = results["validation"]['DatasetFairness']["gender-demographic_parity_ratio"][0]['value']
     assert metric_score == 0.375
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'DatasetProfiling'} 
 
