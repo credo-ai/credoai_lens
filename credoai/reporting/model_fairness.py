@@ -117,6 +117,7 @@ class FairnessReporter(CredoReporter):
                 self._plot_fairness_metrics(axes[0], sf_name)
                 if plot_disaggregated:
                     self._plot_disaggregated_metrics(axes[1], sf_name)
+                plt.suptitle(f"Sensitive Feature: {sf_name.title()}", fontweight="bold")
             f_list.append(f)
         
         return f_list
