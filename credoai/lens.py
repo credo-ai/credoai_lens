@@ -321,7 +321,7 @@ class Lens:
     def _init_assessments(self):
         for bunch in self.assessments:
             for assessment in bunch.assessments.values():
-                kwargs = deepcopy(self.spec.get(assessment.name, {}))
+                kwargs = deepcopy(self.assessment_plan.get(assessment.name, {}))
                 reqs = assessment.get_requirements()
                 if reqs['model_requirements']:
                     kwargs['model'] = bunch.model
@@ -386,17 +386,6 @@ class Lens:
             if assessment_bunch.assessments:
                 assessment_bunches.append(assessment_bunch)        
         return assessment_bunches
-
-    def _setup_spec(self, spec):
-        # if governance is defined, pull down spec for
-        # use_case / model
-        if self.gov:
-            self.spec = self.gov.get_assessment_spec()
-        if spec:
-            self._update_spec(self.spec, spec)
-        # change spec based on overlap between different modules
-        if 'Fairness' in self.spec and 'Performance' in self.spec:
-            self.spec['Performance']['ignore_sensitive'] = True
 
 
 def set_logging_level(logging_level):
