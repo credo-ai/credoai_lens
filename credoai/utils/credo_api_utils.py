@@ -1,8 +1,8 @@
 import json
 import os
-import pandas as pd
 import requests
 import time
+from collections import defaultdict
 from credoai.utils.constants import CREDO_URL
 from credoai.utils.common import get_project_root, json_dumps, IntegrationError
 from dotenv import dotenv_values
@@ -88,6 +88,7 @@ def get_assessment_spec(assessment_spec_url):
         assessment_spec = {k: v for k,
                            v in downloaded_spec.items() if '_id' in k}
         assessment_spec['assessment_plan'] = downloaded_spec['assessment_plan']
+        assessment_spec['policy_questions'] = _process_policies(downloaded_spec['policies'])
     except requests.exceptions.HTTPError:
         raise IntegrationError("Failed to retrieve assessment spec. Check that the url is correct")
     return assessment_spec
@@ -282,3 +283,15 @@ def _get_name(artifact_id, artifact_type):
         if err.response.status_code == 400:
             raise IntegrationError(
                 f"No {artifact_type} found with id: {artifact_id}")
+
+def _process_policies(policies):
+    """Returns list of binary questions"""
+    question_list = defaultdict(list)
+    for policy in policies:
+        for control in policy['controls']:
+            label = control['description']
+            questions = control['questions']
+            filtered_questions = [f"{control['key']}-{int(q['position'])}: {q['question']}" for q in questions 
+                                  if q.get('options') == ['Yes', 'No']]
+            question_list[label] += filtered_questions
+    return question_list
