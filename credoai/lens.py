@@ -4,7 +4,7 @@ from absl import logging
 from copy import deepcopy
 from credoai.artifacts import CredoGovernance, CredoModel, CredoData
 from credoai.assessment.credo_assessment import CredoAssessment
-from credoai.assessment import get_usable_assessments
+from credoai.assessment import AssessmentBunch
 from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
     raise_or_warn, update_dictionary, wrap_list,
@@ -18,6 +18,8 @@ from typing import List, Union
 import collections.abc
 import credoai.integration as ci
 import shutil
+from collections import namedtuple
+from itertools import combinations
 
 
 class Lens:
@@ -219,7 +221,6 @@ class Lens:
                 "No report is included. To include a report, run create_reports first")
         self.gov.export_assessment_results(prepared_results, destination, self.report, self.run_time)
 
-
     def get_assessments(self, flatten=False):
         """Return assessments defined
 
@@ -236,8 +237,8 @@ class Lens:
         """
         if flatten:
             all_assessments = []
-            for assessment_dataset, assessments in self.assessments.items():
-                all_assessments += assessments.values()
+            for bunch in self.assessments:
+                all_assessments += bunch.assessments.values()
             return all_assessments
         return self.assessments
 
@@ -249,6 +250,16 @@ class Lens:
             datasets['training'] = self.training_dataset
         return datasets
 
+    def get_artifacts(self):
+        artifacts = {}
+        if self.assessment_dataset is not None:
+            artifacts['validation'] = self.assessment_dataset
+        if self.training_dataset is not None:
+            artifacts['training'] = self.training_dataset
+        if self.model is not None:
+            artifacts['model'] = self.model
+        return artifacts
+
     def get_governance(self):
         return self.gov
 
@@ -257,8 +268,8 @@ class Lens:
 
     def get_results(self):
         """Return results of assessments"""
-        return {dataset: {a.get_name(): a.get_results() for a in assessments.values()}
-                for dataset, assessments in self.get_assessments().items()}
+        return {bunch.name: {a.get_name(): a.get_results() for a in bunch.assessments.values()}
+                for bunch in self.get_assessments()}
 
     def display_results(self, assessments=None):
         """Display results from all assessment reporters
@@ -319,22 +330,16 @@ class Lens:
         return destination
 
     def _init_assessments(self):
-        """Initializes modules in each assessment"""
-        datasets = self.get_datasets()
-        for dataset_type, assessments in self.get_assessments().items():
-            dataset = datasets.get(dataset_type)
-            if dataset:
-                logging.info(
-                    f"Initializing assessments for {dataset_type} dataset: {dataset.name}")
-            else:
-                logging.info(f"Initializing assessments for model without dataset")
-            for assessment in assessments.values():
-                kwargs = deepcopy(self.assessment_plan.get(assessment.name, {}))
+        for bunch in self.assessments:
+            for assessment in bunch.assessments.values():
+                kwargs = deepcopy(self.spec.get(assessment.name, {}))
                 reqs = assessment.get_requirements()
                 if reqs['model_requirements']:
-                    kwargs['model'] = self.model
+                    kwargs['model'] = bunch.model
                 if reqs['data_requirements']:
-                    kwargs['data'] = dataset
+                    kwargs['data'] = bunch.primary_dataset
+                if reqs['training_data_requirements']:
+                    kwargs['training_data'] = bunch.secondary_dataset
                 try:
                     assessment.init_module(**kwargs)
                 except:
@@ -364,34 +369,34 @@ class Lens:
                           "No training dataset_id supplied to export to Credo AI.")
             logging.info(
                 f"**** Registering training dataset ({self.training_dataset.name})")
-            to_register['training_dataset_name'] = self.training_dataset.name
+        to_register['training_dataset_name'] = self.training_dataset.name
         if to_register:
             self.gov.register(**to_register)
 
-    def _select_assessments(self, candidate_assessments=None):
-        selected_assessments = {}
-        logging.info("Automatically Selected Assessments for Model without data\n")
-        model_assessments = get_usable_assessments(self.model, None, candidate_assessments)
-        if model_assessments:
-            assessment_text = f"Selected assessments...\n--" + '\n--'.join(model_assessments.keys())
-            logging.info(assessment_text)
-            selected_assessments['no_data'] = model_assessments
-        # get assesments for each assessment dataset
-        for dataset_type, dataset in self.get_datasets().items():
-            artifact_text = f"{dataset_type} dataset: {dataset.name}"
-            if dataset == self.training_dataset:
-                model = None
-            else:
-                model = self.model
-            if model:
-                artifact_text = f"model: {model.name} and {artifact_text}"
-            logging.info(f"Automatically Selected Assessments for {artifact_text}\n--")
-            usable_assessments = get_usable_assessments(
-                model, dataset, candidate_assessments)
-            assessment_text = 'Selected assessments...\n--' + '\n--'.join(usable_assessments.keys())
-            logging.info(assessment_text)
-            selected_assessments[dataset_type] = usable_assessments
-        return selected_assessments
+    def _select_assessments(self, candidate_assessments=None):        
+        # generate all possible artifacts combinations
+        artifacts = self.get_artifacts()
+
+        artifacts_combinations = []
+        for i in range(1,len(artifacts)+1):
+            artifacts_combinations.extend(list(map(dict, combinations(artifacts.items(), i))))
+
+        # filter undesirable combinations
+        filtered_keys = [{'training', 'model'}]
+        artifacts_combinations = [c for c in artifacts_combinations 
+                                  if set(c.keys()) not in filtered_keys]
+
+        # create bunches
+        assessment_bunches = []
+        for af_comb in artifacts_combinations:
+            bunch_name = '_'.join(list(af_comb.keys()))
+            primary = af_comb.get('validation') or af_comb.get('training')
+            secondary = af_comb.get('training') if af_comb.get('validation') else None
+            assessment_bunch = AssessmentBunch(bunch_name, af_comb.get('model'), primary, secondary)
+            assessment_bunch.set_usable_assessments(candidate_assessments)
+            if assessment_bunch.assessments:
+                assessment_bunches.append(assessment_bunch)        
+        return assessment_bunches
 
     def _setup_spec(self, spec):
         # if governance is defined, pull down spec for
@@ -408,3 +413,5 @@ class Lens:
 def set_logging_level(logging_level):
     """Alias for absl.logging.set_verbosity"""
     logging.set_verbosity(logging_level)
+
+

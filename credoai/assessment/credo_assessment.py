@@ -222,6 +222,14 @@ class AssessmentRequirements:
         self.training_data_requirements = training_data_requirements or []
 
     def check_requirements(self, credo_model=None, credo_data=None, credo_training_data=None):
+        # disqualify if the assessment does not require any of the artifacts provided
+        if (
+            (credo_model and not self.model_requirements)
+            or (credo_data and not self.data_requirements)
+            or (credo_training_data and not self.training_data_requirements)
+        ):
+            return False
+
         for artifact, requirements in [
             (credo_model, self.model_requirements),
             (credo_data, self.data_requirements),
