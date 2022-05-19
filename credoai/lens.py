@@ -254,8 +254,8 @@ class Lens:
 
     def get_results(self):
         """Return results of assessments"""
-        return {dataset: {a.get_name(): a.get_results() for a in assessments.values()}
-                for dataset, assessments in self.get_assessments().items()}
+        return {bunch.name: {a.get_name(): a.get_results() for a in bunch.assessments.values()}
+                for bunch in self.get_assessments()}
 
     def display_results(self, assessments=None):
         """Display results from all assessment reporters
