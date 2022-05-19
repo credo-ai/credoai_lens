@@ -1,3 +1,4 @@
+from dis import dis
 from absl import logging
 from credoai.utils.common import to_array, NotRunError, ValidationError
 from credoai.metrics import Metric, find_metrics, MODEL_METRIC_CATEGORIES 
@@ -27,8 +28,8 @@ class FairnessModule(PerformanceModule):
         Note for performance parity metrics like 
         "false negative rate parity" just list "false negative rate". Parity metrics
         are calculated automatically if the performance metric is supplied
-    sensitive_features :  (List, pandas.Series, numpy.ndarray)
-        The sensitive features which should be used to create subgroups.
+    sensitive_features :  pandas.DataFrame
+        The segmentation feature(s) which should be used to create subgroups to analyze.
     y_true : (List, pandas.Series, numpy.ndarray)
         The ground-truth labels (for classification) or target values (for regression).
     y_pred : (List, pandas.Series, numpy.ndarray)
@@ -154,31 +155,51 @@ class FairnessModule(PerformanceModule):
             The returned fairness metrics
         """
 
-        results = {}
-        for metric_name, metric in self.fairness_metrics.items():
-            results[metric_name] = metric.fun(y_true=self.y_true,
-                                              y_pred=self.y_pred,
-                                              sensitive_features=self.sensitive_features,
-                                              method=method)
-        for metric_name, metric in self.fairness_prob_metrics.items():
-            results[metric_name] = metric.fun(y_true=self.y_true,
-                                              y_prob=self.y_prob,
-                                              sensitive_features=self.sensitive_features,
-                                              method=method)
-        results = pd.Series(results, dtype=float, name='value')
+        results = []
+        for sf_name, sf_series in self.sensitive_features.items():
+            for metric_name, metric in self.fairness_metrics.items():
+                metric_value = metric.fun(y_true=self.y_true,
+                                          y_pred=self.y_pred,
+                                          sensitive_features=sf_series,
+                                          method=method)
+
+                results.append({
+                    'metric_type': metric_name,
+                    'value': metric_value,
+                    'sensitive_feature': sf_name
+                    })
+
+            for metric_name, metric in self.fairness_prob_metrics.items():
+                metric_value = metric.fun(y_true=self.y_true,
+                                          y_prob=self.y_prob,
+                                          sensitive_features=sf_series,
+                                          method=method)
+                results.append({
+                    'metric_type': metric_name,
+                    'value': metric_value,
+                    'sensitive_feature': sf_name
+                    })
+
+        results = pd.DataFrame.from_dict(results)
+        
         # add parity results
         parity_results = pd.Series(dtype=float)
-        for metric_frame in self.metric_frames.values():
-            parity_results = pd.concat(
-                [parity_results, metric_frame.difference(method=method)])
-        parity_results.name = 'value'
+        parity_results = []
+        for sf_name, metric_frames in self.metric_frames.items():
+            for metric_frame in metric_frames.values():
+                diffs = metric_frame.difference(method=method)
+                diffs = pd.DataFrame({'metric_type':diffs.index, 'value':diffs.values})
+                diffs['sensitive_feature'] = sf_name
+                parity_results.append(diffs)
 
-        results = pd.concat([results, parity_results]).convert_dtypes().to_frame()
-        results.index.name = 'metric_type'
+        parity_results = pd.concat(parity_results)
+
+        results = pd.concat([results, parity_results])
+        results.set_index('metric_type', inplace=True)
         # add kind
         results['subtype'] = ['fairness'] * len(results)
         results.loc[results.index[-len(parity_results):], 'subtype'] = 'parity'
-        return results
+        return results.sort_values(by='sensitive_feature')
 
     def _process_metrics(self, metrics):
         """Separates metrics
