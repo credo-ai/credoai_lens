@@ -4,7 +4,7 @@ from absl import logging
 from copy import deepcopy
 from credoai.artifacts import CredoGovernance, CredoModel, CredoData
 from credoai.assessment.credo_assessment import CredoAssessment
-from credoai.assessment import get_usable_assessments
+from credoai.assessment import AssessmentBunch
 from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
     raise_or_warn, wrap_list,
@@ -323,9 +323,9 @@ class Lens:
                 if reqs['model_requirements']:
                     kwargs['model'] = bunch.model
                 if reqs['data_requirements']:
-                    kwargs['data'] = bunch.dataset
+                    kwargs['data'] = bunch.primary_dataset
                 if reqs['training_data_requirements']:
-                    kwargs['training_data'] = bunch.training_dataset
+                    kwargs['training_data'] = bunch.secondary_dataset
                 try:
                     assessment.init_module(**kwargs)
                 except:
@@ -365,40 +365,33 @@ class Lens:
                           "No training dataset_id supplied to export to Credo AI.")
             logging.info(
                 f"**** Registering training dataset ({self.training_dataset.name})")
-            to_register['training_dataset_name'] = self.training_dataset.name
+        to_register['training_dataset_name'] = self.training_dataset.name
         if to_register:
             self.gov.register(**to_register)
 
-    def _select_assessments(self, candidate_assessments=None):
-        AssessmentBunch = namedtuple('AssessmentBunch', 'name model dataset training_dataset assessments')
-        
+    def _select_assessments(self, candidate_assessments=None):        
         # generate all possible artifacts combinations
         artifacts = self.get_artifacts()
+
         artifacts_combinations = []
         for i in range(1,len(artifacts)+1):
             artifacts_combinations.extend(list(map(dict, combinations(artifacts.items(), i))))
 
         # filter undesirable combinations
-        artifacts_combinations = [c for c in artifacts_combinations if set(c.keys())!={'training', 'model'}]
+        filtered_keys = [{'training', 'model'}]
+        artifacts_combinations = [c for c in artifacts_combinations 
+                                  if set(c.keys()) not in filtered_keys]
 
+        # create bunches
         assessment_bunches = []
         for af_comb in artifacts_combinations:
             bunch_name = '_'.join(list(af_comb.keys()))
-            usable_assessments = get_usable_assessments(
-                    af_comb.get('model'), af_comb.get('validation'), candidate_assessments, af_comb.get('training')
-                    )
-            if usable_assessments:
-                assessment_bunch = AssessmentBunch(
-                    bunch_name,
-                    af_comb.get('model'),
-                    af_comb.get('validation'),
-                    af_comb.get('training'),
-                    usable_assessments
-                    )
-                assessment_bunches.append(assessment_bunch)
-
-        display(assessment_bunches)
-        
+            primary = af_comb.get('validation') or af_comb.get('training')
+            secondary = af_comb.get('training') if af_comb.get('validation') else None
+            assessment_bunch = AssessmentBunch(bunch_name, af_comb.get('model'), primary, secondary)
+            assessment_bunch.set_usable_assessments(candidate_assessments)
+            if assessment_bunch.assessments:
+                assessment_bunches.append(assessment_bunch)        
         return assessment_bunches
 
     def _setup_spec(self, spec):
@@ -416,3 +409,5 @@ class Lens:
 def set_logging_level(logging_level):
     """Alias for absl.logging.set_verbosity"""
     logging.set_verbosity(logging_level)
+
+
