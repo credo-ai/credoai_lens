@@ -139,8 +139,10 @@ class Lens:
 
         # display checklist
         if display_policy_checklist and self.gov:
-            self.checklist = PolicyChecklist(self.gov.get_policy_checklist())
-            self.checklist.create_checklist()
+            checklist = self.gov.get_policy_checklist()
+            if checklist:
+                self.checklist = PolicyChecklist(checklist)
+                self.checklist.create_checklist()
 
     def run_assessments(self, assessment_kwargs=None):
         """Runs assessments on the associated model and/or data
