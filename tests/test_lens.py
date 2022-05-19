@@ -26,14 +26,15 @@ def test_lens_with_model():
     lens = cl.Lens(model=credo_model, data=credo_data, spec=alignment_spec)
 
     results = lens.run_assessments().get_results()
-    metric = results["validation"]["Fairness"]["fairness"].index[0]
-    score = round(results["validation"]["Fairness"]["fairness"].iloc[0]["value"], 2)
+    metric = results["validation_model"]["Fairness"]["fairness"].index[0]
+    score = round(results["validation_model"]["Fairness"]["fairness"].iloc[0]["value"], 2)
     expected_assessments = {'DatasetFairness', 'DatasetProfiling', 'Fairness', 'Performance'}
+    fairness_assessment = [record for record in lens.assessments if record.name == 'validation_model'][0].assessments['Fairness']
     
     assert metric == "precision_score"
     assert score == 0.33
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == expected_assessments 
-    assert lens.assessments["validation"]['Fairness'].initialized_module.metrics == ['precision_score']
+    assert fairness_assessment.initialized_module.metrics == ['precision_score']
 
 def test_lens_without_model():
     lens = cl.Lens(data=credo_data)
