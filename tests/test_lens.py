@@ -19,11 +19,11 @@ credo_data = cl.CredoData(
 
 model = LogisticRegression(random_state=0).fit(X, y)
 credo_model = cl.CredoModel(name="income_classifier", model=model)
-alignment_spec = {"Fairness": {"metrics": ["precision_score"]},
+assessment_plan = {"Fairness": {"metrics": ["precision_score"]},
                     "Performance": {"metrics": ["precision_score"]}}
 
 def test_lens_with_model():
-    lens = cl.Lens(model=credo_model, data=credo_data, spec=alignment_spec)
+    lens = cl.Lens(model=credo_model, data=credo_data, assessment_plan=assessment_plan)
 
     results = lens.run_assessments().get_results()
     metric = results["validation_model"]["Fairness"]["fairness"].index[0]
@@ -47,7 +47,7 @@ def test_lens_without_sensitive_feature():
     credo_data = cl.CredoData(
         name="income_data", data=data.drop('gender', axis=1), label_key='income'
     )
-    lens = cl.Lens(model=credo_model, data=credo_data, spec=alignment_spec)
+    lens = cl.Lens(model=credo_model, data=credo_data, assessment_plan=assessment_plan)
     results = lens.run_assessments().get_results()
     expected_assessments = {'DatasetProfiling', 'Performance'}
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == expected_assessments 
@@ -71,6 +71,6 @@ def test_lens_dataset_with_missing_data():
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'DatasetProfiling'} 
 
 def test_report_creation():
-    lens = cl.Lens(model=credo_model, data=credo_data, spec=alignment_spec)
+    lens = cl.Lens(model=credo_model, data=credo_data, assessment_plan=assessment_plan)
     lens.run_assessments()
     out = lens.create_report()
