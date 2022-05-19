@@ -369,7 +369,7 @@ class Lens:
                           "No training dataset_id supplied to export to Credo AI.")
             logging.info(
                 f"**** Registering training dataset ({self.training_dataset.name})")
-        to_register['training_dataset_name'] = self.training_dataset.name
+            to_register['training_dataset_name'] = self.training_dataset.name
         if to_register:
             self.gov.register(**to_register)
 
