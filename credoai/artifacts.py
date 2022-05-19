@@ -492,7 +492,7 @@ class CredoData:
                  name: str,
                  data: pd.DataFrame,
                  label_key: str,
-                 sensitive_feature_key: str = None,
+                 sensitive_feature_keys: list = None,
                  categorical_features_keys: Optional[List[str]] = None,
                  unused_features_keys: Optional[List[str]] = None,
                  drop_sensitive_feature: bool = True,
@@ -501,7 +501,7 @@ class CredoData:
 
         self.name = name
         self.data = data
-        self.sensitive_feature_key = sensitive_feature_key
+        self.sensitive_feature_keys = sensitive_feature_keys
         self.label_key = label_key
         self.categorical_features_keys = categorical_features_keys
         self.unused_features_keys = unused_features_keys
@@ -554,10 +554,10 @@ class CredoData:
             to_drop += self.unused_features_keys
 
         sensitive_features = None
-        if self.sensitive_feature_key:
-            sensitive_features = data[self.sensitive_feature_key]
+        if self.sensitive_feature_keys:
+            sensitive_features = data[self.sensitive_feature_keys]
             if self.drop_sensitive_feature:
-                to_drop.append(self.sensitive_feature_key)
+                to_drop.extend(self.sensitive_feature_keys)
 
         # drop columns from X
         X = data.drop(columns=to_drop, axis=1)
@@ -570,10 +570,10 @@ class CredoData:
                 "The provided data type is " + self.data.__class__.__name__ +
                 " but the required type is pd.DataFrame"
             )
-        if not isinstance(self.sensitive_feature_key, str):
+        if not isinstance(self.sensitive_feature_keys, list):
             raise ValidationError(
-                "The provided sensitive_feature_key type is " +
-                self.sensitive_feature_key.__class__.__name__ + " but the required type is str"
+                "The provided sensitive_feature_keys type is " +
+                self.sensitive_feature_keys.__class__.__name__ + " but the required type is list"
             )
         if not isinstance(self.label_key, str):
             raise ValidationError(
@@ -592,11 +592,12 @@ class CredoData:
             )
         # Validate that the data contains the provided sensitive feature and label keys
         col_names = list(self.data.columns)
-        if self.sensitive_feature_key not in col_names:
-            raise ValidationError(
-                "The provided sensitive_feature_key " + self.sensitive_feature_key +
-                " does not exist in the provided data"
-            )
+        for sensitive_feature_key in self.sensitive_feature_keys:
+            if sensitive_feature_key not in col_names:
+                raise ValidationError(
+                    "The provided sensitive_feature_key " + sensitive_feature_key +
+                    " does not exist in the provided data"
+                )
         if self.label_key not in col_names:
             raise ValidationError(
                 "The provided label_key " + self.label_key +
