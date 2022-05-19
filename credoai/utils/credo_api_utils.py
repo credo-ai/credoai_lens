@@ -38,7 +38,6 @@ def refresh_token():
     HEADERS['Authorization'] = key
     SESSION.headers.update(HEADERS)
 
-
 def renew_access_token(func):
     def wrapper(*args, **kwargs):
         response = func(*args, **kwargs)
@@ -76,18 +75,22 @@ def get_associated_models(use_case_id):
     return deserialize(submit_request('get', end_point).json())['models']
 
 
-def get_assessment_plan(use_case_id, model_id):
+def get_assessment_spec(assessment_spec_url):
+    """Get the assessment spec
+    
+    The assessment spec includes all information needed to assess a model and integrate
+    with the Credo AI Governance Platform. This includes the necessary IDs, as well as 
+    the assessment plan
+    """
     try:
-        end_point = get_end_point(
-            f"use_cases/{use_case_id}/models/{model_id}/assessment_plans/latest")
-        assessment_plan_id = deserialize(
-            submit_request('get', end_point).json())['id']
-        end_point = get_end_point(
-            f"assessment_plans/{assessment_plan_id}/metrics")
-        return {'metrics': deserialize(submit_request('get', end_point).json())}
+        end_point = get_end_point(assessment_spec_url)
+        downloaded_spec = deserialize(submit_request('get', end_point).json())
+        assessment_spec = {k: v for k,
+                           v in downloaded_spec.items() if '_id' in k}
+        assessment_spec['assessment_plan'] = downloaded_spec['assessment_plan']
     except requests.exceptions.HTTPError:
-        raise IntegrationError("Failed to download assessment plan. Check that an assessment "
-                               f"plan has been published for use case ({use_case_id}) and model ({model_id})")
+        raise IntegrationError("Failed to retrieve assessment spec. Check that the url is correct")
+    return assessment_spec
 
 
 def get_dataset_name(dataset_id):
@@ -233,8 +236,10 @@ def register_dataset_to_model(model_id, dataset_id):
 
 
 def register_dataset_to_model_usecase(use_case_id, model_id, dataset_id):
-    data = serialize({"dataset_id": dataset_id, '$type': 'string', 'id': 'resource-id'})
-    end_point = get_end_point(f"use_cases/{use_case_id}/models/{model_id}/config")
+    data = serialize(
+        {"dataset_id": dataset_id, '$type': 'string', 'id': 'resource-id'})
+    end_point = get_end_point(
+        f"use_cases/{use_case_id}/models/{model_id}/config")
     submit_request(
         "patch",
         end_point,
@@ -275,4 +280,5 @@ def _get_name(artifact_id, artifact_type):
         return deserialize(submit_request('get', end_point).json())['name']
     except requests.exceptions.HTTPError as err:
         if err.response.status_code == 400:
-            raise IntegrationError(f"No {artifact_type} found with id: {artifact_id}")
+            raise IntegrationError(
+                f"No {artifact_type} found with id: {artifact_id}")

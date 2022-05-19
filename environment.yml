@@ -3,12 +3,9 @@ channels:
   - conda-forge
   - huggingface
 dependencies:
-  - fairlearn>=0.7.0
-  - jupyterlab>=3.2.5
-  - matplotlib>=3.0
-  - python-dotenv>=0.19.2
-  - scikit-learn>=0.24
-  - seaborn>=0.11.2
+  - python>=3.8
+  - tensorflow>=2.7.1
   - transformers>=4.0.0
   - pip:
-    - json-api-doc>=0.15.0
+    - credoai-lens[extras]
+
