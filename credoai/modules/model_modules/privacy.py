@@ -120,8 +120,8 @@ class PrivacyModule(CredoModule):
         Returns
         -------
         dict
-            Key: metric name
-            Value: metric value
+            Key: rule_based_attack_accuracy_score
+            Value: membership prediction accuracy of the rule-based attack
         """
         attack = MembershipInferenceBlackBoxRuleBased(self.attack_model)
 
@@ -156,15 +156,15 @@ class PrivacyModule(CredoModule):
     def _model_based_attack(self):
         """Model-based privacy attack
 
-        The model-box attack trains an additional classifier (called the attack model)
+        The model-based attack trains an additional classifier (called the attack model)
             to predict the membership status of a sample. It can use as input to the learning process
             probabilities/logits or losses, depending on the type of model and provided configuration.
 
         Returns
         -------
         dict
-            Key: metric name
-            Value: metric value
+            Key: model_based_attack_accuracy_score
+            Value: membership prediction accuracy of the model-based attack
         """
         attack_train_size = int(len(self.x_train) * self.attack_train_ratio)
         attack_test_size = int(len(self.x_test) * self.attack_train_ratio)
@@ -187,7 +187,7 @@ class PrivacyModule(CredoModule):
             self.x_test[attack_test_size:],
             self.y_test[attack_test_size:],
         )
-        
+
         # undersample training/test so that they are balanced
         if len(x_test_assess) < len(x_train_assess):
             idx = np.random.choice(
