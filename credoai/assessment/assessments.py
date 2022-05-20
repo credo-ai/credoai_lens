@@ -418,7 +418,7 @@ class PrivacyAssessment(CredoAssessment):
             'Privacy', 
             mod.PrivacyModule,
             AssessmentRequirements(
-                model_requirements=[('pred_fun')],
+                model_requirements=[('predict')],
                 data_requirements=['X', 'y'],
                 training_data_requirements=['X', 'y']
             )
