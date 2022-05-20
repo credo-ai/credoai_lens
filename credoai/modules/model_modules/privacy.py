@@ -1,6 +1,7 @@
+import copy
 import numpy as np
 import pandas as pd
-import copy
+import warnings
 
 from art.estimators.classification.scikitlearn import SklearnClassifier
 from art.attacks.inference.membership_inference import (
@@ -8,9 +9,9 @@ from art.attacks.inference.membership_inference import (
     MembershipInferenceBlackBox,
 )
 from credoai.modules.credo_module import CredoModule
+from credoai.utils.common import NotRunError
 from sklearn.model_selection import train_test_split
 from sklearn import metrics as sk_metrics
-import warnings
 
 warnings.filterwarnings("ignore")
 
@@ -59,10 +60,15 @@ class PrivacyModule(CredoModule):
         rule_based_attack_performance = self._rule_based_attack()
         model_based_attack_performance = self._model_based_attack()
 
-        self.results = {
-            **rule_based_attack_performance,
-            **model_based_attack_performance,
+        attack_scores = {
+            'rule_based_attack_score': self._rule_based_attack(),
+            'model_based_attack_score': self._model_based_attack()
         }
+        membership_inference_worst_case = max(attack_scores['rule_based_attack_score'], 
+                                              attack_scores['model_based_attack_score'])
+        attack_scores['membership_inference_attack_score'] = membership_inference_worst_case
+
+        self.results = attack_scores
 
         return self
 
@@ -82,31 +88,7 @@ class PrivacyModule(CredoModule):
             If results have not been run, raise
         """
         if self.results is not None:
-            metric_types = [
-                "rule_based_attack_accuracy_score",
-                "model_based_attack_accuracy_score",
-            ]
-
-            index = []
-            prepared_arr = []
-            for metric_type in metric_types:
-                if metric_type not in self.results:
-                    continue
-                val = self.results[metric_type]
-                if isinstance(val, list):
-                    for l in val:
-                        index.append(metric_type)
-                        prepared_arr.append(l)
-                else:
-                    if isinstance(val, dict):
-                        tmp = val
-                    elif isinstance(val, (int, float)):
-                        tmp = {"value": val}
-                    index.append(metric_type)
-                    prepared_arr.append(tmp)
-            return pd.DataFrame(prepared_arr, index=index).rename_axis(
-                index="metric_type"
-            )
+            return pd.Series(self.results, name='value')
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 
@@ -147,11 +129,7 @@ class PrivacyModule(CredoModule):
                 np.zeros(len(inferred_test.flatten()), dtype=int),
             ]
         )
-        accuracy_score = sk_metrics.accuracy_score(y_true, y_pred)
-
-        attack_performance = {"rule_based_attack_accuracy_score": accuracy_score}
-
-        return attack_performance
+        return sk_metrics.accuracy_score(y_true, y_pred)
 
     def _model_based_attack(self):
         """Model-based privacy attack
@@ -187,7 +165,6 @@ class PrivacyModule(CredoModule):
             self.x_test[attack_test_size:],
             self.y_test[attack_test_size:],
         )
-
         # undersample training/test so that they are balanced
         if len(x_test_assess) < len(x_train_assess):
             idx = np.random.choice(
@@ -199,7 +176,7 @@ class PrivacyModule(CredoModule):
             idx = np.random.choice(
                 np.arange(len(x_test_assess)), len(x_train_assess), replace=False
             )
-            inferred_train = attack.infer(x_train_assess, self.y_train_assess)
+            inferred_train = attack.infer(x_train_assess, y_train_assess)
             inferred_test = attack.infer(x_test_assess[idx], y_test_assess[idx])
 
         # check performance
@@ -211,8 +188,6 @@ class PrivacyModule(CredoModule):
             ]
         )
 
-        accuracy_score = sk_metrics.accuracy_score(y_true, y_pred)
+        return sk_metrics.accuracy_score(y_true, y_pred)
 
-        attack_performance = {"model_based_attack_accuracy_score": accuracy_score}
 
-        return attack_performance
