@@ -68,6 +68,12 @@ DATASET_METRIC_TYPES = [
     'demographic_parity_difference'
 ]
 
+PRIVACY_METRIC_TYPES = [
+    'rule_based_attack_score',
+    'model_based_attack_score',
+    'membership_inference_attack_score'
+]
+
 # REGRESSION METRICS
 REGRESSION_FUNCTIONS = {
     'explained_variance_score': sk_metrics.explained_variance_score,
