@@ -9,6 +9,7 @@ from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
     raise_or_warn, update_dictionary, wrap_list,
     NotRunError, ValidationError)
+from credoai.utils.policy_utils import PolicyChecklist
 from credoai import __version__
 from datetime import datetime
 from os import listdir, makedirs, path
@@ -30,7 +31,7 @@ class Lens:
         model: CredoModel = None,
         data: CredoData = None,
         training_data: CredoData = None,
-        user_id: str = None,
+        display_policy_checklist: bool = True,
         dev_mode: Union[bool, float] = False,
         logging_level: Union[str, int] = 'info',
         warning_level=1
@@ -75,8 +76,12 @@ class Lens:
             CredoData object containing the training data used for the model. Will not be
             used to assess the model, but will be assessed itself if provided. Called
             the "training" dataset, by default None
-        user_id : str, optional
-            Label for user running assessments, by default None
+        display_policy_checklist : bool, optional
+            If True, and governance is defined, a policy checklist will be displayed in the 
+            jupyter notebook (this only works where Ipython displays work). The policy checklist
+            is composed of yes/no controls relevant to model development defined in the Governance
+            App.
+            Default, False
         dev_mode : bool or float, optional
             If True, the passed CredoData will be reduced in size to speed up development. 
             A float<1 can also be provided which will determine the fraction of data to retain.
@@ -98,7 +103,6 @@ class Lens:
         self.training_dataset = training_data
         if self.assessment_dataset == self.training_dataset:
             raise ValidationError("Assessment dataset and training dataset should not be the same!")
-        self.user_id = user_id
         self.assessment_plan = {}
         set_logging_level(logging_level)
         self.warning_level = warning_level
@@ -134,6 +138,13 @@ class Lens:
 
         # initialize
         self._init_assessments()
+
+        # display checklist
+        if display_policy_checklist and self.gov:
+            checklist = self.gov.get_policy_checklist()
+            if checklist:
+                self.checklist = PolicyChecklist(checklist)
+                self.checklist.create_checklist()
 
     def run_assessments(self, assessment_kwargs=None):
         """Runs assessments on the associated model and/or data
@@ -358,7 +369,7 @@ class Lens:
                           "No training dataset_id supplied to export to Credo AI.")
             logging.info(
                 f"**** Registering training dataset ({self.training_dataset.name})")
-        to_register['training_dataset_name'] = self.training_dataset.name
+            to_register['training_dataset_name'] = self.training_dataset.name
         if to_register:
             self.gov.register(**to_register)
 
