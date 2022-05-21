@@ -61,7 +61,7 @@ class PolicyChecklist():
                 c.key, c.label = self._segment(contents[i])
                 c.content = contents[i]
                 c.observe(self._get_progress_updater_fun(), names=['value'])
-            widget_list += checkboxes  # [widgets.HTML(f'<h3>{title}</h3>')] + checkboxes
+            widget_list += [widgets.HTML(f'<h3>{title.replace("_", " ").title()}</h3>')] + checkboxes
         ui = widgets.VBox(widget_list)
         display(ui)
         return all_checkboxes

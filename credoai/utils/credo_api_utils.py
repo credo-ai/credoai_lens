@@ -286,10 +286,11 @@ def _get_name(artifact_id, artifact_type):
 
 def _process_policies(policies):
     """Returns list of binary questions"""
+    policies = sorted(policies, key = lambda x: x['stage_key'])
     question_list = defaultdict(list)
     for policy in policies:
         for control in policy['controls']:
-            label = control['description']
+            label = policy['stage_key']
             questions = control['questions']
             filtered_questions = [f"{control['key']}-{int(q['position'])}: {q['question']}" for q in questions 
                                   if q.get('options') == ['Yes', 'No']]
