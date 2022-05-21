@@ -112,6 +112,8 @@ class CredoGovernance:
             plan['metrics'] = list(set(plan['metrics']))
         return assessment_plan
     
+    def get_policy_checklist(self):
+        return self.assessment_spec['policy_questions']
 
     def get_info(self):
         """Return Credo AI Governance IDs"""
