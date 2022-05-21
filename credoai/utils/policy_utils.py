@@ -36,7 +36,6 @@ class PolicyChecklist():
     # for progress bar change
     def _get_progress_updater_fun(self):
         def fun(change):
-            print(change)
             change = change['new']
             if change:
                 self.progress.value += 1
@@ -49,7 +48,7 @@ class PolicyChecklist():
         
         from: https://stackoverflow.com/questions/41469554/python-jupyter-notebook-create-dynamic-checklist-user-input-that-runs-code/59240442#59240442
         """
-        widget_list = [widgets.HTML(f'<h1>Policy Checklist</h1>'), self.progress]
+        widget_list = [widgets.HTML(f'<h1>Policy Checklist</h1>')] # , self.progress]
         all_checkboxes = []
         for title, contents in self.controls.items():
             checkboxes = [widgets.Checkbox() for i in range(len(contents))]
@@ -62,7 +61,7 @@ class PolicyChecklist():
                 c.key, c.label = self._segment(contents[i])
                 c.content = contents[i]
                 c.observe(self._get_progress_updater_fun(), names=['value'])
-            widget_list += [widgets.HTML(f'<h2>{title}</h2>')] + checkboxes
+            widget_list += checkboxes  # [widgets.HTML(f'<h3>{title}</h3>')] + checkboxes
         ui = widgets.VBox(widget_list)
         display(ui)
         return all_checkboxes

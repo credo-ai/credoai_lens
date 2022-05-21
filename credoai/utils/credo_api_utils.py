@@ -293,5 +293,6 @@ def _process_policies(policies):
             questions = control['questions']
             filtered_questions = [f"{control['key']}-{int(q['position'])}: {q['question']}" for q in questions 
                                   if q.get('options') == ['Yes', 'No']]
-            question_list[label] += filtered_questions
+            if filtered_questions:
+                question_list[label] += filtered_questions
     return question_list
