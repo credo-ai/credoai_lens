@@ -10,7 +10,6 @@ from art.attacks.inference.membership_inference import (
 )
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
-from sklearn.model_selection import train_test_split
 from sklearn import metrics as sk_metrics
 
 warnings.filterwarnings("ignore")
