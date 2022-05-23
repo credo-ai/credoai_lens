@@ -44,8 +44,6 @@ def get_usable_assessments(
         assessment = assessment_class()
         if assessment.check_requirements(credo_model, credo_data, credo_training_data):
             assessments[assessment.get_name()] = assessment
-        elif candidate_assessments is not None:
-            logging.warning(f"Model or Data does not conform to {assessment.name} assessment's requirements.\nAssessment will not be run")
     return assessments
 
 @dataclass

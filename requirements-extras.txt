@@ -4,6 +4,9 @@ sentence-transformers>=2.1.0
 transformers>=4.0.0
 google-api-python-client>=1.12.8
 
+# required for privacy module
+adversarial-robustness-toolbox>=1.10.1
+
 # for dev
 pytest>=6.2.5
 pytest-cov>=3.0.0

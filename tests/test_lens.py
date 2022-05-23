@@ -16,6 +16,9 @@ data = pd.concat([data['data'], y], axis=1)
 credo_data = cl.CredoData(
     name="income_data", data=data, label_key='income', sensitive_feature_keys=['gender']
 )
+credo_training_data = cl.CredoData(
+    name="income_data", data=data, label_key='income', sensitive_feature_keys=['gender']
+)
 
 model = LogisticRegression(random_state=0).fit(X, y)
 credo_model = cl.CredoModel(name="income_classifier", model=model)
@@ -74,3 +77,13 @@ def test_report_creation():
     lens = cl.Lens(model=credo_model, data=credo_data, assessment_plan=assessment_plan)
     lens.run_assessments()
     out = lens.create_report()
+
+def test_lens_with_model_and_training():
+    lens = cl.Lens(model=credo_model, data=credo_data, training_data=credo_training_data, assessment_plan=assessment_plan)
+
+    results = lens.run_assessments().get_results()
+    rule_based_attack_score = round(results["validation_training_model"]["Privacy"]["rule_based_attack_score"], 2)
+    expected_assessments = {'DatasetFairness', 'DatasetProfiling', 'Fairness', 'Performance', 'Privacy'}
+
+    assert rule_based_attack_score == 0.5
+    assert set([a.name for a in lens.get_assessments(flatten=True)]) == expected_assessments 
