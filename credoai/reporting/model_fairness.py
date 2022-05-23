@@ -2,7 +2,8 @@ from credoai.reporting.credo_reporter import CredoReporter
 from credoai.reporting.plot_utils import (get_style,
                                           credo_classification_palette, 
                                           format_label, get_axis_size,
-                                          DEFAULT_COLOR)
+                                          DEFAULT_COLOR,
+                                          credo_diverging_palette)
 from numpy import pi
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -27,29 +28,23 @@ class FairnessReporter(CredoReporter):
         super().__init__(assessment)
         self.size = size
     
-    def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
+    def plot_results(self, filename=None):
         """Creates a fairness report for binary classification model
 
         Parameters
         ----------
         filename : string, optional
             If given, the location where the generated pdf report will be saved, by default None
-        include_fairness : bool, optional
-            Whether to include fairness plots, by default True
-        include_disaggregation : bool, optional
-            Whether to include performance plots broken down by
-            subgroup. Overall performance are always reported, by default True
             
         Returns
         -------
         array of figures
         """        
-        df = self.module.get_df()
+        # df = self.module.get_df()
         
         # plot
-        # comparison plots
-        if include_fairness:
-            self.figs.append(self.plot_fairness())
+        self.figs.extend(self.plot_fairness())
+
         # display
         plt.show()
         # save
@@ -76,7 +71,7 @@ class FairnessReporter(CredoReporter):
                     metrics, and (2) performance metrics. The former help describe how equitable
                     your AI system, while the latter describes how performant the system is.</p.
                     
-                <p>Fairness metrics summarize whether your AI system is performing similarlty across all groups.
+                <p>Fairness metrics summarize whether your AI system is performing similarly across all groups.
                     These metrics may well-known "fairness metrics" like "equal opportunity", 
                     or performance parity metrics. Performance parity captures the idea that the
                     AI system should work similarly well for all groups. Some "fairness metrics"
@@ -108,22 +103,30 @@ class FairnessReporter(CredoReporter):
         if self.module.metric_frames != {}:
             plot_disaggregated = True
         n_plots = 1+plot_disaggregated
-        # ratio based on number of metrics and sensitive featurers
-        r = self.module.get_results()['disaggregated_performance'].shape
-        ratio = max(r[0]*r[1]/30, 1)
-        with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
-            f, axes = plt.subplots(1, n_plots)
-            plt.subplots_adjust(wspace=0.7)
-            axes = axes.flat
-            # plot fairness
-            self._plot_fairness_metrics(axes[0])
-            if plot_disaggregated:
-                self._plot_disaggregated_metrics(axes[1])
-        return f
+        # ratio based on number of metrics and sensitive features
+        f_list = []
+        sensitive_features = self.module.sensitive_features
+        for sf_name in sensitive_features:
+            r = self.module.get_results()[f'{sf_name}-disaggregated_performance'].shape
+            ratio = max(r[0]*r[1]/30, 1)
+            with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
+                f, axes = plt.subplots(1, n_plots)
+                plt.subplots_adjust(wspace=0.7)
+                axes = axes.flat
+                # plot fairness
+                self._plot_fairness_metrics(axes[0], sf_name)
+                if plot_disaggregated:
+                    self._plot_disaggregated_metrics(axes[1], sf_name)
+                plt.suptitle(f"Sensitive Feature: {sf_name.title()}", fontweight="bold")
+            f_list.append(f)
+        
+        return f_list
 
-    def _plot_fairness_metrics(self, ax):
+    def _plot_fairness_metrics(self, ax, sf_name):
         # create df
         df = self.module.get_fairness_results()
+        df = df[df['sensitive_feature']==sf_name]
+        df.drop(['sensitive_feature'], inplace=True, axis=1)
         # add parity to names
         df.index = [i+'_parity' if row['subtype'] == 'parity' else i
                     for i, row in df.iterrows()]
@@ -139,22 +142,21 @@ class FairnessReporter(CredoReporter):
                     ax=ax)
         self._style_barplot(ax)
         
-    def _plot_disaggregated_metrics(self, ax):
+    def _plot_disaggregated_metrics(self, ax, sf_name):
         # create df
-        sensitive_feature = self.module.sensitive_features.name
-        df =  self.module.get_disaggregated_performance() \
-                    .reset_index() \
-                    .melt(id_vars=['subtype', sensitive_feature],
+        df = self.module.get_disaggregated_performance()[f'{sf_name}-disaggregated_performance']
+        df =  df.reset_index() \
+                    .melt(id_vars=['subtype', sf_name],
                           var_name='Performance Metric',
                           value_name='Value')
         # plot
-        num_cats = len(df[sensitive_feature].unique())
+        num_cats = len(df[sf_name].unique())
         palette = sns.color_palette('Purples', num_cats)
         palette[-1] = [.4,.4,.4]
         sns.barplot(data=df, 
                     y='Performance Metric', 
                     x='Value', 
-                    hue=sensitive_feature,
+                    hue=sf_name,
                     palette=palette,
                     edgecolor='w',
                     ax=ax)
@@ -199,11 +201,13 @@ class BinaryClassificationReporter(FairnessReporter):
         # comparison plots
         if include_fairness:
             self.figs.append(self.plot_fairness())
+        
         # individual group performance plots
         self.figs.append(self.plot_performance_infographic(df['true'], df['pred'], 'Overall'))
         if include_disaggregation:
-            for group, sub_df in df.groupby('sensitive'):
-                self.figs.append(self.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
+            for sf_name in self.module.sensitive_features:
+                for group, sub_df in df.groupby(sf_name):
+                    self.figs.append(self.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
 
         # display
         plt.show()
@@ -223,8 +227,9 @@ class BinaryClassificationReporter(FairnessReporter):
             if df['true'].dtype.name == 'category':
                 df['true'] = df['true'].cat.codes
             reporter.plot_performance_infographic(df['true'], df['pred'], 'Overall')
-            for group, sub_df in df.groupby('sensitive'):
-                reporter.plot_performance_infographic(sub_df['true'], sub_df['pred'], group)
+            for sf_name in reporter.module.sensitive_features:
+                for group, sub_df in df.groupby(sf_name):
+                    reporter.figs.append(reporter.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
             """, 'code')
         ]
         return cells
@@ -306,8 +311,6 @@ class BinaryClassificationReporter(FairnessReporter):
         ]
         text_ax = self._plot_text(f, text_objects)
         return f
-        
-
         
     def _create_data(self, y_true, y_pred):
         n = self.infographic_shape[0] * self.infographic_shape[1]
@@ -420,3 +423,116 @@ class BinaryClassificationReporter(FairnessReporter):
         for x, y, s, kwargs in text_objects:
             ax.text(x, y, s, transform = ax.transAxes, ha='center', **kwargs)
         return ax
+
+
+class RegressionReporter(FairnessReporter):
+    def __init__(self, assessment, size=3):
+        super().__init__(assessment, size)
+    
+    def plot_results(self, filename=None):
+        """Creates a disaggregated performancereport for regression model
+
+        Parameters
+        ----------
+        filename : string, optional
+            If given, the location where the generated pdf report will be saved, by default None
+            
+        Returns
+        -------
+        array of figures
+        """        
+        df = self.module.get_df()
+        self.figs.append(self.plot_fairness())
+        self._plot_true_vs_pred_scatter(df, 'Disaggregated Performance')
+
+        plt.show()
+
+        if filename is not None:
+            self.export_report(filename)
+
+        return self.figs
+
+    def _create_report_cells(self):
+        # report cells
+        cells = [
+            self._write_fairness(),
+            ("reporter.plot_fairness();", 'code'),
+            self._write_true_vs_pred_scatter(),
+            ("""\
+            df = reporter.module.get_df()
+            reporter._plot_true_vs_pred_scatter(df, 'Disaggregated Performance')
+            """, 'code')
+        ]
+        return cells
+
+    def _plot_true_vs_pred_scatter(self, df, label, sampling_size=200):
+        """generates disaggregated scatter plot
+
+        Parameters
+        ----------
+        df : pandas.dataframe
+            dataframe of true and predicted values, including also the associated demographic groups
+        label : str
+            plot title
+        sampling_size : int
+            the upper limit on the number of data points to plot by sampling without replacement
+
+        Returns
+        -------
+        matplotlib figure
+        """
+        df = df.groupby('sensitive').apply(
+            lambda x: x.sample(min(sampling_size, len(x)), random_state=10)
+            ).reset_index(drop=True)
+        y_true, y_pred = df['true'], df['pred']
+        num_cats = len(df['sensitive'].unique())
+        palette = credo_diverging_palette(num_cats)
+        with get_style(figsize=self.size, figure_ratio=0.7):
+            f, ax = plt.subplots()
+            p1 = min(min(y_pred), min(y_true))
+            p2 = max(max(y_pred), max(y_true))
+            plt.plot([p1, p2], [p1, p2], ':', color=DEFAULT_COLOR,linewidth=.6)
+            sns.scatterplot(
+                x='true',
+                y='pred',
+                hue='sensitive',
+                style='sensitive',
+                palette=palette,
+                data=df,
+                alpha=1,
+                s=10
+            )
+            ax.set_title(label)
+            ax.set_xlabel("True Values")
+            ax.set_ylabel("Predicted Values")
+            ax.legend_.set_title('')
+
+        self.figs.append(f)
+
+    def _write_true_vs_pred_scatter(self):
+        """generates report cells
+
+        Returns
+        -------
+        tuple
+            report cell
+        """
+        cell = ("""
+                #### Regression Model Predictions vs Ground Truth
+            
+                <details>
+                <summary>Assessment Description:</summary>
+                <br>
+                
+                <pr>Scatter plot of true vs predicted values is a rich form of data visualization
+                for regression models.</pr>
+                
+                <p>Disaggregated across the demographic groups, this plot also provides visual insights into
+                how the model may be performing differently across groups.</pr>
+                
+                <p>Ideally, all the points should be close to the 45-degree dotted line.</pr>
+
+                </details>
+                """, 'markdown')
+        
+        return cell

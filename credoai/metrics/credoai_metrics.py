@@ -140,10 +140,10 @@ def false_discovery_rate(y_true, y_pred, **kwargs):
     return 1.0 - sk_metrics.precision_score(y_true, y_pred, **kwargs)
 
 def false_omission_rate(y_true, y_pred, **kwargs):
-    """Compute the false discovery rate.
+    """Compute the false omission rate.
 
     False omission rate is ``fn / (tn + fn)`` where ``fn`` is the number of
-    false negatives and ``tn`` the number of true negatives. The false discovery rate is
+    false negatives and ``tn`` the number of true negatives. The false omission rate is
     intuitively the rate at which the classifier will be wrong when
     labeling an example as negative.
 
@@ -197,3 +197,34 @@ def equal_opportunity_difference(
     fun = make_derived_metric(
         metric=true_positive_rate, transform='difference')
     return fun(y_true, y_pred, sensitive_features=sensitive_features, method=method, sample_weight=sample_weight)
+
+def ks_statistic(
+        y_true,
+        y_pred) -> float:
+    """Performs the two-sample Kolmogorov-Smirnov test (two-sided)
+    
+    The test compares the underlying continuous distributions F(x) and G(x) of two independent samples.
+    The null hypothesis is that the two distributions are identical, F(x)=G(x)
+    If the KS statistic is small or the p-value is high,
+    then we cannot reject the null hypothesis in favor of the alternative.
+
+    For practical purposes, if the statistic value is higher than the critical value, the two distributions are different.
+
+    Parameters
+    ----------
+    y_true : array-like
+        Ground truth (correct) labels.
+    y_pred : array-like
+        Predicted labels :math:`h(X)` returned by the classifier.
+
+    Returns
+    -------
+    float
+        KS statistic value
+    """    
+
+    ks_stat = st.ks_2samp(y_true, y_pred).statistic
+
+    return ks_stat
+
+

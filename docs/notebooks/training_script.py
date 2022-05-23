@@ -1,13 +1,13 @@
 # imports for example data and model training
 from credoai.data import fetch_creditdefault
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 data = fetch_creditdefault()
 df = data['data']
 df['target'] = data['target'].astype(int)
 
 # fit model
-model = GradientBoostingClassifier()
+model = RandomForestClassifier()
 X = df.drop(columns=['SEX', 'target'])
 y = df['target']
 model.fit(X,y)

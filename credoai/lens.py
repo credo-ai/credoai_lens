@@ -4,11 +4,12 @@ from absl import logging
 from copy import deepcopy
 from credoai.artifacts import CredoGovernance, CredoModel, CredoData
 from credoai.assessment.credo_assessment import CredoAssessment
-from credoai.assessment import get_usable_assessments
+from credoai.assessment import AssessmentBunch
 from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
-    raise_or_warn, wrap_list,
+    raise_or_warn, update_dictionary, wrap_list,
     NotRunError, ValidationError)
+from credoai.utils.policy_utils import PolicyChecklist
 from credoai import __version__
 from datetime import datetime
 from os import listdir, makedirs, path
@@ -17,18 +18,20 @@ from typing import List, Union
 import collections.abc
 import credoai.integration as ci
 import shutil
+from collections import namedtuple
+from itertools import combinations
 
 
 class Lens:
     def __init__(
         self,
         governance: Union[CredoGovernance, str] = None,
-        spec: dict = None,
+        assessment_plan: dict = None,
         assessments: List[CredoAssessment] = None,
         model: CredoModel = None,
         data: CredoData = None,
         training_data: CredoData = None,
-        user_id: str = None,
+        display_policy_checklist: bool = True,
         dev_mode: Union[bool, float] = False,
         logging_level: Union[str, int] = 'info',
         warning_level=1
@@ -48,9 +51,9 @@ class Lens:
         governance : CredoGovernance or string, optional
             If CredoGovernance, object connecting
             Lens with Governance App. If string, interpreted as 
-            use-case ID on the Governance App. A CredoGovernance object
-            will be created with the string as use_case_id, by default None
-        spec : dict
+            a spec_destination to be passed to a CredoGovernance object, 
+            by default None
+        assessment_plan : dict
             key word arguments passed to each assessments `init_module` 
             function using `Lens.init_module`. Each key must correspond to
             an assessment name (CredoAssessment.name), with each value
@@ -73,8 +76,12 @@ class Lens:
             CredoData object containing the training data used for the model. Will not be
             used to assess the model, but will be assessed itself if provided. Called
             the "training" dataset, by default None
-        user_id : str, optional
-            Label for user running assessments, by default None
+        display_policy_checklist : bool, optional
+            If True, and governance is defined, a policy checklist will be displayed in the 
+            jupyter notebook (this only works where Ipython displays work). The policy checklist
+            is composed of yes/no controls relevant to model development defined in the Governance
+            App.
+            Default, False
         dev_mode : bool or float, optional
             If True, the passed CredoData will be reduced in size to speed up development. 
             A float<1 can also be provided which will determine the fraction of data to retain.
@@ -94,43 +101,50 @@ class Lens:
         self.model = model
         self.assessment_dataset = data
         self.training_dataset = training_data
-        self.user_id = user_id
-        self.spec = {}
+        if self.assessment_dataset == self.training_dataset:
+            raise ValidationError("Assessment dataset and training dataset should not be the same!")
+        self.assessment_plan = {}
         set_logging_level(logging_level)
         self.warning_level = warning_level
         self.dev_mode = dev_mode
         self.run_time = False
 
         # set up governance
+        self.gov = None
         if governance:
             if isinstance(governance, str):
                 self.gov = CredoGovernance(
-                    use_case_id=governance, warning_level=warning_level)
+                    spec_destination=governance, warning_level=warning_level)
             else:
                 self.gov = governance
             self._register_artifacts()
-        else:
-            self.gov = CredoGovernance(warning_level=warning_level)
 
         # set up assessments
         self.assessments = self._select_assessments(assessments)
 
         # set up reporter objects
         self.report = None
-        self.reporters = {}
+        self.reporters = []
 
         # if data is defined and dev mode, convert data
         self._apply_dev_mode(self.dev_mode)
 
-        # if governance is defined, pull down spec for
+        # if governance is defined, use its assessment plan for
         # use_case / model
         if self.gov:
-            self.spec = self.gov.get_assessment_spec()
-        if spec:
-            self._update_spec(self.spec, spec)
+            self.assessment_plan = self.gov.get_assessment_plan()
+        if assessment_plan:
+            update_dictionary(self.assessment_plan, assessment_plan)
 
         # initialize
         self._init_assessments()
+
+        # display checklist
+        if display_policy_checklist and self.gov:
+            checklist = self.gov.get_policy_checklist()
+            if checklist:
+                self.checklist = PolicyChecklist(checklist)
+                self.checklist.create_checklist()
 
     def run_assessments(self, assessment_kwargs=None):
         """Runs assessments on the associated model and/or data
@@ -173,16 +187,14 @@ class Lens:
             )
         if not self.reporters:
             self._create_reporters()
-        self.report = MainReport(f"Assessment Report", self.reporters.values())
+        self.report = MainReport(f"Assessment Report", self.reporters)
         self.report.create_report(self)
         return self
 
     def export(self, destination="credoai"):
         """Exports assessments to file or Credo AI's governance app
 
-        Note: to export to Credo AI's Governance App, CredoGovernance must be passed
-        to Lens with a defined "use_case_id". "model_id" is also required, but if no "model_id" 
-        is explicitly provided, a model will be registered and used.
+        Note: to export to Credo AI's Governance App, CredoGovernance must be defined.
 
         Parameters
         ----------
@@ -191,6 +203,8 @@ class Lens:
             -- "credoai", a special string to send to Credo AI Governance App.
             -- Any other string, save assessment json to the output_directory indicated by the string.
         """
+        if self.gov is None:
+            raise ValidationError("CredoGovernance must be defined to export!")
         prepared_results = []
         for assessment in self.get_assessments(flatten=True):
             try:
@@ -206,7 +220,6 @@ class Lens:
             logging.warning(
                 "No report is included. To include a report, run create_reports first")
         self.gov.export_assessment_results(prepared_results, destination, self.report, self.run_time)
-
 
     def get_assessments(self, flatten=False):
         """Return assessments defined
@@ -224,8 +237,8 @@ class Lens:
         """
         if flatten:
             all_assessments = []
-            for assessment_dataset, assessments in self.assessments.items():
-                all_assessments += assessments.values()
+            for bunch in self.assessments:
+                all_assessments += bunch.assessments.values()
             return all_assessments
         return self.assessments
 
@@ -237,6 +250,16 @@ class Lens:
             datasets['training'] = self.training_dataset
         return datasets
 
+    def get_artifacts(self):
+        artifacts = {}
+        if self.assessment_dataset is not None:
+            artifacts['validation'] = self.assessment_dataset
+        if self.training_dataset is not None:
+            artifacts['training'] = self.training_dataset
+        if self.model is not None:
+            artifacts['model'] = self.model
+        return artifacts
+
     def get_governance(self):
         return self.gov
 
@@ -245,8 +268,8 @@ class Lens:
 
     def get_results(self):
         """Return results of assessments"""
-        return {dataset: {a.get_name(): a.get_results() for a in assessments.values()}
-                for dataset, assessments in self.get_assessments().items()}
+        return {bunch.name: {a.get_name(): a.get_results() for a in bunch.assessments.values()}
+                for bunch in self.get_assessments()}
 
     def display_results(self, assessments=None):
         """Display results from all assessment reporters
@@ -261,11 +284,13 @@ class Lens:
         assessments = wrap_list(assessments)
         if not self.reporters:
             self._create_reporters()
-        for name, reporter in self.reporters.items():
+        for reporter in self.reporters:
+            name = reporter.assessment.name
             if assessments and name not in assessments:
                 continue
             reporter.display_results_tables()
             reporter.plot_results()
+        return self
 
     def _apply_dev_mode(self, dev_mode):
         if dev_mode:
@@ -284,7 +309,7 @@ class Lens:
                 logging.info(
                     f"Reporter creating notebook for assessment-{name}")
                 reporter.create_notebook()
-                self.reporters[name] = reporter
+                self.reporters.append(reporter)
             else:
                 logging.info(f"No reporter found for assessment-{name}")
 
@@ -293,13 +318,8 @@ class Lens:
             dataset_id = self.gov.dataset_id
         elif assessment.data_name == self.training_dataset.name:
             dataset_id = self.gov.training_dataset_id
-        return {'process': f'Lens-{assessment.name}',
-                'model_label': assessment.model_name,
-                'dataset_label': assessment.data_name,
-                'dataset_id': dataset_id,
-                'user_id': self.user_id,
-                'assessment': assessment.name,
-                'lens_version': f'Lens-v{__version__}'}
+        return {'process': f'Lens-v{__version__}_{assessment.name}',
+                'dataset_id': dataset_id}
 
     def _get_credo_destination(self, to_model=True):
         """Get destination for export and ensure all artifacts are registered"""
@@ -310,42 +330,26 @@ class Lens:
         return destination
 
     def _init_assessments(self):
-        """Initializes modules in each assessment"""
-        datasets = self.get_datasets()
-        for dataset_type, assessments in self.get_assessments().items():
-            dataset = datasets.get(dataset_type)
-            if dataset:
-                logging.info(
-                    f"Initializing assessments for {dataset_type} dataset: {dataset.name}")
-            else:
-                logging.info(f"Initializing assessments for model without dataset")
-            for assessment in assessments.values():
-                kwargs = deepcopy(self.spec.get(assessment.name, {}))
+        for bunch in self.assessments:
+            for assessment in bunch.assessments.values():
+                kwargs = deepcopy(self.assessment_plan.get(assessment.name, {}))
                 reqs = assessment.get_requirements()
                 if reqs['model_requirements']:
-                    kwargs['model'] = self.model
+                    kwargs['model'] = bunch.model
                 if reqs['data_requirements']:
-                    kwargs['data'] = dataset
+                    kwargs['data'] = bunch.primary_dataset
+                if reqs['training_data_requirements']:
+                    kwargs['training_data'] = bunch.secondary_dataset
                 try:
                     assessment.init_module(**kwargs)
                 except:
                     raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
-                                          "Ensure the assessment spec is passing the required parameters"
+                                          " Ensure the assessment plan is passing the required parameters"
                                           )
 
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment)
         return assessment.prepare_results(metadata, **kwargs)
-
-    def _update_spec(self, d, u):
-        for k, v in u.items():
-            if isinstance(v, collections.abc.Mapping):
-                d[k] = self._update_spec(d.get(k, {}), v)
-            elif isinstance(v, list):
-                d[k] = v + d.get(k, [])
-            else:
-                d[k] = v
-        return d
 
     def _register_artifacts(self):
         to_register = {}
@@ -369,32 +373,34 @@ class Lens:
         if to_register:
             self.gov.register(**to_register)
 
-    def _select_assessments(self, candidate_assessments=None):
-        selected_assessments = {}
-        model_assessments = get_usable_assessments(self.model, None, candidate_assessments)
-        if model_assessments:
-            assessment_text = f"Automatically Selected Assessments for Model without data\n--" + \
-                    '\n--'.join(model_assessments.keys())
-            logging.info(assessment_text)
-            selected_assessments['no_data'] = model_assessments
-        # get assesments for each assessment dataset
-        for dataset_type, dataset in self.get_datasets().items():
-            if dataset == self.training_dataset:
-                model = None
-            else:
-                model = self.model
-            usable_assessments = get_usable_assessments(
-                model, dataset, candidate_assessments)
-            artifact_text = f"{dataset_type} dataset: {dataset.name}"
-            if model:
-                artifact_text = f"model: {model.name} and {artifact_text}"
-            assessment_text = f"Automatically Selected Assessments for {artifact_text}\n--" + \
-                '\n--'.join(usable_assessments.keys())
-            logging.info(assessment_text)
-            selected_assessments[dataset_type] = usable_assessments
-        return selected_assessments
+    def _select_assessments(self, candidate_assessments=None):        
+        # generate all possible artifacts combinations
+        artifacts = self.get_artifacts()
+
+        artifacts_combinations = []
+        for i in range(1,len(artifacts)+1):
+            artifacts_combinations.extend(list(map(dict, combinations(artifacts.items(), i))))
+
+        # filter undesirable combinations
+        filtered_keys = [{'training', 'model'}]
+        artifacts_combinations = [c for c in artifacts_combinations 
+                                  if set(c.keys()) not in filtered_keys]
+
+        # create bunches
+        assessment_bunches = []
+        for af_comb in artifacts_combinations:
+            bunch_name = '_'.join(list(af_comb.keys()))
+            primary = af_comb.get('validation') or af_comb.get('training')
+            secondary = af_comb.get('training') if af_comb.get('validation') else None
+            assessment_bunch = AssessmentBunch(bunch_name, af_comb.get('model'), primary, secondary)
+            assessment_bunch.set_usable_assessments(candidate_assessments)
+            if assessment_bunch.assessments:
+                assessment_bunches.append(assessment_bunch)        
+        return assessment_bunches
 
 
 def set_logging_level(logging_level):
     """Alias for absl.logging.set_verbosity"""
     logging.set_verbosity(logging_level)
+
+

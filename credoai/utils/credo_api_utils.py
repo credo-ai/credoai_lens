@@ -1,8 +1,8 @@
 import json
 import os
-import pandas as pd
 import requests
 import time
+from collections import defaultdict
 from credoai.utils.constants import CREDO_URL
 from credoai.utils.common import get_project_root, json_dumps, IntegrationError
 from dotenv import dotenv_values
@@ -19,7 +19,7 @@ def read_config():
     else:
         config = dotenv_values(config_file)
     config['API_URL'] = os.path.join(config.get(
-        'CREDO_URL', CREDO_URL), "api/v1/credoai")
+        'CREDO_URL', CREDO_URL), f"api/v1/{config['TENANT']}")
     return config
 
 
@@ -37,7 +37,6 @@ def refresh_token():
     key = exchange_token()
     HEADERS['Authorization'] = key
     SESSION.headers.update(HEADERS)
-
 
 def renew_access_token(func):
     def wrapper(*args, **kwargs):
@@ -67,7 +66,7 @@ def submit_request(request, end_point, **kwargs):
 
 
 def get_assessment(assessment_id):
-    end_point = get_end_point(f"assessments/{assessment_id}")
+    end_point = get_end_point(f"use_case_assessments/{assessment_id}")
     return deserialize(submit_request('get', end_point).json())
 
 
@@ -76,18 +75,23 @@ def get_associated_models(use_case_id):
     return deserialize(submit_request('get', end_point).json())['models']
 
 
-def get_assessment_plan(use_case_id, model_id):
+def get_assessment_spec(assessment_spec_url):
+    """Get the assessment spec
+    
+    The assessment spec includes all information needed to assess a model and integrate
+    with the Credo AI Governance Platform. This includes the necessary IDs, as well as 
+    the assessment plan
+    """
     try:
-        end_point = get_end_point(
-            f"use_cases/{use_case_id}/models/{model_id}/assessment_plans/latest")
-        assessment_plan_id = deserialize(
-            submit_request('get', end_point).json())['id']
-        end_point = get_end_point(
-            f"assessment_plans/{assessment_plan_id}/metrics")
-        return {'metrics': deserialize(submit_request('get', end_point).json())}
+        end_point = get_end_point(assessment_spec_url)
+        downloaded_spec = deserialize(submit_request('get', end_point).json())
+        assessment_spec = {k: v for k,
+                           v in downloaded_spec.items() if '_id' in k}
+        assessment_spec['assessment_plan'] = downloaded_spec['assessment_plan']
+        assessment_spec['policy_questions'] = _process_policies(downloaded_spec['policies'])
     except requests.exceptions.HTTPError:
-        raise IntegrationError("Failed to download assessment plan. Check that an assessment "
-                               f"plan has been published for use case ({use_case_id}) and model ({model_id})")
+        raise IntegrationError("Failed to retrieve assessment spec. Check that the url is correct")
+    return assessment_spec
 
 
 def get_dataset_name(dataset_id):
@@ -218,7 +222,7 @@ def register_model(model_name):
     return {'name': model_name, 'model_id': response['id']}
 
 
-def register_model_to_use_case(use_case_id, model_id):
+def register_model_to_usecase(use_case_id, model_id):
     data = {"data": [{"id": model_id, "type": "models"}]}
     end_point = get_end_point(f"use_cases/{use_case_id}/relationships/models")
     submit_request('post', end_point, data=json.dumps(data), headers={
@@ -230,6 +234,19 @@ def register_dataset_to_model(model_id, dataset_id):
     end_point = get_end_point(f"models/{model_id}/relationships/dataset")
     submit_request('patch', end_point, data=json.dumps(data), headers={
                    "content-type": "application/vnd.api+json"})
+
+
+def register_dataset_to_model_usecase(use_case_id, model_id, dataset_id):
+    data = serialize(
+        {"dataset_id": dataset_id, '$type': 'string', 'id': 'resource-id'})
+    end_point = get_end_point(
+        f"use_cases/{use_case_id}/models/{model_id}/config")
+    submit_request(
+        "patch",
+        end_point,
+        data=json.dumps(data),
+        headers={"content-type": "application/vnd.api+json"},
+    )
 
 
 def _register_artifact(data, end_point):
@@ -264,4 +281,19 @@ def _get_name(artifact_id, artifact_type):
         return deserialize(submit_request('get', end_point).json())['name']
     except requests.exceptions.HTTPError as err:
         if err.response.status_code == 400:
-            raise IntegrationError(f"No {artifact_type} found with id: {artifact_id}")
+            raise IntegrationError(
+                f"No {artifact_type} found with id: {artifact_id}")
+
+def _process_policies(policies):
+    """Returns list of binary questions"""
+    policies = sorted(policies, key = lambda x: x['stage_key'])
+    question_list = defaultdict(list)
+    for policy in policies:
+        for control in policy['controls']:
+            label = policy['stage_key']
+            questions = control['questions']
+            filtered_questions = [f"{control['key']}: {q['question']}" for q in questions 
+                                  if q.get('options') == ['Yes', 'No']]
+            if filtered_questions:
+                question_list[label] += filtered_questions
+    return question_list

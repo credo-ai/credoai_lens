@@ -1,15 +1,12 @@
 from absl import logging
 from credoai.utils.common import ValidationError, remove_suffix, humanize_label
-from credoai.metrics.metric_constants import (BINARY_CLASSIFICATION_FUNCTIONS,
-                                              FAIRNESS_FUNCTIONS,
-                                              DATASET_METRIC_TYPES,
-                                              PROBABILITY_FUNCTIONS,
-                                              METRIC_EQUIVALENTS)
+from credoai.metrics.metric_constants import *
 from dataclasses import dataclass
 import re
 
 METRIC_CATEGORIES = ["BINARY_CLASSIFICATION",  "MULTICLASS_CLASSIFICATION",
-                     "REGRESSION", "CLUSTERING", "FAIRNESS", "DATASET", "CUSTOM"]
+                     "REGRESSION", "CLUSTERING", "FAIRNESS", "DATASET", "PRIVACY", "CUSTOM"]
+
 MODEL_METRIC_CATEGORIES = METRIC_CATEGORIES[:-2]
 
 @dataclass
@@ -88,7 +85,6 @@ class Metric():
         # lower, remove spaces, replace delimiters with underscores
         standard =  '_'.join(re.split('[- \s _]', 
                             re.sub('\s\s+', ' ', metric.lower())))
-        standard = remove_suffix(remove_suffix(standard, '_difference'), '_parity')
         return standard
 
 
@@ -131,10 +127,19 @@ FAIRNESS_METRICS = metrics_from_dict(FAIRNESS_FUNCTIONS, "FAIRNESS",
 
 DATASET_METRICS = {m: Metric(m, "DATASET", None, False) for m in DATASET_METRIC_TYPES}
 
+PRIVACY_METRICS = {m: Metric(m, "PRIVACY", None, False) for m in PRIVACY_METRIC_TYPES}
+
+REGRESSION_METRICS = metrics_from_dict(REGRESSION_FUNCTIONS, 
+    "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
+
 METRIC_NAMES = list(BINARY_CLASSIFICATION_METRICS.keys()) \
                 + list(FAIRNESS_METRICS.keys()) \
-                + list(DATASET_METRICS.keys())
+                + list(DATASET_METRICS.keys()) \
+                + list(PRIVACY_METRICS.keys()) \
+                + list(REGRESSION_METRICS.keys())
 
 ALL_METRICS = list(BINARY_CLASSIFICATION_METRICS.values()) \
                 + list(FAIRNESS_METRICS.values()) \
-                + list(DATASET_METRICS.values())
+                + list(DATASET_METRICS.values()) \
+                + list(PRIVACY_METRICS.values()) \
+                + list(REGRESSION_METRICS.values())

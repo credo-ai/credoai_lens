@@ -24,7 +24,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-cov
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install tensorflow
+          pip install -r requirements.txt
+          pip install -r requirements-extras.txt
       - name: Run tests
         run: |
           scripts/test.sh > pytest-coverage.txt 2>&1

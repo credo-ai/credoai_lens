@@ -6,12 +6,14 @@ from datetime import datetime
 from credoai.utils.common import (humanize_label, wrap_list,
                                   IntegrationError,
                                   ValidationError, dict_hash)
-from credoai.utils.credo_api_utils import (get_assessment_plan,
+from credoai.utils.credo_api_utils import (get_assessment_spec,
                                            post_assessment,
                                            register_dataset, 
                                            register_model,
-                                           register_model_to_use_case,
-                                           register_dataset_to_model)
+                                           register_model_to_usecase,
+                                           register_dataset_to_model,
+                                           register_dataset_to_model_usecase)
+from json_api_doc import deserialize
 import base64
 import credoai
 import json
@@ -31,7 +33,8 @@ META = {
 class Record:
     def __init__(self, json_header, **metadata):
         self.json_header = json_header
-        self.metadata = metadata
+        # remove Nones from metadata
+        self.metadata = {k:v for k, v in metadata.items() if v!='NA'}
         self.creation_time = datetime.now().isoformat()
 
     def struct(self):
@@ -62,7 +65,8 @@ class Metric(Record):
         String reflecting the process used to create the metric. E.g.,
         name of a particular Lens assessment, or link to code.
     metadata : dict, optional
-        Arbitrary keyword arguments to append to metric as metadata
+        Arbitrary keyword arguments to append to metric as metadata. These will be
+        displayed in the governance app
 
     Example
     ---------
@@ -93,7 +97,7 @@ class Metric(Record):
             'value': self.value,
             'dataset_id': self.dataset_id,
             'process': self.process,
-            'metadata': self.metadata,
+            'labels': self.metadata,
             'value_updated_at': self.creation_time,
         }
 
@@ -283,48 +287,48 @@ def prepare_assessment_payload(assessment_results, report=None, assessed_at=None
     
     payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
                "metrics": assessment_records,
-               "charts": None,
+               "charts": [],
                "report": report_payload,
                "$type": 'string'}
     return payload
 
 
-def get_assessment_spec(use_case_id=None, model_id=None, spec_path=None):
-    """Get aligned metrics from Credo's Governance App or file
+def process_assessment_spec(spec_destination):
+    """Get assessment spec from Credo's Governance App or file
 
-    At least one of the use_case_id or spec_path must be provided! If both
+    At least one of the credo_url or spec_path must be provided! If both
     are provided, the spec_path takes precedence.
+
+    The assessment spec includes all information needed to assess a model and integrate
+    with the Credo AI Governance Platform. This includes the necessary IDs, as well as 
+    the assessment plan
 
     Parameters
     ----------
-    use_case_id : str, optional
-        ID of Use Case on Credo AI Governance app, by default None
-    model_id : str, optional
-        ID of model on Credo AI Governance app, by default None
-    spec_path : string, optional
-        The file location for the technical spec json downloaded from
-        the technical requirements of an Use Case on Credo AI's
+    spec_destination: str
+        Where to find the assessment spec. Two possibilities. Either:
+        * end point to retrieve assessment spec from credo AI's governance platform
+        * The file location for the assessment spec json downloaded from
+        the assessment requirements of an Use Case on Credo AI's
         Governance App
 
     Returns
     -------
     dict
-        The aligned metrics for each model contained in the Use Case.
-        Format: {"Model": {"Metric1": (lower_bound, upper_bound), ...}}
+        The assessment spec, with artifacts ids and assessment plan
     """
     spec = {}
-    if spec_path:
-        spec = json.load(open(spec_path))
-    elif use_case_id:
-        try:
-            spec = get_assessment_plan(use_case_id, model_id)
-        except IntegrationError:
-            logging.warning(f"No spec found for model ({model_id}) under model use case ({use_case_id})")
-            return spec
+    try:
+        spec = get_assessment_spec(spec_destination)
+    except IntegrationError:
+        spec = deserialize(json.load(open(spec_destination)))
+        
+    # reformat assessment_spec
     metric_dict = defaultdict(dict)
-    metrics = spec['metrics']
-    risk_spec = defaultdict(list)
+    metrics = spec['assessment_plan']['metrics']
+    assessment_plan = defaultdict(list)
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        risk_spec[metric['risk_issue']].append({'type': metric['type'], 'bounds': bounds})
-    return risk_spec
+        assessment_plan[metric['risk_issue']].append({'type': metric['metric_type'], 'bounds': bounds})
+    spec['assessment_plan'] = assessment_plan
+    return spec

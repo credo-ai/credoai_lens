@@ -1,3 +1,4 @@
+import collections
 import json
 import hashlib
 import numpy as np
@@ -42,6 +43,17 @@ def get_project_root() -> Path:
 
 def flatten_list(lst):
     return [item for sublist in lst for item in sublist]
+
+def update_dictionary(d, u):
+    """Recursively updates a dictionary"""
+    for k, v in u.items():
+        if isinstance(v, collections.abc.Mapping):
+            d[k] = update_dictionary(d.get(k, {}), v)
+        elif isinstance(v, list):
+            d[k] = v + d.get(k, [])
+        else:
+            d[k] = v
+    return d
 
 def wrap_list(obj):
     if type(obj) == str:

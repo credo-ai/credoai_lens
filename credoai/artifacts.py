@@ -20,10 +20,12 @@
 
 # This file defines CredoGovernance, CredoModel and CredoData
 from absl import logging
+from collections import defaultdict
 from copy import deepcopy
 from credoai.metrics.metrics import find_metrics
-from credoai.utils.common import (IntegrationError, ValidationError, 
-                                  json_dumps, raise_or_warn, flatten_list)
+from credoai.utils.constants import RISK_ISSUE_MAPPING
+from credoai.utils.common import (IntegrationError, ValidationError, flatten_list,
+                                  json_dumps, raise_or_warn, update_dictionary)
 from credoai.utils.credo_api_utils import (get_dataset_by_name, 
                                            get_model_by_name,
                                            get_use_case_by_name, 
@@ -44,24 +46,22 @@ class CredoGovernance:
     """Class to store governance data.
 
     This information is used to interact with the CredoAI
-    Governance App. Artifacts (Use Cases, models, and datasets) 
-    are identified by a unique ID which 
-    can be found on the platform.
+    Governance App. 
+
+    At least one of the credo_url or spec_path must be provided! If both
+    are provided, the spec_path takes precedence.
 
     To make use of Governance App a .credo_config file must
     also be set up (see README)
 
     Parameters
     ----------
-    use_case_id : str, optional
-        ID of Use Case on Credo AI Governance app, by default None
-    model_id : str, optional
-        ID of model on Credo AI Governance app, by default None
-    dataset_id : str, optional
-        ID of assessment dataset on Credo AI Governance app, by default None
-    training_dataset_id : str, optional
-        ID of training dataset on Credo AI Governance app. This dataset will
-        not be used for assessment, but may be analyzed itself, by default None
+    spec_destination: str
+        Where to find the assessment spec. Two possibilities. Either:
+        * end point to retrieve assessment spec from credo AI's governance platform
+        * The file location for the assessment spec json downloaded from
+        the assessment requirements of an Use Case on Credo AI's
+        Governance App
     warning_level : int
         warning level. 
             0: warnings are off
@@ -69,44 +69,51 @@ class CredoGovernance:
             2: warnings are raised as exceptions.
     """
     def __init__(self,
-                 use_case_id: str = None,
-                 model_id: str = None,
-                 dataset_id: str = None,
-                 training_dataset_id: str = None,
+                 spec_destination: str = None,
                  warning_level=1):
-        self.use_case_id = use_case_id
-        self.model_id = model_id
-        self.dataset_id = dataset_id
-        self.training_dataset_id = training_dataset_id
-        self.assessment_spec = {}
         self.warning_level = warning_level
-        self._validate_ids()
+        # set up assessment spec
+        self.assessment_spec = ci.process_assessment_spec(spec_destination)
+        self.use_case_id = self.assessment_spec['use_case_id']
+        self.model_id = self.assessment_spec['model_id']
+        self.dataset_id = self.assessment_spec['validation_dataset_id']
+        self.training_dataset_id = self.assessment_spec['training_dataset_id']
 
-    def get_assessment_spec(self):
-        """Get assessment spec
+    def get_assessment_plan(self):
+        """Get assessment plan
         
-        Return the assessment spec for the model defined
+        Return the assessment plan for the model defined
         by model_id.
         
-        If not retrieved yet, attempt to retrieve the spec first
+        If not retrieved yet, attempt to retrieve the plan first
         from the AI Governance app. 
         """
-        if not self.assessment_spec:
-            self.retrieve_assessment_spec()
-        spec = {}
-        risk_spec = self.assessment_spec
-        metrics = flatten_list([[m['type'] for m in metrics] for metrics in risk_spec.values()])
-        passed_metrics = []
-        for m in metrics:
-            found = bool(find_metrics(m))
-            if not found:
-                logging.warning(f"Metric ({m}) is defined in the assessment spec but is not defined by Credo AI.\n"
-                                    "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
-                                    "assessment spec passed to lens")
-            else:
-                passed_metrics.append(m)
-        spec['metrics'] = passed_metrics
-        return {"Fairness": spec, "Performance": deepcopy(spec)}
+        assessment_plan = defaultdict(dict)
+        missing_metrics = []
+        for risk_issue, risk_plan in self.assessment_spec['assessment_plan'].items():
+            metrics = [m['type'] for m in risk_plan]
+            passed_metrics = []
+            for m in metrics:
+                found = bool(find_metrics(m))
+                if not found:
+                    missing_metrics.append(m)
+                else:
+                    passed_metrics.append(m)
+            if risk_issue in RISK_ISSUE_MAPPING:
+                update_dictionary(assessment_plan[RISK_ISSUE_MAPPING[risk_issue]], 
+                                  {'metrics': passed_metrics})
+        # alert about missing metrics
+        for m in missing_metrics:
+            logging.warning(f"Metric ({m}) is defined in the assessment plan but is not defined by Credo AI.\n"
+                            "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
+                            "assessment plan passed to lens")
+        # remove repeated metrics
+        for plan in assessment_plan.values():
+            plan['metrics'] = list(set(plan['metrics']))
+        return assessment_plan
+    
+    def get_policy_checklist(self):
+        return self.assessment_spec['policy_questions']
 
     def get_info(self):
         """Return Credo AI Governance IDs"""
@@ -186,40 +193,6 @@ class CredoGovernance:
             with open(output_file, 'w') as f:
                 f.write(json_dumps(payload))
 
-    def retrieve_assessment_spec(self, spec_path=None):
-        """Retrieve assessment spec
-
-        Retrieve assessment spec, either from Credo AI's 
-        Governance App or a json file. This spec will be
-        for a use-case, and may apply to multiple models.
-        get_assessment_spec returns the spec associated with 
-        `model_id`.
-
-        if a spec_path is provided, it will be used instead of 
-        querying the use-case.
-
-        Parameters
-        __________
-        spec_path : string, optional
-            The file location for the technical spec json downloaded from
-            the technical requirements of an Use Case on Credo AI's
-            Governance App. If no spec_path is provided,
-            will use the Use Case ID. Default None
-
-        Returns
-        -------
-        dict
-            The assessment spec for one Model contained in the Use Case.
-            Format: {"Metric1": (lower_bound, upper_bound), ...}
-        """
-        assessment_spec = {}
-        if ((self.use_case_id is not None and self.model_id is not None) 
-            or spec_path is not None):
-            assessment_spec = ci.get_assessment_spec(
-                self.use_case_id, self.model_id, spec_path)
-        self.assessment_spec = assessment_spec
-        return self.assessment_spec
-
     def set_governance_info_by_name(self,
                                     *,
                                     use_case_name=None,
@@ -283,6 +256,10 @@ class CredoGovernance:
                           f"The dataset ({dataset_name}) is already registered.",
                           f"The dataset ({dataset_name}) is already registered. Using registered dataset",
                           self.warning_level)
+        if not register_as_training and self.model_id and self.use_case_id:
+            ci.register_dataset_to_model_usecase(
+                use_case_id=self.use_case_id, model_id=self.model_id, dataset_id=self.dataset_id
+            )
         if register_as_training and self.model_id and self.training_dataset_id:
             logging.info(f"Registering dataset ({dataset_name}) to model ({self.model_id})")
             ci.register_dataset_to_model(self.model_id, self.training_dataset_id)
@@ -308,19 +285,8 @@ class CredoGovernance:
                           self.warning_level)
         if self.use_case_id:
             logging.info(f"Registering model ({model_name}) to Use Case ({self.use_case_id})")
-            ci.register_model_to_use_case(self.use_case_id, self.model_id)
+            ci.register_model_to_usecase(self.use_case_id, self.model_id)
 
-    def _validate_ids(self):
-        ids = self.get_info()
-        for key, artifact_id in ids.items():
-            if artifact_id is None:
-                continue
-            if key == 'use_case_id':
-                get_use_case_name(artifact_id)
-            elif key == 'model_id':
-                get_model_name(artifact_id)
-            else:
-                get_dataset_name(artifact_id)
 
 class CredoModel:
     """Class wrapper around model-to-be-assessed
@@ -339,7 +305,7 @@ class CredoModel:
     agnostic to framework. As long as the functions serve the needs of the
     assessments, they'll work.
 
-    E.g. {'prob_fun': model.predict}
+    E.g. {'predict': model.predict}
 
     The model_config can also be inferred automatically, from well-known packages
     (call CredoModel.supported_frameworks for a list.) If supported, a model
@@ -362,7 +328,7 @@ class CredoModel:
         by CredoModel's automated inference. model_config is a more
         flexible and reliable method of interaction, by default None
     model_config : dict, optional
-        dictionary containing mappings between CredoModel function names (e.g., "prob_fun")
+        dictionary containing mappings between CredoModel function names (e.g., "predict")
         and functions (e.g., "model.predict"), by default None
     """
 
@@ -374,8 +340,11 @@ class CredoModel:
     ):
         self.name = name
         self.config = {}
+        self.model = model
+        self.framework = None
         assert model is not None or model_config is not None
         if model is not None:
+            self.framework = self._get_model_type(model)
             self._init_config(model)
         if model_config is not None:
             self.config.update(model_config)
@@ -392,10 +361,9 @@ class CredoModel:
 
     def _init_config(self, model):
         config = {}
-        framework = self._get_model_type(model)
-        if framework == 'sklearn':
+        if self.framework == 'sklearn':
             config = self._init_sklearn(model)
-        elif framework == 'xgboost':
+        elif self.framework == 'xgboost':
             config = self._init_xgboost(model)
         self.config = config
 
@@ -406,22 +374,23 @@ class CredoModel:
         return self._sklearn_style_config(model)
 
     def _sklearn_style_config(self, model):
+        config = {'predict': model.predict}
         # if binary classification, only return
         # the positive classes probabilities by default
-        if len(model.classes_) == 2:
-            def prob_fun(X): return model.predict_proba(X)[:, 1]
-        else:
-            prob_fun = model.predict_proba
+        try:
+            if len(model.classes_) == 2:
+                def predict_proba(X): return model.predict_proba(X)[:, 1]
+            else:
+                predict_proba = model.predict_proba
 
-        config = {
-            'pred_fun': model.predict,
-            'prob_fun': prob_fun
-        }
+            config['predict_proba'] = predict_proba
+        except AttributeError:
+            pass
         return config
 
     def _get_model_type(self, model):
         try:
-            framework = model.__module__.split('.')[0]
+            framework = model.__class__.__module__.split('.')[0]
         except AttributeError:
             framework = None
         if framework in BASE_CONFIGS:
@@ -479,7 +448,7 @@ class CredoData:
                  name: str,
                  data: pd.DataFrame,
                  label_key: str,
-                 sensitive_feature_key: str = None,
+                 sensitive_feature_keys: list = None,
                  categorical_features_keys: Optional[List[str]] = None,
                  unused_features_keys: Optional[List[str]] = None,
                  drop_sensitive_feature: bool = True,
@@ -488,7 +457,7 @@ class CredoData:
 
         self.name = name
         self.data = data
-        self.sensitive_feature_key = sensitive_feature_key
+        self.sensitive_feature_keys = sensitive_feature_keys
         self.label_key = label_key
         self.categorical_features_keys = categorical_features_keys
         self.unused_features_keys = unused_features_keys
@@ -541,10 +510,10 @@ class CredoData:
             to_drop += self.unused_features_keys
 
         sensitive_features = None
-        if self.sensitive_feature_key:
-            sensitive_features = data[self.sensitive_feature_key]
+        if self.sensitive_feature_keys:
+            sensitive_features = data[self.sensitive_feature_keys]
             if self.drop_sensitive_feature:
-                to_drop.append(self.sensitive_feature_key)
+                to_drop.extend(self.sensitive_feature_keys)
 
         # drop columns from X
         X = data.drop(columns=to_drop, axis=1)
@@ -557,10 +526,10 @@ class CredoData:
                 "The provided data type is " + self.data.__class__.__name__ +
                 " but the required type is pd.DataFrame"
             )
-        if not isinstance(self.sensitive_feature_key, str):
+        if not isinstance(self.sensitive_feature_keys, list):
             raise ValidationError(
-                "The provided sensitive_feature_key type is " +
-                self.sensitive_feature_key.__class__.__name__ + " but the required type is str"
+                "The provided sensitive_feature_keys type is " +
+                self.sensitive_feature_keys.__class__.__name__ + " but the required type is list"
             )
         if not isinstance(self.label_key, str):
             raise ValidationError(
@@ -579,11 +548,12 @@ class CredoData:
             )
         # Validate that the data contains the provided sensitive feature and label keys
         col_names = list(self.data.columns)
-        if self.sensitive_feature_key not in col_names:
-            raise ValidationError(
-                "The provided sensitive_feature_key " + self.sensitive_feature_key +
-                " does not exist in the provided data"
-            )
+        for sensitive_feature_key in self.sensitive_feature_keys:
+            if sensitive_feature_key not in col_names:
+                raise ValidationError(
+                    "The provided sensitive_feature_key " + sensitive_feature_key +
+                    " does not exist in the provided data"
+                )
         if self.label_key not in col_names:
             raise ValidationError(
                 "The provided label_key " + self.label_key +
