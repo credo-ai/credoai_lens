@@ -11,7 +11,3 @@ class DatasetProfilingReporter(CredoReporter):
 
     def display_results_tables(self):
         pass
-
-    def _create_report_cells(self):     
-        cells = [("reporter.module.profile_data()", "code")]
-        return cells
