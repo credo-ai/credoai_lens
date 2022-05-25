@@ -3,9 +3,8 @@
 from absl import logging
 from collections import ChainMap, defaultdict
 from datetime import datetime
-from credoai.utils.common import (humanize_label, wrap_list,
-                                  IntegrationError,
-                                  ValidationError, dict_hash)
+from credoai.utils.common import (dict_hash, humanize_label, wrap_list,
+                                  IntegrationError, ValidationError)
 from credoai.utils.credo_api_utils import (get_assessment_spec,
                                            post_assessment,
                                            register_dataset, 
@@ -130,8 +129,8 @@ class Figure(Record):
         path to image file OR matplotlib figure
     description: str, optional
         longer string describing the figure
-    associated_metrics: list
-        List of metric_keys (see lens_utils.get_metric_keys)
+    metric_keys: list
+        List of metric_keys to associate with figure (see lens_utils.get_metric_keys)
     metadata : dict, optional
         Appended keyword arguments to append to metric as metadata
 
@@ -141,11 +140,11 @@ class Figure(Record):
     figure = Figure('Figure 1', fig=f, description='A matplotlib figure')
     """
 
-    def __init__(self, name, figure, description=None, associated_metrics=None, **metadata):
+    def __init__(self, name, figure, description=None, metric_keys=None, **metadata):
         super().__init__('figures', **metadata)
         self.name = name
         self.description = description
-        self.associated_metrics = associated_metrics
+        self.metric_keys = metric_keys
         self.figure_string = None
         self.content_type = None
         if type(figure) == matplotlib.figure.Figure:
@@ -174,7 +173,7 @@ class Figure(Record):
                 'content_type': self.content_type,
                 'file': self.figure_string,
                 'creation_time': self.creation_time,
-                'metric_keys': self.associated_metrics,
+                'metric_keys': self.metric_keys,
                 'metadata': {'type': 'chart', **self.metadata}
                }
 
@@ -294,9 +293,9 @@ def prepare_assessment_payload(
     else:
         assessment_records = [record_metrics(r) for r in assessment_results]
         assessment_records = MultiRecord(assessment_records).struct() if assessment_records else {}
-    import pdb; pdb.set_trace()
     if reporter_assets:
         reporter_records = [Figure(**assets) for assets in reporter_assets]
+        reporter_records = MultiRecord(reporter_records).struct()
     else:
         reporter_records = []
     # set up report

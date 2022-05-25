@@ -195,13 +195,14 @@ class Lens:
                     prepared_results.append(prepared_assessment)
                 reporter = assessment.get_reporter()
                 if reporter is not None:
-                    reporter_assets.append(reporter.report(plot=False))
+                    reporter_assets += reporter.report(plot=False)
             except:
                 raise Exception(
                     f"Assessment ({assessment.get_name()}) failed preparation")
         self.gov.export_assessment_results(
             prepared_results, reporter_assets, 
             destination, self.run_time)
+        return prepared_results, reporter_assets
 
 
     def get_assessments(self, flatten=False):

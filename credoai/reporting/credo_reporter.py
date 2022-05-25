@@ -4,6 +4,7 @@ Defines abstract base class for all CredoReports
 
 from abc import ABC, abstractmethod
 from credoai.utils import get_metric_keys, ValidationError
+from credoai.reporting.plot_utils import format_label
 from IPython.core.display import display, HTML
 import os
 import pandas as pd
