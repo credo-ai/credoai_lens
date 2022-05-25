@@ -59,6 +59,8 @@ class Metric(Record):
         metric value
     subtype : string, optional
         subtype of metric. Defaults to base
+    model_id : str, optional
+        ID of model. Should match a model on Governance App
     dataset_id : str, optional
         ID of dataset. Should match a dataset on Governance App
     process : string, optional
@@ -77,27 +79,33 @@ class Metric(Record):
                  metric_type,
                  value,
                  subtype="base",
+                 model_id=None,
                  dataset_id=None,
                  process=None,
+                 metric_key=None,
                  **metadata):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
         self.subtype = subtype
+        self.model_id = model_id
         self.dataset_id = dataset_id
         self.process = process
-        self.config_hash = self._generate_config()
+        if metric_key:
+            self.metric_key = metric_key
+        else:
+            self.metric_key = self._generate_config()
 
     def struct(self):
         return {
-            'key': self.config_hash,
+            'key': self.metric_key,
             'name': self.metric_type,
             'type': self.metric_type,
             'subtype': self.subtype,
             'value': self.value,
-            'dataset_id': self.dataset_id,
             'process': self.process,
             'labels': self.metadata,
+            'metadata': {'model_id': self.model_id, 'dataset_id': self.dataset_id}, 
             'value_updated_at': self.creation_time,
         }
 
@@ -122,6 +130,8 @@ class Figure(Record):
         path to image file OR matplotlib figure
     description: str, optional
         longer string describing the figure
+    associated_metrics: list
+        List of metric_keys (see lens_utils.get_metric_keys)
     metadata : dict, optional
         Appended keyword arguments to append to metric as metadata
 
@@ -131,10 +141,11 @@ class Figure(Record):
     figure = Figure('Figure 1', fig=f, description='A matplotlib figure')
     """
 
-    def __init__(self, name, figure, description=None, **metadata):
+    def __init__(self, name, figure, description=None, associated_metrics=None, **metadata):
         super().__init__('figures', **metadata)
         self.name = name
         self.description = description
+        self.associated_metrics = associated_metrics
         self.figure_string = None
         self.content_type = None
         if type(figure) == matplotlib.figure.Figure:
@@ -163,6 +174,7 @@ class Figure(Record):
                 'content_type': self.content_type,
                 'file': self.figure_string,
                 'creation_time': self.creation_time,
+                'metric_keys': self.associated_metrics,
                 'metadata': {'type': 'chart', **self.metadata}
                }
 
@@ -256,7 +268,10 @@ def record_metrics_from_dict(metrics, **metadata):
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
 
-def prepare_assessment_payload(assessment_results, report=None, assessed_at=None):
+
+def prepare_assessment_payload(
+    assessment_results, reporter_assets=None, report=None, assessed_at=None
+    ):
     """Export assessment json to file or credo
 
     Parameters
@@ -264,6 +279,8 @@ def prepare_assessment_payload(assessment_results, report=None, assessed_at=None
     assessment_results : dict or list
         dictionary of metrics to pass to record_metrics_from _dict or
         list of prepared_results from credo_assessments. See lens.export for example
+    reporter_assets : list, optional
+            list of assets from a CredoReporter, by default None
     report : credo.reporting.NotebookReport, optional
         report to optionally include with assessments, by default None
     assessed_at : str, optional
@@ -277,18 +294,21 @@ def prepare_assessment_payload(assessment_results, report=None, assessed_at=None
     else:
         assessment_records = [record_metrics(r) for r in assessment_results]
         assessment_records = MultiRecord(assessment_records).struct() if assessment_records else {}
-
+    import pdb; pdb.set_trace()
+    if reporter_assets:
+        reporter_records = [Figure(**assets) for assets in reporter_assets]
+    else:
+        reporter_records = []
     # set up report
     default_html = '<html><body><h3 style="text-align:center">No Report Included With Assessment</h1></body></html>'
-    report_payload = {'content': default_html,
-                      'content_type': "text/html"}
-    if report:
-        report_payload['content'] = report.to_html()
+    report_payload = [{'content': default_html,
+                       'content_type': "text/html",
+                       'metric_keys': []}]
     
     payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
                "metrics": assessment_records,
-               "charts": [],
-               "report": report_payload,
+               "charts": reporter_records,
+               "reports": report_payload,
                "$type": 'string'}
     return payload
 

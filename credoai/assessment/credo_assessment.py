@@ -32,8 +32,7 @@ class CredoAssessment(ABC):
     ...
     """
 
-    def __init__(self, name, module, requirements=None,
-                 short_description=None, long_description=None):
+    def __init__(self, name, module, requirements=None):
         """Abstract base class for all CredoAssessments
 
         Parameters
@@ -46,17 +45,11 @@ class CredoAssessment(ABC):
             Instantiation of functionality CredoModel and/or CredoData
             must define to run this assessment. If defined, enables
             automated validation and selection of assessment
-        short_description : str
-            Short description of assessment functionality. If None
-            will default to first line of class docstring
-        long_description : str
-            Long description of assessment functionality. If None
-            will default to first line of class docstring
         """
         self.name = name
         self.module = module
         self.initialized_module = None
-        self.report = None
+        self.reporter = None
         if requirements is None:
             requirements = AssessmentRequirements()
         self.requirements = requirements
@@ -64,10 +57,6 @@ class CredoAssessment(ABC):
         self.model_name = None
         self.data_name = None
         self.training_data_name = None
-        # descriptions, automatically parsed fro, docstring if not set
-        self.short_description = short_description
-        self.long_description = long_description
-        self._set_description_from_doc()
 
     def __str__(self):
         data_name = self.data_name or "NA"
@@ -102,7 +91,10 @@ class CredoAssessment(ABC):
             self.data_name = data.name
         if training_data:
             self.training_data = training_data.name
-        
+    
+    def init_reporter(self):
+        """Initialize a reporter object"""
+        pass
 
     def run(self, **kwargs):
         return self.initialized_module.run(**kwargs)
@@ -139,7 +131,7 @@ class CredoAssessment(ABC):
 
         Does nothing if not overwritten
         """
-        pass   
+        return self.reporter  
 
     def get_requirements(self):
         return self.requirements.get_requirements()
@@ -162,22 +154,6 @@ class CredoAssessment(ABC):
         return self.requirements.check_requirements(credo_model,
                                                     credo_data,
                                                     credo_training_data)
-
-    def _set_description_from_doc(self):
-        docs = self.__doc__
-        # underline title of next section
-        try:
-            description = docs[:(docs.index('---')-5)]
-        except ValueError:
-            description = docs
-        # remove last line (title of next section)
-        description = description[:description.rfind('\n')].lstrip()
-        short = description.split('\n')[0]
-        long = description[len(short)+2:]
-        if self.short_description is None:
-            self.short_description = short
-        if self.long_description is None:
-            self.long_description = long
 
     def _standardize_prepared_results(self, results):
         if type(results) == dict:

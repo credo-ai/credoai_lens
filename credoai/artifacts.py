@@ -153,8 +153,8 @@ class CredoGovernance:
 
     def export_assessment_results(self, 
                                   assessment_results, 
+                                  reporter_assets = None,
                                   destination = 'credoai',
-                                  report=None,
                                   assessed_at=None
                                   ):
         """Export assessment json to file or credo
@@ -164,18 +164,18 @@ class CredoGovernance:
         assessment_results : dict or list
             dictionary of metrics or
             list of prepared_results from credo_assessments. See lens.export for example
+        reporter_assets : list, optionall
+            list of assets from a CredoReporter, by default None
         destination : str
             Where to send the report
             -- "credoai", a special string to send to Credo AI Governance App.
             -- Any other string, save assessment json to the output_directory indicated by the string.
-        report : credo.reporting.NotebookReport, optional
-            report to optionally include with assessments, by default None
         assessed_at : str, optional
             date when assessments were created, by default None
         """
         assessed_at = assessed_at or datetime.now().isoformat()
         payload = ci.prepare_assessment_payload(
-            assessment_results, report=report, assessed_at=assessed_at)
+            assessment_results, reporter_assets=reporter_assets, assessed_at=assessed_at) 
         if destination == 'credoai':
             if self.use_case_id and self.model_id:
                 ci.post_assessment(self.use_case_id,

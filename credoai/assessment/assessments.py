@@ -92,13 +92,13 @@ class FairnessAssessment(CredoAssessment):
             y_prob)
         self.initialized_module = module
 
-    def get_reporter(self):
+    def init_reporter(self):
         if type_of_target(self.initialized_module.y_true) == 'binary':
-            return BinaryClassificationReporter(self)
+            self.reporter = BinaryClassificationReporter(self)
         elif type_of_target(self.initialized_module.y_true) == 'continuous':
-            return RegressionReporter(self)
+            self.reporter =  RegressionReporter(self)
         else:
-            return FairnessReporter(self)
+            self.reporter =  FairnessReporter(self)
 
 
 class NLPEmbeddingBiasAssessment(CredoAssessment):
