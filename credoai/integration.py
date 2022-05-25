@@ -308,7 +308,7 @@ def prepare_assessment_payload(
     payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
                "metrics": assessment_records,
                "charts": reporter_records,
-               "reports": report_payload,
+               "files": report_payload,
                "$type": 'string'}
     return payload
 
