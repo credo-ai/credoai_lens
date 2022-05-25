@@ -113,6 +113,22 @@ class Metric(Record):
         return dict_hash({k: v for k, v in self.__dict__.items()
                           if k not in ignored})
 
+class File(Record):
+    def __init__(self, content, content_type, metric_keys=None, **metadata):
+        super().__init__('figures', **metadata)
+        self.content = content
+        self.content_type = content_type
+        self.metric_keys = metric_keys
+        self.content_type = None
+
+    def struct(self):
+        return {'content': self.content,
+                'content_type': self.content_type,
+                'creation_time': self.creation_time,
+                'metric_keys': self.metric_keys,
+                'metadata': {'type': 'chart', **self.metadata}
+               }
+
 
 class Figure(Record):
     """
@@ -294,20 +310,20 @@ def prepare_assessment_payload(
         assessment_records = [record_metrics(r) for r in assessment_results]
         assessment_records = MultiRecord(assessment_records).struct() if assessment_records else {}
     if reporter_assets:
-        reporter_records = [Figure(**assets) for assets in reporter_assets]
-        reporter_records = MultiRecord(reporter_records).struct()
+        chart_assets = [asset for asset in reporter_assets if 'figure' in asset]
+        file_assets = [asset for asset in reporter_assets if 'content' in asset]
+        chart_records = [Figure(**assets) for assets in chart_assets]
+        chart_records = MultiRecord(chart_records).struct() if chart_records else []
+        file_records = [Figure(**assets) for assets in file_assets]
+        file_records = MultiRecord(file_records).struct() if file_records else []
     else:
-        reporter_records = []
-    # set up report
-    default_html = '<html><body><h3 style="text-align:center">No Report Included With Assessment</h1></body></html>'
-    report_payload = [{'content': default_html,
-                       'content_type': "text/html",
-                       'metric_keys': []}]
+        chart_records = []
+        file_records = []
     
     payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
                "metrics": assessment_records,
-               "charts": reporter_records,
-               "files": report_payload,
+               "charts": chart_records,
+               "files": file_records,
                "$type": 'string'}
     return payload
 

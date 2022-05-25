@@ -6,8 +6,31 @@ class DatasetProfilingReporter(CredoReporter):
         super().__init__(assessment)
         self.size = size
 
-    def plot_results(self):
-        self.module.profile_data()
+    def report(self, plot=True, rerun=False):
+        """Reports assets
 
+        Once run, will cache assets unless rerun = True
+
+        Parameters
+        ----------
+        plot : bool, optional
+            If True, plot assets. Defaults True
+        rerun : bool, optional
+            If True, rerun asset creation. Defaults True
+            
+        Returns
+        -------
+        array of dictionaries reflecting assets
+        """        
+        if not self.figs or rerun:
+            self._create_assets()
+        if plot:
+            self.module.profile_data()
+        return self.figs
+
+    def _create_assets(self):
+        self.figs = [self._create_html_blob(self._getself.get_html_report())]
+
+        
     def display_results_tables(self):
         pass

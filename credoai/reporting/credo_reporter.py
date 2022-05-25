@@ -95,4 +95,11 @@ class CredoReporter(ABC):
                 keys = self.key_lookup['metric_key'].tolist()
         return {'name': name, 'figure': figure, 'description': description, 'metric_keys': keys}
 
-
+    def _create_html_blob(self, html, module_prepared_results = None):
+        keys = []
+        if self.key_lookup is not None:
+            if module_prepared_results is not None:
+                keys = get_metric_keys(module_prepared_results, self.key_lookup)
+            else:
+                keys = self.key_lookup['metric_key'].tolist()
+        return {'content': html, 'content_type': "text/html", 'metric_keys': keys}
