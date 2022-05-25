@@ -334,7 +334,7 @@ class RegressionReporter(FairnessReporter):
             ax.set_xlabel("True Values")
             ax.set_ylabel("Predicted Values")
             ax.legend_.set_title('')
-        return self._create_chart(f)
+        return self._create_chart(f, REGRESSION_DESCRIPTION)
 
 
 FAIRNESS_DESCRIPTION = """The fairness assessment is divided into two primary metrics: (1) Fairness
@@ -397,5 +397,4 @@ Disaggregated across the demographic groups, this plot also provides visual insi
 how the model may be performing differently across groups.
                 
 Ideally, all the points should be close to the 45-degree dotted line.
-
 """
