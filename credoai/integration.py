@@ -126,7 +126,7 @@ class File(Record):
                 'content_type': self.content_type,
                 'creation_time': self.creation_time,
                 'metric_keys': self.metric_keys,
-                'metadata': {'type': 'chart', **self.metadata}
+                'metadata': self.metadata
                }
 
 
@@ -314,7 +314,7 @@ def prepare_assessment_payload(
         file_assets = [asset for asset in reporter_assets if 'content' in asset]
         chart_records = [Figure(**assets) for assets in chart_assets]
         chart_records = MultiRecord(chart_records).struct() if chart_records else []
-        file_records = [Figure(**assets) for assets in file_assets]
+        file_records = [File(**assets) for assets in file_assets]
         file_records = MultiRecord(file_records).struct() if file_records else []
     else:
         chart_records = []
