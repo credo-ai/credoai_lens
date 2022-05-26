@@ -203,7 +203,6 @@ class Lens:
             prepared_results, reporter_assets, 
             destination, self.run_time)
 
-
     def get_assessments(self, flatten=False):
         """Return assessments defined
 
@@ -333,10 +332,11 @@ class Lens:
     def _prepare_results(self, assessment, **kwargs):
         metadata = self._gather_meta(assessment)
         prepared = assessment.prepare_results(metadata, **kwargs)
-        ignored = ['value']
-        keys = [dict_hash({k: v for k, v in metric_dict.items() if k not in ignored}) 
-                for metric_dict in prepared.reset_index().to_dict('records')]
-        prepared['metric_key'] = keys
+        if prepared is not None:
+            ignored = ['value']
+            keys = [dict_hash({k: v for k, v in metric_dict.items() if k not in ignored}) 
+                    for metric_dict in prepared.reset_index().to_dict('records')]
+            prepared['metric_key'] = keys
         return prepared
 
     def _register_artifacts(self):

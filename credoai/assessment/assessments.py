@@ -215,8 +215,8 @@ class NLPGeneratorAssessment(CredoAssessment):
 
         self.initialized_module = module
 
-    def get_reporter(self):
-        return NLPGeneratorAnalyzerReporter(self)
+    def init_reporter(self):
+        self.reporter = NLPGeneratorAnalyzerReporter(self)
 
 
 class PerformanceAssessment(CredoAssessment):
@@ -339,8 +339,8 @@ class DatasetFairnessAssessment(CredoAssessment):
             scrubbed_data['sensitive_features'],
             data.categorical_features_keys)
 
-    def get_reporter(self):
-        return DatasetFairnessReporter(self)
+    def init_reporter(self):
+        self.reporter = DatasetFairnessReporter(self)
 
 
 class DatasetProfilingAssessment(CredoAssessment):
@@ -370,8 +370,8 @@ class DatasetProfilingAssessment(CredoAssessment):
             data.X,
             data.y)
 
-    def get_reporter(self):
-        return DatasetProfilingReporter(self)
+    def init_reporter(self):
+        self.reporter = DatasetProfilingReporter(self)
 
 
 def list_assessments_exhaustive():
