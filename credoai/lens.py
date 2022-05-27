@@ -101,8 +101,9 @@ class Lens:
         self.model = model
         self.assessment_dataset = data
         self.training_dataset = training_data
-        if self.assessment_dataset == self.training_dataset:
-            raise ValidationError("Assessment dataset and training dataset should not be the same!")
+        if self.assessment_dataset and self.training_dataset:
+            if self.assessment_dataset == self.training_dataset:
+                raise ValidationError("Assessment dataset and training dataset should not be the same!")
         self.assessment_plan = {}
         set_logging_level(logging_level)
         self.warning_level = warning_level
