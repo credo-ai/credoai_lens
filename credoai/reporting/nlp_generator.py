@@ -96,7 +96,7 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
                 if i%2:
                     ax.tick_params(labelleft=False) 
             plt.subplots_adjust(wspace=.5, hspace=.5)
-            plt.suptitle('Overal Assessment of Text Generators', y=1)
+            plt.suptitle('Overall Assessment of Text Generators', y=1)
         return f
 
     def plot_disaggregated_assessment(self, kind='box'):
