@@ -6,8 +6,9 @@ from credoai.artifacts import CredoGovernance, CredoModel, CredoData
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import AssessmentBunch
 from credoai.utils.common import (
-    dict_hash, raise_or_warn, update_dictionary, 
+    raise_or_warn, update_dictionary, 
     wrap_list, NotRunError, ValidationError)
+from credoai.utils.lens_utils import add_metric_keys
 from credoai.utils.policy_utils import PolicyChecklist
 from credoai import __version__
 from datetime import datetime
@@ -164,7 +165,7 @@ class Lens:
         for assessment in self.get_assessments(flatten=True):
             logging.info(f"Running assessment-{assessment.get_name()}")
             kwargs = assessment_kwargs.get(assessment.name, {})
-            assessment.run(**kwargs).get_results()
+            assessment.run(**kwargs)
         self.run_time = datetime.now().isoformat()
         return self
 
@@ -193,15 +194,20 @@ class Lens:
                 prepared_assessment = self._prepare_results(assessment)
                 if prepared_assessment is not None:
                     prepared_results.append(prepared_assessment)
+            except:
+                raise Exception(
+                    f"Assessment ({assessment.get_name()}) failed preparation")
+            try:
                 reporter = assessment.get_reporter()
                 if reporter is not None:
                     reporter_assets += reporter.report(plot=False)
             except:
                 raise Exception(
-                    f"Assessment ({assessment.get_name()}) failed preparation")
+                    f"Reporter for assessment ({assessment.get_name()}) failed")
         self.gov.export_assessment_results(
             prepared_results, reporter_assets, 
             destination, self.run_time)
+        return prepared_results, reporter_assets
 
     def get_assessments(self, flatten=False):
         """Return assessments defined
@@ -330,13 +336,10 @@ class Lens:
                 self.reporters.append(reporter)
 
     def _prepare_results(self, assessment, **kwargs):
+        """Prepares results and adds metric keys"""
         metadata = self._gather_meta(assessment)
         prepared = assessment.prepare_results(metadata, **kwargs)
-        if prepared is not None:
-            ignored = ['value']
-            keys = [dict_hash({k: v for k, v in metric_dict.items() if k not in ignored}) 
-                    for metric_dict in prepared.reset_index().to_dict('records')]
-            prepared['metric_key'] = keys
+        add_metric_keys(prepared)
         return prepared
 
     def _register_artifacts(self):

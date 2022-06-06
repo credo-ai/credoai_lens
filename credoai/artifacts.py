@@ -72,12 +72,18 @@ class CredoGovernance:
                  spec_destination: str = None,
                  warning_level=1):
         self.warning_level = warning_level
+        self.assessment_spec = None
+        self.use_case_id = None
+        self.model_id = None
+        self.dataset_id = None
+        self.training_dataset_id = None
         # set up assessment spec
-        self.assessment_spec = ci.process_assessment_spec(spec_destination)
-        self.use_case_id = self.assessment_spec['use_case_id']
-        self.model_id = self.assessment_spec['model_id']
-        self.dataset_id = self.assessment_spec['validation_dataset_id']
-        self.training_dataset_id = self.assessment_spec['training_dataset_id']
+        if spec_destination:
+            self.assessment_spec = ci.process_assessment_spec(spec_destination)
+            self.use_case_id = self.assessment_spec['use_case_id']
+            self.model_id = self.assessment_spec['model_id']
+            self.dataset_id = self.assessment_spec['validation_dataset_id']
+            self.training_dataset_id = self.assessment_spec['training_dataset_id']
 
     def get_assessment_plan(self):
         """Get assessment plan
@@ -89,6 +95,8 @@ class CredoGovernance:
         from the AI Governance app. 
         """
         assessment_plan = defaultdict(dict)
+        if self.assessment_spec is None:
+            return assessment_plan
         missing_metrics = []
         for risk_issue, risk_plan in self.assessment_spec['assessment_plan'].items():
             metrics = [m['type'] for m in risk_plan]
@@ -164,7 +172,7 @@ class CredoGovernance:
         assessment_results : dict or list
             dictionary of metrics or
             list of prepared_results from credo_assessments. See lens.export for example
-        reporter_assets : list, optionall
+        reporter_assets : list, optional
             list of assets from a CredoReporter, by default None
         destination : str
             Where to send the report

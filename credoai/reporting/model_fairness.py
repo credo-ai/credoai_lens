@@ -31,7 +31,7 @@ class FairnessReporter(CredoReporter):
     def _create_assets(self):
         """Creates fairness reporting assests"""                
         # plot
-        self.figs += self.plot_fairness()
+        self.plot_fairness()
 
     def plot_fairness(self):
         """Plots fairness for binary classification
@@ -46,27 +46,36 @@ class FairnessReporter(CredoReporter):
         plot_disaggregated = False
         if self.module.metric_frames != {}:
             plot_disaggregated = True
-        n_plots = 1+plot_disaggregated
         # ratio based on number of metrics and sensitive features
-        f_list = []
+        metric_keys = []
         sensitive_features = self.module.sensitive_features
+        
         for sf_name in sensitive_features:
             r = self.module.get_results()[f'{sf_name}-disaggregated_performance'].shape
             ratio = max(r[0]*r[1]/30, 1)
-            with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
-                f, axes = plt.subplots(1, n_plots)
-                plt.subplots_adjust(wspace=0.7)
-                axes = axes.flat
+            with get_style(figsize=self.size, figure_ratio=ratio):
                 # plot fairness
-                description = self._plot_fairness_metrics(axes[0], sf_name)
+                if self.key_lookup is not None:
+                    metric_keys = self.key_lookup.query(
+                            f'subtype == "parity" and sensitive_feature == "{sf_name}"'
+                        )['metric_key'].tolist()
+                f = self._plot_fairness_metrics(sf_name)
+                self.figs.append(self._create_chart(f, FAIRNESS_DESCRIPTION,
+                             f"Fairness metrics for Sensitive Feature: {sf_name.title()}",
+                             metric_keys=metric_keys))
                 if plot_disaggregated:
-                    self._plot_disaggregated_metrics(axes[1], sf_name)
-                plt.suptitle(f"Sensitive Feature: {sf_name.title()}", fontweight="bold")
-            f_list.append(self._create_chart(f, FAIRNESS_DESCRIPTION))
-        
-        return f_list
+                    if self.key_lookup is not None:
+                        metric_keys = self.key_lookup.query(
+                            f'subtype == "disaggregated_performance" and sensitive_feature == "{sf_name}"'
+                        )['metric_key'].tolist()
+                    f = self._plot_disaggregated_metrics(sf_name)
+                    self.figs.append(self._create_chart(f, DISAGGREGATED_DESCRIPTION,
+                                f"Disaggregated metrics for Sensitive Feature: {sf_name.title()}",
+                                metric_keys))
 
-    def _plot_fairness_metrics(self, ax, sf_name):
+                plt.suptitle(f"Sensitive Feature: {sf_name.title()}", fontweight="bold")
+
+    def _plot_fairness_metrics(self, sf_name):
         # create df
         df = self.module.get_fairness_results()
         df = df[df['sensitive_feature']==sf_name]
@@ -78,6 +87,7 @@ class FairnessReporter(CredoReporter):
         df.index.name = 'Fairness Metric'
         df.name = 'Value'
         # plot
+        f, ax = plt.subplots()
         sns.barplot(data=df.reset_index(), 
                     y='Fairness Metric', 
                     x='Value',
@@ -85,8 +95,9 @@ class FairnessReporter(CredoReporter):
                     color = DEFAULT_COLOR,
                     ax=ax)
         self._style_barplot(ax)
+        return f
         
-    def _plot_disaggregated_metrics(self, ax, sf_name):
+    def _plot_disaggregated_metrics(self, sf_name):
         # create df
         df = self.module.get_disaggregated_performance()[f'{sf_name}-disaggregated_performance']
         df =  df.reset_index() \
@@ -97,6 +108,7 @@ class FairnessReporter(CredoReporter):
         num_cats = len(df[sf_name].unique())
         palette = sns.color_palette('Purples', num_cats)
         palette[-1] = [.4,.4,.4]
+        f, ax = plt.subplots()
         sns.barplot(data=df, 
                     y='Performance Metric', 
                     x='Value', 
@@ -106,6 +118,7 @@ class FairnessReporter(CredoReporter):
                     ax=ax)
         self._style_barplot(ax)
         plt.legend(bbox_to_anchor=(1.01, 1.02))
+        return f
         
     def _style_barplot(self, ax):
         sns.despine()
@@ -123,20 +136,28 @@ class BinaryClassificationReporter(FairnessReporter):
     
     def _create_assets(self):
         """Creates fairness reporting assests for binary classification"""        
+
+        # plot
+        # comparison plots
+        self.plot_fairness()
+        
+        # individual group performance plots
+        self.plot_performance_infographics()
+
+    def plot_performance_infographics(self):
         df = self.module.get_df()
         if df['true'].dtype.name == 'category':
             df['true'] = df['true'].cat.codes
-        # plot
-        # comparison plots
-        self.figs += self.plot_fairness()
-        
-        # individual group performance plots
-        self.figs.append(self.plot_performance_infographic(df['true'], df['pred'], 'Overall'))
+        metric_keys = []
+        self.figs.append(self._plot_performance_infographic(df['true'], df['pred'], 'Overall'))
         for sf_name in self.module.sensitive_features:
             for group, sub_df in df.groupby(sf_name):
-                self.figs.append(self.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
+                if self.key_lookup is not None:
+                    metric_keys=self.key_lookup[self.key_lookup[sf_name]==group]['metric_key'].tolist()
+                self.figs.append(self._plot_performance_infographic(
+                    sub_df['true'], sub_df['pred'], group, metric_keys))
 
-    def plot_performance_infographic(self, y_true, y_pred, label, **grid_kwargs):
+    def _plot_performance_infographic(self, y_true, y_pred, label, metric_keys=None, **grid_kwargs):
         """Plots performance for binary classification
         Plots "infographic" depiction of outcomes for ground truth
         and model performance, as well as a confusion matrix.
@@ -148,6 +169,8 @@ class BinaryClassificationReporter(FairnessReporter):
             The predicted labels for classification
         label : str
             super title for set of performance plots
+        metric_keys : list
+            metric_keys to associate with chart
         Returns
         -------
         matplotlib figure
@@ -173,7 +196,9 @@ class BinaryClassificationReporter(FairnessReporter):
             (.5, 1, label, {'fontweight': 'bold', 'fontsize': self.size*6})
         ]
         text_ax = self._plot_text(f, text_objects)
-        return self._create_chart(f, INFOGRAPHIC_DESCRIPTION)
+        return self._create_chart(f, INFOGRAPHIC_DESCRIPTION, 
+                                  f"{label} Binary Classification Infographic",
+                                  metric_keys)
         
     def _create_data(self, y_true, y_pred):
         n = self.infographic_shape[0] * self.infographic_shape[1]
@@ -334,7 +359,7 @@ class RegressionReporter(FairnessReporter):
             ax.set_xlabel("True Values")
             ax.set_ylabel("Predicted Values")
             ax.legend_.set_title('')
-        return self._create_chart(f, REGRESSION_DESCRIPTION)
+        return self._create_chart(f, REGRESSION_DESCRIPTION, "Continuous Value Prediction")
 
 
 FAIRNESS_DESCRIPTION = """The fairness assessment is divided into two primary metrics: (1) Fairness
@@ -347,10 +372,11 @@ or performance parity metrics. Performance parity captures the idea that the
 AI system should work similarly well for all groups. Some "fairness metrics"
 like equal opportunity are actually parity metrics. "Equal opportunity" is simply
 the true positive rate parity.
+"""
 
-Performance metrics describe how performant your system is. It goes without saying
+DISAGGREGATED_DESCRIPTION = """Performance metrics describe how performant your system is. It goes without saying
 that the AI system should be performing at some minimum acceptable level to be
-deployed. The Fairness Assessment disaggregates performance across the 
+deployed. This figure disaggregates performance across the 
 sensitive feature provided. This ensures that the system is evaluated for 
 acceptable performance across groups that are important. Think of it as any
 segmentation analysis, where the segments are groups of people.

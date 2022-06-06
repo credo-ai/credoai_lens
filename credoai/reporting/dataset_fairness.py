@@ -88,9 +88,7 @@ class DatasetFairnessReporter(CredoReporter):
                     f.patch.set_facecolor("white")
                     sns.despine()
                     ax.set_title(
-                        "Data balance across "
-                        + sensitive_feature_name
-                        + " subgroups and label values"
+                        f"Data balance across {sensitive_feature_name} subgroups and label values"
                     )
                     ax.set_xlabel("Number of data samples")
                     ax.set_ylabel("")
@@ -128,7 +126,8 @@ class DatasetFairnessReporter(CredoReporter):
                         title=label_name
                     )
                     ax.legend_.set_title(label_name)
-            self.figs.append(self._create_chart(f, BALANCE_DESCRIPTION))
+            title = f'Dataset Balance with respect to Sensitive Feature: {sensitive_feature_name}'
+            self.figs.append(self._create_chart(f, BALANCE_METRICS_DESCRIPTION, title))
 
     def _plot_group_diff(self):
         """Generates group difference barplots"""
@@ -163,12 +162,14 @@ class DatasetFairnessReporter(CredoReporter):
                 f.patch.set_facecolor("white")
                 ax.axhline(0, color="k")
                 sns.despine()
-                ax.set_title("Group differences for " + max_pair_key)
+                title = f"Group differences for Sensitive Feature: " \
+                         "{sensitive_feature_name} ({max_pair_key})"
+                ax.set_title(title)
                 ax.set_xlabel("")
                 ax.set_ylabel("Group difference")
                 ax.xaxis.set_tick_params(rotation=90)
 
-            self.figs.append(self._create_chart(f, GROUP_DIFF_DESCRIPTION))
+            return self._create_chart(f, GROUP_DIFF_DESCRIPTION, title)
 
     def _plot_mutual_information(self):
         """Generates normalized mutual information between features and sensitive attribute"""
@@ -207,9 +208,8 @@ class DatasetFairnessReporter(CredoReporter):
                 f.patch.set_facecolor("white")
                 ax.axhline(0, color="k", lw=self.size/6)
                 sns.despine()
-                ax.set_title(
-                    "Normalized mutual information\n with feature: " + sensitive_feature_name
-                )
+                title = "Proxy Detection: Normalized mutual information with Sensitive Feature: " + sensitive_feature_name
+                ax.set_title(title)
                 ax.set_xlabel("")
                 ax.set_ylabel("Normalized mutual information")
                 ax.set_ylim([0, 1])
@@ -217,7 +217,7 @@ class DatasetFairnessReporter(CredoReporter):
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
                 ax.legend(loc='upper right')
 
-            self.figs.append(self._create_chart(f, MUTUAL_INFO_DESCRIPTION))
+            return self._create_chart(f, MUTUAL_INFO_DESCRIPTION, title)
 
     def _add_bar_percentages(self, ax, fontsize=10):
         n_containers = len(ax.containers)
@@ -285,7 +285,7 @@ plot helps you evaluate whether it is equitable in its actions.
 
 """
 
-SENSITIVE_FEAUTURE_DESCRIPTION = """
+SENSITIVE_FEATURE_DESCRIPTION = """
 Redundant Encoding
 ------------------
 The most important thing to check about your dataset is

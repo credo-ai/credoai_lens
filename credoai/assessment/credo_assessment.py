@@ -108,7 +108,6 @@ class CredoAssessment(ABC):
         # add metadata
         metadata = metadata or {}
         results = results.assign(**metadata)
-        # return results (and ensure no NaN floats remain)
         return results
 
     def get_description(self):

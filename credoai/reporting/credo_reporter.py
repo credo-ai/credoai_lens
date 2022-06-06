@@ -3,7 +3,7 @@ Defines abstract base class for all CredoReports
 """
 
 from abc import ABC, abstractmethod
-from credoai.utils import get_metric_keys, ValidationError
+from credoai.utils import  ValidationError
 from credoai.reporting.plot_utils import format_label
 from IPython.core.display import display, HTML
 import os
@@ -73,33 +73,24 @@ class CredoReporter(ABC):
 
     @abstractmethod
     def _create_assets(self):
-        """Creates assets
-        
-        Example:
-        figures = [list of matplotlib figures]
-        assets = [_create_chart(f) for f in figures]
-        self.figs = assets
-        """
+        """Creates assets, appending them to self.figs"""
         pass
 
     def _create_chart(self, 
                      figure, 
                      description: str = None, 
                      name: str = 'Figure',
-                     module_prepared_results = None):
-        keys = []
-        if self.key_lookup is not None:
-            if module_prepared_results is not None:
-                keys = get_metric_keys(module_prepared_results, self.key_lookup)
-            else:
-                keys = self.key_lookup['metric_key'].tolist()
-        return {'name': name, 'figure': figure, 'description': description, 'metric_keys': keys}
+                     metric_keys = None):  
+        # if metric keys is not defined but key_lookup exists
+        # set metric_keys to all associated metrics                 
+        if self.key_lookup is not None and metric_keys is None:
+            metric_keys = self.key_lookup['metric_key'].tolist()
+        return {'name': name, 'figure': figure, 
+                'description': description, 'metric_keys': metric_keys or []}
 
-    def _create_html_blob(self, html, module_prepared_results = None):
-        keys = []
-        if self.key_lookup is not None:
-            if module_prepared_results is not None:
-                keys = get_metric_keys(module_prepared_results, self.key_lookup)
-            else:
-                keys = self.key_lookup['metric_key'].tolist()
-        return {'content': html, 'content_type': "text/html", 'metric_keys': keys}
+    def _create_html_blob(self, html, metric_keys = None):
+        # if metric keys is not defined but key_lookup exists
+        # set metric_keys to all associated metrics  
+        if self.key_lookup is not None and metric_keys is None:
+            metric_keys = self.key_lookup['metric_key'].tolist()
+        return {'content': html, 'content_type': "text/html", 'metric_keys': metric_keys}
