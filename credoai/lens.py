@@ -207,8 +207,7 @@ class Lens:
         self.gov.export_assessment_results(
             prepared_results, reporter_assets, 
             destination, self.run_time)
-        return prepared_results, reporter_assets
-
+            
     def get_assessments(self, flatten=False):
         """Return assessments defined
 

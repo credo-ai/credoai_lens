@@ -48,7 +48,7 @@ class FairnessReporter(CredoReporter):
             plot_disaggregated = True
         # ratio based on number of metrics and sensitive features
         metric_keys = []
-        sensitive_features = self.module.sensitive_features
+        sensitive_features = self.module.get_sensitive_features()
         
         for sf_name in sensitive_features:
             r = self.module.get_results()[f'{sf_name}-disaggregated_performance'].shape
@@ -117,7 +117,7 @@ class FairnessReporter(CredoReporter):
                     edgecolor='w',
                     ax=ax)
         self._style_barplot(ax)
-        plt.legend(bbox_to_anchor=(1.01, 1.02))
+        plt.legend(bbox_to_anchor=(1.2, 0.5), loc='center')
         return f
         
     def _style_barplot(self, ax):
@@ -127,6 +127,7 @@ class FairnessReporter(CredoReporter):
         # format metric labels
         ax.set_yticklabels([format_label(label.get_text()) 
                             for label in ax.get_yticklabels()])
+        plt.tight_layout()
     
 
 class BinaryClassificationReporter(FairnessReporter):
@@ -149,8 +150,12 @@ class BinaryClassificationReporter(FairnessReporter):
         if df['true'].dtype.name == 'category':
             df['true'] = df['true'].cat.codes
         metric_keys = []
-        self.figs.append(self._plot_performance_infographic(df['true'], df['pred'], 'Overall'))
-        for sf_name in self.module.sensitive_features:
+        if self.key_lookup is not None:
+            metric_keys = self.key_lookup \
+                            .query('subtype=="overall_performance"')['metric_key'].tolist()
+        self.figs.append(self._plot_performance_infographic(
+            df['true'], df['pred'], 'Overall', metric_keys))
+        for sf_name in self.module.get_sensitive_features():
             for group, sub_df in df.groupby(sf_name):
                 if self.key_lookup is not None:
                     metric_keys=self.key_lookup[self.key_lookup[sf_name]==group]['metric_key'].tolist()

@@ -297,6 +297,10 @@ class PerformanceAssessment(CredoAssessment):
             sensitive_features)
         self.initialized_module = module
 
+    def init_reporter(self):
+        if type_of_target(self.initialized_module.y_true) == 'binary':
+            self.reporter = BinaryClassificationReporter(self)
+
 # *******************
 # Dataset Assessments
 # *******************

@@ -45,7 +45,7 @@ def get_style(rc=None, figsize=3, figure_ratio=1, n_cols=1, n_rows=1):
              'lines.linewidth': figsize/3,
              'axes.linewidth': figsize/3,
              'axes.titlesize': 'large',
-             'axes.titlepad': figsize*2,
+             'axes.titlepad': figsize*4,
              'axes.labelsize': 'medium',
              'axes.labelpad': figsize*1.5,
              'xtick.labelsize': 'small',
