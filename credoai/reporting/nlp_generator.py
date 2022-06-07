@@ -6,7 +6,6 @@ import seaborn as sns
 from copy import deepcopy
 from credoai.reporting.credo_reporter import CredoReporter
 from credoai.reporting import plot_utils
-from credoai.reporting.reports import AssessmentReport
 from datetime import datetime
 
 

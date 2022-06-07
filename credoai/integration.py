@@ -285,7 +285,7 @@ def record_metrics_from_dict(metrics, **metadata):
 
 
 def prepare_assessment_payload(
-    assessment_results, reporter_assets=None, report=None, assessed_at=None
+    assessment_results, reporter_assets=None, assessed_at=None
     ):
     """Export assessment json to file or credo
 
@@ -296,8 +296,6 @@ def prepare_assessment_payload(
         list of prepared_results from credo_assessments. See lens.export for example
     reporter_assets : list, optional
             list of assets from a CredoReporter, by default None
-    report : credo.reporting.NotebookReport, optional
-        report to optionally include with assessments, by default None
     assessed_at : str, optional
         date when assessments were created, by default None
     for_app : bool
