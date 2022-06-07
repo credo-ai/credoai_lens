@@ -87,7 +87,7 @@ def test_asset_creation():
     lens = cl.Lens(model=credo_model, data=credo_data, 
                    assessment_plan=assessment_plan, governance=gov)
     lens.run_assessments()
-    out = lens.export('.')
+    lens.export('.')
 
 def test_lens_with_model_and_training():
     lens = cl.Lens(model=credo_model, data=credo_data, training_data=credo_training_data, assessment_plan=assessment_plan)
