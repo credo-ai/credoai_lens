@@ -72,7 +72,7 @@ class CredoGovernance:
                  spec_destination: str = None,
                  warning_level=1):
         self.warning_level = warning_level
-        self.assessment_spec = None
+        self.assessment_spec = {}
         self.use_case_id = None
         self.model_id = None
         self.dataset_id = None
@@ -95,10 +95,8 @@ class CredoGovernance:
         from the AI Governance app. 
         """
         assessment_plan = defaultdict(dict)
-        if self.assessment_spec is None:
-            return assessment_plan
         missing_metrics = []
-        for risk_issue, risk_plan in self.assessment_spec['assessment_plan'].items():
+        for risk_issue, risk_plan in self.assessment_spec.get('assessment_plan', {}).items():
             metrics = [m['type'] for m in risk_plan]
             passed_metrics = []
             for m in metrics:
@@ -121,7 +119,7 @@ class CredoGovernance:
         return assessment_plan
     
     def get_policy_checklist(self):
-        return self.assessment_spec['policy_questions']
+        return self.assessment_spec.get('policy_questions')
 
     def get_info(self):
         """Return Credo AI Governance IDs"""

@@ -208,7 +208,7 @@ class Lens:
         self.gov.export_assessment_results(
             prepared_results, reporter_assets, 
             destination, self.run_time)
-            
+
     def get_assessments(self, flatten=False):
         """Return assessments defined
 
@@ -274,7 +274,7 @@ class Lens:
             if assessments and name not in assessments:
                 continue
             reporter.display_results_tables()
-            _ = reporter.reporter()
+            _ = reporter.report()
         return self
 
     def _apply_dev_mode(self, dev_mode):
@@ -332,7 +332,9 @@ class Lens:
                 logging.info(f"No reporter found for assessment-{name}")
             else:
                 logging.info(f"Reporter initialized for assessment-{name}")
-                reporter.set_key_lookup(self._prepare_results(assessment))
+                # if governance defined, set up reporter for key lookup
+                if self.gov is not None:
+                    reporter.set_key_lookup(self._prepare_results(assessment))
                 self.reporters.append(reporter)
 
     def _prepare_results(self, assessment, **kwargs):

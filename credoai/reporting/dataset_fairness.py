@@ -176,7 +176,7 @@ class DatasetFairnessReporter(CredoReporter):
                 ax.xaxis.set_tick_params(rotation=90)
                 plt.tight_layout()
             if self.key_lookup is not None:
-                metric_keys = self.key_lookup.loc['sensitive_feature_prediction_score'] \
+                metric_keys = self.key_lookup.loc[['sensitive_feature_prediction_score']] \
                                 .query(f'sensitive_feature=="{sf_name}"')['metric_key'].tolist()
             self.figs.append(self._create_chart(f, GROUP_DIFF_DESCRIPTION, title, metric_keys))
 
@@ -227,7 +227,7 @@ class DatasetFairnessReporter(CredoReporter):
                 ax.legend(loc='upper right')
                 plt.tight_layout()
             if self.key_lookup is not None:
-                metric_keys = self.key_lookup.loc['sensitive_feature_prediction_score'] \
+                metric_keys = self.key_lookup.loc[['sensitive_feature_prediction_score']] \
                                 .query(f'sensitive_feature=="{sf_name}"')['metric_key'].tolist()
             self.figs.append(self._create_chart(f, MUTUAL_INFO_DESCRIPTION, title, metric_keys))
 
