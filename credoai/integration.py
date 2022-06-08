@@ -353,7 +353,7 @@ def process_assessment_spec(spec_destination):
     spec = {}
     try:
         spec = get_assessment_spec(spec_destination)
-    except IntegrationError:
+    except:
         spec = deserialize(json.load(open(spec_destination)))
         
     # reformat assessment_spec
