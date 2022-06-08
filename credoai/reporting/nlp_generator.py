@@ -6,7 +6,6 @@ import seaborn as sns
 from copy import deepcopy
 from credoai.reporting.credo_reporter import CredoReporter
 from credoai.reporting import plot_utils
-from credoai.reporting.reports import AssessmentReport
 from datetime import datetime
 
 
@@ -17,57 +16,13 @@ class NLPGeneratorAnalyzerReporter(CredoReporter):
         self.num_assessment_funs = len(self.module.assessment_functions)
         self.size = size
 
-    def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
-        """Creates a fairness report for binary classification model
-
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default Non
-
-        Returns
-        -------
-        array of figures
-        """
+    def _create_assets(self):
+        """Creates nlp generator report assets"""
         # Generate assessment attribute distribution parameters plots
         self.figs.append(self.plot_overall_assessment())
-        if include_fairness:
-            self.figs.append(self.plot_fairness())
-        if include_disaggregation:
-            self.figs.append(self.plot_disaggregated_assessment())
-        #self.figs.append(self._plot_hists())
-
-        # display
-        plt.show()
-        # Save to pdf if requested
-        if filename:
-            self.export_report(filename)
+        self.figs.append(self.plot_fairness())
+        self.figs.append(self.plot_disaggregated_assessment())
         return self.figs
-
-    def create_notebook(self):
-        report = AssessmentReport({'reporter': self._get_scrubbed_reporter()})
-        results_table = [("### Result Tables", "markdown"), 
-                         ("reporter.display_results_tables()", 'code')]
-        cells = [(self._get_description(), 'markdown')] \
-            + self._create_report_cells() \
-            + results_table
-        report.add_cells(cells)
-        self.report = report
-        
-    def _create_report_cells(self):
-        # report cells
-        cells = [
-            ("""\
-            reporter.plot_overall_assessment()
-            """, 'code'),
-            ("""\
-            reporter.plot_fairness()
-            """, 'code'),
-            ("""\
-            reporter.plot_disaggregated_assessment()
-            """, 'code')
-        ]
-        return cells
 
     def plot_overall_assessment(self, kind='box'):
         """Plots assessment values for each generator as box plots"""        

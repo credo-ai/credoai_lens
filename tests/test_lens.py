@@ -20,6 +20,11 @@ credo_training_data = cl.CredoData(
     name="income_data", data=data, label_key='income', sensitive_feature_keys=['gender']
 )
 
+gov = cl.CredoGovernance()
+gov.model_id = 'model_test'
+gov.use_case_id = 'use_case_test'
+gov.dataset_id = 'dataset_test'
+
 model = LogisticRegression(random_state=0).fit(X, y)
 credo_model = cl.CredoModel(name="income_classifier", model=model)
 assessment_plan = {"Fairness": {"metrics": ["precision_score"]},
@@ -73,10 +78,16 @@ def test_lens_dataset_with_missing_data():
     assert metric_score == 0.375
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {'DatasetFairness', 'DatasetProfiling'} 
 
-def test_report_creation():
+def test_display():
     lens = cl.Lens(model=credo_model, data=credo_data, assessment_plan=assessment_plan)
     lens.run_assessments()
-    out = lens.create_report()
+    lens.display_results()
+
+def test_asset_creation():
+    lens = cl.Lens(model=credo_model, data=credo_data, 
+                   assessment_plan=assessment_plan, governance=gov)
+    lens.run_assessments()
+    lens.export('.')
 
 def test_lens_with_model_and_training():
     lens = cl.Lens(model=credo_model, data=credo_data, training_data=credo_training_data, assessment_plan=assessment_plan)

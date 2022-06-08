@@ -5,10 +5,10 @@ from copy import deepcopy
 from credoai.artifacts import CredoGovernance, CredoModel, CredoData
 from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.assessment import AssessmentBunch
-from credoai.reporting.reports import MainReport
 from credoai.utils.common import (
-    raise_or_warn, update_dictionary, wrap_list,
-    NotRunError, ValidationError)
+    raise_or_warn, update_dictionary, 
+    wrap_list, NotRunError, ValidationError)
+from credoai.utils.lens_utils import add_metric_keys
 from credoai.utils.policy_utils import PolicyChecklist
 from credoai import __version__
 from datetime import datetime
@@ -124,7 +124,6 @@ class Lens:
         self.assessments = self._select_assessments(assessments)
 
         # set up reporter objects
-        self.report = None
         self.reporters = []
 
         # if data is defined and dev mode, convert data
@@ -167,29 +166,8 @@ class Lens:
         for assessment in self.get_assessments(flatten=True):
             logging.info(f"Running assessment-{assessment.get_name()}")
             kwargs = assessment_kwargs.get(assessment.name, {})
-            assessment.run(**kwargs).get_results()
+            assessment.run(**kwargs)
         self.run_time = datetime.now().isoformat()
-        return self
-
-    def create_report(self):
-        """Creates notebook report
-
-        Creates jupyter notebook reports for every assessment that
-        has reporting functionality defined. It then concatenates the reports into
-        one final report. 
-
-        Returns
-        -------
-        self
-        """
-        if self.run_time == False:
-            raise NotRunError(
-                "Results not created yet. Call 'run_assessments' first"
-            )
-        if not self.reporters:
-            self._create_reporters()
-        self.report = MainReport(f"Assessment Report", self.reporters)
-        self.report.create_report(self)
         return self
 
     def export(self, destination="credoai"):
@@ -206,7 +184,10 @@ class Lens:
         """
         if self.gov is None:
             raise ValidationError("CredoGovernance must be defined to export!")
+        if not self.reporters:
+            self._init_reporters()
         prepared_results = []
+        reporter_assets = []
         for assessment in self.get_assessments(flatten=True):
             try:
                 logging.info(
@@ -217,10 +198,16 @@ class Lens:
             except:
                 raise Exception(
                     f"Assessment ({assessment.get_name()}) failed preparation")
-        if self.report is None:
-            logging.warning(
-                "No report is included. To include a report, run create_reports first")
-        self.gov.export_assessment_results(prepared_results, destination, self.report, self.run_time)
+            try:
+                reporter = assessment.get_reporter()
+                if reporter is not None:
+                    reporter_assets += reporter.report(plot=False)
+            except:
+                raise Exception(
+                    f"Reporter for assessment ({assessment.get_name()}) failed")
+        self.gov.export_assessment_results(
+            prepared_results, reporter_assets, 
+            destination, self.run_time)
 
     def get_assessments(self, flatten=False):
         """Return assessments defined
@@ -264,9 +251,6 @@ class Lens:
     def get_governance(self):
         return self.gov
 
-    def get_report(self):
-        return self.report
-
     def get_results(self):
         """Return results of assessments"""
         return {bunch.name: {a.get_name(): a.get_results() for a in bunch.assessments.values()}
@@ -282,15 +266,15 @@ class Lens:
             all assessments. Assessments should be taken from the list
             of assessments returned by lens.get_assessments
         """
-        assessments = wrap_list(assessments)
         if not self.reporters:
-            self._create_reporters()
+            self._init_reporters()
+        assessments = wrap_list(assessments)
         for reporter in self.reporters:
             name = reporter.assessment.name
             if assessments and name not in assessments:
                 continue
             reporter.display_results_tables()
-            reporter.plot_results()
+            _ = reporter.report()
         return self
 
     def _apply_dev_mode(self, dev_mode):
@@ -302,25 +286,14 @@ class Lens:
             if self.training_dataset:
                 self.training_dataset.dev_mode(self.dev_mode)
 
-    def _create_reporters(self):
-        for assessment in self.get_assessments(flatten=True):
-            name = assessment.get_name()
-            reporter = assessment.get_reporter()
-            if reporter is not None:
-                logging.info(
-                    f"Reporter creating notebook for assessment-{name}")
-                reporter.create_notebook()
-                self.reporters.append(reporter)
-            else:
-                logging.info(f"No reporter found for assessment-{name}")
-
     def _gather_meta(self, assessment):
         if assessment.data_name == self.assessment_dataset.name:
             dataset_id = self.gov.dataset_id
         elif assessment.data_name == self.training_dataset.name:
             dataset_id = self.gov.training_dataset_id
         return {'process': f'Lens-v{__version__}_{assessment.name}',
-                'dataset_id': dataset_id}
+                'dataset_id': dataset_id,
+                'model_id': self.gov.model_id}
 
     def _get_credo_destination(self, to_model=True):
         """Get destination for export and ensure all artifacts are registered"""
@@ -333,6 +306,7 @@ class Lens:
     def _init_assessments(self):
         for bunch in self.assessments:
             for assessment in bunch.assessments.values():
+                name = assessment.get_name()
                 kwargs = deepcopy(self.assessment_plan.get(assessment.name, {}))
                 reqs = assessment.get_requirements()
                 if reqs['model_requirements']:
@@ -344,13 +318,31 @@ class Lens:
                 try:
                     assessment.init_module(**kwargs)
                 except:
-                    raise ValidationError(f"Assessment ({assessment.get_name()}) could not be initialized."
+                    raise ValidationError(f"Assessment ({name}) could not be initialized."
                                           " Ensure the assessment plan is passing the required parameters"
                                           )
 
+    def _init_reporters(self):
+        for assessment in self.get_assessments(True):
+            name = assessment.get_name()
+            # initialize reporters
+            assessment.init_reporter()
+            reporter = assessment.get_reporter()
+            if reporter is None:
+                logging.info(f"No reporter found for assessment-{name}")
+            else:
+                logging.info(f"Reporter initialized for assessment-{name}")
+                # if governance defined, set up reporter for key lookup
+                if self.gov is not None:
+                    reporter.set_key_lookup(self._prepare_results(assessment))
+                self.reporters.append(reporter)
+
     def _prepare_results(self, assessment, **kwargs):
+        """Prepares results and adds metric keys"""
         metadata = self._gather_meta(assessment)
-        return assessment.prepare_results(metadata, **kwargs)
+        prepared = assessment.prepare_results(metadata, **kwargs)
+        add_metric_keys(prepared)
+        return prepared
 
     def _register_artifacts(self):
         to_register = {}

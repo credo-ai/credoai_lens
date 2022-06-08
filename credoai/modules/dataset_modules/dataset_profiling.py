@@ -30,6 +30,8 @@ class DatasetProfiling(CredoModule):
         self.data = pd.concat([X, y], axis=1)
         self.results = {}
     
+    def get_html_report(self):
+        return self._create_reporter().to_html()
 
     def profile_data(self):
         return self._create_reporter().to_notebook_iframe()
