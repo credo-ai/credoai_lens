@@ -12,6 +12,8 @@ from keras.layers import Dense
 from keras.models import Sequential
 from keras.utils.np_utils import to_categorical
 from sklearn import metrics as sk_metrics
+from art.attacks.evasion import HopSkipJump
+from sklearn.preprocessing import StandardScaler
 
 tf.compat.v1.disable_eager_execution()
 import os
@@ -27,6 +29,10 @@ class SecurityModule(CredoModule):
     ----------
     model : model
         A trained ML model
+    x_train : pandas.DataFrame
+        The training features
+    y_train : pandas.Series
+        The training outcome labels
     x_test : pandas.DataFrame
         The test features
     y_test : pandas.Series
@@ -34,8 +40,10 @@ class SecurityModule(CredoModule):
     """
 
     def __init__(
-        self, model, x_test, y_test
+        self, model, x_train, y_train, x_test, y_test
     ):
+        self.x_train = x_train.to_numpy()
+        self.y_train = y_train
         self.x_test = x_test.to_numpy()
         self.y_test = to_categorical(y_test, num_classes=2)
         self.model = model.model
@@ -52,10 +60,14 @@ class SecurityModule(CredoModule):
             Value: metric value
         """
         extraction_performance = self._extraction_attack()
+        evasion_performance = self._evasion_attack()
 
         attack_scores = {
-            **extraction_performance
+            **extraction_performance,
+            **evasion_performance
         }
+
+        print(attack_scores)
 
         self.results = attack_scores
 
@@ -143,3 +155,65 @@ class SecurityModule(CredoModule):
         model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
         
         return model
+
+    def _evasion_attack(self, nsamples=100):
+        """Model evasion security attack
+
+        In model evasion, the adversary only has access to the prediction API of a target model
+            which she queries to extract information about the model internals and train a substitute model.
+
+        Returns
+        -------
+        dict
+            Key: evasion_attack_score
+            Value: area under success rate vs median distance threshold curve -- between 0 and 1
+        """
+        hsj = HopSkipJump(classifier=self.victim_model)
+
+        origl_sample = self.x_test[0:nsamples]
+        adver_sample = hsj.generate(origl_sample)
+
+        origl_pred = self.victim_model._model.predict(origl_sample)
+        adver_pred = self.victim_model._model.predict(adver_sample)
+
+        # standardize for robust distance calculation
+        scaler = StandardScaler()
+        scaler.fit(self.x_train)
+        origl_sample_scaled = scaler.transform(origl_sample)
+        adver_sample_scaled = scaler.transform(adver_sample)
+
+        # generate success rate vs median distance threshold curve
+        distances = [np.median(np.linalg.norm(o - a)) for o,a in zip(origl_sample_scaled, adver_sample_scaled)]
+        thresholds = np.linspace(0,1,101)
+        success_rates = []
+        for t in thresholds:
+            idx = np.where(distances <= t)
+            success_rates.append(self._evasion_success_rate(origl_pred[idx], adver_pred[idx]))
+
+        auc = np.trapz(y=success_rates, x=thresholds)
+
+        metrics = {
+            'evasion_attack_score': auc
+            }
+        
+        return metrics
+
+    def _evasion_success_rate(self, l1, l2):
+        """Calculates evasion success rate
+
+        Parameters
+        ----------
+        l1 : list
+            predictions of the original samples
+        l2 : _type_
+            predictions of the adversarial samples
+
+        Returns
+        -------
+        float
+            the proportion of the predictions that have been flipped
+        """
+        if len(l1) > 0:
+            return np.count_nonzero(l1 != l2) / len(l1)
+        else:
+            return 0

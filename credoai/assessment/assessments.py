@@ -495,11 +495,12 @@ class SecurityAssessment(CredoAssessment):
             mod.SecurityModule,
             AssessmentRequirements(
                 model_requirements=[('predict')],
-                data_requirements=['X', 'y']
+                data_requirements=['X', 'y'],
+                training_data_requirements=['X', 'y']
             )
         )
     
-    def init_module(self, *, model, data):
+    def init_module(self, *, model, data, training_data):
         """Initializes the assessment module
 
         Transforms CredoModel and CredoData into the proper form
@@ -511,15 +512,19 @@ class SecurityAssessment(CredoAssessment):
         ------------
         model : CredoModel
         data : CredoData
+        training_data: CredoData
 
         """
         super().init_module(
             model=model,
-            data=data
+            data=data,
+            training_data=training_data
         )
 
         module = self.module(
             model,
+            training_data.X,
+            training_data.y,
             data.X,
             data.y
         )
