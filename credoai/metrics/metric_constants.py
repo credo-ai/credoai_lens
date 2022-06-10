@@ -9,6 +9,9 @@ from fairlearn.metrics._group_metric_set import \
 from sklearn import metrics as sk_metrics
 from sklearn.metrics import SCORERS
 
+METRIC_CATEGORIES = ["BINARY_CLASSIFICATION",  "MULTICLASS_CLASSIFICATION",
+                     "REGRESSION", "CLUSTERING", "FAIRNESS", "DATASET", "PRIVACY", "CUSTOM"]
+
 # MODEL METRICS
 BINARY_CLASSIFICATION_FUNCTIONS = {
     'false_positive_rate': fl_metrics.false_positive_rate,

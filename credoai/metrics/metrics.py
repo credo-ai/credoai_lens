@@ -1,13 +1,10 @@
-from absl import logging
-from credoai.utils.common import ValidationError, remove_suffix, humanize_label
-from credoai.metrics.metric_constants import *
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
-METRIC_CATEGORIES = ["BINARY_CLASSIFICATION",  "MULTICLASS_CLASSIFICATION",
-                     "REGRESSION", "CLUSTERING", "FAIRNESS", "DATASET", "PRIVACY", "CUSTOM"]
+from absl import logging
+from credoai.metrics.metric_constants import *
+from credoai.utils.common import ValidationError, humanize_label, remove_suffix
 
-MODEL_METRIC_CATEGORIES = METRIC_CATEGORIES[:-2]
 
 @dataclass
 class Metric():
@@ -46,12 +43,12 @@ class Metric():
         by default False
     equivalent_names : list
         list of other names for metric
-    """    
-    name : str
-    metric_category : str
+    """
+    name: str
+    metric_category: str
     fun: callable = None
-    takes_prob : bool = False
-    equivalent_names : list = None
+    takes_prob: bool = False
+    equivalent_names: list = None
 
     def __post_init__(self):
         if self.equivalent_names is None:
@@ -60,7 +57,8 @@ class Metric():
             self.equivalent_names = set(self.equivalent_names + [self.name])
         self.metric_category = self.metric_category.upper()
         if self.metric_category not in METRIC_CATEGORIES:
-            raise ValidationError(f"metric type ({self.metric_category}) isn't valid")
+            raise ValidationError(
+                f"metric type ({self.metric_category}) isn't valid")
         self.humanized_type = humanize_label(self.name)
 
     def __call__(self, **kwargs):
@@ -73,7 +71,7 @@ class Metric():
     def print_fun_doc(self):
         print(self.get_fun_doc())
 
-    def is_metric(self, metric_name : str, metric_categories : list = None):
+    def is_metric(self, metric_name: str, metric_categories: list = None):
         metric_name = self.standardize_metric_name(metric_name)
         name_match = metric_name in self.equivalent_names
         if metric_categories is not None:
@@ -83,8 +81,8 @@ class Metric():
     def standardize_metric_name(self, metric):
         # standardize
         # lower, remove spaces, replace delimiters with underscores
-        standard =  '_'.join(re.split('[- \s _]', 
-                            re.sub('\s\s+', ' ', metric.lower())))
+        standard = '_'.join(re.split('[- \s _]',
+                                     re.sub('\s\s+', ' ', metric.lower())))
         return standard
 
 
@@ -92,11 +90,15 @@ def metrics_from_dict(dict, metric_category, probability_functions, metric_equiv
     # Convert to metric objects
     metrics = {}
     for metric_name, fun in dict.items():
-        equivalents = metric_equivalents.get(metric_name, []) # get equivalent names
-        takes_prob = metric_name in probability_functions # whether the metric takes probabities instead of predictions
-        metric = Metric(metric_name, metric_category, fun, takes_prob, equivalents) 
-        metrics[metric_name] = metric 
+        equivalents = metric_equivalents.get(
+            metric_name, [])  # get equivalent names
+        # whether the metric takes probabities instead of predictions
+        takes_prob = metric_name in probability_functions
+        metric = Metric(metric_name, metric_category,
+                        fun, takes_prob, equivalents)
+        metrics[metric_name] = metric
     return metrics
+
 
 def find_metrics(metric_name, metric_category=None):
     """Find metric by name and metric category
@@ -112,34 +114,38 @@ def find_metrics(metric_name, metric_category=None):
     -------
     list
         list of Metrics
-    """    
+    """
     if isinstance(metric_category, str):
         metric_category = [metric_category]
-    matched_metrics = [i for i in ALL_METRICS if i.is_metric(metric_name, metric_category)]  
+    matched_metrics = [i for i in ALL_METRICS if i.is_metric(
+        metric_name, metric_category)]
     return matched_metrics
 
+
 # Convert To List of Metrics
-BINARY_CLASSIFICATION_METRICS = metrics_from_dict(BINARY_CLASSIFICATION_FUNCTIONS, 
-    "BINARY_CLASSIFICATION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
+BINARY_CLASSIFICATION_METRICS = metrics_from_dict(BINARY_CLASSIFICATION_FUNCTIONS,
+                                                  "BINARY_CLASSIFICATION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
 
 FAIRNESS_METRICS = metrics_from_dict(FAIRNESS_FUNCTIONS, "FAIRNESS",
-    PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
+                                     PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
 
-DATASET_METRICS = {m: Metric(m, "DATASET", None, False) for m in DATASET_METRIC_TYPES}
+DATASET_METRICS = {m: Metric(m, "DATASET", None, False)
+                   for m in DATASET_METRIC_TYPES}
 
-PRIVACY_METRICS = {m: Metric(m, "PRIVACY", None, False) for m in PRIVACY_METRIC_TYPES}
+PRIVACY_METRICS = {m: Metric(m, "PRIVACY", None, False)
+                   for m in PRIVACY_METRIC_TYPES}
 
-REGRESSION_METRICS = metrics_from_dict(REGRESSION_FUNCTIONS, 
-    "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
+REGRESSION_METRICS = metrics_from_dict(REGRESSION_FUNCTIONS,
+                                       "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
 
 METRIC_NAMES = list(BINARY_CLASSIFICATION_METRICS.keys()) \
-                + list(FAIRNESS_METRICS.keys()) \
-                + list(DATASET_METRICS.keys()) \
-                + list(PRIVACY_METRICS.keys()) \
-                + list(REGRESSION_METRICS.keys())
+    + list(FAIRNESS_METRICS.keys()) \
+    + list(DATASET_METRICS.keys()) \
+    + list(PRIVACY_METRICS.keys()) \
+    + list(REGRESSION_METRICS.keys())
 
 ALL_METRICS = list(BINARY_CLASSIFICATION_METRICS.values()) \
-                + list(FAIRNESS_METRICS.values()) \
-                + list(DATASET_METRICS.values()) \
-                + list(PRIVACY_METRICS.values()) \
-                + list(REGRESSION_METRICS.values())
+    + list(FAIRNESS_METRICS.values()) \
+    + list(DATASET_METRICS.values()) \
+    + list(PRIVACY_METRICS.values()) \
+    + list(REGRESSION_METRICS.values())
