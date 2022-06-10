@@ -484,7 +484,7 @@ class CredoData:
         self.nan_strategy = nan_strategy
         self.X, self.y, self.sensitive_features = self._process_data(
             self.data).values()
-        self.type_of_target = type_of_target(self.y)
+        self.target_type = type_of_target(self.y)
 
     def __post_init__(self):
         self.metadata = self.metadata or {}
