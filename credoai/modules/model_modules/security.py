@@ -59,17 +59,10 @@ class SecurityModule(CredoModule):
             Key: metric name
             Value: metric value
         """
-        extraction_performance = self._extraction_attack()
-        evasion_performance = self._evasion_attack()
-
-        attack_scores = {
-            **extraction_performance,
-            **evasion_performance
+        self.results = {
+            **self._extraction_attack(),
+            **self._evasion_attack()
         }
-
-        print(attack_scores)
-
-        self.results = attack_scores
 
         return self
 
