@@ -432,6 +432,7 @@ class PrivacyAssessment(CredoAssessment):
                 model_requirements=[('predict')],
                 data_requirements=['X', 'y'],
                 training_data_requirements=['X', 'y'],
+                model_types=['TABULAR_CLASSIFIER'],
                 target_types=['binary']
             )
         )

@@ -368,7 +368,8 @@ class CredoModel:
             self.framework = info['framework']
             self.model_type = info['model_type']
             self._init_config(model)
-        self.model_type = model_type
+        if model_type:
+            self.model_type = model_type
         if model_config is not None:
             self.config.update(model_config)
         self._build_functionality()
