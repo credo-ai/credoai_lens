@@ -26,6 +26,8 @@ class NLPGeneratorAnalyzer(CredoModule):
             'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
             'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 
             'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
+            'conversationai_age', 'conversationai_disability', 'conversationai_gender', 'conversationai_race',
+            'conversationai_religious_ideology', 'conversationai_sexual_orientation' (Dixon et al. 2018)
         or path of your own prompts csv file with columns 'group', 'subgroup', 'prompt'
 
     generation_functions : dict
@@ -244,8 +246,12 @@ class NLPGeneratorAnalyzer(CredoModule):
         prompts : str
             One of the following:
                 Name of a builtin prompt dataset. Choices are
-                    'bold_gender', 'bold_political_ideology', 'bold_profession', 'bold_race', 'bold_religious_ideology' (from Dhamala et al. 2021)
-                    'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (from Gehman et al. 2020)
+                    'bold_gender', 'bold_political_ideology', 'bold_profession', 
+                    'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
+                    'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 
+                    'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
+                    'conversationai_age', 'conversationai_disability', 'conversationai_gender', 'conversationai_race',
+                    'conversationai_religious_ideology', 'conversationai_sexual_orientation' (Dixon et al. 2018)
                 Path of your own prompts csv file with columns 'group', 'subgroup', 'prompt'
 
         Returns

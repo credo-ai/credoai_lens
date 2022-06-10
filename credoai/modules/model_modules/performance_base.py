@@ -153,7 +153,7 @@ class PerformanceModule(CredoModule):
         """
         df = pd.DataFrame({'true': self.y_true,
                            'pred': self.y_pred}).reset_index(drop=True)
-        df = df.join(self.sensitive_features)
+        df = df.join(self.get_sensitive_features())
         if self.y_prob is not None:
             y_prob_df = pd.DataFrame(self.y_prob)
             y_prob_df.columns = [f'y_prob_{i}' for i in range(y_prob_df.shape[1])]
@@ -202,6 +202,9 @@ class PerformanceModule(CredoModule):
                 disaggregated_df.assign(subtype='disaggregated_performance')
         return disaggregated_results
 
+    def get_sensitive_features(self):
+        return self.sensitive_features.drop('NA', axis=1, errors='ignore')
+        
     def _process_metrics(self, metrics):
         """Separates metrics
 

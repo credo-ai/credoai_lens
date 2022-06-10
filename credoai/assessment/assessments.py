@@ -92,13 +92,13 @@ class FairnessAssessment(CredoAssessment):
             y_prob)
         self.initialized_module = module
 
-    def get_reporter(self):
+    def init_reporter(self):
         if type_of_target(self.initialized_module.y_true) == 'binary':
-            return BinaryClassificationReporter(self)
+            self.reporter = BinaryClassificationReporter(self)
         elif type_of_target(self.initialized_module.y_true) == 'continuous':
-            return RegressionReporter(self)
+            self.reporter =  RegressionReporter(self)
         else:
-            return FairnessReporter(self)
+            self.reporter =  FairnessReporter(self)
 
 
 class NLPEmbeddingBiasAssessment(CredoAssessment):
@@ -215,8 +215,8 @@ class NLPGeneratorAssessment(CredoAssessment):
 
         self.initialized_module = module
 
-    def get_reporter(self):
-        return NLPGeneratorAnalyzerReporter(self)
+    def init_reporter(self):
+        self.reporter = NLPGeneratorAnalyzerReporter(self)
 
 
 class PerformanceAssessment(CredoAssessment):
@@ -297,6 +297,10 @@ class PerformanceAssessment(CredoAssessment):
             sensitive_features)
         self.initialized_module = module
 
+    def init_reporter(self):
+        if type_of_target(self.initialized_module.y_true) == 'binary':
+            self.reporter = BinaryClassificationReporter(self)
+
 # *******************
 # Dataset Assessments
 # *******************
@@ -339,8 +343,8 @@ class DatasetFairnessAssessment(CredoAssessment):
             scrubbed_data['sensitive_features'],
             data.categorical_features_keys)
 
-    def get_reporter(self):
-        return DatasetFairnessReporter(self)
+    def init_reporter(self):
+        self.reporter = DatasetFairnessReporter(self)
 
 
 class DatasetProfilingAssessment(CredoAssessment):
@@ -370,8 +374,8 @@ class DatasetProfilingAssessment(CredoAssessment):
             data.X,
             data.y)
 
-    def get_reporter(self):
-        return DatasetProfilingReporter(self)
+    def init_reporter(self):
+        self.reporter = DatasetProfilingReporter(self)
 
 
 def list_assessments_exhaustive():

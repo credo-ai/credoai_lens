@@ -28,66 +28,10 @@ class FairnessReporter(CredoReporter):
         super().__init__(assessment)
         self.size = size
     
-    def plot_results(self, filename=None):
-        """Creates a fairness report for binary classification model
-
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-            
-        Returns
-        -------
-        array of figures
-        """        
-        # df = self.module.get_df()
-        
+    def _create_assets(self):
+        """Creates fairness reporting assests"""                
         # plot
-        self.figs.extend(self.plot_fairness())
-
-        # display
-        plt.show()
-        # save
-        if filename is not None:
-            self.export_report(filename)
-        return self.figs
-
-    def _create_report_cells(self):
-        # report cells
-        cells = [
-            self._write_fairness(),
-            ("reporter.plot_fairness();", 'code')
-        ]
-        return cells
-
-    def _write_fairness(self):
-        cell = ("""
-                #### Fairness Metrics
-
-                <details>
-                <summary>Assessment Description:</summary>
-                <br>
-                <p>The fairness assessment is divided into two primary metrics: (1) Fairness
-                    metrics, and (2) performance metrics. The former help describe how equitable
-                    your AI system, while the latter describes how performant the system is.</p.
-                    
-                <p>Fairness metrics summarize whether your AI system is performing similarly across all groups.
-                    These metrics may well-known "fairness metrics" like "equal opportunity", 
-                    or performance parity metrics. Performance parity captures the idea that the
-                    AI system should work similarly well for all groups. Some "fairness metrics"
-                    like equal opportunity are actually parity metrics. "Equal opportunity" is simply
-                    the true positive rate parity.
-                </p>
-                
-                <p>Performance metrics describe how performant your system is. It goes without saying
-                    that the AI system should be performing at some minimum acceptable level to be
-                    deployed. The Fairness Assessment disaggregates performance across the 
-                    sensitive feature provided. This ensures that the system is evaluated for 
-                    acceptable performance across groups that are important. Think of it as any
-                    segmentation analysis, where the segments are groups of people.</p>
-                </details>
-                """, 'markdown')
-        return cell
+        self.plot_fairness()
 
     def plot_fairness(self):
         """Plots fairness for binary classification
@@ -102,27 +46,36 @@ class FairnessReporter(CredoReporter):
         plot_disaggregated = False
         if self.module.metric_frames != {}:
             plot_disaggregated = True
-        n_plots = 1+plot_disaggregated
         # ratio based on number of metrics and sensitive features
-        f_list = []
-        sensitive_features = self.module.sensitive_features
+        metric_keys = []
+        sensitive_features = self.module.get_sensitive_features()
+        
         for sf_name in sensitive_features:
             r = self.module.get_results()[f'{sf_name}-disaggregated_performance'].shape
             ratio = max(r[0]*r[1]/30, 1)
-            with get_style(figsize=self.size, figure_ratio=ratio, n_cols=n_plots):
-                f, axes = plt.subplots(1, n_plots)
-                plt.subplots_adjust(wspace=0.7)
-                axes = axes.flat
+            with get_style(figsize=self.size, figure_ratio=ratio):
                 # plot fairness
-                self._plot_fairness_metrics(axes[0], sf_name)
+                if self.key_lookup is not None:
+                    metric_keys = self.key_lookup.query(
+                            f'subtype == "parity" and sensitive_feature == "{sf_name}"'
+                        )['metric_key'].tolist()
+                f = self._plot_fairness_metrics(sf_name)
+                self.figs.append(self._create_chart(f, FAIRNESS_DESCRIPTION,
+                             f"Fairness metrics for Sensitive Feature: {sf_name.title()}",
+                             metric_keys=metric_keys))
                 if plot_disaggregated:
-                    self._plot_disaggregated_metrics(axes[1], sf_name)
-                plt.suptitle(f"Sensitive Feature: {sf_name.title()}", fontweight="bold")
-            f_list.append(f)
-        
-        return f_list
+                    if self.key_lookup is not None:
+                        metric_keys = self.key_lookup.query(
+                            f'subtype == "disaggregated_performance" and sensitive_feature == "{sf_name}"'
+                        )['metric_key'].tolist()
+                    f = self._plot_disaggregated_metrics(sf_name)
+                    self.figs.append(self._create_chart(f, DISAGGREGATED_DESCRIPTION,
+                                f"Disaggregated metrics for Sensitive Feature: {sf_name.title()}",
+                                metric_keys))
 
-    def _plot_fairness_metrics(self, ax, sf_name):
+                plt.suptitle(f"Sensitive Feature: {sf_name.title()}", fontweight="bold")
+
+    def _plot_fairness_metrics(self, sf_name):
         # create df
         df = self.module.get_fairness_results()
         df = df[df['sensitive_feature']==sf_name]
@@ -134,6 +87,7 @@ class FairnessReporter(CredoReporter):
         df.index.name = 'Fairness Metric'
         df.name = 'Value'
         # plot
+        f, ax = plt.subplots()
         sns.barplot(data=df.reset_index(), 
                     y='Fairness Metric', 
                     x='Value',
@@ -141,8 +95,9 @@ class FairnessReporter(CredoReporter):
                     color = DEFAULT_COLOR,
                     ax=ax)
         self._style_barplot(ax)
+        return f
         
-    def _plot_disaggregated_metrics(self, ax, sf_name):
+    def _plot_disaggregated_metrics(self, sf_name):
         # create df
         df = self.module.get_disaggregated_performance()[f'{sf_name}-disaggregated_performance']
         df =  df.reset_index() \
@@ -153,6 +108,7 @@ class FairnessReporter(CredoReporter):
         num_cats = len(df[sf_name].unique())
         palette = sns.color_palette('Purples', num_cats)
         palette[-1] = [.4,.4,.4]
+        f, ax = plt.subplots()
         sns.barplot(data=df, 
                     y='Performance Metric', 
                     x='Value', 
@@ -161,7 +117,8 @@ class FairnessReporter(CredoReporter):
                     edgecolor='w',
                     ax=ax)
         self._style_barplot(ax)
-        plt.legend(bbox_to_anchor=(1.01, 1.02))
+        plt.legend(bbox_to_anchor=(1.2, 0.5), loc='center')
+        return f
         
     def _style_barplot(self, ax):
         sns.despine()
@@ -170,6 +127,7 @@ class FairnessReporter(CredoReporter):
         # format metric labels
         ax.set_yticklabels([format_label(label.get_text()) 
                             for label in ax.get_yticklabels()])
+        plt.tight_layout()
     
 
 class BinaryClassificationReporter(FairnessReporter):
@@ -177,103 +135,34 @@ class BinaryClassificationReporter(FairnessReporter):
         super().__init__(assessment, size)
         self.infographic_shape = infographic_shape
     
-    def plot_results(self, filename=None, include_fairness=True, include_disaggregation=True):
-        """Creates a fairness report for binary classification model
+    def _create_assets(self):
+        """Creates fairness reporting assests for binary classification"""        
 
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-        include_fairness : bool, optional
-            Whether to include fairness plots, by default True
-        include_disaggregation : bool, optional
-            Whether to include performance plots broken down by
-            subgroup. Overall performance are always reported, by default True
-            
-        Returns
-        -------
-        array of figures
-        """        
+        # plot
+        # comparison plots
+        self.plot_fairness()
+        
+        # individual group performance plots
+        self.plot_performance_infographics()
+
+    def plot_performance_infographics(self):
         df = self.module.get_df()
         if df['true'].dtype.name == 'category':
             df['true'] = df['true'].cat.codes
-        # plot
-        # comparison plots
-        if include_fairness:
-            self.figs.append(self.plot_fairness())
-        
-        # individual group performance plots
-        self.figs.append(self.plot_performance_infographic(df['true'], df['pred'], 'Overall'))
-        if include_disaggregation:
-            for sf_name in self.module.sensitive_features:
-                for group, sub_df in df.groupby(sf_name):
-                    self.figs.append(self.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
+        metric_keys = []
+        if self.key_lookup is not None:
+            metric_keys = self.key_lookup \
+                            .query('subtype=="overall_performance"')['metric_key'].tolist()
+        self.figs.append(self._plot_performance_infographic(
+            df['true'], df['pred'], 'Overall', metric_keys))
+        for sf_name in self.module.get_sensitive_features():
+            for group, sub_df in df.groupby(sf_name):
+                if self.key_lookup is not None:
+                    metric_keys=self.key_lookup[self.key_lookup[sf_name]==group]['metric_key'].tolist()
+                self.figs.append(self._plot_performance_infographic(
+                    sub_df['true'], sub_df['pred'], group, metric_keys))
 
-        # display
-        plt.show()
-        # save
-        if filename is not None:
-            self.export_report(filename)
-        return self.figs
-
-    def _create_report_cells(self):
-        # report cells
-        cells = [
-            self._write_fairness(),
-            ("reporter.plot_fairness();", 'code'),
-            self._write_performance_infographic(),
-            ("""\
-            df = reporter.module.get_df()
-            if df['true'].dtype.name == 'category':
-                df['true'] = df['true'].cat.codes
-            reporter.plot_performance_infographic(df['true'], df['pred'], 'Overall')
-            for sf_name in reporter.module.sensitive_features:
-                for group, sub_df in df.groupby(sf_name):
-                    reporter.figs.append(reporter.plot_performance_infographic(sub_df['true'], sub_df['pred'], group))
-            """, 'code')
-        ]
-        return cells
-
-    def _write_performance_infographic(self):
-        cell = ("""
-                #### Binary Classification Infographic
-
-                <details>
-                <summary>Plot Descriptions:</summary>
-                <br>
-                <u>Positive Rate Infographic</u>
-                <p>On the left is a visual summary of the AI system's performance on different
-                    subgroups. These plots track the ground truth and predicted positive rate.
-                    Note that the "positive rate" is a function of the dataset's labeling and doesn't
-                    necessarily mean a positive outcome! For instance, "denying bail" could be the positive
-                    label.</p>
-
-                <p>Ideally the AI system performs equally well for all subgroups and positively 
-                    classifies each group at similar rates</p>
-
-                <p> ** Note ** If the ground truth positive rate differs between groups, the AI system cannot
-                    be <a href="https://arxiv.org/abs/1609.07236">fair by all definition of fairness.</a>
-                    For instance, the AI system can either accurately reflect the outcome differences
-                    in the data (violating demographic parity if the dataset show disparities) or 
-                    violating performance parity.
-                </p><br>
-
-                <u> Confusion Matrixes</u>
-                <p>On the right are <a href="https://towardsdatascience.com/confusion-matrix-what-is-it-e859e1bbecdc">confusion matrixes</a> 
-                    for each group. The confusion matrix plots true positive, false positive, true negative and false negative rates.
-                    It is rich description of the performance of binary classification systems. A well performing system should have
-                    most outcomes along the diagonal (true positives and true negatives).</p>
-                    
-                <p>** Note ** A perfect looking confusion matrix for every group does not guarantee
-                    fairness by all definitions! It just means that the model is accurately reflecting
-                    the dataset. If the dataset has different positive outcome rates
-                    for different groups, the model may be considered unfair.
-                </details>
-                
-                """, 'markdown')
-        return cell
-
-    def plot_performance_infographic(self, y_true, y_pred, label, **grid_kwargs):
+    def _plot_performance_infographic(self, y_true, y_pred, label, metric_keys=None, **grid_kwargs):
         """Plots performance for binary classification
         Plots "infographic" depiction of outcomes for ground truth
         and model performance, as well as a confusion matrix.
@@ -285,6 +174,8 @@ class BinaryClassificationReporter(FairnessReporter):
             The predicted labels for classification
         label : str
             super title for set of performance plots
+        metric_keys : list
+            metric_keys to associate with chart
         Returns
         -------
         matplotlib figure
@@ -310,7 +201,9 @@ class BinaryClassificationReporter(FairnessReporter):
             (.5, 1, label, {'fontweight': 'bold', 'fontsize': self.size*6})
         ]
         text_ax = self._plot_text(f, text_objects)
-        return f
+        return self._create_chart(f, INFOGRAPHIC_DESCRIPTION, 
+                                  f"{label} Binary Classification Infographic",
+                                  metric_keys)
         
     def _create_data(self, y_true, y_pred):
         n = self.infographic_shape[0] * self.infographic_shape[1]
@@ -429,51 +322,16 @@ class RegressionReporter(FairnessReporter):
     def __init__(self, assessment, size=3):
         super().__init__(assessment, size)
     
-    def plot_results(self, filename=None):
-        """Creates a disaggregated performancereport for regression model
+    def _create_assets(self):
+        """Creates fairness reporting assests for regression"""        
+        self.figs += self.plot_fairness()
+        self.figs += self._plot_true_vs_pred_scatter('Disaggregated Performance')
 
-        Parameters
-        ----------
-        filename : string, optional
-            If given, the location where the generated pdf report will be saved, by default None
-            
-        Returns
-        -------
-        array of figures
-        """        
-        df = self.module.get_df()
-        self.figs.append(self.plot_fairness())
-        self._plot_true_vs_pred_scatter(df, 'Disaggregated Performance')
-
-        plt.show()
-
-        if filename is not None:
-            self.export_report(filename)
-
-        return self.figs
-
-    def _create_report_cells(self):
-        # report cells
-        cells = [
-            self._write_fairness(),
-            ("reporter.plot_fairness();", 'code'),
-            self._write_true_vs_pred_scatter(),
-            ("""\
-            df = reporter.module.get_df()
-            reporter._plot_true_vs_pred_scatter(df, 'Disaggregated Performance')
-            """, 'code')
-        ]
-        return cells
-
-    def _plot_true_vs_pred_scatter(self, df, label, sampling_size=200):
+    def _plot_true_vs_pred_scatter(self, sampling_size=200):
         """generates disaggregated scatter plot
 
         Parameters
         ----------
-        df : pandas.dataframe
-            dataframe of true and predicted values, including also the associated demographic groups
-        label : str
-            plot title
         sampling_size : int
             the upper limit on the number of data points to plot by sampling without replacement
 
@@ -481,7 +339,7 @@ class RegressionReporter(FairnessReporter):
         -------
         matplotlib figure
         """
-        df = df.groupby('sensitive').apply(
+        df = self.module.get_df().groupby('sensitive').apply(
             lambda x: x.sample(min(sampling_size, len(x)), random_state=10)
             ).reset_index(drop=True)
         y_true, y_pred = df['true'], df['pred']
@@ -502,37 +360,72 @@ class RegressionReporter(FairnessReporter):
                 alpha=1,
                 s=10
             )
-            ax.set_title(label)
+            ax.set_title('Disaggregated Performance')
             ax.set_xlabel("True Values")
             ax.set_ylabel("Predicted Values")
             ax.legend_.set_title('')
+        return self._create_chart(f, REGRESSION_DESCRIPTION, "Continuous Value Prediction")
 
-        self.figs.append(f)
 
-    def _write_true_vs_pred_scatter(self):
-        """generates report cells
+FAIRNESS_DESCRIPTION = """The fairness assessment is divided into two primary metrics: (1) Fairness
+metrics, and (2) performance metrics. The former help describe how equitable
+your AI system, while the latter describes how performant the system is.
+                    
+Fairness metrics summarize whether your AI system is performing similarly across all groups.
+These metrics may well-known "fairness metrics" like "equal opportunity", 
+or performance parity metrics. Performance parity captures the idea that the
+AI system should work similarly well for all groups. Some "fairness metrics"
+like equal opportunity are actually parity metrics. "Equal opportunity" is simply
+the true positive rate parity.
+"""
 
-        Returns
-        -------
-        tuple
-            report cell
-        """
-        cell = ("""
-                #### Regression Model Predictions vs Ground Truth
-            
-                <details>
-                <summary>Assessment Description:</summary>
-                <br>
+DISAGGREGATED_DESCRIPTION = """Performance metrics describe how performant your system is. It goes without saying
+that the AI system should be performing at some minimum acceptable level to be
+deployed. This figure disaggregates performance across the 
+sensitive feature provided. This ensures that the system is evaluated for 
+acceptable performance across groups that are important. Think of it as any
+segmentation analysis, where the segments are groups of people.
+"""
+
+INFOGRAPHIC_DESCRIPTION = """Positive Rate Infographic
+-------------------------
+
+On the left is a visual summary of the AI system's performance on different
+subgroups. These plots track the ground truth and predicted positive rate.
+Note that the "positive rate" is a function of the dataset's labeling and doesn't
+necessarily mean a positive outcome! For instance, "denying bail" could be the positive
+label.
+
+Ideally the AI system performs equally well for all subgroups and positively 
+classifies each group at similar rates
+
+** Note ** If the ground truth positive rate differs between groups, the AI system cannot
+be fair by all definition of fairness.
+For instance, the AI system can either accurately reflect the outcome differences
+in the data (violating demographic parity if the dataset show disparities) or 
+violating performance parity.
+
+Confusion Matrixes
+------------------
+
+On the right are confusion matrixes for each group. The confusion matrix plots true positive, 
+false positive, true negative and false negative rates. It is rich description of the performance 
+of binary classification systems. A well performing system should have
+most outcomes along the diagonal (true positives and true negatives)
+
+** Note ** A perfect looking confusion matrix for every group does not guarantee
+fairness by all definitions! It just means that the model is accurately reflecting
+the dataset. If the dataset has different positive outcome rates
+for different groups, the model may be considered unfair.
+"""
+
+REGRESSION_DESCRIPTION = """Regression Model Predictions vs Ground Truth
+
+Scatter plot of true vs predicted values is a rich form of data visualization
+for regression models.
                 
-                <pr>Scatter plot of true vs predicted values is a rich form of data visualization
-                for regression models.</pr>
+Disaggregated across the demographic groups, this plot also provides visual insights into
+how the model may be performing differently across groups.
                 
-                <p>Disaggregated across the demographic groups, this plot also provides visual insights into
-                how the model may be performing differently across groups.</pr>
-                
-                <p>Ideally, all the points should be close to the 45-degree dotted line.</pr>
-
-                </details>
-                """, 'markdown')
-        
-        return cell
+Ideally, all the points should be close to the 45-degree dotted line.
+"""

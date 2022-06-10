@@ -3,14 +3,13 @@ Defines abstract base class for all CredoReports
 """
 
 from abc import ABC, abstractmethod
-from credoai.reporting.plot_utils import get_table_style, format_label
-from credoai.utils.common import ValidationError
-from credoai.reporting.plot_utils import get_table_style, format_label
-from credoai.reporting.reports import AssessmentReport
+from credoai.utils import  ValidationError
+from credoai.reporting.plot_utils import format_label
 from IPython.core.display import display, HTML
 import os
 import pandas as pd
 import matplotlib.backends.backend_pdf
+import matplotlib.pyplot as plt
 import textwrap
 
 class CredoReporter(ABC):
@@ -19,18 +18,41 @@ class CredoReporter(ABC):
     def __init__(self, assessment):
         self.assessment = assessment
         self.module = assessment.initialized_module
-        self.report = None
+        self.key_lookup = None
         self.figs = []
 
-    def create_notebook(self):
-        report = AssessmentReport({'reporter': self})
-        results_table = [(f"### {self.assessment.name} Result Tables", "markdown"), 
-                         ("reporter.display_results_tables()", 'code')]
-        cells = [(self._get_description(), 'markdown')] \
-            + self._create_report_cells() \
-            + results_table
-        report.add_cells(cells)
-        self.report = report
+    def report(self, plot=True, rerun=False):
+        """Reports assets
+
+        Once run, will cache assets unless rerun = True
+
+        Parameters
+        ----------
+        plot : bool, optional
+            If True, plot assets. Defaults True
+        rerun : bool, optional
+            If True, rerun asset creation. Defaults True
+            
+        Returns
+        -------
+        array of dictionaries reflecting assets
+        """        
+        if not self.figs or rerun:
+            self.figs = []
+            self._create_assets()
+        if plot:
+            [display(fig['figure']) for fig in self.figs]
+        return self.figs
+
+    def set_key_lookup(self, lens_prepared_results):
+        """Sets the lookup dataframe to be used for key matching
+
+        Parameters
+        ----------
+        lens_prepared_results : DataFrame
+            output of lens._prepare_results(assessment)
+        """
+        self.key_lookup = lens_prepared_results
 
     def display_results_tables(self):
         results = self.assessment.get_results()
@@ -49,43 +71,26 @@ class CredoReporter(ABC):
                     print(val)
             print('\n')
 
-    def export_report(self, filename):
-        pdf = matplotlib.backends.backend_pdf.PdfPages(f"{filename}.pdf")
-        for fig in self.figs: ## will open an empty extra figure :(
-            pdf.savefig(fig, bbox_inches='tight', pad_inches=1)
-        pdf.close()
-
-    def plot_results(self):
-        """ Plots results """
-        pass
-
     @abstractmethod
-    def _create_report_cells(self):
-        """Exports cells required for creating report
-        
-        Each code cell should reference "reporter" if calling a self method
-        """
+    def _create_assets(self):
+        """Creates assets, appending them to self.figs"""
         pass
 
-    def _get_description(self):
-        assessment_description = self.assessment.get_description()
-        description = f"""\
-        <hr style="border:2px solid #3b07b4"> </hr>
-        
-        ## {str(self.assessment)} Report
-        
-        #### Description
-        
-        {assessment_description['short']}
+    def _create_chart(self, 
+                     figure, 
+                     description: str = None, 
+                     name: str = 'Figure',
+                     metric_keys = None):  
+        # if metric keys is not defined but key_lookup exists
+        # set metric_keys to all associated metrics                 
+        if self.key_lookup is not None and metric_keys is None:
+            metric_keys = self.key_lookup['metric_key'].tolist()
+        return {'name': name, 'figure': figure, 
+                'description': description, 'metric_keys': metric_keys or []}
 
-        {textwrap.indent(assessment_description['long'], ' '*4)}
-
-        ### {str(self.assessment)} Results
-        """
-        return description
-
-
-
-
-
-
+    def _create_html_blob(self, html, metric_keys = None):
+        # if metric keys is not defined but key_lookup exists
+        # set metric_keys to all associated metrics  
+        if self.key_lookup is not None and metric_keys is None:
+            metric_keys = self.key_lookup['metric_key'].tolist()
+        return {'content': html, 'content_type': "text/html", 'metric_keys': metric_keys}
