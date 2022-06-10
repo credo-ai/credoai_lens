@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import re
 
 METRIC_CATEGORIES = ["BINARY_CLASSIFICATION",  "MULTICLASS_CLASSIFICATION",
-                     "REGRESSION", "CLUSTERING", "FAIRNESS", "DATASET", "PRIVACY", "CUSTOM"]
+                     "REGRESSION", "CLUSTERING", "FAIRNESS", "DATASET", "PRIVACY", "SECURITY", "CUSTOM"]
 
 MODEL_METRIC_CATEGORIES = METRIC_CATEGORIES[:-2]
 
@@ -129,6 +129,8 @@ DATASET_METRICS = {m: Metric(m, "DATASET", None, False) for m in DATASET_METRIC_
 
 PRIVACY_METRICS = {m: Metric(m, "PRIVACY", None, False) for m in PRIVACY_METRIC_TYPES}
 
+SECURITY_METRICS = {m: Metric(m, "SECURITY", None, False) for m in SECURITY_METRIC_TYPES}
+
 REGRESSION_METRICS = metrics_from_dict(REGRESSION_FUNCTIONS, 
     "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
 
@@ -136,10 +138,12 @@ METRIC_NAMES = list(BINARY_CLASSIFICATION_METRICS.keys()) \
                 + list(FAIRNESS_METRICS.keys()) \
                 + list(DATASET_METRICS.keys()) \
                 + list(PRIVACY_METRICS.keys()) \
+                + list(SECURITY_METRICS.keys()) \    
                 + list(REGRESSION_METRICS.keys())
 
 ALL_METRICS = list(BINARY_CLASSIFICATION_METRICS.values()) \
                 + list(FAIRNESS_METRICS.values()) \
                 + list(DATASET_METRICS.values()) \
                 + list(PRIVACY_METRICS.values()) \
+                + list(SECURITY_METRICS.values()) \
                 + list(REGRESSION_METRICS.values())

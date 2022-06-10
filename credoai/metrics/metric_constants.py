@@ -68,10 +68,17 @@ DATASET_METRIC_TYPES = [
     'demographic_parity_difference'
 ]
 
+# PRIVACY METRICS
 PRIVACY_METRIC_TYPES = [
     'rule_based_attack_score',
     'model_based_attack_score',
     'membership_inference_attack_score'
+]
+
+# SECURITY METRICS
+SECURITY_METRIC_TYPES = [
+    'extraction_attack_score',
+    'evasion_attack_score'
 ]
 
 # REGRESSION METRICS
