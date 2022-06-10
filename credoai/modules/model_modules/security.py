@@ -1,8 +1,11 @@
 import copy
+import os
 import warnings
+
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from art.attacks.evasion import HopSkipJump
 from art.attacks.extraction import CopycatCNN
 from art.estimators.classification import KerasClassifier
 from art.estimators.classification.scikitlearn import SklearnClassifier
@@ -12,12 +15,13 @@ from keras.layers import Dense
 from keras.models import Sequential
 from keras.utils.np_utils import to_categorical
 from sklearn import metrics as sk_metrics
-from art.attacks.evasion import HopSkipJump
+from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.preprocessing import StandardScaler
 
 tf.compat.v1.disable_eager_execution()
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 class SecurityModule(CredoModule):
     """Security module for Credo AI.
@@ -84,7 +88,8 @@ class SecurityModule(CredoModule):
         if self.results is not None:
             return pd.Series(self.results, name='value')
         else:
-            raise NotRunError("Results not created yet. Call 'run' to create results")
+            raise NotRunError(
+                "Results not created yet. Call 'run' to create results")
 
     def _extraction_attack(self):
         """Model extraction security attack
@@ -111,17 +116,19 @@ class SecurityModule(CredoModule):
             classifier=self.victim_model,
             nb_epochs=5,
             nb_stolen=len_steal
-            )
+        )
 
         thieved_model = self._get_model(x_steal.shape[1])
         thieved_classifier = KerasClassifier(thieved_model)
 
-        thieved_classifier = copycat.extract(x_steal, thieved_classifier=thieved_classifier)
+        thieved_classifier = copycat.extract(
+            x_steal, thieved_classifier=thieved_classifier)
 
-        # evaluate 
+        # evaluate
         y_true = [np.argmax(y, axis=None, out=None) for y in y_test]
 
-        y_pred = [np.argmax(y, axis=None, out=None) for y in thieved_classifier._model.predict(x_test)]
+        y_pred = [np.argmax(y, axis=None, out=None)
+                  for y in thieved_classifier._model.predict(x_test)]
         thieved_classifier_acc = sk_metrics.accuracy_score(y_true, y_pred)
 
         y_pred = self.victim_model._model.predict(x_test)
@@ -129,8 +136,8 @@ class SecurityModule(CredoModule):
 
         metrics = {
             'extraction_attack_score': max((thieved_classifier_acc - 0.5) / (victim_classifier_acc - 0.5), 0)
-            }
-        
+        }
+
         return metrics
 
     def _get_model(self, input_dim):
@@ -142,11 +149,13 @@ class SecurityModule(CredoModule):
             dimension of the feature vector
         """
         model = Sequential()
-        model.add(Dense(units=max(int(input_dim/2), 2), input_dim=input_dim, activation='relu'))
+        model.add(Dense(units=max(int(input_dim/2), 2),
+                  input_dim=input_dim, activation='relu'))
         model.add(Dense(units=max(int(input_dim/4), 2), activation='relu'))
         model.add(Dense(2, activation='sigmoid'))
-        model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-        
+        model.compile(loss='binary_crossentropy',
+                      optimizer='adam', metrics=['accuracy'])
+
         return model
 
     def _evasion_attack(self, nsamples=100):
@@ -176,19 +185,21 @@ class SecurityModule(CredoModule):
         adver_sample_scaled = scaler.transform(adver_sample)
 
         # generate success rate vs median distance threshold curve
-        distances = [np.median(np.linalg.norm(o - a)) for o,a in zip(origl_sample_scaled, adver_sample_scaled)]
-        thresholds = np.linspace(0,1,101)
+        distances = np.diag(euclidean_distances(
+            origl_sample_scaled, adver_sample_scaled))
+        thresholds = np.linspace(0, 1, 101)
         success_rates = []
         for t in thresholds:
             idx = np.where(distances <= t)
-            success_rates.append(self._evasion_success_rate(origl_pred[idx], adver_pred[idx]))
+            success_rates.append(self._evasion_success_rate(
+                origl_pred[idx], adver_pred[idx]))
 
         auc = np.trapz(y=success_rates, x=thresholds)
 
         metrics = {
             'evasion_attack_score': auc
-            }
-        
+        }
+
         return metrics
 
     def _evasion_success_rate(self, l1, l2):
@@ -198,7 +209,7 @@ class SecurityModule(CredoModule):
         ----------
         l1 : list
             predictions of the original samples
-        l2 : _type_
+        l2 : list
             predictions of the adversarial samples
 
         Returns
@@ -207,6 +218,6 @@ class SecurityModule(CredoModule):
             the proportion of the predictions that have been flipped
         """
         if len(l1) > 0:
-            return np.count_nonzero(l1 != l2) / len(l1)
+            return np.count_nonzero(np.equal(l1, l2)) / len(l1)
         else:
             return 0
