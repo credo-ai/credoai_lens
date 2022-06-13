@@ -478,17 +478,13 @@ class PrivacyAssessment(CredoAssessment):
             data.X,
             data.y
         )
-<<<<<<< HEAD
 
-        self.initialized_module = module
-=======
-            
         self.initialized_module = module
 
 
 class SecurityAssessment(CredoAssessment):
     """Basic evaluation of the security of ML models
-    
+
     Runs security analysis on models with well-defined
     objective functions. Examples include:
 
@@ -499,24 +495,27 @@ class SecurityAssessment(CredoAssessment):
     * Scikit-learn
 
     Modules:
-    
+
     * credoai.modules.model_modules.security
-    
+
     Requirements
     ------------
     Requires that the CredoModel defines is a Scikit-learn model
     """
+
     def __init__(self):
         super().__init__(
-            'Security', 
+            'Security',
             mod.SecurityModule,
             AssessmentRequirements(
                 model_requirements=[('predict')],
                 data_requirements=['X', 'y'],
-                training_data_requirements=['X', 'y']
+                training_data_requirements=['X', 'y'],
+                model_types=['CLASSIFIER'],
+                target_types=['binary']
             )
         )
-    
+
     def init_module(self, *, model, data, training_data):
         """Initializes the assessment module
 
@@ -545,6 +544,5 @@ class SecurityAssessment(CredoAssessment):
             data.X,
             data.y
         )
-            
+
         self.initialized_module = module
->>>>>>> develop
