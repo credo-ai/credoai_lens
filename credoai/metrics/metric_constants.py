@@ -10,9 +10,10 @@ from sklearn import metrics as sk_metrics
 from sklearn.metrics import SCORERS
 
 METRIC_CATEGORIES = ["BINARY_CLASSIFICATION",  "MULTICLASS_CLASSIFICATION",
-                     "REGRESSION", "CLUSTERING", "FAIRNESS", "PRIVACY", "DATASET", "CUSTOM"]
+                     "REGRESSION", "CLUSTERING", "FAIRNESS", "PRIVACY", "SECURITY",
+                     "DATASET", "CUSTOM"]
 
-MODEL_METRIC_CATEGORIES = METRIC_CATEGORIES[:-3]
+MODEL_METRIC_CATEGORIES = METRIC_CATEGORIES[:-4]
 
 # MODEL METRICS
 BINARY_CLASSIFICATION_FUNCTIONS = {
@@ -74,10 +75,17 @@ DATASET_METRIC_TYPES = [
     'max_proxy_mutual_information'
 ]
 
+# PRIVACY METRICS
 PRIVACY_METRIC_TYPES = [
     'rule_based_attack_score',
     'model_based_attack_score',
     'membership_inference_attack_score'
+]
+
+# SECURITY METRICS
+SECURITY_METRIC_TYPES = [
+    'extraction_attack_score',
+    'evasion_attack_score'
 ]
 
 # REGRESSION METRICS

@@ -14,8 +14,8 @@ class Metric():
     that metric signatures either correspond with scikit-learn or fairlearn method signatures,
     in the case of binary/multiclass classification, regression, clustering and fairness metrics.
 
-    Dataset metrics are used as documentation placeholders and define no function. 
-    See DATASET_METRICS for examples. CUSTOM metrics have no expectations and will 
+    Dataset metrics are used as documentation placeholders and define no function.
+    See DATASET_METRICS for examples. CUSTOM metrics have no expectations and will
     not be automatically used by Lens modules.
 
     Metric Categories:
@@ -23,7 +23,8 @@ class Metric():
     * {BINARY|MULTICLASS}_CLASSIFICATION: metrics like `scikit-learn's classification metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
     * REGRESSION: metrics like `scikit-learn's regression metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
     * CLUSTERING: metrics like `scikit-learn's clustering metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
-    * FAIRNESS: metrics like `fairlearn's equalized odds metric <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.equalized_odds_ratio>`_
+    #fairlearn.metrics.equalized_odds_ratio>`_
+    * FAIRNESS: metrics like `fairlearn's equalized odds metric <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html
     * DATASET: metrics intended
     * CUSTOM: No expectations for fun
 
@@ -82,7 +83,7 @@ class Metric():
         # standardize
         # lower, remove spaces, replace delimiters with underscores
         standard = '_'.join(re.split('[- \s _]',
-                                     re.sub('\s\s+', ' ', metric.lower())))
+                            re.sub('\s\s+', ' ', metric.lower())))
         return standard
 
 
@@ -135,6 +136,9 @@ DATASET_METRICS = {m: Metric(m, "DATASET", None, False)
 PRIVACY_METRICS = {m: Metric(m, "PRIVACY", None, False)
                    for m in PRIVACY_METRIC_TYPES}
 
+SECURITY_METRICS = {m: Metric(m, "SECURITY", None, False)
+                    for m in SECURITY_METRIC_TYPES}
+
 REGRESSION_METRICS = metrics_from_dict(REGRESSION_FUNCTIONS,
                                        "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
 
@@ -142,10 +146,12 @@ METRIC_NAMES = list(BINARY_CLASSIFICATION_METRICS.keys()) \
     + list(FAIRNESS_METRICS.keys()) \
     + list(DATASET_METRICS.keys()) \
     + list(PRIVACY_METRICS.keys()) \
+    + list(SECURITY_METRICS.keys()) \
     + list(REGRESSION_METRICS.keys())
 
 ALL_METRICS = list(BINARY_CLASSIFICATION_METRICS.values()) \
     + list(FAIRNESS_METRICS.values()) \
     + list(DATASET_METRICS.values()) \
     + list(PRIVACY_METRICS.values()) \
+    + list(SECURITY_METRICS.values()) \
     + list(REGRESSION_METRICS.values())
