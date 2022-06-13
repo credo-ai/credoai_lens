@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+
 from art.attacks.evasion import HopSkipJump
 from art.attacks.extraction import CopycatCNN
 from art.estimators.classification import KerasClassifier
@@ -20,13 +21,13 @@ from sklearn.preprocessing import StandardScaler
 
 tf.compat.v1.disable_eager_execution()
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
 class SecurityModule(CredoModule):
     """Security module for Credo AI.
 
-    This module takes in binary classification model and data and 
+    This module takes in binary classification model and data and
      provides functionality to perform security assessment
 
     Parameters
@@ -43,9 +44,7 @@ class SecurityModule(CredoModule):
         The test outcome labels
     """
 
-    def __init__(
-        self, model, x_train, y_train, x_test, y_test
-    ):
+    def __init__(self, model, x_train, y_train, x_test, y_test):
         self.x_train = x_train.to_numpy()
         self.y_train = y_train
         self.x_test = x_test.to_numpy()
@@ -63,10 +62,7 @@ class SecurityModule(CredoModule):
             Key: metric name
             Value: metric value
         """
-        self.results = {
-            **self._extraction_attack(),
-            **self._evasion_attack()
-        }
+        self.results = {**self._extraction_attack(), **self._evasion_attack()}
 
         return self
 
@@ -86,10 +82,9 @@ class SecurityModule(CredoModule):
             If results have not been run, raise
         """
         if self.results is not None:
-            return pd.Series(self.results, name='value')
+            return pd.Series(self.results, name="value")
         else:
-            raise NotRunError(
-                "Results not created yet. Call 'run' to create results")
+            raise NotRunError("Results not created yet. Call 'run' to create results")
 
     def _extraction_attack(self):
         """Model extraction security attack
@@ -104,7 +99,7 @@ class SecurityModule(CredoModule):
             Value: accuracy of the thieved model / accuracy of the victim model, corrected for chance
         """
         # use half of the test data for model extraction and half for evaluation
-        len_steal = int(len(self.x_test)/2)
+        len_steal = int(len(self.x_test) / 2)
         indices = np.random.permutation(len(self.x_test))
         x_steal = self.x_test[indices[:len_steal]]
         y_steal = self.y_test[indices[:len_steal]]
@@ -113,35 +108,38 @@ class SecurityModule(CredoModule):
 
         # extract
         copycat = CopycatCNN(
-            classifier=self.victim_model,
-            nb_epochs=5,
-            nb_stolen=len_steal
+            classifier=self.victim_model, nb_epochs=5, nb_stolen=len_steal
         )
 
         thieved_model = self._get_model(x_steal.shape[1])
         thieved_classifier = KerasClassifier(thieved_model)
 
         thieved_classifier = copycat.extract(
-            x_steal, thieved_classifier=thieved_classifier)
+            x_steal, thieved_classifier=thieved_classifier
+        )
 
         # evaluate
         y_true = [np.argmax(y, axis=None, out=None) for y in y_test]
 
-        y_pred = [np.argmax(y, axis=None, out=None)
-                  for y in thieved_classifier._model.predict(x_test)]
+        y_pred = [
+            np.argmax(y, axis=None, out=None)
+            for y in thieved_classifier._model.predict(x_test)
+        ]
         thieved_classifier_acc = sk_metrics.accuracy_score(y_true, y_pred)
 
         y_pred = self.victim_model._model.predict(x_test)
         victim_classifier_acc = sk_metrics.accuracy_score(y_true, y_pred)
 
         metrics = {
-            'extraction_attack_score': max((thieved_classifier_acc - 0.5) / (victim_classifier_acc - 0.5), 0)
+            "extraction_attack_score": max(
+                (thieved_classifier_acc - 0.5) / (victim_classifier_acc - 0.5), 0
+            )
         }
 
         return metrics
 
     def _get_model(self, input_dim):
-        """Creates a sequential binary classification model 
+        """Creates a sequential binary classification model
 
         Parameters
         ----------
@@ -149,26 +147,39 @@ class SecurityModule(CredoModule):
             dimension of the feature vector
         """
         model = Sequential()
-        model.add(Dense(units=max(int(input_dim/2), 2),
-                  input_dim=input_dim, activation='relu'))
-        model.add(Dense(units=max(int(input_dim/4), 2), activation='relu'))
-        model.add(Dense(2, activation='sigmoid'))
-        model.compile(loss='binary_crossentropy',
-                      optimizer='adam', metrics=['accuracy'])
+        model.add(
+            Dense(
+                units=max(int(input_dim / 2), 2), input_dim=input_dim, activation="relu"
+            )
+        )
+        model.add(Dense(units=max(int(input_dim / 4), 2), activation="relu"))
+        model.add(Dense(2, activation="sigmoid"))
+        model.compile(
+            loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"]
+        )
 
         return model
 
-    def _evasion_attack(self, nsamples=100):
+    def _evasion_attack(self, nsamples=100, distance_threshold=0.1):
         """Model evasion security attack
 
         In model evasion, the adversary only has access to the prediction API of a target model
             which she queries to extract information about the model internals and train a substitute model.
 
+        Parameters
+        ----------
+        nsamples : int
+            number of samples to attack
+        distance_threshold : float
+            Euclidean distance threshold between an adversarial sample and its original sample
+             normalized by the sample length. An adversarial sample more distant than
+             this is considered a failed attempt.
+
         Returns
         -------
         dict
             Key: evasion_attack_score
-            Value: area under success rate vs median distance threshold curve -- between 0 and 1
+            Value: evasion success rate given a distance threshold
         """
         hsj = HopSkipJump(classifier=self.victim_model)
 
@@ -184,40 +195,59 @@ class SecurityModule(CredoModule):
         origl_sample_scaled = scaler.transform(origl_sample)
         adver_sample_scaled = scaler.transform(adver_sample)
 
-        # generate success rate vs median distance threshold curve
-        distances = np.diag(euclidean_distances(
-            origl_sample_scaled, adver_sample_scaled))
-        thresholds = np.linspace(0, 1, 101)
-        success_rates = []
-        for t in thresholds:
-            idx = np.where(distances <= t)
-            success_rates.append(self._evasion_success_rate(
-                origl_pred[idx], adver_pred[idx]))
-
-        auc = np.trapz(y=success_rates, x=thresholds)
-
         metrics = {
-            'evasion_attack_score': auc
+            "evasion_attack_score": self._evasion_success_rate(
+                origl_pred,
+                adver_pred,
+                origl_sample_scaled,
+                adver_sample_scaled,
+                distance_threshold,
+            )
         }
 
         return metrics
 
-    def _evasion_success_rate(self, l1, l2):
+    def _evasion_success_rate(
+        self,
+        origl_pred,
+        adver_pred,
+        origl_sample_scaled,
+        adver_sample_scaled,
+        distance_threshold=0.1,
+    ):
         """Calculates evasion success rate
 
         Parameters
         ----------
-        l1 : list
+        origl_pred : list
             predictions of the original samples
-        l2 : list
+        adver_pred : list
             predictions of the adversarial samples
+        origl_sample_scaled : list
+            scaled original samples
+        adver_sample_scaled : list
+            scaled adversarial samples
+        distance_threshold : float
+            Euclidean distance threshold between an adversarial sample and its original sample
+             normalized by the sample length. An adversarial sample more distant than
+             this is considered a failed attempt.
 
         Returns
         -------
         float
-            the proportion of the predictions that have been flipped
+            the proportion of the predictions that have been flipped and
+             are not distant
         """
-        if len(l1) > 0:
-            return np.count_nonzero(np.equal(l1, l2)) / len(l1)
+        length = len(origl_sample_scaled)
+        distances = (
+            np.diag(euclidean_distances(origl_sample_scaled, adver_sample_scaled))
+            / length
+        )
+        idx = np.where(distances <= distance_threshold)
+        if origl_pred[idx].size > 0:
+            return (
+                np.count_nonzero(np.not_equal(origl_pred[idx], adver_pred[idx]))
+                / length
+            )
         else:
             return 0
