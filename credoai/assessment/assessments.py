@@ -471,3 +471,66 @@ class PrivacyAssessment(CredoAssessment):
         )
             
         self.initialized_module = module
+
+
+class SecurityAssessment(CredoAssessment):
+    """Basic evaluation of the security of ML models
+    
+    Runs security analysis on models with well-defined
+    objective functions. Examples include:
+
+    * classification
+
+    Supports models from  the following libraries:
+
+    * Scikit-learn
+
+    Modules:
+    
+    * credoai.modules.model_modules.security
+    
+    Requirements
+    ------------
+    Requires that the CredoModel defines is a Scikit-learn model
+    """
+    def __init__(self):
+        super().__init__(
+            'Security', 
+            mod.SecurityModule,
+            AssessmentRequirements(
+                model_requirements=[('predict')],
+                data_requirements=['X', 'y'],
+                training_data_requirements=['X', 'y']
+            )
+        )
+    
+    def init_module(self, *, model, data, training_data):
+        """Initializes the assessment module
+
+        Transforms CredoModel and CredoData into the proper form
+        to create a runnable assessment.
+
+        See the lens_customization notebook for examples
+
+        Parameters
+        ------------
+        model : CredoModel
+        data : CredoData
+        training_data: CredoData
+
+        """
+        super().init_module(
+            model=model,
+            data=data,
+            training_data=training_data
+        )
+
+        module = self.module(
+            model,
+            training_data.X,
+            training_data.y,
+            data.X,
+            data.y
+        )
+            
+        self.initialized_module = module
