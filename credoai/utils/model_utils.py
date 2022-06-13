@@ -28,9 +28,9 @@ def get_model_info(model):
     model_type = None
     if framework in ('sklearn', 'xgboost'):
         if is_classifier(model):
-            model_type = 'TABULAR_CLASSIFIER'
+            model_type = 'CLASSIFIER'
         elif is_regressor(model):
-            model_type = 'TABULAR_REGRESSOR'
+            model_type = 'REGRESSOR'
     elif framework in ('keras', 'torch'):
         model_type = "NEURAL_NETWORK"
     return {'framework': framework,

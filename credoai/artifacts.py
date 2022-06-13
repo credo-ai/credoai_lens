@@ -346,7 +346,8 @@ class CredoModel:
         and functions (e.g., "model.predict"), by default None
     model_type : str, optional
         Specifies the type of model. If a model is supplied, CredoModel will attempt to infer
-        the model_type. When manually input, must be selected from supported MODEL_TYPES 
+        the model_type (see utils.model_utils.get_model_info). 
+        When manually input, must be selected from supported MODEL_TYPES 
         (Run CredoModel.model_types() to get list of supported types). Set model_type will
         override any inferred type. By default None
     """
