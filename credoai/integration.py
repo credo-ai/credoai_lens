@@ -1,27 +1,28 @@
 """Credo AI Governance App Integration Functionality"""
 
-from absl import logging
+import base64
+import io
+import json
+import mimetypes
+import pprint
 from collections import ChainMap, defaultdict
 from datetime import datetime
-from credoai.utils.common import (dict_hash, humanize_label, wrap_list,
-                                  IntegrationError, ValidationError)
-from credoai.utils.credo_api_utils import (get_assessment_spec,
-                                           post_assessment,
-                                           register_dataset, 
-                                           register_model,
-                                           register_model_to_usecase,
-                                           register_dataset_to_model,
-                                           register_dataset_to_model_usecase)
-from json_api_doc import deserialize
-import base64
-import credoai
-import json
-import io
+
 import matplotlib
-import mimetypes
 import numpy as np
 import pandas as pd
-import pprint
+from absl import logging
+from json_api_doc import deserialize
+
+import credoai
+from credoai.utils.common import (IntegrationError, ValidationError, dict_hash,
+                                  humanize_label, wrap_list)
+from credoai.utils.credo_api_utils import (get_assessment_spec,
+                                           post_assessment, register_dataset,
+                                           register_dataset_to_model,
+                                           register_dataset_to_model_usecase,
+                                           register_model,
+                                           register_model_to_usecase)
 
 META = {
     'source': 'credoai_ml_library',
@@ -33,7 +34,7 @@ class Record:
     def __init__(self, json_header, **metadata):
         self.json_header = json_header
         # remove Nones from metadata
-        self.metadata = {k:v for k, v in metadata.items() if v!='NA'}
+        self.metadata = {k: v for k, v in metadata.items() if v != 'NA'}
         self.creation_time = datetime.now().isoformat()
 
     def struct(self):
@@ -104,7 +105,7 @@ class Metric(Record):
             'value': self.value,
             'process': self.process,
             'labels': self.metadata,
-            'metadata': {'model_id': self.model_id, 'dataset_id': self.dataset_id}, 
+            'metadata': {'model_id': self.model_id, 'dataset_id': self.dataset_id},
             'value_updated_at': self.creation_time,
         }
 
@@ -112,6 +113,7 @@ class Metric(Record):
         ignored = ['value', 'creation_time']
         return dict_hash({k: v for k, v in self.__dict__.items()
                           if k not in ignored})
+
 
 class File(Record):
     def __init__(self, content, content_type, metric_keys=None, **metadata):
@@ -127,7 +129,7 @@ class File(Record):
                 'creation_time': self.creation_time,
                 'metric_keys': self.metric_keys,
                 'metadata': self.metadata
-               }
+                }
 
 
 class Figure(Record):
@@ -167,7 +169,6 @@ class Figure(Record):
             self._encode_matplotlib_figure(figure)
         else:
             self._encode_figure(figure)
-            
 
     def _encode_figure(self, figure_file):
         with open(figure_file, "rb") as figure2string:
@@ -191,7 +192,7 @@ class Figure(Record):
                 'creation_time': self.creation_time,
                 'metric_keys': self.metric_keys,
                 'metadata': {'type': 'chart', **self.metadata}
-               }
+                }
 
 
 class MultiRecord(Record):
@@ -209,7 +210,8 @@ class MultiRecord(Record):
     def __init__(self, records):
         self.records = wrap_list(records)
         if len(set(type(r) for r in self.records)) != 1:
-            raise ValidationError("Individual records must all be of the same type")
+            raise ValidationError(
+                "Individual records must all be of the same type")
         super().__init__(self.records[0].json_header)
 
     def struct(self):
@@ -286,7 +288,7 @@ def record_metrics_from_dict(metrics, **metadata):
 
 def prepare_assessment_payload(
     assessment_results, reporter_assets=None, assessed_at=None
-    ):
+):
     """Export assessment json to file or credo
 
     Parameters
@@ -300,25 +302,31 @@ def prepare_assessment_payload(
         date when assessments were created, by default None
     for_app : bool
         Set to True if intending to send to Governance App via api
-    """    
+    """
     # prepare assessments
     if isinstance(assessment_results, dict):
-        assessment_records = record_metrics_from_dict(assessment_results).struct()
+        assessment_records = record_metrics_from_dict(
+            assessment_results).struct()
     else:
         assessment_records = [record_metrics(r) for r in assessment_results]
-        assessment_records = MultiRecord(assessment_records).struct() if assessment_records else {}
+        assessment_records = MultiRecord(
+            assessment_records).struct() if assessment_records else {}
     if reporter_assets:
-        chart_assets = [asset for asset in reporter_assets if 'figure' in asset]
-        file_assets = [asset for asset in reporter_assets if 'content' in asset]
+        chart_assets = [
+            asset for asset in reporter_assets if 'figure' in asset]
+        file_assets = [
+            asset for asset in reporter_assets if 'content' in asset]
         chart_records = [Figure(**assets) for assets in chart_assets]
-        chart_records = MultiRecord(chart_records).struct() if chart_records else []
+        chart_records = MultiRecord(
+            chart_records).struct() if chart_records else []
         file_records = [File(**assets) for assets in file_assets]
-        file_records = MultiRecord(file_records).struct() if file_records else []
+        file_records = MultiRecord(
+            file_records).struct() if file_records else []
     else:
         chart_records = []
         file_records = []
-    
-    payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
+
+    payload = {"assessed_at": assessed_at or datetime.now().strftime("%Y-%m-%dT%H-%M-%S"),
                "metrics": assessment_records,
                "charts": chart_records,
                "files": file_records,
@@ -355,13 +363,14 @@ def process_assessment_spec(spec_destination):
         spec = get_assessment_spec(spec_destination)
     except:
         spec = deserialize(json.load(open(spec_destination)))
-        
+
     # reformat assessment_spec
     metric_dict = defaultdict(dict)
     metrics = spec['assessment_plan']['metrics']
     assessment_plan = defaultdict(list)
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        assessment_plan[metric['risk_issue']].append({'type': metric['metric_type'], 'bounds': bounds})
+        assessment_plan[metric['risk_issue']].append(
+            {'type': metric['metric_type'], 'bounds': bounds})
     spec['assessment_plan'] = assessment_plan
     return spec
