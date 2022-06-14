@@ -1,25 +1,26 @@
 """Credo AI's AI Assessment Framework"""
 
-from absl import logging
-from copy import deepcopy
-from credoai.artifacts import CredoGovernance, CredoModel, CredoData
-from credoai.assessment.credo_assessment import CredoAssessment
-from credoai.assessment import AssessmentBunch
-from credoai.utils.common import (
-    raise_or_warn, update_dictionary, 
-    wrap_list, NotRunError, ValidationError)
-from credoai.utils.lens_utils import add_metric_keys
-from credoai.utils.policy_utils import PolicyChecklist
-from credoai import __version__
-from datetime import datetime
-from os import listdir, makedirs, path
-from sklearn.utils import check_consistent_length
-from typing import List, Union
 import collections.abc
-import credoai.integration as ci
 import shutil
 from collections import namedtuple
+from copy import deepcopy
+from datetime import datetime
 from itertools import combinations
+from os import listdir, makedirs, path
+from typing import List, Union
+
+from absl import logging
+from sklearn.utils import check_consistent_length
+
+import credoai.integration as ci
+from credoai import __version__
+from credoai.artifacts import CredoData, CredoGovernance, CredoModel
+from credoai.assessment import AssessmentBunch
+from credoai.assessment.credo_assessment import CredoAssessment
+from credoai.utils.common import (NotRunError, ValidationError, raise_or_warn,
+                                  update_dictionary, wrap_list)
+from credoai.utils.lens_utils import add_metric_keys
+from credoai.utils.policy_utils import PolicyChecklist
 
 
 class Lens:
@@ -103,7 +104,8 @@ class Lens:
         self.training_dataset = training_data
         if self.assessment_dataset and self.training_dataset:
             if self.assessment_dataset == self.training_dataset:
-                raise ValidationError("Assessment dataset and training dataset should not be the same!")
+                raise ValidationError(
+                    "Assessment dataset and training dataset should not be the same!")
         self.assessment_plan = {}
         set_logging_level(logging_level)
         self.warning_level = warning_level
@@ -167,7 +169,7 @@ class Lens:
             logging.info(f"Running assessment-{assessment.get_name()}")
             kwargs = assessment_kwargs.get(assessment.name, {})
             assessment.run(**kwargs)
-        self.run_time = datetime.now().isoformat()
+        self.run_time = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
         return self
 
     def export(self, destination="credoai"):
@@ -206,7 +208,7 @@ class Lens:
                 raise Exception(
                     f"Reporter for assessment ({assessment.get_name()}) failed")
         self.gov.export_assessment_results(
-            prepared_results, reporter_assets, 
+            prepared_results, reporter_assets,
             destination, self.run_time)
 
     def get_assessments(self, flatten=False):
@@ -258,7 +260,7 @@ class Lens:
 
     def display_results(self, assessments=None):
         """Display results from all assessment reporters
-        
+
         Parameters
         ----------
         assessments : str or list of assessment names, optional
@@ -307,7 +309,8 @@ class Lens:
         for bunch in self.assessments:
             for assessment in bunch.assessments.values():
                 name = assessment.get_name()
-                kwargs = deepcopy(self.assessment_plan.get(assessment.name, {}))
+                kwargs = deepcopy(
+                    self.assessment_plan.get(assessment.name, {}))
                 reqs = assessment.get_requirements()
                 if reqs['model_requirements']:
                     kwargs['model'] = bunch.model
@@ -366,17 +369,18 @@ class Lens:
         if to_register:
             self.gov.register(**to_register)
 
-    def _select_assessments(self, candidate_assessments=None):        
+    def _select_assessments(self, candidate_assessments=None):
         # generate all possible artifacts combinations
         artifacts = self.get_artifacts()
 
         artifacts_combinations = []
-        for i in range(1,len(artifacts)+1):
-            artifacts_combinations.extend(list(map(dict, combinations(artifacts.items(), i))))
+        for i in range(1, len(artifacts)+1):
+            artifacts_combinations.extend(
+                list(map(dict, combinations(artifacts.items(), i))))
 
         # filter undesirable combinations
         filtered_keys = [{'training', 'model'}]
-        artifacts_combinations = [c for c in artifacts_combinations 
+        artifacts_combinations = [c for c in artifacts_combinations
                                   if set(c.keys()) not in filtered_keys]
 
         # create bunches
@@ -384,16 +388,16 @@ class Lens:
         for af_comb in artifacts_combinations:
             bunch_name = '_'.join(list(af_comb.keys()))
             primary = af_comb.get('validation') or af_comb.get('training')
-            secondary = af_comb.get('training') if af_comb.get('validation') else None
-            assessment_bunch = AssessmentBunch(bunch_name, af_comb.get('model'), primary, secondary)
+            secondary = af_comb.get('training') if af_comb.get(
+                'validation') else None
+            assessment_bunch = AssessmentBunch(
+                bunch_name, af_comb.get('model'), primary, secondary)
             assessment_bunch.set_usable_assessments(candidate_assessments)
             if assessment_bunch.assessments:
-                assessment_bunches.append(assessment_bunch)        
+                assessment_bunches.append(assessment_bunch)
         return assessment_bunches
 
 
 def set_logging_level(logging_level):
     """Alias for absl.logging.set_verbosity"""
     logging.set_verbosity(logging_level)
-
-
