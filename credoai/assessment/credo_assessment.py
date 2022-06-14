@@ -3,8 +3,9 @@ Defines abstract base class for all CredoAssessments
 """
 
 from abc import ABC, abstractmethod
-from credoai.utils.common import ValidationError
+
 import pandas as pd
+from credoai.utils.common import ValidationError
 
 # Class Docstring below is a template used for all assessments __init__
 # Following this template helps for consistency, and filters down
@@ -91,7 +92,7 @@ class CredoAssessment(ABC):
             self.data_name = data.name
         if training_data:
             self.training_data = training_data.name
-    
+
     def init_reporter(self):
         """Initialize a reporter object"""
         pass
@@ -130,7 +131,7 @@ class CredoAssessment(ABC):
 
         Does nothing if not overwritten
         """
-        return self.reporter  
+        return self.reporter
 
     def get_requirements(self):
         return self.requirements.get_requirements()
@@ -179,22 +180,45 @@ class AssessmentRequirements:
     def __init__(self,
                  model_requirements=None,
                  data_requirements=None,
-                 training_data_requirements=None):
+                 training_data_requirements=None,
+                 model_frameworks=None,
+                 model_types=None,
+                 target_types=None):
         """
         Defines requirements for an assessment
 
         Parameters
         ------------
-        requirements : List(Union[List, str])
+        model_requirements : List(Union[List, str])
             Requirements as a list. Each element
             can be a single string representing a CredoModel
-            function or a list of such functions. If a list,
-            only one of those functions are needed to satisfy
-            the requirements.
+            attribute/function or a list of such attributes/functions. 
+            If a list, only one of those attributes/functions are 
+            needed to satisfy the requirements.
+        {training_}data_requirements : List(Union[List, str])
+            Requirements as a list. Each element
+            can be a single string representing a CredoData
+            attribute/function or a list of such attributes/functions. 
+            If a list, only one of those attributes/functions are 
+            needed to satisfy the requirements.
+        model_frameworks : List(str)
+            List of Model framework(s) required by assessment. 
+            Each element must be taken from list defined by 
+            credoai.utils.constants.SUPPORTED_FRAMEWORKS
+        model_types : List(str)
+            List of Model type(s) required by assessment. 
+            Each element must be taken from list defined by 
+            credoai.utils.constants.MODEL_TYPES
+        target_types : List(str)
+            List of Target type(s) required by assessment. Must be an output
+            of sklearn.utils.multiclass.type_of_target
         """
         self.model_requirements = model_requirements or []
         self.data_requirements = data_requirements or []
         self.training_data_requirements = training_data_requirements or []
+        self.model_frameworks = model_frameworks or []
+        self.model_types = model_types or []
+        self.target_types = target_types or []
 
     def check_requirements(self, credo_model=None, credo_data=None, credo_training_data=None):
         # disqualify if the assessment does not require any of the artifacts provided
@@ -205,11 +229,12 @@ class AssessmentRequirements:
         ):
             return False
 
+        # check to make sure the artifact has the required functionality defined
         for artifact, requirements in [
             (credo_model, self.model_requirements),
             (credo_data, self.data_requirements),
             (credo_training_data, self.training_data_requirements)
-             ]:
+        ]:
             if artifact:
                 existing_keys = [k for k, v in artifact.__dict__.items()
                                  if v is not None]
@@ -224,6 +249,25 @@ class AssessmentRequirements:
                 else:
                     if not functionality.intersection(requirement):
                         return False
+        # check frameworks
+        if self.model_frameworks:
+            if credo_model and credo_model.framework in self.model_frameworks:
+                pass
+            else:
+                return False
+        # check model type
+        if self.model_types:
+            if credo_model and credo_model.model_type in self.model_types:
+                pass
+            else:
+                return False
+        # check target type
+        if self.target_types:
+            for dataset in (credo_data, credo_training_data):
+                if dataset and dataset.target_type in self.target_types:
+                    pass
+                else:
+                    return False
         return True
 
     def get_requirements(self):

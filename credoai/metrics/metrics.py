@@ -5,11 +5,6 @@ from absl import logging
 from credoai.metrics.metric_constants import *
 from credoai.utils.common import ValidationError, humanize_label, remove_suffix
 
-METRIC_CATEGORIES = ["BINARY_CLASSIFICATION",  "MULTICLASS_CLASSIFICATION",
-                     "REGRESSION", "CLUSTERING", "FAIRNESS", "DATASET", "PRIVACY", "SECURITY", "CUSTOM"]
-
-MODEL_METRIC_CATEGORIES = METRIC_CATEGORIES[:-2]
-
 
 @dataclass
 class Metric():

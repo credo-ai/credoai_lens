@@ -10,3 +10,7 @@ RISK_ISSUE_MAPPING = {
     'fair.5': 'Fairness',
     'fair.7': 'Fairness'
 }
+
+MODEL_TYPES = ['CLASSIFIER', 'REGRESSOR', 'NEURAL_NETWORK']
+
+SUPPORTED_FRAMEWORKS = ('sklearn', 'xgboost')

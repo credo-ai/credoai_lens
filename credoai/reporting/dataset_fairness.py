@@ -1,11 +1,11 @@
 from turtle import color
+
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import pandas as pd
 import seaborn as sns
-
-from credoai.reporting.credo_reporter import CredoReporter
 from credoai.reporting import plot_utils
+from credoai.reporting.credo_reporter import CredoReporter
 
 
 class DatasetFairnessReporter(CredoReporter):
@@ -25,7 +25,6 @@ class DatasetFairnessReporter(CredoReporter):
         # Generate mutual information charts
         self._plot_mutual_information()
 
-
     def _plot_balance_metrics(self):
         """Generates data balance charts
 
@@ -40,11 +39,11 @@ class DatasetFairnessReporter(CredoReporter):
         metric_keys = []
         for sf_name in sensitive_features:
             with plot_utils.get_style(figsize=self.size, rc={'font.size': self.size*1.5}):
-                prefix = sf_name + '-' 
+                prefix = sf_name + '-'
                 n_rows = 3 if prefix + 'label_balance' in results_all else 1
                 f, axes = plt.subplots(nrows=n_rows)
                 axes = f.get_axes()
-                
+
                 plt.subplots_adjust(hspace=1.8)
 
                 # Generate sample balance barplots
@@ -72,7 +71,8 @@ class DatasetFairnessReporter(CredoReporter):
                 if prefix + 'label_balance' in results_all:
                     results = results_all[prefix + "label_balance"]
                     df = pd.DataFrame(results)
-                    label_name = list(df.drop([sf_name, "count"], axis=1).columns)[0]
+                    label_name = list(
+                        df.drop([sf_name, "count"], axis=1).columns)[0]
 
                     num_classes = df[label_name].nunique()
                     ax = sns.barplot(
@@ -80,7 +80,8 @@ class DatasetFairnessReporter(CredoReporter):
                         y=sf_name,
                         hue=label_name,
                         data=df,
-                        palette=plot_utils.credo_diverging_palette(num_classes),
+                        palette=plot_utils.credo_diverging_palette(
+                            num_classes),
                         alpha=1,
                         ax=axes[1],
                     )
@@ -93,7 +94,7 @@ class DatasetFairnessReporter(CredoReporter):
                     ax.set_xlabel("Number of data samples")
                     ax.set_ylabel("")
                     ax.get_legend().set_visible(False)
-                    
+
                     # Generate parity metrics barplots
                     # only using demographic_parity_ratio, ignoring difference
                     metric_keys = [prefix + 'demographic_parity_ratio']
@@ -110,16 +111,18 @@ class DatasetFairnessReporter(CredoReporter):
                         y="metric",
                         hue=label_name,
                         data=df,
-                        palette=plot_utils.credo_diverging_palette(num_classes),
+                        palette=plot_utils.credo_diverging_palette(
+                            num_classes),
                         ax=axes[2],
                     )
                     f.patch.set_facecolor("white")
                     sns.despine()
-                    plt.title("Parity metrics for different preferred label value possibilities")
+                    plt.title(
+                        "Parity metrics for different preferred label value possibilities")
                     plt.xlabel("Value")
                     plt.ylabel("")
                     plt.legend(
-                        bbox_to_anchor=(1.2, 0.5), 
+                        bbox_to_anchor=(1.2, 0.5),
                         loc="center",
                         frameon=False,
                         ncol=num_classes,
@@ -131,9 +134,10 @@ class DatasetFairnessReporter(CredoReporter):
             # get metric keys for sensitive feature to append
             if self.key_lookup is not None:
                 metric_keys = self.key_lookup \
-                                .filter(regex='demographic', axis=0) \
-                                .query(f'sensitive_feature=="{sf_name}"')['metric_key'].tolist()
-            self.figs.append(self._create_chart(f, BALANCE_METRICS_DESCRIPTION, title, metric_keys))
+                    .filter(regex='demographic', axis=0) \
+                    .query(f'sensitive_feature=="{sf_name}"')['metric_key'].tolist()
+            self.figs.append(self._create_chart(
+                f, BALANCE_METRICS_DESCRIPTION, title, metric_keys))
 
     def _plot_group_diff(self):
         """Generates group difference barplots"""
@@ -151,12 +155,13 @@ class DatasetFairnessReporter(CredoReporter):
                     max_pair_key, max_pair_values = k, v
                     abs_sum = abs_sum_new
 
-            if abs_sum == -1:  # do not plot when standardized_group_diffs is empty, which happens when none of the features are numeric 
+            if abs_sum == -1:  # do not plot when standardized_group_diffs is empty, which happens when none of the features are numeric
                 continue
 
             with plot_utils.get_style(figsize=self.size, figure_ratio=0.7):
                 f, ax = plt.subplots()
-                df = pd.DataFrame(max_pair_values.items(), columns=["feature", "group difference"])
+                df = pd.DataFrame(max_pair_values.items(), columns=[
+                                  "feature", "group difference"])
                 sns.barplot(
                     x="feature",
                     y="group difference",
@@ -169,7 +174,7 @@ class DatasetFairnessReporter(CredoReporter):
                 ax.axhline(0, color="k")
                 sns.despine()
                 title = "Group differences for Sensitive Feature:\n" \
-                         f"{sf_name} ({max_pair_key})"
+                    f"{sf_name} ({max_pair_key})"
                 ax.set_title(title)
                 ax.set_xlabel("")
                 ax.set_ylabel("Group difference")
@@ -177,8 +182,9 @@ class DatasetFairnessReporter(CredoReporter):
                 plt.tight_layout()
             if self.key_lookup is not None:
                 metric_keys = self.key_lookup.loc[['sensitive_feature_prediction_score']] \
-                                .query(f'sensitive_feature=="{sf_name}"')['metric_key'].tolist()
-            self.figs.append(self._create_chart(f, GROUP_DIFF_DESCRIPTION, title, metric_keys))
+                    .query(f'sensitive_feature=="{sf_name}"')['metric_key'].tolist()
+            self.figs.append(self._create_chart(
+                f, GROUP_DIFF_DESCRIPTION, title, metric_keys))
 
     def _plot_mutual_information(self):
         """Generates normalized mutual information between features and sensitive attribute"""
@@ -187,7 +193,7 @@ class DatasetFairnessReporter(CredoReporter):
         sensitive_features = self.module.sensitive_features
         metric_keys = []
         for sf_name in sensitive_features:
-            results = results_all[sf_name + '-' + "normalized_mutual_information"]
+            results = results_all[f"{sf_name}-proxy_mutual_information"]
             df = pd.DataFrame.from_dict(results, orient="index").reset_index()
             df = df.rename(
                 columns={
@@ -227,21 +233,25 @@ class DatasetFairnessReporter(CredoReporter):
                 ax.legend(loc='upper right')
                 plt.tight_layout()
             if self.key_lookup is not None:
-                metric_keys = self.key_lookup.loc[['sensitive_feature_prediction_score']] \
-                                .query(f'sensitive_feature=="{sf_name}"')['metric_key'].tolist()
-            self.figs.append(self._create_chart(f, MUTUAL_INFO_DESCRIPTION, title, metric_keys))
+                metric_keys = self.key_lookup.loc[['sensitive_feature_prediction_score',
+                                                   'max_proxy_mutual_information']] \
+                    .query(f'sensitive_feature=="{sf_name}"')['metric_key'].tolist()
+            self.figs.append(self._create_chart(
+                f, MUTUAL_INFO_DESCRIPTION, title, metric_keys))
 
     def _add_bar_percentages(self, ax, fontsize=10):
         n_containers = len(ax.containers)
         bar_groups = list(zip(*ax.containers))
-        totals = [sum([c.get_width() for c in containers]) for containers in bar_groups]
+        totals = [sum([c.get_width() for c in containers])
+                  for containers in bar_groups]
         overall_total = sum(totals)
         if n_containers == 1:
             totals = [overall_total for i in totals]
         for containers in ax.containers:
             widths = [c.get_width() for c in containers]
-            percentages = [100*w/totals[i] for i,w in enumerate(widths)]
-            overall_percentages = [100*w/overall_total for i,w in enumerate(widths)]
+            percentages = [100*w/totals[i] for i, w in enumerate(widths)]
+            overall_percentages = [
+                100*w/overall_total for i, w in enumerate(widths)]
             percentage_text = [f'{i:.1f}%' for i in percentages]
             if min(overall_percentages) > 10:
                 ax.bar_label(
@@ -259,6 +269,7 @@ class DatasetFairnessReporter(CredoReporter):
                     padding=2,
                     fontsize=fontsize/n_containers
                 )
+
 
 BALANCE_METRICS_DESCRIPTION = """
 Data Balance
