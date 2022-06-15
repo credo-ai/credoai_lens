@@ -18,10 +18,10 @@
 # CredoAssessment is the interface between a CredoModel,
 # CredoData and a module, which performs some assessment.
 
+import os
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
-from os import makedirs, path
 from typing import Callable, List, Optional, Union
 
 import pandas as pd
@@ -184,7 +184,7 @@ class CredoGovernance:
         assessed_at : str, optional
             date when assessments were created, by default None
         """
-        assessed_at = assessed_at or datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        assessed_at = assessed_at or datetime.now().isoformat()
         payload = ci.prepare_assessment_payload(
             assessment_results, reporter_assets=reporter_assets, assessed_at=assessed_at)
         if destination == 'credoai':
@@ -197,10 +197,13 @@ class CredoGovernance:
                 logging.error("Couldn't upload assessment to Credo AI's Governance App. "
                               "Ensure use_case_id is defined in CredoGovernance")
         else:
-            if not path.exists(destination):
-                makedirs(destination, exist_ok=False)
+            if not os.path.exists(destination):
+                os.makedirs(destination, exist_ok=False)
             name_for_save = f"assessment_run-{assessed_at}.json"
-            output_file = path.join(destination, name_for_save)
+            # change name in case of windows
+            if os.name == 'nt':
+                name_for_save = name_for_save.replace(':', '-')
+            output_file = os.path.join(destination, name_for_save)
             with open(output_file, 'w') as f:
                 f.write(json_dumps(payload))
 
