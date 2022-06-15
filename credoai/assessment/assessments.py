@@ -2,23 +2,27 @@
 Module containing all CredoAssessments
 """
 
-from credoai.assessment.credo_assessment import CredoAssessment, AssessmentRequirements
-from credoai.data.utils import get_data_path
-from credoai.utils.model_utils import get_default_metrics
-from credoai.reporting import (FairnessReporter, BinaryClassificationReporter,
-                               NLPGeneratorAnalyzerReporter, DatasetFairnessReporter, RegressionReporter)
-from sklearn.utils.multiclass import type_of_target
-from credoai.reporting.dataset_profiling import DatasetProfilingReporter
-
-from credoai.utils import InstallationError
-import credoai.utils as cutils
-import credoai.modules as mod
-import sys
 import inspect
+import sys
+
+import credoai.modules as mod
+import credoai.utils as cutils
+from credoai.assessment.credo_assessment import (AssessmentRequirements,
+                                                 CredoAssessment)
+from credoai.data.utils import get_data_path
+from credoai.reporting import (BinaryClassificationReporter,
+                               DatasetFairnessReporter, FairnessReporter,
+                               NLPGeneratorAnalyzerReporter,
+                               RegressionReporter)
+from credoai.reporting.dataset_profiling import DatasetProfilingReporter
+from credoai.utils import InstallationError
+from credoai.utils.model_utils import get_default_metrics
+from sklearn.utils.multiclass import type_of_target
 
 # *******************
 # Model Assessments
 # *******************
+
 
 class FairnessAssessment(CredoAssessment):
     """Basic evaluation of the fairness of ML models
@@ -83,7 +87,8 @@ class FairnessAssessment(CredoAssessment):
             y_prob = model.predict_proba(data.X)
         except AttributeError:
             y_prob = None
-        metrics = get_default_metrics(model.model) if metrics is None else metrics
+        metrics = get_default_metrics(
+            model.model) if metrics is None else metrics
         module = self.module(
             metrics,
             data.sensitive_features,
@@ -92,13 +97,13 @@ class FairnessAssessment(CredoAssessment):
             y_prob)
         self.initialized_module = module
 
-    def get_reporter(self):
+    def init_reporter(self):
         if type_of_target(self.initialized_module.y_true) == 'binary':
-            return BinaryClassificationReporter(self)
+            self.reporter = BinaryClassificationReporter(self)
         elif type_of_target(self.initialized_module.y_true) == 'continuous':
-            return RegressionReporter(self)
+            self.reporter = RegressionReporter(self)
         else:
-            return FairnessReporter(self)
+            self.reporter = FairnessReporter(self)
 
 
 class NLPEmbeddingBiasAssessment(CredoAssessment):
@@ -215,8 +220,8 @@ class NLPGeneratorAssessment(CredoAssessment):
 
         self.initialized_module = module
 
-    def get_reporter(self):
-        return NLPGeneratorAnalyzerReporter(self)
+    def init_reporter(self):
+        self.reporter = NLPGeneratorAnalyzerReporter(self)
 
 
 class PerformanceAssessment(CredoAssessment):
@@ -286,8 +291,9 @@ class PerformanceAssessment(CredoAssessment):
             y_prob = model.predict_proba(data.X)
         except AttributeError:
             y_prob = None
-        
-        metrics = get_default_metrics(model.model) if metrics is None else metrics
+
+        metrics = get_default_metrics(
+            model.model) if metrics is None else metrics
         sensitive_features = None if ignore_sensitive else data.sensitive_features
         module = self.module(
             metrics,
@@ -296,6 +302,10 @@ class PerformanceAssessment(CredoAssessment):
             y_prob,
             sensitive_features)
         self.initialized_module = module
+
+    def init_reporter(self):
+        if type_of_target(self.initialized_module.y_true) == 'binary':
+            self.reporter = BinaryClassificationReporter(self)
 
 # *******************
 # Dataset Assessments
@@ -339,8 +349,8 @@ class DatasetFairnessAssessment(CredoAssessment):
             scrubbed_data['sensitive_features'],
             data.categorical_features_keys)
 
-    def get_reporter(self):
-        return DatasetFairnessReporter(self)
+    def init_reporter(self):
+        self.reporter = DatasetFairnessReporter(self)
 
 
 class DatasetProfilingAssessment(CredoAssessment):
@@ -370,8 +380,8 @@ class DatasetProfilingAssessment(CredoAssessment):
             data.X,
             data.y)
 
-    def get_reporter(self):
-        return DatasetProfilingReporter(self)
+    def init_reporter(self):
+        self.reporter = DatasetProfilingReporter(self)
 
 
 def list_assessments_exhaustive():
@@ -395,7 +405,7 @@ def list_assessments():
 
 class PrivacyAssessment(CredoAssessment):
     """Basic evaluation of the privacy of ML models
-    
+
     Runs privacy analysis on models with well-defined
     objective functions. Examples include:
 
@@ -406,24 +416,27 @@ class PrivacyAssessment(CredoAssessment):
     * Scikit-learn
 
     Modules:
-    
+
     * credoai.modules.model_modules.privacy
-    
+
     Requirements
     ------------
     Requires that the CredoModel defines is a Scikit-learn model
     """
+
     def __init__(self):
         super().__init__(
-            'Privacy', 
+            'Privacy',
             mod.PrivacyModule,
             AssessmentRequirements(
                 model_requirements=[('predict')],
                 data_requirements=['X', 'y'],
-                training_data_requirements=['X', 'y']
+                training_data_requirements=['X', 'y'],
+                model_types=['CLASSIFIER'],
+                target_types=['binary']
             )
         )
-    
+
     def init_module(self, *, model, data, training_data):
         """Initializes the assessment module
 
@@ -465,5 +478,71 @@ class PrivacyAssessment(CredoAssessment):
             data.X,
             data.y
         )
-            
+
+        self.initialized_module = module
+
+
+class SecurityAssessment(CredoAssessment):
+    """Basic evaluation of the security of ML models
+
+    Runs security analysis on models with well-defined
+    objective functions. Examples include:
+
+    * classification
+
+    Supports models from  the following libraries:
+
+    * Scikit-learn
+
+    Modules:
+
+    * credoai.modules.model_modules.security
+
+    Requirements
+    ------------
+    Requires that the CredoModel defines is a Scikit-learn model
+    """
+
+    def __init__(self):
+        super().__init__(
+            'Security',
+            mod.SecurityModule,
+            AssessmentRequirements(
+                model_requirements=[('predict')],
+                data_requirements=['X', 'y'],
+                training_data_requirements=['X', 'y'],
+                model_types=['CLASSIFIER'],
+                target_types=['binary']
+            )
+        )
+
+    def init_module(self, *, model, data, training_data):
+        """Initializes the assessment module
+
+        Transforms CredoModel and CredoData into the proper form
+        to create a runnable assessment.
+
+        See the lens_customization notebook for examples
+
+        Parameters
+        ------------
+        model : CredoModel
+        data : CredoData
+        training_data: CredoData
+
+        """
+        super().init_module(
+            model=model,
+            data=data,
+            training_data=training_data
+        )
+
+        module = self.module(
+            model,
+            training_data.X,
+            training_data.y,
+            data.X,
+            data.y
+        )
+
         self.initialized_module = module

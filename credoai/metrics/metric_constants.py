@@ -1,13 +1,19 @@
-from credoai.metrics.credoai_metrics import (
-    equal_opportunity_difference, false_discovery_rate, false_omission_rate, ks_statistic
-)
-from functools import partial
-from fairlearn import metrics as fl_metrics
-from fairlearn.metrics._group_metric_set import BINARY_CLASSIFICATION_METRICS as fairlearn_binary
-from sklearn import metrics as sk_metrics
-from sklearn.metrics import SCORERS
 from functools import partial
 
+from credoai.metrics.credoai_metrics import (equal_opportunity_difference,
+                                             false_discovery_rate,
+                                             false_omission_rate, ks_statistic)
+from fairlearn import metrics as fl_metrics
+from fairlearn.metrics._group_metric_set import \
+    BINARY_CLASSIFICATION_METRICS as fairlearn_binary
+from sklearn import metrics as sk_metrics
+from sklearn.metrics import SCORERS
+
+METRIC_CATEGORIES = ["BINARY_CLASSIFICATION",  "MULTICLASS_CLASSIFICATION",
+                     "REGRESSION", "CLUSTERING", "FAIRNESS", "PRIVACY", "SECURITY",
+                     "DATASET", "CUSTOM"]
+
+MODEL_METRIC_CATEGORIES = METRIC_CATEGORIES[:-4]
 
 # MODEL METRICS
 BINARY_CLASSIFICATION_FUNCTIONS = {
@@ -45,15 +51,15 @@ PROBABILITY_FUNCTIONS = {'average_precision_score', 'roc_auc_score'}
 # *** Define Alternative Naming ***
 METRIC_EQUIVALENTS = {
     'false_positive_rate': ['fpr', 'fallout_rate'],
-    'false_negative_rate': ['fnr', 'miss_rate'], 
-    'false_discovery_rate': ['fdr'], 
-    'true_positive_rate': ['tpr', 'recall_score', 'recall', 'sensitivity', 'hit_rate'], 
-    'true_negative_rate': ['tnr', 'specificity'], 
+    'false_negative_rate': ['fnr', 'miss_rate'],
+    'false_discovery_rate': ['fdr'],
+    'true_positive_rate': ['tpr', 'recall_score', 'recall', 'sensitivity', 'hit_rate'],
+    'true_negative_rate': ['tnr', 'specificity'],
     'precision_score': ['precision'],
-    'demographic_parity_difference': ['statistical_parity', 'demographic_parity'], 
-    'demographic_parity_ratio': ['disparate_impact'], 
-    'average_odds_difference': ['average_odds'], 
-    'equal_opportunity_difference': ['equal_opportunity'], 
+    'demographic_parity_difference': ['statistical_parity', 'demographic_parity'],
+    'demographic_parity_ratio': ['disparate_impact'],
+    'average_odds_difference': ['average_odds'],
+    'equal_opportunity_difference': ['equal_opportunity'],
     'equalized_odds_difference': ['equalized_odds'],
     'mean_absolute_error': ['MAE'],
     'mean_squared_error': ['MSE', 'MSD', 'mean_squared_deviation'],
@@ -65,13 +71,21 @@ METRIC_EQUIVALENTS = {
 DATASET_METRIC_TYPES = [
     'sensitive_feature_prediction_score',
     'demographic_parity_ratio',
-    'demographic_parity_difference'
+    'demographic_parity_difference',
+    'max_proxy_mutual_information'
 ]
 
+# PRIVACY METRICS
 PRIVACY_METRIC_TYPES = [
     'rule_based_attack_score',
     'model_based_attack_score',
     'membership_inference_attack_score'
+]
+
+# SECURITY METRICS
+SECURITY_METRIC_TYPES = [
+    'extraction_attack_score',
+    'evasion_attack_score'
 ]
 
 # REGRESSION METRICS

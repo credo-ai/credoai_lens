@@ -1,28 +1,28 @@
 """Credo AI Governance App Integration Functionality"""
 
-from absl import logging
+import base64
+import io
+import json
+import mimetypes
+import pprint
 from collections import ChainMap, defaultdict
 from datetime import datetime
-from credoai.utils.common import (humanize_label, wrap_list,
-                                  IntegrationError,
-                                  ValidationError, dict_hash)
-from credoai.utils.credo_api_utils import (get_assessment_spec,
-                                           post_assessment,
-                                           register_dataset, 
-                                           register_model,
-                                           register_model_to_usecase,
-                                           register_dataset_to_model,
-                                           register_dataset_to_model_usecase)
-from json_api_doc import deserialize
-import base64
-import credoai
-import json
-import io
+
 import matplotlib
-import mimetypes
 import numpy as np
 import pandas as pd
-import pprint
+from absl import logging
+from json_api_doc import deserialize
+
+import credoai
+from credoai.utils.common import (IntegrationError, ValidationError, dict_hash,
+                                  humanize_label, wrap_list)
+from credoai.utils.credo_api_utils import (get_assessment_spec,
+                                           post_assessment, register_dataset,
+                                           register_dataset_to_model,
+                                           register_dataset_to_model_usecase,
+                                           register_model,
+                                           register_model_to_usecase)
 
 META = {
     'source': 'credoai_ml_library',
@@ -34,7 +34,7 @@ class Record:
     def __init__(self, json_header, **metadata):
         self.json_header = json_header
         # remove Nones from metadata
-        self.metadata = {k:v for k, v in metadata.items() if v!='NA'}
+        self.metadata = {k: v for k, v in metadata.items() if v != 'NA'}
         self.creation_time = datetime.now().isoformat()
 
     def struct(self):
@@ -59,6 +59,8 @@ class Metric(Record):
         metric value
     subtype : string, optional
         subtype of metric. Defaults to base
+    model_id : str, optional
+        ID of model. Should match a model on Governance App
     dataset_id : str, optional
         ID of dataset. Should match a dataset on Governance App
     process : string, optional
@@ -77,27 +79,33 @@ class Metric(Record):
                  metric_type,
                  value,
                  subtype="base",
+                 model_id=None,
                  dataset_id=None,
                  process=None,
+                 metric_key=None,
                  **metadata):
         super().__init__('metrics', **metadata)
         self.metric_type = metric_type
         self.value = value
         self.subtype = subtype
+        self.model_id = model_id
         self.dataset_id = dataset_id
         self.process = process
-        self.config_hash = self._generate_config()
+        if metric_key:
+            self.metric_key = metric_key
+        else:
+            self.metric_key = self._generate_config()
 
     def struct(self):
         return {
-            'key': self.config_hash,
+            'key': self.metric_key,
             'name': self.metric_type,
             'type': self.metric_type,
             'subtype': self.subtype,
             'value': self.value,
-            'dataset_id': self.dataset_id,
             'process': self.process,
             'labels': self.metadata,
+            'metadata': {'model_id': self.model_id, 'dataset_id': self.dataset_id},
             'value_updated_at': self.creation_time,
         }
 
@@ -105,6 +113,23 @@ class Metric(Record):
         ignored = ['value', 'creation_time']
         return dict_hash({k: v for k, v in self.__dict__.items()
                           if k not in ignored})
+
+
+class File(Record):
+    def __init__(self, content, content_type, metric_keys=None, **metadata):
+        super().__init__('figures', **metadata)
+        self.content = content
+        self.content_type = content_type
+        self.metric_keys = metric_keys
+        self.content_type = None
+
+    def struct(self):
+        return {'content': self.content,
+                'content_type': self.content_type,
+                'creation_time': self.creation_time,
+                'metric_keys': self.metric_keys,
+                'metadata': self.metadata
+                }
 
 
 class Figure(Record):
@@ -122,6 +147,8 @@ class Figure(Record):
         path to image file OR matplotlib figure
     description: str, optional
         longer string describing the figure
+    metric_keys: list
+        List of metric_keys to associate with figure (see lens_utils.get_metric_keys)
     metadata : dict, optional
         Appended keyword arguments to append to metric as metadata
 
@@ -131,17 +158,17 @@ class Figure(Record):
     figure = Figure('Figure 1', fig=f, description='A matplotlib figure')
     """
 
-    def __init__(self, name, figure, description=None, **metadata):
+    def __init__(self, name, figure, description=None, metric_keys=None, **metadata):
         super().__init__('figures', **metadata)
         self.name = name
         self.description = description
+        self.metric_keys = metric_keys
         self.figure_string = None
         self.content_type = None
         if type(figure) == matplotlib.figure.Figure:
             self._encode_matplotlib_figure(figure)
         else:
             self._encode_figure(figure)
-            
 
     def _encode_figure(self, figure_file):
         with open(figure_file, "rb") as figure2string:
@@ -163,8 +190,9 @@ class Figure(Record):
                 'content_type': self.content_type,
                 'file': self.figure_string,
                 'creation_time': self.creation_time,
+                'metric_keys': self.metric_keys,
                 'metadata': {'type': 'chart', **self.metadata}
-               }
+                }
 
 
 class MultiRecord(Record):
@@ -182,7 +210,8 @@ class MultiRecord(Record):
     def __init__(self, records):
         self.records = wrap_list(records)
         if len(set(type(r) for r in self.records)) != 1:
-            raise ValidationError("Individual records must all be of the same type")
+            raise ValidationError(
+                "Individual records must all be of the same type")
         super().__init__(self.records[0].json_header)
 
     def struct(self):
@@ -256,7 +285,10 @@ def record_metrics_from_dict(metrics, **metadata):
     metric_df = metric_df.assign(**metadata)
     return record_metrics(metric_df)
 
-def prepare_assessment_payload(assessment_results, report=None, assessed_at=None):
+
+def prepare_assessment_payload(
+    assessment_results, reporter_assets=None, assessed_at=None
+):
     """Export assessment json to file or credo
 
     Parameters
@@ -264,31 +296,40 @@ def prepare_assessment_payload(assessment_results, report=None, assessed_at=None
     assessment_results : dict or list
         dictionary of metrics to pass to record_metrics_from _dict or
         list of prepared_results from credo_assessments. See lens.export for example
-    report : credo.reporting.NotebookReport, optional
-        report to optionally include with assessments, by default None
+    reporter_assets : list, optional
+            list of assets from a CredoReporter, by default None
     assessed_at : str, optional
         date when assessments were created, by default None
     for_app : bool
         Set to True if intending to send to Governance App via api
-    """    
+    """
     # prepare assessments
     if isinstance(assessment_results, dict):
-        assessment_records = record_metrics_from_dict(assessment_results).struct()
+        assessment_records = record_metrics_from_dict(
+            assessment_results).struct()
     else:
         assessment_records = [record_metrics(r) for r in assessment_results]
-        assessment_records = MultiRecord(assessment_records).struct() if assessment_records else {}
+        assessment_records = MultiRecord(
+            assessment_records).struct() if assessment_records else {}
+    if reporter_assets:
+        chart_assets = [
+            asset for asset in reporter_assets if 'figure' in asset]
+        file_assets = [
+            asset for asset in reporter_assets if 'content' in asset]
+        chart_records = [Figure(**assets) for assets in chart_assets]
+        chart_records = MultiRecord(
+            chart_records).struct() if chart_records else []
+        file_records = [File(**assets) for assets in file_assets]
+        file_records = MultiRecord(
+            file_records).struct() if file_records else []
+    else:
+        chart_records = []
+        file_records = []
 
-    # set up report
-    default_html = '<html><body><h3 style="text-align:center">No Report Included With Assessment</h1></body></html>'
-    report_payload = {'content': default_html,
-                      'content_type': "text/html"}
-    if report:
-        report_payload['content'] = report.to_html()
-    
     payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
                "metrics": assessment_records,
-               "charts": [],
-               "report": report_payload,
+               "charts": chart_records,
+               "files": file_records,
                "$type": 'string'}
     return payload
 
@@ -320,15 +361,16 @@ def process_assessment_spec(spec_destination):
     spec = {}
     try:
         spec = get_assessment_spec(spec_destination)
-    except IntegrationError:
+    except:
         spec = deserialize(json.load(open(spec_destination)))
-        
+
     # reformat assessment_spec
     metric_dict = defaultdict(dict)
     metrics = spec['assessment_plan']['metrics']
     assessment_plan = defaultdict(list)
     for metric in metrics:
         bounds = (metric['lower_threshold'], metric['upper_threshold'])
-        assessment_plan[metric['risk_issue']].append({'type': metric['metric_type'], 'bounds': bounds})
+        assessment_plan[metric['risk_issue']].append(
+            {'type': metric['metric_type'], 'bounds': bounds})
     spec['assessment_plan'] = assessment_plan
     return spec

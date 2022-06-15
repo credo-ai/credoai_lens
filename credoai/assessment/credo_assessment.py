@@ -3,8 +3,9 @@ Defines abstract base class for all CredoAssessments
 """
 
 from abc import ABC, abstractmethod
-from credoai.utils.common import ValidationError
+
 import pandas as pd
+from credoai.utils.common import ValidationError
 
 # Class Docstring below is a template used for all assessments __init__
 # Following this template helps for consistency, and filters down
@@ -32,8 +33,7 @@ class CredoAssessment(ABC):
     ...
     """
 
-    def __init__(self, name, module, requirements=None,
-                 short_description=None, long_description=None):
+    def __init__(self, name, module, requirements=None):
         """Abstract base class for all CredoAssessments
 
         Parameters
@@ -46,17 +46,11 @@ class CredoAssessment(ABC):
             Instantiation of functionality CredoModel and/or CredoData
             must define to run this assessment. If defined, enables
             automated validation and selection of assessment
-        short_description : str
-            Short description of assessment functionality. If None
-            will default to first line of class docstring
-        long_description : str
-            Long description of assessment functionality. If None
-            will default to first line of class docstring
         """
         self.name = name
         self.module = module
         self.initialized_module = None
-        self.report = None
+        self.reporter = None
         if requirements is None:
             requirements = AssessmentRequirements()
         self.requirements = requirements
@@ -64,10 +58,6 @@ class CredoAssessment(ABC):
         self.model_name = None
         self.data_name = None
         self.training_data_name = None
-        # descriptions, automatically parsed fro, docstring if not set
-        self.short_description = short_description
-        self.long_description = long_description
-        self._set_description_from_doc()
 
     def __str__(self):
         data_name = self.data_name or "NA"
@@ -102,7 +92,10 @@ class CredoAssessment(ABC):
             self.data_name = data.name
         if training_data:
             self.training_data = training_data.name
-        
+
+    def init_reporter(self):
+        """Initialize a reporter object"""
+        pass
 
     def run(self, **kwargs):
         return self.initialized_module.run(**kwargs)
@@ -116,7 +109,6 @@ class CredoAssessment(ABC):
         # add metadata
         metadata = metadata or {}
         results = results.assign(**metadata)
-        # return results (and ensure no NaN floats remain)
         return results
 
     def get_description(self):
@@ -139,7 +131,7 @@ class CredoAssessment(ABC):
 
         Does nothing if not overwritten
         """
-        pass   
+        return self.reporter
 
     def get_requirements(self):
         return self.requirements.get_requirements()
@@ -162,22 +154,6 @@ class CredoAssessment(ABC):
         return self.requirements.check_requirements(credo_model,
                                                     credo_data,
                                                     credo_training_data)
-
-    def _set_description_from_doc(self):
-        docs = self.__doc__
-        # underline title of next section
-        try:
-            description = docs[:(docs.index('---')-5)]
-        except ValueError:
-            description = docs
-        # remove last line (title of next section)
-        description = description[:description.rfind('\n')].lstrip()
-        short = description.split('\n')[0]
-        long = description[len(short)+2:]
-        if self.short_description is None:
-            self.short_description = short
-        if self.long_description is None:
-            self.long_description = long
 
     def _standardize_prepared_results(self, results):
         if type(results) == dict:
@@ -204,22 +180,45 @@ class AssessmentRequirements:
     def __init__(self,
                  model_requirements=None,
                  data_requirements=None,
-                 training_data_requirements=None):
+                 training_data_requirements=None,
+                 model_frameworks=None,
+                 model_types=None,
+                 target_types=None):
         """
         Defines requirements for an assessment
 
         Parameters
         ------------
-        requirements : List(Union[List, str])
+        model_requirements : List(Union[List, str])
             Requirements as a list. Each element
             can be a single string representing a CredoModel
-            function or a list of such functions. If a list,
-            only one of those functions are needed to satisfy
-            the requirements.
+            attribute/function or a list of such attributes/functions. 
+            If a list, only one of those attributes/functions are 
+            needed to satisfy the requirements.
+        {training_}data_requirements : List(Union[List, str])
+            Requirements as a list. Each element
+            can be a single string representing a CredoData
+            attribute/function or a list of such attributes/functions. 
+            If a list, only one of those attributes/functions are 
+            needed to satisfy the requirements.
+        model_frameworks : List(str)
+            List of Model framework(s) required by assessment. 
+            Each element must be taken from list defined by 
+            credoai.utils.constants.SUPPORTED_FRAMEWORKS
+        model_types : List(str)
+            List of Model type(s) required by assessment. 
+            Each element must be taken from list defined by 
+            credoai.utils.constants.MODEL_TYPES
+        target_types : List(str)
+            List of Target type(s) required by assessment. Must be an output
+            of sklearn.utils.multiclass.type_of_target
         """
         self.model_requirements = model_requirements or []
         self.data_requirements = data_requirements or []
         self.training_data_requirements = training_data_requirements or []
+        self.model_frameworks = model_frameworks or []
+        self.model_types = model_types or []
+        self.target_types = target_types or []
 
     def check_requirements(self, credo_model=None, credo_data=None, credo_training_data=None):
         # disqualify if the assessment does not require any of the artifacts provided
@@ -230,11 +229,12 @@ class AssessmentRequirements:
         ):
             return False
 
+        # check to make sure the artifact has the required functionality defined
         for artifact, requirements in [
             (credo_model, self.model_requirements),
             (credo_data, self.data_requirements),
             (credo_training_data, self.training_data_requirements)
-             ]:
+        ]:
             if artifact:
                 existing_keys = [k for k, v in artifact.__dict__.items()
                                  if v is not None]
@@ -249,6 +249,25 @@ class AssessmentRequirements:
                 else:
                     if not functionality.intersection(requirement):
                         return False
+        # check frameworks
+        if self.model_frameworks:
+            if credo_model and credo_model.framework in self.model_frameworks:
+                pass
+            else:
+                return False
+        # check model type
+        if self.model_types:
+            if credo_model and credo_model.model_type in self.model_types:
+                pass
+            else:
+                return False
+        # check target type
+        if self.target_types:
+            for dataset in (credo_data, credo_training_data):
+                if dataset and dataset.target_type in self.target_types:
+                    pass
+                else:
+                    return False
         return True
 
     def get_requirements(self):
