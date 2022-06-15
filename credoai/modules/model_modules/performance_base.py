@@ -157,8 +157,8 @@ class PerformanceModule(CredoModule):
             Dataframe containing the input arrays
         """
         df = pd.DataFrame({'true': self.y_true,
-                           'pred': self.y_pred}).reset_index(drop=True)
-        df = df.join(self.get_sensitive_features())
+                           'pred': self.y_pred})
+        df = df.join(self.get_sensitive_features().reset_index(drop=True))
         if self.y_prob is not None:
             y_prob_df = pd.DataFrame(self.y_prob)
             y_prob_df.columns = [
