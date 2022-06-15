@@ -326,7 +326,7 @@ def prepare_assessment_payload(
         chart_records = []
         file_records = []
 
-    payload = {"assessed_at": assessed_at or datetime.now().strftime("%Y-%m-%dT%H-%M-%S"),
+    payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
                "metrics": assessment_records,
                "charts": chart_records,
                "files": file_records,
