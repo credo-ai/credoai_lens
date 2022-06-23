@@ -63,9 +63,6 @@ class FairnessReporter(CredoReporter):
                                                         f"Disaggregated metrics for Sensitive Feature: {sf_name.title()}",
                                                         metric_keys))
 
-                plt.suptitle(
-                    f"Sensitive Feature: {sf_name.title()}", fontweight="bold")
-
     def _plot_fairness_metrics(self, sf_name):
         # create df
         df = self.module.get_fairness_results()
@@ -86,6 +83,8 @@ class FairnessReporter(CredoReporter):
                     color=DEFAULT_COLOR,
                     ax=ax)
         self._style_barplot(ax)
+        plt.title(
+            f"Fairness Metrics for Sensitive Feature: {sf_name.title()}", fontweight="bold")
         return f
 
     def _plot_disaggregated_metrics(self, sf_name):
@@ -110,6 +109,8 @@ class FairnessReporter(CredoReporter):
                     ax=ax)
         self._style_barplot(ax)
         plt.legend(bbox_to_anchor=(1.2, 0.5), loc='center')
+        plt.title("Disaggregated Performance for Sensitive Feature: "
+                  f"{sf_name.title()}", fontweight="bold")
         return f
 
     def _style_barplot(self, ax):
@@ -119,7 +120,6 @@ class FairnessReporter(CredoReporter):
         # format metric labels
         ax.set_yticklabels([format_label(label.get_text())
                             for label in ax.get_yticklabels()])
-        plt.tight_layout()
 
 
 class BinaryClassificationReporter(FairnessReporter):
@@ -229,7 +229,7 @@ class BinaryClassificationReporter(FairnessReporter):
 
         # set up size
         # radius in data coordinates:
-        r = 0.3
+        r = 0.2
         # radius in display coordinates:
         r_ = ax.transData.transform([r, 0])[0] - \
             ax.transData.transform([0, 0])[0]

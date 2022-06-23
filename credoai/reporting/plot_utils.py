@@ -42,7 +42,7 @@ def get_style(rc=None, figsize=3, figure_ratio=1, n_cols=1, n_rows=1):
     # fontsizes defined relative to font.size
     # xx-small, x-small, small, medium, large, x-large, xx-large, larger, or smaller
     style = {'figure.figsize': fig_dims,
-             'figure.dpi': 100,
+             'figure.dpi': 150,
              'font.size': figsize*3,
              'lines.linewidth': figsize/3,
              'axes.linewidth': figsize/3,
