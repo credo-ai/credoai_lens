@@ -116,15 +116,17 @@ class Metric(Record):
 
 
 class File(Record):
-    def __init__(self, content, content_type, metric_keys=None, **metadata):
+    def __init__(self, name, content, content_type, metric_keys=None, **metadata):
         super().__init__('figures', **metadata)
+        self.name = name
         self.content = content
         self.content_type = content_type
         self.metric_keys = metric_keys
         self.content_type = None
 
     def struct(self):
-        return {'content': self.content,
+        return {'name': self.name,
+                'content': self.content,
                 'content_type': self.content_type,
                 'creation_time': self.creation_time,
                 'metric_keys': self.metric_keys,
@@ -178,7 +180,7 @@ class Figure(Record):
 
     def _encode_matplotlib_figure(self, fig):
         pic_IObytes = io.BytesIO()
-        fig.savefig(pic_IObytes,  format='png')
+        fig.savefig(pic_IObytes,  format='png', dpi=300, bbox_inches='tight')
         pic_IObytes.seek(0)
         self.figure_string = base64.b64encode(
             pic_IObytes.read()).decode('ascii')
