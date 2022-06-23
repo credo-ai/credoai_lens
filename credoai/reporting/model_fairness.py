@@ -1,35 +1,24 @@
-from credoai.reporting.credo_reporter import CredoReporter
-from credoai.reporting.plot_utils import (get_style,
-                                          credo_classification_palette, 
-                                          format_label, get_axis_size,
-                                          DEFAULT_COLOR,
-                                          credo_diverging_palette)
-from numpy import pi
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import sklearn.metrics as sk_metrics
+from credoai.reporting.credo_reporter import CredoReporter
+from credoai.reporting.plot_utils import (DEFAULT_COLOR,
+                                          credo_classification_palette,
+                                          credo_diverging_palette,
+                                          format_label, get_axis_size,
+                                          get_style)
+from numpy import pi
 
-from credoai.reporting.credo_reporter import CredoReporter
-from credoai.reporting.plot_utils import (get_style,
-                                          credo_classification_palette, 
-                                          format_label, get_axis_size,
-                                          DEFAULT_COLOR)
-from numpy import pi
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
-import sklearn.metrics as sk_metrics
 
 class FairnessReporter(CredoReporter):
     def __init__(self, assessment, size=3):
         super().__init__(assessment)
         self.size = size
-    
+
     def _create_assets(self):
-        """Creates fairness reporting assests"""                
+        """Creates fairness reporting assests"""
         # plot
         self.plot_fairness()
 
@@ -49,20 +38,21 @@ class FairnessReporter(CredoReporter):
         # ratio based on number of metrics and sensitive features
         metric_keys = []
         sensitive_features = self.module.get_sensitive_features()
-        
+
         for sf_name in sensitive_features:
-            r = self.module.get_results()[f'{sf_name}-disaggregated_performance'].shape
+            r = self.module.get_results(
+            )[f'{sf_name}-disaggregated_performance'].shape
             ratio = max(r[0]*r[1]/30, 1)
             with get_style(figsize=self.size, figure_ratio=ratio):
                 # plot fairness
                 if self.key_lookup is not None:
                     metric_keys = self.key_lookup.query(
-                            f'subtype == "parity" and sensitive_feature == "{sf_name}"'
-                        )['metric_key'].tolist()
+                        f'subtype == "parity" and sensitive_feature == "{sf_name}"'
+                    )['metric_key'].tolist()
                 f = self._plot_fairness_metrics(sf_name)
                 self.figs.append(self._create_chart(f, FAIRNESS_DESCRIPTION,
-                             f"Fairness metrics for Sensitive Feature: {sf_name.title()}",
-                             metric_keys=metric_keys))
+                                                    f"Fairness metrics for Sensitive Feature: {sf_name.title()}",
+                                                    metric_keys=metric_keys))
                 if plot_disaggregated:
                     if self.key_lookup is not None:
                         metric_keys = self.key_lookup.query(
@@ -70,15 +60,16 @@ class FairnessReporter(CredoReporter):
                         )['metric_key'].tolist()
                     f = self._plot_disaggregated_metrics(sf_name)
                     self.figs.append(self._create_chart(f, DISAGGREGATED_DESCRIPTION,
-                                f"Disaggregated metrics for Sensitive Feature: {sf_name.title()}",
-                                metric_keys))
+                                                        f"Disaggregated metrics for Sensitive Feature: {sf_name.title()}",
+                                                        metric_keys))
 
-                plt.suptitle(f"Sensitive Feature: {sf_name.title()}", fontweight="bold")
+                plt.suptitle(
+                    f"Sensitive Feature: {sf_name.title()}", fontweight="bold")
 
     def _plot_fairness_metrics(self, sf_name):
         # create df
         df = self.module.get_fairness_results()
-        df = df[df['sensitive_feature']==sf_name]
+        df = df[df['sensitive_feature'] == sf_name]
         df.drop(['sensitive_feature'], inplace=True, axis=1)
         # add parity to names
         df.index = [i+'_parity' if row['subtype'] == 'parity' else i
@@ -88,30 +79,31 @@ class FairnessReporter(CredoReporter):
         df.name = 'Value'
         # plot
         f, ax = plt.subplots()
-        sns.barplot(data=df.reset_index(), 
-                    y='Fairness Metric', 
+        sns.barplot(data=df.reset_index(),
+                    y='Fairness Metric',
                     x='Value',
                     edgecolor='w',
-                    color = DEFAULT_COLOR,
+                    color=DEFAULT_COLOR,
                     ax=ax)
         self._style_barplot(ax)
         return f
-        
+
     def _plot_disaggregated_metrics(self, sf_name):
         # create df
-        df = self.module.get_disaggregated_performance()[f'{sf_name}-disaggregated_performance']
-        df =  df.reset_index() \
-                    .melt(id_vars=['subtype', sf_name],
-                          var_name='Performance Metric',
-                          value_name='Value')
+        df = self.module.get_disaggregated_performance(
+        )[f'{sf_name}-disaggregated_performance']
+        df = df.reset_index() \
+            .melt(id_vars=['subtype', sf_name],
+                  var_name='Performance Metric',
+                  value_name='Value')
         # plot
         num_cats = len(df[sf_name].unique())
         palette = sns.color_palette('Purples', num_cats)
-        palette[-1] = [.4,.4,.4]
+        palette[-1] = [.4, .4, .4]
         f, ax = plt.subplots()
-        sns.barplot(data=df, 
-                    y='Performance Metric', 
-                    x='Value', 
+        sns.barplot(data=df,
+                    y='Performance Metric',
+                    x='Value',
                     hue=sf_name,
                     palette=palette,
                     edgecolor='w',
@@ -119,29 +111,29 @@ class FairnessReporter(CredoReporter):
         self._style_barplot(ax)
         plt.legend(bbox_to_anchor=(1.2, 0.5), loc='center')
         return f
-        
+
     def _style_barplot(self, ax):
         sns.despine()
         ax.set_xlabel(ax.get_xlabel(), fontweight='bold')
         ax.set_ylabel(ax.get_ylabel(), fontweight='bold')
         # format metric labels
-        ax.set_yticklabels([format_label(label.get_text()) 
+        ax.set_yticklabels([format_label(label.get_text())
                             for label in ax.get_yticklabels()])
         plt.tight_layout()
-    
+
 
 class BinaryClassificationReporter(FairnessReporter):
-    def __init__(self, assessment, infographic_shape=(3,5), size=3):
+    def __init__(self, assessment, infographic_shape=(3, 5), size=3):
         super().__init__(assessment, size)
         self.infographic_shape = infographic_shape
-    
+
     def _create_assets(self):
-        """Creates fairness reporting assests for binary classification"""        
+        """Creates fairness reporting assests for binary classification"""
 
         # plot
         # comparison plots
         self.plot_fairness()
-        
+
         # individual group performance plots
         self.plot_performance_infographics()
 
@@ -152,13 +144,14 @@ class BinaryClassificationReporter(FairnessReporter):
         metric_keys = []
         if self.key_lookup is not None:
             metric_keys = self.key_lookup \
-                            .query('subtype=="overall_performance"')['metric_key'].tolist()
+                .query('subtype=="overall_performance"')['metric_key'].tolist()
         self.figs.append(self._plot_performance_infographic(
             df['true'], df['pred'], 'Overall', metric_keys))
         for sf_name in self.module.get_sensitive_features():
             for group, sub_df in df.groupby(sf_name):
                 if self.key_lookup is not None:
-                    metric_keys=self.key_lookup[self.key_lookup[sf_name]==group]['metric_key'].tolist()
+                    metric_keys = self.key_lookup[self.key_lookup[sf_name] == group]['metric_key'].tolist(
+                    )
                 self.figs.append(self._plot_performance_infographic(
                     sub_df['true'], sub_df['pred'], group, metric_keys))
 
@@ -179,42 +172,45 @@ class BinaryClassificationReporter(FairnessReporter):
         Returns
         -------
         matplotlib figure
-        """        
+        """
         true_data, pred_data = self._create_data(y_true, y_pred)
         # plotting
         ratio = self.infographic_shape[0]/self.infographic_shape[1]
-        f, [true_ax, pred_ax, confusion_ax] = plt.subplots(1,3, figsize=(self.size*3, 
-                                                                         self.size*ratio))
-        self._plot_grid(true_data, true_ax, self.size, **grid_kwargs)
-        self._plot_grid(pred_data, pred_ax, self.size, **grid_kwargs)
-        self._plot_confusion_matrix(y_true, y_pred, confusion_ax, self.size/2)
-        # add text
-        true_ax.set_title('Ground Truth', fontsize=self.size*3, pad=0)
-        pred_ax.set_title('Model Predictions', fontsize=self.size*3, pad=0)
-        confusion_ax.set_title('Confusion Matrix', fontsize=self.size*2)
-        for ax, rate in [(true_ax, y_true.mean()), (pred_ax, y_pred.mean())]:
-            ax.text(.5, 0, f'Positive Rate = {rate: .2f}', 
-                    fontsize=self.size*2, transform = ax.transAxes, ha='center')
+        with get_style(figsize=self.size, figure_ratio=ratio, n_cols=3):
+            f, [true_ax, pred_ax, confusion_ax] = plt.subplots(1, 3)
+            self._plot_grid(true_data, true_ax, self.size, **grid_kwargs)
+            self._plot_grid(pred_data, pred_ax, self.size, **grid_kwargs)
+            self._plot_confusion_matrix(
+                y_true, y_pred, confusion_ax, self.size/2)
+            # add text
+            true_ax.set_title('Ground Truth',  pad=0)
+            pred_ax.set_title('Model Predictions', pad=0)
+            confusion_ax.set_title('Confusion Matrix', )
+            for ax, rate in [(true_ax, y_true.mean()), (pred_ax, y_pred.mean())]:
+                ax.text(.5, 0, f'Positive Rate = {rate: .2f}',
+                        transform=ax.transAxes, ha='center')
 
-        # other text objects
-        text_objects = [
-            (.5, 1, label, {'fontweight': 'bold', 'fontsize': self.size*6})
-        ]
-        text_ax = self._plot_text(f, text_objects)
-        return self._create_chart(f, INFOGRAPHIC_DESCRIPTION, 
+            # other text objects
+            text_objects = [
+                (.5, 1, label, {'fontweight': 'bold', 'fontsize': self.size*6})
+            ]
+            text_ax = self._plot_text(f, text_objects)
+        return self._create_chart(f, INFOGRAPHIC_DESCRIPTION,
                                   f"{label} Binary Classification Infographic",
                                   metric_keys)
-        
+
     def _create_data(self, y_true, y_pred):
         n = self.infographic_shape[0] * self.infographic_shape[1]
         true_pos_n = int(np.mean(y_true)*n)
         pred_pos_n = int(np.mean(y_pred)*n)
-        true_data = np.reshape([1]*true_pos_n + [0]*(n-true_pos_n), self.infographic_shape)
-        pred_data = np.reshape([1]*pred_pos_n + [0]*(n-pred_pos_n), self.infographic_shape)
+        true_data = np.reshape([1]*true_pos_n + [0] *
+                               (n-true_pos_n), self.infographic_shape)
+        pred_data = np.reshape([1]*pred_pos_n + [0] *
+                               (n-pred_pos_n), self.infographic_shape)
         return true_data, pred_data
 
     def _plot_circles(self,
-                      data, 
+                      data,
                       ax, colors, marker='o'):
         n_rows, n_cols = data.shape
 
@@ -223,7 +219,7 @@ class BinaryClassificationReporter(FairnessReporter):
         y = y + .5
         x = x + .5
 
-        #set up limits
+        # set up limits
         # final touches
         xlim = ax.get_xlim()
         ylim = ax.get_ylim()
@@ -233,21 +229,22 @@ class BinaryClassificationReporter(FairnessReporter):
 
         # set up size
         # radius in data coordinates:
-        r = 0.4
+        r = 0.3
         # radius in display coordinates:
-        r_ = ax.transData.transform([r,0])[0] - ax.transData.transform([0,0])[0]
+        r_ = ax.transData.transform([r, 0])[0] - \
+            ax.transData.transform([0, 0])[0]
         # marker size as the area of a circle
         markersize = pi * r_**2
 
         # plotting
-        ax.scatter(x, y, 
+        ax.scatter(x, y,
                    marker=marker,
-                   s = markersize, 
-                   c = colors)
+                   s=markersize,
+                   c=colors)
         sns.despine(left=True, bottom=True)
 
     def _plot_grid(self,
-                   data, 
+                   data,
                    ax,
                    size,
                    marker='circle',
@@ -261,42 +258,46 @@ class BinaryClassificationReporter(FairnessReporter):
             data = np.reshape(np.sort(data.flatten()), data.shape)
         # plot figure
         if marker == 'circle':
-            colors = np.array([palette[i] for i in data.flatten()], dtype=object)
+            colors = np.array([palette[i]
+                              for i in data.flatten()], dtype=object)
             self._plot_circles(data, ax, colors)
         else:
             sns.heatmap(data, cbar=False, linewidth=3, cmap=palette, ax=ax)
         # success plotting
-        success_colors = [[1,1,1,0], [1,1,1,1]]
-        success_colors = np.array([success_colors[i] for i in data.flatten()], dtype=object)
+        success_colors = [[1, 1, 1, 0], [1, 1, 1, 1]]
+        success_colors = np.array([success_colors[i]
+                                  for i in data.flatten()], dtype=object)
         self._plot_circles(data, ax, success_colors, marker='$\checkmark$')
 
         # failure plotting
-        failure_colors = [[0,0,0], [1,1,1,0]]
-        failure_colors = np.array([failure_colors[i] for i in data.flatten()], dtype=object)
-        self._plot_circles(data, ax, failure_colors, marker='x')    
+        failure_colors = [[0, 0, 0], [1, 1, 1, 0]]
+        failure_colors = np.array([failure_colors[i]
+                                  for i in data.flatten()], dtype=object)
+        self._plot_circles(data, ax, failure_colors, marker='x')
 
         ax.set_xticks([])
         ax.set_yticks([])
         return ax
-    
+
     def _plot_confusion_matrix(self, y_true, y_pred, ax, size):
         mat = sk_metrics.confusion_matrix(y_true, y_pred, normalize='true')
-        sns.heatmap(mat, 
-                    square=True, 
+        sns.heatmap(mat,
+                    square=True,
                     cbar=False,
                     linewidth=size/2,
-                    xticklabels = ['Negative', 'Positive'],
+                    xticklabels=['Negative', 'Positive'],
                     annot=True,
                     fmt='.1%',
                     cmap='Purples',
                     annot_kws={'fontsize': size*6},
                     ax=ax
-                   )
-        ax.set_yticklabels(['Negative', 'Positive'], va='center', rotation = 90, position=(0,0.28))
+                    )
+        ax.set_yticklabels(['Negative', 'Positive'],
+                           va='center', rotation=90, position=(0, 0.28))
         ax.tick_params(labelsize=size*5, length=0, pad=size/2)
         # labels
         ax.text(-.2, .5, 'Ground Truth', fontsize=size*5,
-                va='center', rotation = 90, transform=ax.transAxes, fontweight='bold')
+                va='center', rotation=90, transform=ax.transAxes, fontweight='bold')
         ax.text(.5, -.2, 'Prediction', fontsize=size*5,
                 ha='center', transform=ax.transAxes, fontweight='bold')
 
@@ -304,28 +305,31 @@ class BinaryClassificationReporter(FairnessReporter):
         labels = 'TN', 'FN', 'FP', 'TP'
         locations = [(.5, .2), (1.5, .2), (.5, 1.2), (1.5, 1.2)]
         for label, location in zip(labels, locations):
-            t = ax.text(location[0], location[1], label, ha='center', fontsize=size*3, color='k')
-            t.set_bbox(dict(facecolor='w', alpha=1, edgecolor='white', boxstyle='square,pad=.5'))
-        
+            t = ax.text(location[0], location[1], label,
+                        ha='center', fontsize=size*3, color='k')
+            t.set_bbox(dict(facecolor='w', alpha=1,
+                       edgecolor='white', boxstyle='square,pad=.5'))
+
     def _plot_text(self, f, text_objects):
-        ax = f.add_axes([0,0,1,1])
+        ax = f.add_axes([0, 0, 1, 1])
         sns.despine(left=True, bottom=True)
         ax.set_xticks([])
         ax.set_yticks([])
         ax.patch.set_alpha(0.01)
         for x, y, s, kwargs in text_objects:
-            ax.text(x, y, s, transform = ax.transAxes, ha='center', **kwargs)
+            ax.text(x, y, s, transform=ax.transAxes, ha='center', **kwargs)
         return ax
 
 
 class RegressionReporter(FairnessReporter):
     def __init__(self, assessment, size=3):
         super().__init__(assessment, size)
-    
+
     def _create_assets(self):
-        """Creates fairness reporting assests for regression"""        
+        """Creates fairness reporting assests for regression"""
         self.figs += self.plot_fairness()
-        self.figs += self._plot_true_vs_pred_scatter('Disaggregated Performance')
+        self.figs += self._plot_true_vs_pred_scatter(
+            'Disaggregated Performance')
 
     def _plot_true_vs_pred_scatter(self, sampling_size=200):
         """generates disaggregated scatter plot
@@ -341,7 +345,7 @@ class RegressionReporter(FairnessReporter):
         """
         df = self.module.get_df().groupby('sensitive').apply(
             lambda x: x.sample(min(sampling_size, len(x)), random_state=10)
-            ).reset_index(drop=True)
+        ).reset_index(drop=True)
         y_true, y_pred = df['true'], df['pred']
         num_cats = len(df['sensitive'].unique())
         palette = credo_diverging_palette(num_cats)
@@ -349,7 +353,8 @@ class RegressionReporter(FairnessReporter):
             f, ax = plt.subplots()
             p1 = min(min(y_pred), min(y_true))
             p2 = max(max(y_pred), max(y_true))
-            plt.plot([p1, p2], [p1, p2], ':', color=DEFAULT_COLOR,linewidth=.6)
+            plt.plot([p1, p2], [p1, p2], ':',
+                     color=DEFAULT_COLOR, linewidth=.6)
             sns.scatterplot(
                 x='true',
                 y='pred',

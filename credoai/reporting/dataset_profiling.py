@@ -17,11 +17,11 @@ class DatasetProfilingReporter(CredoReporter):
             If True, plot assets. Defaults True
         rerun : bool, optional
             If True, rerun asset creation. Defaults True
-            
+
         Returns
         -------
         array of dictionaries reflecting assets
-        """        
+        """
         if not self.figs or rerun:
             self._create_assets()
         if plot:
@@ -29,8 +29,8 @@ class DatasetProfilingReporter(CredoReporter):
         return self.figs
 
     def _create_assets(self):
-        self.figs = [self._create_html_blob(self.module.get_html_report())]
+        self.figs = [self._create_html_blob(
+            self.module.get_html_report(), name='dataset_profile')]
 
-        
     def display_results_tables(self):
         pass
