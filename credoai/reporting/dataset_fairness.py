@@ -129,7 +129,6 @@ class DatasetFairnessReporter(CredoReporter):
                         title=label_name
                     )
                     ax.legend_.set_title(label_name)
-                    plt.tight_layout()
             title = f'Dataset Balance with respect to Sensitive Feature: {sf_name}'
             # get metric keys for sensitive feature to append
             if self.key_lookup is not None:
@@ -179,7 +178,6 @@ class DatasetFairnessReporter(CredoReporter):
                 ax.set_xlabel("")
                 ax.set_ylabel("Group difference")
                 ax.xaxis.set_tick_params(rotation=90)
-                plt.tight_layout()
             if self.key_lookup is not None:
                 metric_keys = self.key_lookup.loc[['sensitive_feature_prediction_score']] \
                     .query(f'sensitive_feature=="{sf_name}"')['metric_key'].tolist()
@@ -226,12 +224,11 @@ class DatasetFairnessReporter(CredoReporter):
                 title = "Proxy Detection with Sensitive Feature: " + sf_name
                 ax.set_title(title)
                 ax.set_xlabel("")
-                ax.set_ylabel("Normalized mutual information")
+                ax.set_ylabel("Normalized\nmutual information")
                 ax.set_ylim([0, 1])
                 ax.xaxis.set_tick_params(rotation=90)
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
                 ax.legend(loc='upper right')
-                plt.tight_layout()
             if self.key_lookup is not None:
                 metric_keys = self.key_lookup.loc[['sensitive_feature_prediction_score',
                                                    'max_proxy_mutual_information']] \
