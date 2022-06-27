@@ -397,6 +397,6 @@ class DatasetFairness(CredoModule):
             balance_results['demographic_parity_difference'] = get_demo_parity(
                 lambda x: np.max(x)-np.min(x))
             balance_results['demographic_parity_ratio'] = get_demo_parity(
-                lambda x: np.max(x)/np.min(x))
+                lambda x: np.min(x)/np.max(x))
 
         return balance_results
