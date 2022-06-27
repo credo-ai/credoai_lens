@@ -192,7 +192,7 @@ class CredoGovernance:
                 ci.post_assessment(self.use_case_id,
                                    self.model_id, payload)
                 logging.info(
-                    f"Exporting assessments to Credo AI's Governance App")
+                    f"Successfully exported assessments to Credo AI's Governance App")
             else:
                 logging.error("Couldn't upload assessment to Credo AI's Governance App. "
                               "Ensure use_case_id is defined in CredoGovernance")

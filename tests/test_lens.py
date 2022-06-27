@@ -87,7 +87,8 @@ def test_lens_dataset_with_missing_data():
     lens = cl.Lens(data=credo_data)
     results = lens.run_assessments().get_results()
     metric_score = results["validation"]['DatasetFairness']["gender-demographic_parity_ratio"][0]['value']
-    assert metric_score == 0.375
+    print(sensitive_feature, metric_score)
+    assert round(metric_score, 4) == 0.4444
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {
         'DatasetFairness', 'DatasetProfiling'}
 
