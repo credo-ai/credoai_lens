@@ -23,8 +23,8 @@ tools developed in industry and academia. It is also extensible, and can accommo
 your own assessment pipeline as custom modules.
 
 
-Lens is developed by Credo AI, and integrates easily with the Credo AI Governance App. comprehensive
-is the foundation of AI Governance, but it is only one component! The Governance App helps with 
+Lens is developed by Credo AI, and integrates easily with the Credo AI Governance App. The comprehensive
+assessments Lens provides is the foundation of AI Governance, but it is only one component! The Governance App helps with 
 the rest.
 
 Check out the :ref:`quickstart tutorial <quickstart>` to get started.
@@ -44,8 +44,10 @@ Lens is made of a few components.
 
 Usage of Lens boils down to creating the artifacts you want to assess (CredoModel and/or CredoData), articulating the
 assessments you want run, how you want them to be run ("alignment") and running Lens. Most steps along this path
-can be automated by Lens or fully customized by the user. The end product is a report that summarizes
-all assessments.
+can be automated by Lens or fully customized by the user. As an open-source tool, the end product 
+is the set of assessments packaged as dataframes, and plots. When combined with the Credo AI
+Governance Platform, these assessments are exported into an integrated Governance Platform that
+provides perspective on the risk and compliance of all registered AI systems.
 
 
 Lens
@@ -114,12 +116,6 @@ Data assessments are run on these.
 
 **CredoGovernance** is the connection between Lens and the Governance App. This is only relevant
 for that use-case.
-
-
-Reports
--------
-Lens has robust reporting, which is described :ref:`here <Reporting>`. 
-
 
 
 The Alignment Spec
