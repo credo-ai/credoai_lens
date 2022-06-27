@@ -386,15 +386,17 @@ class DatasetFairness(CredoModule):
                     .rename({self.y.name: 'ratio'}, inplace=False, axis=1)\
                     .reset_index(inplace=False)
 
-            # Compute the maximum difference between any two pairs of groups
-            demographic_parity_difference = r.groupby(self.y.name)['ratio'].apply(
-                lambda x: np.max(x)-np.min(x)).reset_index(name='value').to_dict(orient='records')
+            # Compute the maximum difference/ratio between any two pairs of groups
 
-            # Compute the minimum ratio between any two pairs of groups
-            demographic_parity_ratio = r.groupby(self.y.name)['ratio'].apply(
-                lambda x: np.min(x)/np.max(x)).reset_index(name='value').to_dict(orient='records')
+            def get_demo_parity(fun):
+                return r.groupby(self.y.name)['ratio']\
+                    .apply(fun)\
+                    .reset_index(name='value')\
+                    .iloc[1:].to_dict(orient='records')
 
-            balance_results['demographic_parity_difference'] = demographic_parity_difference
-            balance_results['demographic_parity_ratio'] = demographic_parity_ratio
+            balance_results['demographic_parity_difference'] = get_demo_parity(
+                lambda x: np.max(x)-np.min(x))
+            balance_results['demographic_parity_ratio'] = get_demo_parity(
+                lambda x: np.min(x)/np.max(x))
 
         return balance_results

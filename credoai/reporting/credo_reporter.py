@@ -2,19 +2,21 @@
 Defines abstract base class for all CredoReports
 """
 
-from abc import ABC, abstractmethod
-from credoai.utils import  ValidationError
-from credoai.reporting.plot_utils import format_label
-from IPython.core.display import display, HTML
 import os
-import pandas as pd
+import textwrap
+from abc import ABC, abstractmethod
+
 import matplotlib.backends.backend_pdf
 import matplotlib.pyplot as plt
-import textwrap
+import pandas as pd
+from credoai.reporting.plot_utils import format_label
+from credoai.utils import ValidationError
+from IPython.core.display import HTML, display
+
 
 class CredoReporter(ABC):
     """Abstract base class for all CredoReports"""
-    
+
     def __init__(self, assessment):
         self.assessment = assessment
         self.module = assessment.initialized_module
@@ -32,11 +34,11 @@ class CredoReporter(ABC):
             If True, plot assets. Defaults True
         rerun : bool, optional
             If True, rerun asset creation. Defaults True
-            
+
         Returns
         -------
         array of dictionaries reflecting assets
-        """        
+        """
         if not self.figs or rerun:
             self.figs = []
             self._create_assets()
@@ -59,7 +61,8 @@ class CredoReporter(ABC):
         for key, val in results.items():
             title = format_label(key.upper(), wrap_length=30)
             anchor_name = f'{str(self.assessment)}-{"-".join(title.split())}'
-            display(HTML(f'<h3 id="{anchor_name}"><span style="font-size:1em; text-align: left">{title}</span></h3>'))
+            display(HTML(
+                f'<h3 id="{anchor_name}"><span style="font-size:1em; text-align: left">{title}</span></h3>'))
             try:
                 val = pd.DataFrame(val)
                 display(val)
@@ -76,21 +79,22 @@ class CredoReporter(ABC):
         """Creates assets, appending them to self.figs"""
         pass
 
-    def _create_chart(self, 
-                     figure, 
-                     description: str = None, 
-                     name: str = 'Figure',
-                     metric_keys = None):  
+    def _create_chart(self,
+                      figure,
+                      description: str = None,
+                      name: str = 'Figure',
+                      metric_keys=None):
         # if metric keys is not defined but key_lookup exists
-        # set metric_keys to all associated metrics                 
+        # set metric_keys to all associated metrics
         if self.key_lookup is not None and metric_keys is None:
             metric_keys = self.key_lookup['metric_key'].tolist()
-        return {'name': name, 'figure': figure, 
+        return {'name': name, 'figure': figure,
                 'description': description, 'metric_keys': metric_keys or []}
 
-    def _create_html_blob(self, html, metric_keys = None):
+    def _create_html_blob(self, html, name: str = "File", metric_keys=None):
         # if metric keys is not defined but key_lookup exists
-        # set metric_keys to all associated metrics  
+        # set metric_keys to all associated metrics
         if self.key_lookup is not None and metric_keys is None:
             metric_keys = self.key_lookup['metric_key'].tolist()
-        return {'content': html, 'content_type': "text/html", 'metric_keys': metric_keys}
+        return {'name': name, 'content': html,
+                'content_type': "text/html", 'metric_keys': metric_keys}

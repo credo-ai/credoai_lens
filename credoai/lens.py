@@ -193,7 +193,7 @@ class Lens:
         for assessment in self.get_assessments(flatten=True):
             try:
                 logging.info(
-                    f"** Exporting assessment-{assessment.get_name()}")
+                    f"Preparing assessment-{assessment.get_name()} for export")
                 prepared_assessment = self._prepare_results(assessment)
                 if prepared_assessment is not None:
                     prepared_results.append(prepared_assessment)
@@ -204,9 +204,12 @@ class Lens:
                 reporter = assessment.get_reporter()
                 if reporter is not None:
                     reporter_assets += reporter.report(plot=False)
+                    logging.info(
+                        f"** Reporting assets created")
             except:
                 raise Exception(
                     f"Reporter for assessment ({assessment.get_name()}) failed")
+        logging.info("Exporting assessments...")
         self.gov.export_assessment_results(
             prepared_results, reporter_assets,
             destination, self.run_time)
