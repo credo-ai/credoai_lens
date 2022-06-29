@@ -18,7 +18,7 @@ class FairnessReporter(CredoReporter):
         self.size = size
 
     def _create_assets(self):
-        """Creates fairness reporting assests"""
+        """Creates fairness reporting assets"""
         # plot
         self.plot_fairness()
 
@@ -326,16 +326,21 @@ class RegressionReporter(FairnessReporter):
         super().__init__(assessment, size)
 
     def _create_assets(self):
-        """Creates fairness reporting assests for regression"""
-        self.figs += self.plot_fairness()
-        self.figs += self._plot_true_vs_pred_scatter(
-            'Disaggregated Performance')
+        """Creates fairness reporting assets for regression"""
+        self.plot_fairness()
+        self.plot_true_vs_pred_scatter()
 
-    def _plot_true_vs_pred_scatter(self, sampling_size=200):
+    def plot_true_vs_pred_scatter(self):
+        for sf_name in self.module.get_sensitive_features():
+            self.figs.append(self._plot_true_vs_pred_scatter(sf_name))
+
+    def _plot_true_vs_pred_scatter(self, sensitive_feature, sampling_size=200):
         """generates disaggregated scatter plot
 
         Parameters
         ----------
+        sensitive_feature : str
+            sensitive feature name
         sampling_size : int
             the upper limit on the number of data points to plot by sampling without replacement
 
@@ -343,11 +348,11 @@ class RegressionReporter(FairnessReporter):
         -------
         matplotlib figure
         """
-        df = self.module.get_df().groupby('sensitive').apply(
+        df = self.module.get_df().groupby(sensitive_feature).apply(
             lambda x: x.sample(min(sampling_size, len(x)), random_state=10)
         ).reset_index(drop=True)
         y_true, y_pred = df['true'], df['pred']
-        num_cats = len(df['sensitive'].unique())
+        num_cats = len(df[sensitive_feature].unique())
         palette = credo_diverging_palette(num_cats)
         with get_style(figsize=self.size, figure_ratio=0.7):
             f, ax = plt.subplots()
@@ -358,14 +363,14 @@ class RegressionReporter(FairnessReporter):
             sns.scatterplot(
                 x='true',
                 y='pred',
-                hue='sensitive',
-                style='sensitive',
+                hue=sensitive_feature,
+                style=sensitive_feature,
                 palette=palette,
                 data=df,
                 alpha=1,
                 s=10
             )
-            ax.set_title('Disaggregated Performance')
+            ax.set_title(f"Disaggregated Performance for Sensitive Feature: {sensitive_feature.title()}")
             ax.set_xlabel("True Values")
             ax.set_ylabel("Predicted Values")
             ax.legend_.set_title('')
