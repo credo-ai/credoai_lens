@@ -89,6 +89,9 @@ class FairnessAssessment(CredoAssessment):
             y_prob = None
         metrics = get_default_metrics(
             model.model) if metrics is None else metrics
+        if metrics is None:
+            raise cutils.ValidationError(
+                "Metrics are not defined for 'Fairness' Assessment in the assessment plan")
         module = self.module(
             metrics,
             data.sensitive_features,
@@ -294,6 +297,10 @@ class PerformanceAssessment(CredoAssessment):
 
         metrics = get_default_metrics(
             model.model) if metrics is None else metrics
+        if metrics is None:
+            raise cutils.ValidationError(
+                "Metrics are not defined for 'Performance' Assessment in the assessment plan")
+
         sensitive_features = None if ignore_sensitive else data.sensitive_features
         module = self.module(
             metrics,
