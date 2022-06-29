@@ -310,8 +310,8 @@ class Lens:
 
     def _init_assessments(self):
         for bunch in self.assessments:
-            for assessment in bunch.assessments.values():
-                name = assessment.get_name()
+            to_remove = []
+            for name, assessment in bunch.assessments.items():
                 kwargs = deepcopy(
                     self.assessment_plan.get(assessment.name, {}))
                 reqs = assessment.get_requirements()
@@ -323,10 +323,16 @@ class Lens:
                     kwargs['training_data'] = bunch.secondary_dataset
                 try:
                     assessment.init_module(**kwargs)
-                except:
-                    raise ValidationError(f"Assessment ({name}) could not be initialized."
-                                          " Ensure the assessment plan is passing the required parameters"
-                                          )
+                except Exception as e:
+                    logging.error(f"Model and/or data meets requirements for Assessment ({name})"
+                                  " but it could not be initialized due to an error, likely related."
+                                  " to the assessment plan. Ensure the assessment plan is passing "
+                                  " the required parameters to run this assessment."
+                                  f" The error is reproduced below:\n\nError: {e}"
+                                  )
+                    to_remove.append(name)
+            for k in to_remove:
+                del bunch.assessments[k]
 
     def _init_reporters(self):
         for assessment in self.get_assessments(True):
