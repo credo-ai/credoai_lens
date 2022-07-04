@@ -166,7 +166,7 @@ class Lens:
         """
         assessment_kwargs = assessment_kwargs or {}
         for assessment in self.get_assessments(flatten=True):
-            logging.info(f"Running assessment-{assessment.get_name()}")
+            logging.info(f"Running assessment: {assessment.get_name()}")
             kwargs = assessment_kwargs.get(assessment.name, {})
             assessment.run(**kwargs)
         self.run_time = datetime.now().isoformat()

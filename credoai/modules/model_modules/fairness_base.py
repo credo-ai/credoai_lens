@@ -161,11 +161,15 @@ class FairnessModule(PerformanceModule):
         results = []
         for sf_name, sf_series in self.sensitive_features.items():
             for metric_name, metric in self.fairness_metrics.items():
-                metric_value = metric.fun(y_true=self.y_true,
-                                          y_pred=self.y_pred,
-                                          sensitive_features=sf_series,
-                                          method=method)
-
+                try:
+                    metric_value = metric.fun(y_true=self.y_true,
+                                              y_pred=self.y_pred,
+                                              sensitive_features=sf_series,
+                                              method=method)
+                except Exception as e:
+                    logging.error(f"A metric ({metric_name}) failed to run. "
+                                  "Are you sure it works with this kind of model and target?\n")
+                    raise e
                 results.append({
                     'metric_type': metric_name,
                     'value': metric_value,
@@ -173,10 +177,15 @@ class FairnessModule(PerformanceModule):
                 })
 
             for metric_name, metric in self.fairness_prob_metrics.items():
-                metric_value = metric.fun(y_true=self.y_true,
-                                          y_prob=self.y_prob,
-                                          sensitive_features=sf_series,
-                                          method=method)
+                try:
+                    metric_value = metric.fun(y_true=self.y_true,
+                                              y_prob=self.y_prob,
+                                              sensitive_features=sf_series,
+                                              method=method)
+                except Exception as e:
+                    logging.error(
+                        f"A metric ({metric_name}) failed to run. Are you sure it works with this kind of model and target?")
+                    raise e
                 results.append({
                     'metric_type': metric_name,
                     'value': metric_value,
@@ -196,9 +205,9 @@ class FairnessModule(PerformanceModule):
                 diffs['sensitive_feature'] = sf_name
                 parity_results.append(diffs)
 
-        parity_results = pd.concat(parity_results)
-
-        results = pd.concat([results, parity_results])
+        if parity_results:
+            parity_results = pd.concat(parity_results)
+            results = pd.concat([results, parity_results])
         results.set_index('metric_type', inplace=True)
         # add kind
         results['subtype'] = ['fairness'] * len(results)
