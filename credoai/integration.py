@@ -35,7 +35,7 @@ class Record:
         self.json_header = json_header
         # remove Nones from metadata
         self.metadata = {k: v for k, v in metadata.items() if v != 'NA'}
-        self.creation_time = datetime.now().isoformat()
+        self.creation_time = datetime.utcnow().isoformat()
 
     def struct(self):
         pass
@@ -328,7 +328,7 @@ def prepare_assessment_payload(
         chart_records = []
         file_records = []
 
-    payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
+    payload = {"assessed_at": assessed_at or datetime.utcnow().isoformat(),
                "metrics": assessment_records,
                "charts": chart_records,
                "files": file_records,

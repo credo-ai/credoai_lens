@@ -169,7 +169,7 @@ class Lens:
             logging.info(f"Running assessment: {assessment.get_name()}")
             kwargs = assessment_kwargs.get(assessment.name, {})
             assessment.run(**kwargs)
-        self.run_time = datetime.now().isoformat()
+        self.run_time = datetime.utcnow().isoformat()
         return self
 
     def export(self, destination="credoai"):
