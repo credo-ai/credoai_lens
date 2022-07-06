@@ -1,7 +1,6 @@
-from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import _VectorizerMixin
-from sklearn.feature_selection._base import SelectorMixin
 import numpy as np
+from sklearn import feature_extraction, feature_selection, pipeline
+
 
 class ColumnTransformerUtil:
     """Utility functions for ColumnTransformer
@@ -16,16 +15,16 @@ class ColumnTransformerUtil:
     """
     @staticmethod
     def get_feature_out(estimator, feature_in):
-        if hasattr(estimator,'get_feature_names_out'):
-            if isinstance(estimator, _VectorizerMixin):
+        if hasattr(estimator, 'get_feature_names_out'):
+            if isinstance(estimator, feature_extraction.text._VectorizerMixin):
                 # handling all vectorizers
-                return [f'vec_{f}' \
-                    for f in estimator.get_feature_names_out()]
+                return [f'vec_{f}'
+                        for f in estimator.get_feature_names_out()]
             else:
                 return estimator.get_feature_names_out(feature_in)
         elif hasattr(estimator, 'get_feature_names'):
             return estimator.get_feature_names(feature_in)
-        elif isinstance(estimator, SelectorMixin):
+        elif isinstance(estimator, feature_selection._base.SelectorMixin):
             return np.array(feature_in)[estimator.get_support()]
         else:
             return feature_in
@@ -38,15 +37,17 @@ class ColumnTransformerUtil:
         output_features = []
 
         for name, estimator, features in ct.transformers_:
-            if name!='remainder':
-                if isinstance(estimator, Pipeline):
+            if name != 'remainder':
+                if isinstance(estimator, pipeline.Pipeline):
                     current_features = features
                     for step in estimator:
-                        current_features = ColumnTransformerUtil.get_feature_out(step, current_features)
+                        current_features = ColumnTransformerUtil.get_feature_out(
+                            step, current_features)
                     features_out = current_features
                 else:
-                    features_out = ColumnTransformerUtil.get_feature_out(estimator, features)
+                    features_out = ColumnTransformerUtil.get_feature_out(
+                        estimator, features)
                 output_features.extend(features_out)
-            elif estimator=='passthrough':
+            elif estimator == 'passthrough':
                 output_features.extend(ct._feature_names_in[features])
         return output_features
