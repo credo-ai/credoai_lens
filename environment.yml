@@ -7,5 +7,5 @@ dependencies:
   - tensorflow>=2.7.1
   - transformers>=4.0.0
   - pip:
-    - credoai-lens[extras]
+    - credoai-lens[full]
 

@@ -1,10 +1,10 @@
-# required for modules.model_modules.nlp_generator.NLPGeneratorAnalyzer
+# required for NLP modules
 joblib>=0.14.1
 sentence-transformers>=2.1.0
 transformers>=4.0.0
 google-api-python-client>=1.12.8
 
-# required for privacy module
+# required for privacy and security module
 adversarial-robustness-toolbox>=1.10.1
 
 # for dev
