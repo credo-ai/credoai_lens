@@ -22,8 +22,9 @@ aims to be the single entrypoint to a broad ecosystem of open source assessment
 tools developed in industry and academia. It is also extensible, and can accommodate
 your own assessment pipeline as custom modules.
 
-Lens allows you to assess your AI artifacts with respect to:
-* Performance 
+Lens allows you to assess your AI systems with respect to:
+
+* Performance
 * Fairness
 * Security
 * Privacy
@@ -34,7 +35,7 @@ the rest.
 
 Check out the :ref:`quickstart tutorial <quickstart>` to get started. 
 
-Check out the  :ref:`FAQ <lens_faq>` for answers to common questions.
+Check out the :ref:`FAQ <lens faq>` for answers to common questions.
 
 If you are connecting to the Credo AI Governance App, see the :ref:`governance integration tutorial <Connecting with the Credo AI Governance App>`.
 
@@ -84,6 +85,7 @@ or dataset. While Credo AI has defined some modules of our own, your own code ca
 thought of as a module (inherit from the abstract `CredoModule <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/modules/credo_module.py>`_ class), as could other tools available in the broader AI ecosystem.
 
 Some well known packages already serve as the foudnation for some Lens modules, such as:
+
 * Fairlearn
 * Adversarial Robustness Toolbox
 * Pandas Profiler
@@ -145,7 +147,7 @@ In this case, the Assessment Plan still serves as an initial decision
 as to how assessments should be run, and summary of the assessments run.
 
 Beyond the Assessment Plan, each module has other parameters that can be configured. 
-See :ref:`the FAQ <lens_faq>` for more information.
+See :ref:`the FAQ <lens faq>` for more information.
 
 
 Credo AI Governance App
