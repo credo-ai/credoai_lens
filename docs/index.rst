@@ -22,12 +22,19 @@ aims to be the single entrypoint to a broad ecosystem of open source assessment
 tools developed in industry and academia. It is also extensible, and can accommodate
 your own assessment pipeline as custom modules.
 
+Lens allows you to assess your AI artifacts with respect to:
+* Performance 
+* Fairness
+* Security
+* Privacy
 
 Lens is developed by Credo AI, and integrates easily with the Credo AI Governance App. The comprehensive
 assessments Lens provides is the foundation of AI Governance, but it is only one component! The Governance App helps with 
 the rest.
 
-Check out the :ref:`quickstart tutorial <quickstart>` to get started.
+Check out the :ref:`quickstart tutorial <quickstart>` to get started. 
+
+Check out the  :ref:`FAQ <lens_faq>` for answers to common questions.
 
 If you are connecting to the Credo AI Governance App, see the :ref:`governance integration tutorial <Connecting with the Credo AI Governance App>`.
 
@@ -38,9 +45,8 @@ Lens is made of a few components.
 
 * **Lens** is the primary interface between models, data, modules and (optionally) the Credo AI Governance App.
 * **CredoModel / CredoData** are wrappers to bring models and data into the Lens Framework
-* **Modules** are tools to perform assessment-related functions on models and/or data. A bias assessment is a type of module.
+* **Modules** are tools to perform assessment-related functions on models and/or data. 
 * **Assessments** are the connective tissue between CredoModels and CredoData and modules.
-* **Reporters** handle displaying the results of an assessment.
 
 Usage of Lens boils down to creating the artifacts you want to assess (CredoModel and/or CredoData), articulating the
 assessments you want run, how you want them to be run ("alignment") and running Lens. Most steps along this path
@@ -77,7 +83,12 @@ Modules are a broad class. They can be anything - any tool you'd want to run on 
 or dataset. While Credo AI has defined some modules of our own, your own code can be 
 thought of as a module (inherit from the abstract `CredoModule <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/modules/credo_module.py>`_ class), as could other tools available in the broader AI ecosystem.
 
-Because the class of modules is literally unconstrained, we need a way to standardize
+Some well known packages already serve as the foudnation for some Lens modules, such as:
+* Fairlearn
+* Adversarial Robustness Toolbox
+* Pandas Profiler
+
+Because the class of modules is  unconstrained, we need a way to standardize
 their API. We do that in the form of CredoAssessments. CredoAssessments are 
 wrappers around one or more modules that allow them to connect to 
 CredoModels and Data (:ref:`Credo Artifacts: Model, Data, & Governance`).
@@ -118,26 +129,24 @@ Data assessments are run on these.
 for that use-case.
 
 
-The Alignment Spec
+The Assessment Plan
 ------------------
-An "Alignment Spec" must be supplied to Lens. The spec articulates
-how different assessments should be run:  
-it is a parameterization of the assessment.
+An "Assessment Plan" must be supplied to Lens. The plan configures
+how different assessments should be run.
 
-The spec makes most sense as part of Credo AI's overall governance app. In 
-this context the Spec is the output of a multi-stakeholder articulation of
+The plan makes most sense as part of Credo AI's overall governance app. In 
+this context the Assessment Plan is the output of a multi-stakeholder articulation of
 how the AI system should be assessed. Lens actually takes care of automatically
-retrieving the Alignment Spec from Governance App, connecting 
+retrieving the Assessment Plan from Governance App, connecting 
 your technical team to compliance, product, and other stakeholders.
 
-Of course, a single person can also defined the Spec. 
-In this case, the Alignment Spec still serves as an initial decision
+Of course, a single person can also defined the Plan. 
+In this case, the Assessment Plan still serves as an initial decision
 as to how assessments should be run, and summary of the assessments run.
 
-Beyond the Alignment Spec, each module has other parameters that can be customized.
-In addition, the set of modules are easily customized and extended. Lens strives to give
-you sensible defaults without placing unnecessary restrictions. The `lens customization` tutorial
-goes through these aspects.
+Beyond the Assessment Plan, each module has other parameters that can be configured. 
+See :ref:`the FAQ <lens_faq>` for more information.
+
 
 Credo AI Governance App
 ----------------------------
