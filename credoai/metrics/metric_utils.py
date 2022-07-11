@@ -1,16 +1,29 @@
+import textwrap
 from collections import defaultdict
-from credoai.metrics.metrics import (
-    ALL_METRICS, METRIC_NAMES, METRIC_CATEGORIES
-)
+
+import numpy as np
+from credoai.metrics.metrics import (ALL_METRICS, METRIC_CATEGORIES,
+                                     METRIC_NAMES, MODEL_METRIC_CATEGORIES)
 from scipy.stats import norm
 from sklearn.utils import resample
-import numpy as np
 
-def list_metrics():
+
+def list_metrics(verbose=True):
     metrics = defaultdict(set)
     for metric in ALL_METRICS:
-        metrics[metric.metric_category] |= metric.equivalent_names
+        if metric.metric_category in MODEL_METRIC_CATEGORIES:
+            metrics[metric.metric_category] |= metric.equivalent_names
+    if verbose:
+        for key, val in metrics.items():
+            metric_str = textwrap.fill(', '.join(sorted(list(val))),
+                                       width=50,
+                                       initial_indent='\t',
+                                       subsequent_indent='\t')
+            print(key)
+            print(metric_str)
+            print('')
     return metrics
+
 
 def bootstrap_CI(metric_fun, fun_inputs, CI=.95,
                  reps=1000, method='se', random_state=None,
@@ -42,7 +55,7 @@ def bootstrap_CI(metric_fun, fun_inputs, CI=.95,
         the data.
     **fun_kwargs : kwargs
         set of key words that will be passed to metric_fun. 
-    """    
+    """
     CI_bounds = [(1-CI)/2, 1-(1-CI)/2]
     keys = fun_inputs.keys()
     data = list(fun_inputs.values())

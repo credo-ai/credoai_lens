@@ -1,10 +1,11 @@
 import json
 import os
-import requests
 import time
 from collections import defaultdict
+
+import requests
+from credoai.utils.common import IntegrationError, get_project_root, json_dumps
 from credoai.utils.constants import CREDO_URL
-from credoai.utils.common import get_project_root, json_dumps, IntegrationError
 from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
 
@@ -37,6 +38,7 @@ def refresh_token():
     key = exchange_token()
     HEADERS['Authorization'] = key
     SESSION.headers.update(HEADERS)
+
 
 def renew_access_token(func):
     def wrapper(*args, **kwargs):
@@ -77,7 +79,7 @@ def get_associated_models(use_case_id):
 
 def get_assessment_spec(assessment_spec_url):
     """Get the assessment spec
-    
+
     The assessment spec includes all information needed to assess a model and integrate
     with the Credo AI Governance Platform. This includes the necessary IDs, as well as 
     the assessment plan
@@ -88,9 +90,11 @@ def get_assessment_spec(assessment_spec_url):
         assessment_spec = {k: v for k,
                            v in downloaded_spec.items() if '_id' in k}
         assessment_spec['assessment_plan'] = downloaded_spec['assessment_plan']
-        assessment_spec['policy_questions'] = _process_policies(downloaded_spec['policies'])
+        assessment_spec['policy_questions'] = _process_policies(
+            downloaded_spec['policies'])
     except requests.exceptions.HTTPError:
-        raise IntegrationError("Failed to retrieve assessment spec. Check that the url is correct")
+        raise IntegrationError(
+            "Failed to retrieve assessment spec. Check that the url is correct")
     return assessment_spec
 
 
@@ -284,15 +288,16 @@ def _get_name(artifact_id, artifact_type):
             raise IntegrationError(
                 f"No {artifact_type} found with id: {artifact_id}")
 
+
 def _process_policies(policies):
     """Returns list of binary questions"""
-    policies = sorted(policies, key = lambda x: x['stage_key'])
+    policies = sorted(policies, key=lambda x: x['stage_key'])
     question_list = defaultdict(list)
     for policy in policies:
         for control in policy['controls']:
             label = policy['stage_key']
             questions = control['questions']
-            filtered_questions = [f"{control['key']}: {q['question']}" for q in questions 
+            filtered_questions = [f"{control['key']}: {q['question']}" for q in questions
                                   if q.get('options') == ['Yes', 'No']]
             if filtered_questions:
                 question_list[label] += filtered_questions

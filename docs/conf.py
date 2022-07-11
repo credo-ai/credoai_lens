@@ -6,12 +6,15 @@
 
 # -- Path setup --------------------------------------------------------------
 
+import os
+import sys
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
+import furo
+
 sys.path.insert(0, os.path.abspath('..'))
 import credoai
 
@@ -28,14 +31,14 @@ release = credoai.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc', # Core library for html generation from docstrings
+    'sphinx.ext.autodoc',  # Core library for html generation from docstrings
     'sphinx.ext.autosectionlabel',
-    'sphinx.ext.autosummary', # Create neat summary tables
+    'sphinx.ext.autosummary',  # Create neat summary tables
     'sphinx_copybutton',
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon',
-    'sphinx_autodoc_typehints', # needs to be AFTER napoleon
+    'sphinx_autodoc_typehints',  # needs to be AFTER napoleon
     'sphinx_rtd_theme',
     'nbsphinx'
 ]
@@ -54,26 +57,37 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 autodoc_member_order = 'groupwise'
 autoclass_content = 'both'
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
-set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
+# Enable 'expensive' imports for sphinx_autodoc_typehints
+set_type_checking_flag = True
 nbsphinx_allow_errors = True  # Continue through Jupyter errors
-nbsphinx_execute = 'never' # do not execute jupyter notebooks
+nbsphinx_execute = 'never'  # do not execute jupyter notebooks
+
 autodoc_mock_imports = [
     'absl',
     'cloudpickle',
-    'dotenv', 
+    'dotenv',
     'fairlearn',
     'googleapiclient',
-    'joblib', 
+    'joblib',
     'json_api_doc',
     'matplotlib',
-    'nbclient',
-    'nbformat',
+    'matplotlib.backends',
+    'matplotlib.pyplot',
+    'matplotlib.ticker',
     'nest_asyncio',
-    'numpy', 'pandas', 
-    'scipy', 
+    'numpy',
+    'pandas',
+    'pandas_profiling',
+    'scipy',
     'seaborn',
-    'sklearn', 
-    'sentence_transformers', 
+    'sklearn',
+    'sklearn.base',
+    'sklearn.datasets',
+    'sklearn.ensemble',
+    'sklearn.metrics',
+    'sklearn.utils',
+    'sklearn.utils.multiclass',
+    'sentence_transformers',
     'tempfile',
     'transformers'
 ]
@@ -87,7 +101,7 @@ autodoc_mock_imports = [
 
 
 # documentation for furo: https://pradyunsg.me/furo/quickstart/
-import furo
+
 html_theme = 'furo'
 
 # import sphinx_rtd_theme

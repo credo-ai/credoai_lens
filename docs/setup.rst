@@ -4,35 +4,16 @@ Setup
 Installation
 -------------
 
-The latest stable release (and required dependencies) can be installed from PyPI.
+The latest stable release (and required dependencies) can be installed from PyPI. We suggest
+installing credoai-lens[full] for full functionality. Following the directions
+for Conda is the most robust installation method.
 
-.. note::
-   This installation only includes dependencies needed for a small set of modules
+**Conda**
 
+Lens is not on conda-forge. However, you can create a working
+python environment using Anaconda by following the below steps. 
 
-::
-
-   pip install credoai-lens
-
-.. note::
-   To include additional dependencies needed for some modules and demos, use the 
-   following installation command. 
-
-On Mac
-::
-   pip install 'credoai-lens[extras]'
-
-On Windows
-::
-   pip install credoai-lens[extras]
-
-
-**Virtual Environment**
-
-Lens can be installed in any python environment. The easiest way to create a working
-python environment is using Anaconda to create a new environment. 
-
-First, download this `environment.yml <https://github.com/credo-ai/credoai_lens/blob/develop/environment.yml>`_ file.
+First, download this `environment.yml <https://raw.githubusercontent.com/credo-ai/credoai_lens/develop/environment.yml>`_ file.
 
 Then run...
 
@@ -40,8 +21,31 @@ Then run...
 
    conda env create --file {path-to-environment.yml}
 
-The above will install Lens with all dependencies (equivalent to credoai-lens[extras]) above. If
+The above will install Lens with all dependencies (equivalent to credoai-lens[full]) below. If
 you only want to install the basic lens, edit the environment.yml file before running.
+
+
+**Pip**
+
+.. note::
+   This installation only includes dependencies needed for a small set of assessments.
+   To include additional dependencies needed for additional assessments, install with
+   "full"
+
+
+::
+
+   pip install credoai-lens
+
+
+
+On Mac
+::
+   pip install 'credoai-lens[full]'
+
+On Windows
+::
+   pip install credoai-lens[full]
 
 **ARM Macbook installation troubleshooting**
 

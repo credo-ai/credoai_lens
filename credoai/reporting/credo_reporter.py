@@ -6,7 +6,6 @@ import os
 import textwrap
 from abc import ABC, abstractmethod
 
-import matplotlib.backends.backend_pdf
 import matplotlib.pyplot as plt
 import pandas as pd
 from credoai.reporting.plot_utils import format_label

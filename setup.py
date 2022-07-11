@@ -1,8 +1,9 @@
 #! /usr/bin/env python
 #
 # Copyright (C) 2021-2021 Credo AI
-from credoai import __version__
 import setuptools
+
+from credoai import __version__
 
 DESCRIPTION = "Lens: comprehensive assessment framework for AI systems"
 DISTNAME = 'credoai-lens'
@@ -32,8 +33,8 @@ with open("docs/requirements.txt") as f:
 
 dev_requirements = extras_requirements + doc_requirements
 
-EXTRAS_REQUIRES = {'extras' : extras_requirements,
-                   'dev' : dev_requirements}
+EXTRAS_REQUIRES = {'full': extras_requirements,
+                   'dev': dev_requirements}
 
 
 CLASSIFIERS = [
@@ -49,18 +50,18 @@ CLASSIFIERS = [
 PACKAGE_DATA = {
     'credoai':
         [
-        'data/*',
-        'data/static/nlp_generator_analyzer/persisted_models/*',
-        'data/static/nlp_generator_analyzer/prompts/*',
+            'data/*',
+            'data/static/nlp_generator_analyzer/persisted_models/*',
+            'data/static/nlp_generator_analyzer/prompts/*',
         ]
 }
 
 
 if __name__ == "__main__":
 
-    from setuptools import setup
-
     import sys
+
+    from setuptools import setup
     if sys.version_info[:2] < (3, 6):
         raise RuntimeError("seaborn requires python >= 3.6.")
 

@@ -39,12 +39,12 @@ following installation command.
 
 On Mac
 ```
-pip install 'credoai-lens[extras]'
+pip install 'credoai-lens[full]'
 ```
 
 On Windows
 ```
-pip install credoai-lens[extras]
+pip install credoai-lens[full]
 ```
 
 Modules that require extras include:

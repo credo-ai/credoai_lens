@@ -200,7 +200,7 @@ class NLPGeneratorAssessment(CredoAssessment):
                 assessment_functions = cutils.nlp_utils.get_default_nlp_assessments()
             except AttributeError:
                 raise InstallationError(
-                    "To use default assessment functions requires installing credoai-lens[extras]")
+                    "To use default assessment functions requires installing credoai-lens[full]")
 
         # set up generation functions
         generation_functions = {model.name: model.generator_fun}
@@ -211,7 +211,7 @@ class NLPGeneratorAssessment(CredoAssessment):
                     cutils.nlp_utils.gpt2_text_generator
             except AttributeError:
                 raise InstallationError(
-                    "To use the default comparison model requires installing credoai-lens[extras]")
+                    "To use the default comparison model requires installing credoai-lens[full]")
         else:
             generation_functions.update(comparison_models)
 
