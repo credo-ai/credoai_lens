@@ -19,6 +19,44 @@ from credoai.utils import InstallationError
 from credoai.utils.model_utils import get_default_metrics
 from sklearn.utils.multiclass import type_of_target
 
+
+# *******************
+# General Assessments
+# *******************
+class EquityAssessment(CredoAssessment):
+    """Evaluation of the equity of model/dataset outcomes
+    """
+
+    def __init__(self):
+        super().__init__(
+            'Equity',
+            mod.EquityModule,
+            AssessmentRequirements(
+                model_requirements=['predict'],
+                data_requirements=['y', 'sensitive_features']
+            )
+        )
+
+    def init_module(self, *, model, data):
+        """Initializes the assessment module
+
+        Parameters
+        ------------
+        model : CredoModel
+        data : CredoData
+        """
+        super().init_module(model=model, data=data)
+        y_pred = model.predict(data.X)
+
+        module = self.module(
+            data.sensitive_features,
+            data.y,
+            y_pred)
+        self.initialized_module = module
+
+    def init_reporter(self):
+        pass
+
 # *******************
 # Model Assessments
 # *******************

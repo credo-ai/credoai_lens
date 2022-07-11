@@ -18,7 +18,8 @@ modules = [
     'model_modules.performance_base',
     'model_modules.nlp_generator',
     'model_modules.privacy',
-    'model_modules.security'
+    'model_modules.security',
+    'general_modules.equity'
 ]
 
 importable_modules = []
