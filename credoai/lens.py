@@ -314,18 +314,17 @@ class Lens:
             for name, assessment in bunch.assessments.items():
                 kwargs = deepcopy(
                     self.assessment_plan.get(assessment.name, {}))
-                reqs = assessment.get_requirements()
-                if reqs['model_requirements']:
+                if bunch.model is not None:
                     kwargs['model'] = bunch.model
-                if reqs['data_requirements']:
+                if bunch.primary_dataset is not None:
                     kwargs['data'] = bunch.primary_dataset
-                if reqs['training_data_requirements']:
+                if bunch.secondary_dataset is not None:
                     kwargs['training_data'] = bunch.secondary_dataset
                 try:
                     assessment.init_module(**kwargs)
                 except Exception as e:
                     logging.error(f"Model and/or data meets requirements for Assessment ({name})"
-                                  " but it could not be initialized due to an error, likely related."
+                                  " but it could not be initialized due to an error, likely related"
                                   " to the assessment plan. Ensure the assessment plan is passing "
                                   " the required parameters to run this assessment."
                                   f" The error is reproduced below:\n\nError: {e}"
