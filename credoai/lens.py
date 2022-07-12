@@ -346,7 +346,10 @@ class Lens:
                 # if governance defined, set up reporter for key lookup
                 if self.gov is not None:
                     reporter.set_key_lookup(self._prepare_results(assessment))
-                self.reporters.append(reporter)
+                try:
+                    self.reporters += reporter
+                except TypeError:
+                    self.reporters.append(reporter)
 
     def _prepare_results(self, assessment, **kwargs):
         """Prepares results and adds metric keys"""

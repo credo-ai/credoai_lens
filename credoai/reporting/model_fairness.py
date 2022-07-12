@@ -13,8 +13,8 @@ from numpy import pi
 
 
 class FairnessReporter(CredoReporter):
-    def __init__(self, assessment, size=3):
-        super().__init__(assessment)
+    def __init__(self, assessment, module=None, size=3):
+        super().__init__(assessment, module)
         self.size = size
 
     def _create_assets(self):
@@ -37,36 +37,33 @@ class FairnessReporter(CredoReporter):
             plot_disaggregated = True
         # ratio based on number of metrics and sensitive features
         metric_keys = []
-        sensitive_features = self.module.get_sensitive_features()
-
-        for sf_name in sensitive_features:
-            r = self.module.get_results(
-            )[f'{sf_name}-disaggregated_performance'].shape
-            ratio = max(r[0]*r[1]/30, 1)
-            with get_style(figsize=self.size, figure_ratio=ratio):
-                # plot fairness
+        sensitive_features = self.module.sensitive_features
+        sf_name = sensitive_features.name
+        r = self.module.get_results()['disaggregated_performance'].shape
+        ratio = max(r[0]*r[1]/30, 1)
+        with get_style(figsize=self.size, figure_ratio=ratio):
+            # plot fairness
+            if self.key_lookup is not None:
+                metric_keys = self.key_lookup.query(
+                    f'subtype == "parity" and sensitive_feature == "{sf_name}"'
+                )['metric_key'].tolist()
+            f = self._plot_fairness_metrics()
+            self.figs.append(self._create_chart(f, FAIRNESS_DESCRIPTION,
+                                                f"Fairness metrics for Sensitive Feature: {sf_name.title()}",
+                                                metric_keys=metric_keys))
+            if plot_disaggregated:
                 if self.key_lookup is not None:
                     metric_keys = self.key_lookup.query(
-                        f'subtype == "parity" and sensitive_feature == "{sf_name}"'
+                        f'subtype == "disaggregated_performance" and sensitive_feature == "{sf_name}"'
                     )['metric_key'].tolist()
-                f = self._plot_fairness_metrics(sf_name)
-                self.figs.append(self._create_chart(f, FAIRNESS_DESCRIPTION,
-                                                    f"Fairness metrics for Sensitive Feature: {sf_name.title()}",
-                                                    metric_keys=metric_keys))
-                if plot_disaggregated:
-                    if self.key_lookup is not None:
-                        metric_keys = self.key_lookup.query(
-                            f'subtype == "disaggregated_performance" and sensitive_feature == "{sf_name}"'
-                        )['metric_key'].tolist()
-                    f = self._plot_disaggregated_metrics(sf_name)
-                    self.figs.append(self._create_chart(f, DISAGGREGATED_DESCRIPTION,
-                                                        f"Disaggregated metrics for Sensitive Feature: {sf_name.title()}",
-                                                        metric_keys))
+                f = self._plot_disaggregated_metrics()
+                self.figs.append(self._create_chart(f, DISAGGREGATED_DESCRIPTION,
+                                                    f"Disaggregated metrics for Sensitive Feature: {sf_name.title()}",
+                                                    metric_keys))
 
-    def _plot_fairness_metrics(self, sf_name):
+    def _plot_fairness_metrics(self):
         # create df
         df = self.module.get_fairness_results()
-        df = df[df['sensitive_feature'] == sf_name]
         df.drop(['sensitive_feature'], inplace=True, axis=1)
         # add parity to names
         df.index = [i+'_parity' if row['subtype'] == 'parity' else i
@@ -84,13 +81,14 @@ class FairnessReporter(CredoReporter):
                     ax=ax)
         self._style_barplot(ax)
         plt.title(
-            f"Fairness Metrics for Sensitive Feature: {sf_name.title()}", fontweight="bold")
+            f"Fairness Metrics for Sensitive Feature: {self.module.sensitive_features.name.title()}", fontweight="bold")
         return f
 
-    def _plot_disaggregated_metrics(self, sf_name):
+    def _plot_disaggregated_metrics(self):
         # create df
+        sf_name = self.module.sensitive_features.name
         df = self.module.get_disaggregated_performance(
-        )[f'{sf_name}-disaggregated_performance']
+        )['disaggregated_performance']
         df = df.reset_index() \
             .melt(id_vars=['subtype', sf_name],
                   var_name='Performance Metric',
@@ -123,8 +121,8 @@ class FairnessReporter(CredoReporter):
 
 
 class BinaryClassificationReporter(FairnessReporter):
-    def __init__(self, assessment, infographic_shape=(3, 5), size=3):
-        super().__init__(assessment, size)
+    def __init__(self, assessment, module=None, infographic_shape=(3, 5), size=3):
+        super().__init__(assessment, module, size)
         self.infographic_shape = infographic_shape
 
     def _create_assets(self):
@@ -147,13 +145,13 @@ class BinaryClassificationReporter(FairnessReporter):
                 .query('subtype=="overall_performance"')['metric_key'].tolist()
         self.figs.append(self._plot_performance_infographic(
             df['true'], df['pred'], 'Overall', metric_keys))
-        for sf_name in self.module.get_sensitive_features():
-            for group, sub_df in df.groupby(sf_name):
-                if self.key_lookup is not None:
-                    metric_keys = self.key_lookup[self.key_lookup[sf_name] == group]['metric_key'].tolist(
-                    )
-                self.figs.append(self._plot_performance_infographic(
-                    sub_df['true'], sub_df['pred'], group, metric_keys))
+        sf_name = self.module.sensitive_features.name
+        for group, sub_df in df.groupby(sf_name):
+            if self.key_lookup is not None:
+                metric_keys = self.key_lookup[self.key_lookup[sf_name] == group]['metric_key'].tolist(
+                )
+            self.figs.append(self._plot_performance_infographic(
+                sub_df['true'], sub_df['pred'], group, metric_keys))
 
     def _plot_performance_infographic(self, y_true, y_pred, label, metric_keys=None, **grid_kwargs):
         """Plots performance for binary classification
@@ -322,25 +320,19 @@ class BinaryClassificationReporter(FairnessReporter):
 
 
 class RegressionReporter(FairnessReporter):
-    def __init__(self, assessment, size=3):
-        super().__init__(assessment, size)
+    def __init__(self, assessment, module=None, size=3):
+        super().__init__(assessment, module, size)
 
     def _create_assets(self):
         """Creates fairness reporting assets for regression"""
         self.plot_fairness()
         self.plot_true_vs_pred_scatter()
 
-    def plot_true_vs_pred_scatter(self):
-        for sf_name in self.module.get_sensitive_features():
-            self.figs.append(self._plot_true_vs_pred_scatter(sf_name))
-
-    def _plot_true_vs_pred_scatter(self, sensitive_feature, sampling_size=200):
+    def plot_true_vs_pred_scatter(self, sampling_size=200):
         """generates disaggregated scatter plot
 
         Parameters
         ----------
-        sensitive_feature : str
-            sensitive feature name
         sampling_size : int
             the upper limit on the number of data points to plot by sampling without replacement
 
@@ -348,11 +340,12 @@ class RegressionReporter(FairnessReporter):
         -------
         matplotlib figure
         """
+        sensitive_feature = self.module.sensitive_features
         df = self.module.get_df().groupby(sensitive_feature).apply(
             lambda x: x.sample(min(sampling_size, len(x)), random_state=10)
         ).reset_index(drop=True)
         y_true, y_pred = df['true'], df['pred']
-        num_cats = len(df[sensitive_feature].unique())
+        num_cats = len(df[sensitive_feature.name].unique())
         palette = credo_diverging_palette(num_cats)
         with get_style(figsize=self.size, figure_ratio=0.7):
             f, ax = plt.subplots()
@@ -370,11 +363,13 @@ class RegressionReporter(FairnessReporter):
                 alpha=1,
                 s=10
             )
-            ax.set_title(f"Disaggregated Performance for Sensitive Feature: {sensitive_feature.title()}")
+            ax.set_title(
+                f"Disaggregated Performance for Sensitive Feature: {sensitive_feature.name.title()}")
             ax.set_xlabel("True Values")
             ax.set_ylabel("Predicted Values")
             ax.legend_.set_title('')
-        return self._create_chart(f, REGRESSION_DESCRIPTION, "Continuous Value Prediction")
+        self.figs.append(self._create_chart(
+            f, REGRESSION_DESCRIPTION, "Continuous Value Prediction"))
 
 
 FAIRNESS_DESCRIPTION = """The fairness assessment is divided into two primary metrics: (1) Fairness

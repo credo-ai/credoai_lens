@@ -16,9 +16,11 @@ from IPython.core.display import HTML, display
 class CredoReporter(ABC):
     """Abstract base class for all CredoReports"""
 
-    def __init__(self, assessment):
+    def __init__(self, assessment, module=None):
         self.assessment = assessment
-        self.module = assessment.initialized_module
+        self.module = module
+        if module is None:
+            self.module = assessment.initialized_module
         self.key_lookup = None
         self.figs = []
 

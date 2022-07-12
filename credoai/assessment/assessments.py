@@ -98,12 +98,14 @@ class FairnessAssessment(CredoAssessment):
         self.initialized_module = module
 
     def init_reporter(self):
-        if type_of_target(self.initialized_module.y_true) == 'binary':
-            self.reporter = BinaryClassificationReporter(self)
-        elif type_of_target(self.initialized_module.y_true) == 'continuous':
-            self.reporter = RegressionReporter(self)
-        else:
-            self.reporter = FairnessReporter(self)
+        for module in self.initialized_module.modules.values():
+            if type_of_target(module.y_true) == 'binary':
+                self.reporter = BinaryClassificationReporter(
+                    self, module=module)
+            elif type_of_target(module.y_true) == 'continuous':
+                self.reporter = RegressionReporter(self, module=module)
+            else:
+                self.reporter = FairnessReporter(self, module=module)
 
 
 class ModelEquityAssessment(CredoAssessment):
