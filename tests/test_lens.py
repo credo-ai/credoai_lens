@@ -38,8 +38,8 @@ def test_lens_with_model():
     metric = results["validation_model"]["Fairness"]["fairness"].index[0]
     score = round(results["validation_model"]["Fairness"]
                   ["fairness"].iloc[0]["value"], 2)
-    expected_assessments = {'DatasetFairness',
-                            'DatasetProfiling', 'Fairness', 'Performance'}
+    expected_assessments = {'DatasetFairness', 'DatasetProfiling', 'DatasetEquity',
+                            'ModelEquity', 'Fairness', 'Performance'}
     fairness_assessment = [record for record in lens.assessments if record.name ==
                            'validation_model'][0].assessments['Fairness']
 
@@ -57,7 +57,7 @@ def test_lens_without_model():
     metric_score = results["validation"]['DatasetFairness']["gender-demographic_parity_ratio"][0]['value']
     assert metric_score == 0.5
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {
-        'DatasetFairness', 'DatasetProfiling'}
+        'DatasetFairness', 'DatasetProfiling', 'DatasetEquity'}
 
 
 def test_lens_without_sensitive_feature():
@@ -90,7 +90,7 @@ def test_lens_dataset_with_missing_data():
     print(sensitive_feature, metric_score)
     assert round(metric_score, 4) == 0.4444
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {
-        'DatasetFairness', 'DatasetProfiling'}
+        'DatasetFairness', 'DatasetProfiling', 'DatasetEquity'}
 
 
 def test_display():
@@ -114,7 +114,7 @@ def test_lens_with_model_and_training():
     results = lens.run_assessments().get_results()
     rule_based_attack_score = round(
         results["validation_training_model"]["Privacy"]["rule_based_attack_score"], 2)
-    expected_assessments = {'DatasetFairness', 'DatasetProfiling',
+    expected_assessments = {'DatasetFairness', 'DatasetProfiling', 'DatasetEquity', 'ModelEquity',
                             'Fairness', 'Performance', 'Privacy', 'Security'}
 
     assert rule_based_attack_score == 0.5
