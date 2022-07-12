@@ -83,18 +83,12 @@ class PerformanceModule(CredoModule):
             self.results.update(self.get_disaggregated_performance())
         return self
 
-    def prepare_results(self, filter=None):
+    def prepare_results(self):
         """Prepares results for Credo AI's governance platform
 
         Structures results for export as a dataframe with appropriate structure
         for exporting. See credoai.modules.credo_module.
-        Parameters
-        ----------
-        filter : str, optional
-            Regex string to filter fairness results if only a subset are desired.
-            Passed as a regex argument to pandas `filter` function applied to the
-            concatenated output of Fairnessmodule.get_fairness_results and
-            Fairnessmodule.get_disaggregated_performance, by default None
+
         Returns
         -------
         pd.DataFrame
@@ -117,9 +111,6 @@ class PerformanceModule(CredoModule):
                 ).set_index('metric_type')
                 disaggregated_df['sensitive_feature'] = self.sensitive_features.name
                 results = pd.concat([results, disaggregated_df])
-
-            if filter:
-                results = results.filter(regex=filter)
             return results
         else:
             raise NotRunError(
@@ -210,6 +201,10 @@ class PerformanceModule(CredoModule):
         if not disaggregated_results:
             logging.warn("No disaggregated metrics could be calculated.")
         return disaggregated_results
+
+    def get_sensitive_feature(self):
+        if self.sensitive_features.name != "NA":
+            return self.sensitive_features
 
     def _process_metrics(self, metrics):
         """Separates metrics

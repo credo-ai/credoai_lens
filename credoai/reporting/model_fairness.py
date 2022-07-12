@@ -35,12 +35,17 @@ class FairnessReporter(CredoReporter):
         plot_disaggregated = False
         if self.module.metric_frames != {}:
             plot_disaggregated = True
+            sensitive_features = self.module.sensitive_features
+            sf_name = sensitive_features.name
+            r = self.module.get_results()['disaggregated_performance'].shape
+            ratio = max(r[0]*r[1]/30, 1)
+        else:
+            ratio = 1
         # ratio based on number of metrics and sensitive features
         metric_keys = []
         sensitive_features = self.module.sensitive_features
         sf_name = sensitive_features.name
-        r = self.module.get_results()['disaggregated_performance'].shape
-        ratio = max(r[0]*r[1]/30, 1)
+
         with get_style(figsize=self.size, figure_ratio=ratio):
             # plot fairness
             if self.key_lookup is not None:

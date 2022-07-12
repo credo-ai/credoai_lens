@@ -81,19 +81,11 @@ class FairnessModule(PerformanceModule):
         self.results['fairness'] = fairness_results
         return self
 
-    def prepare_results(self, filter=None):
+    def prepare_results(self):
         """Prepares results for Credo AI's governance platform
 
         Structures results for export as a dataframe with appropriate structure
         for exporting. See credoai.modules.credo_module.
-
-        Parameters
-        ----------
-        filter : str, optional
-            Regex string to filter fairness results if only a subset are desired.
-            Passed as a regex argument to pandas `filter` function applied to the
-            concatenated output of Fairnessmodule.get_fairness_results and
-            Fairnessmodule.get_disaggregated_performance, by default None
 
         Returns
         -------
@@ -107,8 +99,6 @@ class FairnessModule(PerformanceModule):
         if self.results:
             results = super().prepare_results(filter=filter)
             results = pd.concat([self.results['fairness'], results])
-            if filter:
-                results = results.filter(regex=filter)
             return results
         else:
             raise NotRunError(

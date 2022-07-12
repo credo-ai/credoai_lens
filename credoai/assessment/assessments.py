@@ -349,8 +349,15 @@ class PerformanceAssessment(CredoAssessment):
         self.initialized_module = module
 
     def init_reporter(self):
-        if type_of_target(self.initialized_module.y_true) == 'binary':
-            self.reporter = BinaryClassificationReporter(self)
+        try:
+            modules = getattr(self.initialized_module, 'modules')
+            for module in modules.values():
+                if type_of_target(module.y_true) == 'binary':
+                    self.reporter = BinaryClassificationReporter(
+                        self, module=module)
+        except AttributeError:
+            if type_of_target(self.initialized_module.y_true) == 'binary':
+                self.reporter = BinaryClassificationReporter(self)
 
 
 class PrivacyAssessment(CredoAssessment):
