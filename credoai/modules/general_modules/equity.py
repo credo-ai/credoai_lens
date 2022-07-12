@@ -51,7 +51,7 @@ class EquityModule(CredoModule):
     def prepare_results(self):
         if self.results:
             desc = self.results['descriptive']
-            desc_metadata = {'group_means': desc['summary']['mean'],
+            desc_metadata = {'group_means': desc['summary']['mean'].to_dict(),
                              'highest_group': desc['highest_group'],
                              'lowest_group': desc['lowest_group']}
             results = [{'metric_type': k, 'value': v, 'metadata': desc_metadata}
@@ -64,7 +64,7 @@ class EquityModule(CredoModule):
                               'metadata': stats['equity_test']}
             results.append(overall_equity)
             # add posthoc tests if needed
-            if stats['significant_posthoc_tests']:
+            if 'significant_posthoc_tests' in stats:
                 for test in stats['significant_posthoc_tests']:
                     results.append(
                         {
@@ -75,7 +75,7 @@ class EquityModule(CredoModule):
                             'metadata': test
                         }
                     )
-            results = pd.DataFrame(results)
+            results = pd.DataFrame(results).set_index('metric_type')
             return results
         else:
             raise NotRunError(

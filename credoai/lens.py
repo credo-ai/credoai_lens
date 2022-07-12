@@ -197,18 +197,18 @@ class Lens:
                 prepared_assessment = self._prepare_results(assessment)
                 if prepared_assessment is not None:
                     prepared_results.append(prepared_assessment)
-            except:
+            except Exception as e:
                 raise Exception(
-                    f"Assessment ({assessment.get_name()}) failed preparation")
+                    f"Assessment ({assessment.get_name()}) failed preparation. The error is reproduced below:\n\nError: {e}")
             try:
                 reporter = assessment.get_reporter()
                 if reporter is not None:
                     reporter_assets += reporter.report(plot=False)
                     logging.info(
                         f"** Reporting assets created")
-            except:
+            except Exception as e:
                 raise Exception(
-                    f"Reporter for assessment ({assessment.get_name()}) failed")
+                    f"Reporter for assessment ({assessment.get_name()}) failed. The error is reproduced below:\n\nError: {e}")
         logging.info("Exporting assessments...")
         self.gov.export_assessment_results(
             prepared_results, reporter_assets,
