@@ -36,8 +36,8 @@ class PerformanceModule(CredoModule):
         The predicted labels for classification
     y_prob : (List, pandas.Series, numpy.ndarray), optional
         The unthresholded predictions, confidence values or probabilities.
-    sensitive_features :  pandas.DataFrame
-        The segmentation feature(s) which should be used to create subgroups to analyze.
+    sensitive_features :  pandas.Series
+        The segmentation feature which should be used to create subgroups to analyze.
     """
 
     def __init__(self,
@@ -56,8 +56,8 @@ class PerformanceModule(CredoModule):
         if sensitive_features is None:
             self.perform_disaggregation = False
             # only set to use metric frame
-            sensitive_features = pd.DataFrame(
-                {'NA': ['NA'] * len(self.y_true)})
+            sensitive_features = pd.Series(
+                ['NA'] * len(self.y_true), name='NA')
         self.sensitive_features = sensitive_features
         self._validate_inputs()
 
@@ -110,14 +110,13 @@ class PerformanceModule(CredoModule):
                 results = pd.DataFrame()
 
             if self.perform_disaggregation:
-                for sf_name in self.sensitive_features:
-                    disaggregated_df = self.results[f'{sf_name}-disaggregated_performance'].copy(
-                    )
-                    disaggregated_df = disaggregated_df.reset_index().melt(
-                        id_vars=[disaggregated_df.index.name, 'subtype'], var_name='metric_type'
-                    ).set_index('metric_type')
-                    disaggregated_df['sensitive_feature'] = sf_name
-                    results = pd.concat([results, disaggregated_df])
+                disaggregated_df = self.results[f'disaggregated_performance'].copy(
+                )
+                disaggregated_df = disaggregated_df.reset_index().melt(
+                    id_vars=[disaggregated_df.index.name, 'subtype'], var_name='metric_type'
+                ).set_index('metric_type')
+                disaggregated_df['sensitive_feature'] = self.sensitive_features.name
+                results = pd.concat([results, disaggregated_df])
 
             if filter:
                 results = results.filter(regex=filter)
@@ -158,7 +157,8 @@ class PerformanceModule(CredoModule):
         """
         df = pd.DataFrame({'true': self.y_true,
                            'pred': self.y_pred})
-        df = df.join(self.get_sensitive_features().reset_index(drop=True))
+        if self.sensitive_features.name != "NA":
+            df = df.join(self.sensitive_features.reset_index(drop=True))
         if self.y_prob is not None:
             y_prob_df = pd.DataFrame(self.y_prob)
             y_prob_df.columns = [
@@ -176,9 +176,8 @@ class PerformanceModule(CredoModule):
             The overall performance metrics
         """
         # retrive overall metrics for one of the sensitive features only as they are the same
-        first_feature = self.sensitive_features.columns[0]
         overall_metrics = [metric_frame.overall for metric_frame
-                           in self.metric_frames[first_feature].values()]
+                           in self.metric_frames.values()]
         if overall_metrics:
             output_series = pd.concat(overall_metrics, axis=0) \
                 .rename(index='value') \
@@ -202,19 +201,15 @@ class PerformanceModule(CredoModule):
             The disaggregated performance metrics
         """
         disaggregated_results = {}
-        for sf_name, metric_frames in self.metric_frames.items():
-            disaggregated_df = pd.DataFrame()
-            for metric_frame in metric_frames.values():
-                df = metric_frame.by_group.copy().convert_dtypes()
-                disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
-            disaggregated_results[f'{sf_name}-disaggregated_performance'] = \
-                disaggregated_df.assign(subtype='disaggregated_performance')
+        disaggregated_df = pd.DataFrame()
+        for metric_frame in self.metric_frames.values():
+            df = metric_frame.by_group.copy().convert_dtypes()
+            disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
+        disaggregated_results['disaggregated_performance'] = \
+            disaggregated_df.assign(subtype='disaggregated_performance')
         if not disaggregated_results:
             logging.warn("No disaggregated metrics could be calculated.")
         return disaggregated_results
-
-    def get_sensitive_features(self):
-        return self.sensitive_features.drop('NA', axis=1, errors='ignore')
 
     def _process_metrics(self, metrics):
         """Separates metrics
@@ -277,20 +272,17 @@ class PerformanceModule(CredoModule):
 
     def _setup_metric_frames(self):
         self.metric_frames = {}
-        for sf_name, sf_series in self.sensitive_features.items():
-            self.metric_frames[sf_name] = {}
+        if self.y_pred is not None and self.performance_metrics:
+            self.metric_frames['pred'] = self._create_metric_frame(
+                self.performance_metrics, self.y_pred,
+                sensitive_features=self.sensitive_features)
 
-            if self.y_pred is not None and self.performance_metrics:
-                self.metric_frames[sf_name]['pred'] = self._create_metric_frame(
-                    self.performance_metrics, self.y_pred,
-                    sensitive_features=sf_series)
-
-                # for metrics that require the probabilities
-                self.prob_metric_frame = None
-                if self.y_prob is not None and self.prob_metrics:
-                    self.metric_frames[sf_name]['prob'] = self._create_metric_frame(
-                        self.prob_metrics, self.y_prob,
-                        sensitive_features=sf_series)
+            # for metrics that require the probabilities
+            self.prob_metric_frame = None
+            if self.y_prob is not None and self.prob_metrics:
+                self.metric_frames['prob'] = self._create_metric_frame(
+                    self.prob_metrics, self.y_prob,
+                    sensitive_features=self.sensitive_features)
 
     def _validate_inputs(self):
         check_consistent_length(self.y_true, self.y_pred,

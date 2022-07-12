@@ -10,12 +10,12 @@ import credoai.utils as cutils
 from credoai.assessment.credo_assessment import (AssessmentRequirements,
                                                  CredoAssessment)
 from credoai.data.utils import get_data_path
+from credoai.modules.utils import init_sensitive_feature_module
 from credoai.reporting import (BinaryClassificationReporter,
                                DatasetFairnessReporter, FairnessReporter,
                                NLPGeneratorAnalyzerReporter,
                                RegressionReporter)
 from credoai.reporting.dataset_profiling import DatasetProfilingReporter
-from credoai.utils import InstallationError
 from credoai.utils.model_utils import get_default_metrics
 from sklearn.utils.multiclass import type_of_target
 
@@ -92,12 +92,9 @@ class FairnessAssessment(CredoAssessment):
         if metrics is None:
             raise cutils.ValidationError(
                 "Metrics are not defined for 'Fairness' Assessment in the assessment plan")
-        module = self.module(
-            metrics,
-            data.sensitive_features,
-            data.y,
-            y_pred,
-            y_prob)
+        module = init_sensitive_feature_module(self.module, data.sensitive_features,
+                                               metrics=metrics, y_true=data.y,
+                                               y_pred=y_pred, y_prob=y_prob)
         self.initialized_module = module
 
     def init_reporter(self):
@@ -135,11 +132,8 @@ class ModelEquityAssessment(CredoAssessment):
         """
         super().init_module(model=model, data=data)
         y = model.predict(data.X)
-
-        module = self.module(
-            data.sensitive_features,
-            y,
-            p_value=p_value)
+        module = init_sensitive_feature_module(self.module, data.sensitive_features,
+                                               y=y, p_value=p_value)
         self.initialized_module = module
 
     def init_reporter(self):
@@ -236,7 +230,7 @@ class NLPGeneratorAssessment(CredoAssessment):
             try:
                 assessment_functions = cutils.nlp_utils.get_default_nlp_assessments()
             except AttributeError:
-                raise InstallationError(
+                raise cutils.InstallationError(
                     "To use default assessment functions requires installing credoai-lens[full]")
 
         # set up generation functions
@@ -247,7 +241,7 @@ class NLPGeneratorAssessment(CredoAssessment):
                 generation_functions['gpt2_comparison'] = \
                     cutils.nlp_utils.gpt2_text_generator
             except AttributeError:
-                raise InstallationError(
+                raise cutils.InstallationError(
                     "To use the default comparison model requires installing credoai-lens[full]")
         else:
             generation_functions.update(comparison_models)
@@ -339,12 +333,17 @@ class PerformanceAssessment(CredoAssessment):
                 "Metrics are not defined for 'Performance' Assessment in the assessment plan")
 
         sensitive_features = None if ignore_sensitive else data.sensitive_features
-        module = self.module(
-            metrics,
-            data.y,
-            y_pred,
-            y_prob,
-            sensitive_features)
+        if sensitive_features is not None:
+            module = init_sensitive_feature_module(self.module, data.sensitive_features,
+                                                   metrics=metrics, y_true=data.y,
+                                                   y_pred=y_pred, y_prob=y_prob)
+        else:
+            module = self.module(
+                metrics,
+                data.y,
+                y_pred,
+                y_prob,
+                sensitive_features)
         self.initialized_module = module
 
     def init_reporter(self):
@@ -526,11 +525,8 @@ class DatasetEquityAssessment(CredoAssessment):
         """
         super().init_module(data=data)
         y = data.y
-
-        module = self.module(
-            data.sensitive_features,
-            y,
-            p_value=p_value)
+        module = init_sensitive_feature_module(self.module, data.sensitive_features,
+                                               y=y, p_value=p_value)
         self.initialized_module = module
 
     def init_reporter(self):

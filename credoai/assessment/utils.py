@@ -1,6 +1,7 @@
+from dataclasses import dataclass
+
 from absl import logging
 from credoai.assessment import list_assessments
-from dataclasses import dataclass
 
 ASSESSMENTS = list_assessments()
 
@@ -16,10 +17,10 @@ def get_assessment_requirements():
 
 
 def get_usable_assessments(
-    credo_model=None,
-    credo_data=None,
-    credo_training_data=None,
-    candidate_assessments=None):
+        credo_model=None,
+        credo_data=None,
+        credo_training_data=None,
+        candidate_assessments=None):
     """Selects usable assessments based on model and data capabilities
 
     Parameters
@@ -46,6 +47,7 @@ def get_usable_assessments(
             assessments[assessment.get_name()] = assessment
     return assessments
 
+
 @dataclass
 class AssessmentBunch:
     """
@@ -59,5 +61,5 @@ class AssessmentBunch:
 
     def set_usable_assessments(self, candidate_assessments):
         self.assessments = get_usable_assessments(
-            self.model, self.primary_dataset, 
+            self.model, self.primary_dataset,
             self.secondary_dataset, candidate_assessments)

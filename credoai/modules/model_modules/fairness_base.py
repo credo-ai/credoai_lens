@@ -159,51 +159,49 @@ class FairnessModule(PerformanceModule):
         """
 
         results = []
-        for sf_name, sf_series in self.sensitive_features.items():
-            for metric_name, metric in self.fairness_metrics.items():
-                try:
-                    metric_value = metric.fun(y_true=self.y_true,
-                                              y_pred=self.y_pred,
-                                              sensitive_features=sf_series,
-                                              method=method)
-                except Exception as e:
-                    logging.error(f"A metric ({metric_name}) failed to run. "
-                                  "Are you sure it works with this kind of model and target?\n")
-                    raise e
-                results.append({
-                    'metric_type': metric_name,
-                    'value': metric_value,
-                    'sensitive_feature': sf_name
-                })
+        for metric_name, metric in self.fairness_metrics.items():
+            try:
+                metric_value = metric.fun(y_true=self.y_true,
+                                          y_pred=self.y_pred,
+                                          sensitive_features=self.sensitive_features,
+                                          method=method)
+            except Exception as e:
+                logging.error(f"A metric ({metric_name}) failed to run. "
+                              "Are you sure it works with this kind of model and target?\n")
+                raise e
+            results.append({
+                'metric_type': metric_name,
+                'value': metric_value,
+                'sensitive_feature': self.sensitive_features.name
+            })
 
-            for metric_name, metric in self.fairness_prob_metrics.items():
-                try:
-                    metric_value = metric.fun(y_true=self.y_true,
-                                              y_prob=self.y_prob,
-                                              sensitive_features=sf_series,
-                                              method=method)
-                except Exception as e:
-                    logging.error(
-                        f"A metric ({metric_name}) failed to run. Are you sure it works with this kind of model and target?")
-                    raise e
-                results.append({
-                    'metric_type': metric_name,
-                    'value': metric_value,
-                    'sensitive_feature': sf_name
-                })
+        for metric_name, metric in self.fairness_prob_metrics.items():
+            try:
+                metric_value = metric.fun(y_true=self.y_true,
+                                          y_prob=self.y_prob,
+                                          sensitive_features=self.sensitive_features,
+                                          method=method)
+            except Exception as e:
+                logging.error(
+                    f"A metric ({metric_name}) failed to run. Are you sure it works with this kind of model and target?")
+                raise e
+            results.append({
+                'metric_type': metric_name,
+                'value': metric_value,
+                'sensitive_feature': self.sensitive_features.name
+            })
 
         results = pd.DataFrame.from_dict(results)
 
         # add parity results
         parity_results = pd.Series(dtype=float)
         parity_results = []
-        for sf_name, metric_frames in self.metric_frames.items():
-            for metric_frame in metric_frames.values():
-                diffs = metric_frame.difference(method=method)
-                diffs = pd.DataFrame(
-                    {'metric_type': diffs.index, 'value': diffs.values})
-                diffs['sensitive_feature'] = sf_name
-                parity_results.append(diffs)
+        for metric_frame in self.metric_frames.values():
+            diffs = metric_frame.difference(method=method)
+            diffs = pd.DataFrame(
+                {'metric_type': diffs.index, 'value': diffs.values})
+            diffs['sensitive_feature'] = self.sensitive_features.name
+            parity_results.append(diffs)
 
         if parity_results:
             parity_results = pd.concat(parity_results)

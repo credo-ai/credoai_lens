@@ -28,8 +28,7 @@ class EquityModule(CredoModule):
                  p_value=.01
                  ):
         super().__init__()
-        self.sensitive_features = sensitive_features.iloc[:, 0]
-        self.sf_name = self.sensitive_features.name
+        self.sensitive_features = sensitive_features
         self.y = y
         self.type_of_target = type_of_target(self.y)
         # create df
@@ -64,7 +63,7 @@ class EquityModule(CredoModule):
                               'metadata': stats['equity_test']}
             results.append(overall_equity)
             # add posthoc tests if needed
-            if stats['significant_posthoc_tests']:
+            if 'significant_posthoc_tests' in stats:
                 for test in stats['significant_posthoc_tests']:
                     results.append(
                         {
@@ -76,6 +75,7 @@ class EquityModule(CredoModule):
                         }
                     )
             results = pd.DataFrame(results)
+            results['sensitive_feature'] = self.sensitive_features.name
             return results
         else:
             raise NotRunError(
@@ -83,8 +83,10 @@ class EquityModule(CredoModule):
             )
 
     def describe(self):
-        results = {'summary': self.df.groupby(self.sf_name).outcome.describe()}
+        results = {'summary': self.df.groupby(
+            self.sensitive_features.name).outcome.describe()}
         r = results['summary']
+        results['sensitive_feature'] = self.sensitive_features.name
         results['highest_group'] = r['mean'].idxmax()
         results['lowest_group'] = r['mean'].idxmin()
         results['demographic_parity_difference'] = r['mean'].max() - \
@@ -108,9 +110,9 @@ class EquityModule(CredoModule):
         """
         Statistical Test: Performs chisquared contingency test
         """
-        contingency_df = self.df.groupby([self.sf_name, 'outcome'])\
+        contingency_df = self.df.groupby([self.sensitive_features.name, 'outcome'])\
             .size().reset_index(name='counts')\
-            .pivot(self.sf_name, 'outcome')
+            .pivot(self.sensitive_features.name, 'outcome')
         chi2, p, dof, ex = chi2_contingency(contingency_df)
         results = {'equity_test': {
             'test_type': 'chisquared_contingency', 'statistic': chi2, 'pvalue': p}}
@@ -134,7 +136,7 @@ class EquityModule(CredoModule):
 
     def _anova_tukey_hsd(self, outcome_col):
         """Statistical Test: Performs One way Anova and Tukey HSD Test"""
-        groups = self.df.groupby(self.sf_name)[outcome_col]
+        groups = self.df.groupby(self.sensitive_features.name)[outcome_col]
         group_lists = groups.apply(list)
         labels = np.array(group_lists.index)
         overall_test = f_oneway(*group_lists)
