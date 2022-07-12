@@ -12,22 +12,12 @@ class EquityModule(CredoModule):
     """
     Equity module for Credo AI.
 
-    This module assesses whether outcomes are distributed equally across a sensitive
-    feature. Depending on the kind of outcome, different tests will be performed.
-
-    * Discrete: chi-squared contingency tests, 
-      followed by bonferronni corrected posthoc chi-sq tests
-    * Continuous: One-way ANOVA, followed by Tukey HSD posthoc tests
-    * Proportion (Bounded [0-1] continuous outcome): outcome is transformed to logits, then
-        proceed as normal for continuous
-
     Parameters
     ----------
     sensitive_features :  pandas.Series
         The segmentation feature which should be used to create subgroups to analyze.
     y : (List, pandas.Series, numpy.ndarray)
-        Outcomes (e.g., labels for classification or target values for regression), 
-        either ground-truth or model generated.
+        The ground-truth labels (e.g., labels for classification or target values for regression).
     p_value : float
         The significance value to evaluate statistical tests
     """
@@ -50,8 +40,10 @@ class EquityModule(CredoModule):
 
     def run(self):
         self.results = {'descriptive': self.describe()}
-        if self.type_of_target in ('binary', 'multiclass'):
-            self.results['statistics'] = self.discrete_stats()
+        if self.type_of_target == 'binary':
+            self.results['statistics'] = self.classification_stats()
+        elif self.type_of_target == 'multiclass':
+            self.results['statistics'] = self.classification_stats()
         else:
             self.results['statistics'] = self.continuous_stats()
         return self
@@ -91,7 +83,6 @@ class EquityModule(CredoModule):
             )
 
     def describe(self):
-        """Create descriptive output"""
         results = {'summary': self.df.groupby(self.sf_name).outcome.describe()}
         r = results['summary']
         results['highest_group'] = r['mean'].idxmax()
@@ -102,12 +93,10 @@ class EquityModule(CredoModule):
             r['mean'].min()
         return results
 
-    def discrete_stats(self):
-        """Run statistics on discrete outcomes"""
+    def classification_stats(self):
         return self._chisquare_contingency()
 
     def continuous_stats(self):
-        """Run statistics on continuous outcomes"""
         # check for proportion bounding
         if self._check_range(self.y, 0, 1):
             self._proportion_transformation()
@@ -118,10 +107,6 @@ class EquityModule(CredoModule):
     def _chisquare_contingency(self):
         """
         Statistical Test: Performs chisquared contingency test
-
-        If chi-squared test is significant, follow up with
-        posthoc tests for all pairwise comparisons. 
-        Multiple comparisons are bonferronni corrected.
         """
         contingency_df = self.df.groupby([self.sf_name, 'outcome'])\
             .size().reset_index(name='counts')\
@@ -148,11 +133,7 @@ class EquityModule(CredoModule):
         return results
 
     def _anova_tukey_hsd(self, outcome_col):
-        """Statistical Test: Performs One way Anova and Tukey HSD Test
-
-        The Tukey HSD test is a posthoc test that is only performed if the
-        anova is significant.
-        """
+        """Statistical Test: Performs One way Anova and Tukey HSD Test"""
         groups = self.df.groupby(self.sf_name)[outcome_col]
         group_lists = groups.apply(list)
         labels = np.array(group_lists.index)
