@@ -35,8 +35,6 @@ class FairnessReporter(CredoReporter):
         plot_disaggregated = False
         if self.module.metric_frames != {}:
             plot_disaggregated = True
-            sensitive_features = self.module.sensitive_features
-            sf_name = sensitive_features.name
             r = self.module.get_results()['disaggregated_performance'].shape
             ratio = max(r[0]*r[1]/30, 1)
         else:
@@ -134,8 +132,11 @@ class BinaryClassificationReporter(FairnessReporter):
         """Creates fairness reporting assests for binary classification"""
 
         # plot
-        # comparison plots
-        self.plot_fairness()
+        # comparison plots. Will fail for performance assessment
+        try:
+            self.plot_fairness()
+        except:
+            pass
 
         # individual group performance plots
         self.plot_performance_infographics()
@@ -150,7 +151,10 @@ class BinaryClassificationReporter(FairnessReporter):
                 .query('subtype=="overall_performance"')['metric_key'].tolist()
         self.figs.append(self._plot_performance_infographic(
             df['true'], df['pred'], 'Overall', metric_keys))
+        # plot for individual sensitive groups if they exist
         sf_name = self.module.sensitive_features.name
+        if sf_name == "NA":
+            return
         for group, sub_df in df.groupby(sf_name):
             if self.key_lookup is not None:
                 metric_keys = self.key_lookup[self.key_lookup[sf_name] == group]['metric_key'].tolist(
