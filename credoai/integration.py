@@ -87,14 +87,14 @@ class Metric(Record):
                  metric_key=None,
                  metadata=None,
                  **labels):
-        super().__init__('metrics', **metadata)
+        super().__init__('metrics', **labels)
         self.metric_type = metric_type
         self.value = value
         self.subtype = subtype
         self.model_id = model_id
         self.dataset_id = dataset_id
         self.process = process
-        self.metadata = {} or metadata
+        self.metadata = metadata or {} if metadata != "NA" else {}
         self.metadata.update(
             {'model_id': self.model_id, 'dataset_id': self.dataset_id})
         if metric_key:

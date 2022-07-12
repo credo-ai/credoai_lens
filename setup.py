@@ -13,7 +13,7 @@ URL = ''
 LICENSE = ''
 DOWNLOAD_URL = 'https://github.com/credo-ai/credoai_lens'
 VERSION = __version__
-PYTHON_REQUIRES = ">=3.7"
+PYTHON_REQUIRES = ">=3.8"
 
 # Fetch ReadMe
 with open("README.md", "r") as fh:
