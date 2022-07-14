@@ -293,13 +293,13 @@ class Lens:
 
     def _gather_meta(self, assessment):
         meta = {'process': f'{assessment.name}'}
-        if self.assessment.data_name:
+        if assessment.data_name:
             if assessment.data_name == self.assessment_dataset.name:
                 dataset_id = self.gov.dataset_id
             elif assessment.data_name == self.training_dataset.name:
                 dataset_id = self.gov.training_dataset_id
             meta['dataset_id'] = dataset_id
-        if self.assessment.model_name:
+        if assessment.model_name:
             meta['model_id'] = self.gov.model_id
         return meta
 

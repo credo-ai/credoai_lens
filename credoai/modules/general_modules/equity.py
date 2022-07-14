@@ -70,6 +70,7 @@ class EquityModule(CredoModule):
             overall_equity = {'metric_type': 'equity_test',
                               'subtype': 'overall_test',
                               'value': stats['equity_test']['pvalue'],
+                              'test_type': stats['equity_test']['test_type'],
                               'metadata': stats['equity_test']}
             results.append(overall_equity)
             # add posthoc tests if needed
@@ -80,6 +81,7 @@ class EquityModule(CredoModule):
                             'metric_type': 'equity_test',
                             'subtype': 'posthoc_test',
                             'value': test['pvalue'],
+                            'test_type': test['test_type'],
                             'comparison_groups': list(test['comparison']),
                             'metadata': test
                         }
@@ -144,7 +146,8 @@ class EquityModule(CredoModule):
                 # running chi2 test
                 chi2, p, dof, ex = chi2_contingency(new_df, correction=False)
                 if p < bonferronni_p:
-                    posthoc_tests.append({'comparison': comb, 'chi2': chi2,
+                    posthoc_tests.append({'test_type': 'chisquared_contingency',
+                                          'comparison': comb, 'chi2': chi2,
                                           'pvalue': p, 'significance_threshold': bonferronni_p})
             results['significant_posthoc_tests'] = sorted(
                 posthoc_tests, key=lambda x: x['pvalue'])
@@ -171,7 +174,8 @@ class EquityModule(CredoModule):
             for indices in zip(*np.where(sig_compares)):
                 specific_labels = np.take(labels, indices)
                 statistic = r.statistic[indices]
-                posthoc_tests.append({'comparison': specific_labels, 'statistic': statistic,
+                posthoc_tests.append({'test_type': 'tukey_hsd',
+                                      'comparison': specific_labels, 'statistic': statistic,
                                       'pvalue': r.pvalue[indices], 'significance_threshold': self.pvalue})
             results['significant_posthoc_tests'] = sorted(
                 posthoc_tests, key=lambda x: x['pvalue'])

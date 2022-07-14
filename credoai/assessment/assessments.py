@@ -136,7 +136,7 @@ class ModelEquityAssessment(CredoAssessment):
         super().init_module(model=model, data=data)
         y = pd.Series(model.predict(data.X))
         try:
-            y.name = f'predict {data.y.name}'
+            y.name = f'predicted {data.y.name}'
         except:
             y.name = 'predicted outcome'
 
