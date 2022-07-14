@@ -33,6 +33,12 @@ jobs:
           retval=$?
           cat pytest-coverage.txt
           exit $retval
+      - name: my-artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-coverage
+          path: pytest-coverage.txt
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         with:
