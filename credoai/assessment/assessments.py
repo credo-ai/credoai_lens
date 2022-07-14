@@ -7,13 +7,14 @@ import sys
 
 import credoai.modules as mod
 import credoai.utils as cutils
+import pandas as pd
 from credoai.assessment.credo_assessment import (AssessmentRequirements,
                                                  CredoAssessment)
 from credoai.data.utils import get_data_path
 from credoai.modules.utils import init_sensitive_feature_module
 from credoai.reporting import (BinaryClassificationReporter,
-                               DatasetFairnessReporter, FairnessReporter,
-                               NLPGeneratorAnalyzerReporter,
+                               DatasetFairnessReporter, EquityReporter,
+                               FairnessReporter, NLPGeneratorAnalyzerReporter,
                                RegressionReporter)
 from credoai.reporting.dataset_profiling import DatasetProfilingReporter
 from credoai.utils.model_utils import get_default_metrics
@@ -133,13 +134,18 @@ class ModelEquityAssessment(CredoAssessment):
             The significance value to evaluate statistical tests. Optional, default 0.01
         """
         super().init_module(model=model, data=data)
-        y = model.predict(data.X)
+        y = pd.Series(model.predict(data.X))
+        try:
+            y.name = f'predict {data.y.name}'
+        except:
+            y.name = 'predicted outcome'
+
         module = init_sensitive_feature_module(self.module, data.sensitive_features,
                                                y=y, p_value=p_value)
         self.initialized_module = module
 
     def init_reporter(self):
-        pass
+        self.reporter = EquityReporter(self)
 
 
 class NLPEmbeddingBiasAssessment(CredoAssessment):
@@ -539,7 +545,7 @@ class DatasetEquityAssessment(CredoAssessment):
         self.initialized_module = module
 
     def init_reporter(self):
-        pass
+        self.reporter = EquityReporter(self)
 
 
 class DatasetFairnessAssessment(CredoAssessment):
