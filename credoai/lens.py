@@ -296,7 +296,7 @@ class Lens:
             dataset_id = self.gov.dataset_id
         elif assessment.data_name == self.training_dataset.name:
             dataset_id = self.gov.training_dataset_id
-        return {'process': f'Lens-v{__version__}_{assessment.name}',
+        return {'process': f'{assessment.name}',
                 'dataset_id': dataset_id,
                 'model_id': self.gov.model_id}
 

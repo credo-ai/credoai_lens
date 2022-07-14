@@ -22,7 +22,7 @@ class EquityReporter(CredoReporter):
         sf_name = mod.sensitive_features.name
         outcome = mod.y.name
         metric_keys = []
-        if self.key_lookup:
+        if self.key_lookup is not None:
             metric_keys = self.key_lookup['metric_key'].tolist()
         with get_style(figsize=self.size):
             f = plt.figure()
