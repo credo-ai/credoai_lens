@@ -31,11 +31,11 @@ META = {
 
 
 class Record:
-    def __init__(self, json_header, **metadata):
+    def __init__(self, json_header, **labels):
         self.json_header = json_header
-        # remove Nones from metadata
-        self.metadata = {k: v for k, v in metadata.items() if v != 'NA'}
-        self.creation_time = datetime.now().isoformat()
+        # remove Nones from labels
+        self.labels = {k: v for k, v in labels.items() if v != 'NA'}
+        self.creation_time = datetime.utcnow().isoformat()
 
     def struct(self):
         pass
@@ -67,6 +67,8 @@ class Metric(Record):
         String reflecting the process used to create the metric. E.g.,
         name of a particular Lens assessment, or link to code.
     metadata : dict, optional
+        Arbitrary structured data to append to metric
+    labels : dict, optional
         Arbitrary keyword arguments to append to metric as metadata. These will be
         displayed in the governance app
 
@@ -83,14 +85,18 @@ class Metric(Record):
                  dataset_id=None,
                  process=None,
                  metric_key=None,
-                 **metadata):
-        super().__init__('metrics', **metadata)
+                 metadata=None,
+                 **labels):
+        super().__init__('metrics', **labels)
         self.metric_type = metric_type
         self.value = value
         self.subtype = subtype
         self.model_id = model_id
         self.dataset_id = dataset_id
         self.process = process
+        self.metadata = metadata or {} if metadata != "NA" else {}
+        self.metadata.update(
+            {'model_id': self.model_id, 'dataset_id': self.dataset_id})
         if metric_key:
             self.metric_key = metric_key
         else:
@@ -104,8 +110,8 @@ class Metric(Record):
             'subtype': self.subtype,
             'value': self.value,
             'process': self.process,
-            'labels': self.metadata,
-            'metadata': {'model_id': self.model_id, 'dataset_id': self.dataset_id},
+            'labels': self.labels,
+            'metadata': self.metadata,
             'value_updated_at': self.creation_time,
         }
 
@@ -116,8 +122,8 @@ class Metric(Record):
 
 
 class File(Record):
-    def __init__(self, name, content, content_type, metric_keys=None, **metadata):
-        super().__init__('figures', **metadata)
+    def __init__(self, name, content, content_type, metric_keys=None, **labels):
+        super().__init__('figures', **labels)
         self.name = name
         self.content = content
         self.content_type = content_type
@@ -130,7 +136,7 @@ class File(Record):
                 'content_type': self.content_type,
                 'creation_time': self.creation_time,
                 'metric_keys': self.metric_keys,
-                'metadata': self.metadata
+                'metadata': self.labels
                 }
 
 
@@ -151,8 +157,8 @@ class Figure(Record):
         longer string describing the figure
     metric_keys: list
         List of metric_keys to associate with figure (see lens_utils.get_metric_keys)
-    metadata : dict, optional
-        Appended keyword arguments to append to metric as metadata
+    labels : dict, optional
+        Appended keyword arguments to append to metric as labels
 
     Example
     ---------
@@ -160,8 +166,8 @@ class Figure(Record):
     figure = Figure('Figure 1', fig=f, description='A matplotlib figure')
     """
 
-    def __init__(self, name, figure, description=None, metric_keys=None, **metadata):
-        super().__init__('figures', **metadata)
+    def __init__(self, name, figure, description=None, metric_keys=None, **labels):
+        super().__init__('figures', **labels)
         self.name = name
         self.description = description
         self.metric_keys = metric_keys
@@ -193,7 +199,7 @@ class Figure(Record):
                 'file': self.figure_string,
                 'creation_time': self.creation_time,
                 'metric_keys': self.metric_keys,
-                'metadata': {'type': 'chart', **self.metadata}
+                'metadata': {'type': 'chart', **self.labels}
                 }
 
 
@@ -223,7 +229,7 @@ class MultiRecord(Record):
         return data
 
 
-def record_metric(metric_type, value,  **metadata):
+def record_metric(metric_type, value,  **labels):
     """Convenience function to create a metric json object
 
     Parameters
@@ -233,8 +239,8 @@ def record_metric(metric_type, value,  **metadata):
         a list of standard metric families.
     value : float
         metric value
-    metadata : dict, optional
-        Arbitrary keyword arguments to append to metric as metadata
+    labels : dict, optional
+        Arbitrary keyword arguments to append to metric as labels
 
     Returns
     -------
@@ -243,7 +249,7 @@ def record_metric(metric_type, value,  **metadata):
 
     return Metric(metric_type,
                   value,
-                  **metadata)
+                  **labels)
 
 
 def record_metrics(metric_df):
@@ -257,8 +263,8 @@ def record_metrics(metric_df):
     metric_df : pd.DataFrame
         dataframe where the index is the metric name and the columns
         are passed to record_metric
-    metadata : dict, optional
-        Arbitrary keyword arguments to append to metric as metadata
+    labels : dict, optional
+        Arbitrary keyword arguments to append to metric as labels
     """
     records = []
     for metric, row in metric_df.iterrows():
@@ -266,25 +272,25 @@ def record_metrics(metric_df):
     return MultiRecord(records)
 
 
-def record_metrics_from_dict(metrics, **metadata):
+def record_metrics_from_dict(metrics, **labels):
     """
     Function to create a list of metric json objects from dictionary
 
-    All metrics will have the same metadata using this function. 
-    To assign unique metadata to each metric use 
+    All metrics will have the same labels using this function. 
+    To assign unique labels to each metric use 
     `credoai.integration.record_metrics`
 
     Parameters
     ------------
     metrics : dict
         dictionary of metric_type : value pairs
-    metadata : dict, optional
-        Arbitrary keyword arguments to append to metric as metadata
+    labels : dict, optional
+        Arbitrary keyword arguments to append to metric as labels
     """
     if len(metrics) == 0:
         raise ValidationError("Empty dictionary of metrics provided")
     metric_df = pd.Series(metrics, name='value').to_frame()
-    metric_df = metric_df.assign(**metadata)
+    metric_df = metric_df.assign(**labels)
     return record_metrics(metric_df)
 
 
@@ -328,7 +334,7 @@ def prepare_assessment_payload(
         chart_records = []
         file_records = []
 
-    payload = {"assessed_at": assessed_at or datetime.now().isoformat(),
+    payload = {"assessed_at": assessed_at or datetime.utcnow().isoformat(),
                "metrics": assessment_records,
                "charts": chart_records,
                "files": file_records,

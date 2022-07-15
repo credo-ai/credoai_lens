@@ -166,10 +166,10 @@ class Lens:
         """
         assessment_kwargs = assessment_kwargs or {}
         for assessment in self.get_assessments(flatten=True):
-            logging.info(f"Running assessment-{assessment.get_name()}")
+            logging.info(f"Running assessment: {assessment.get_name()}")
             kwargs = assessment_kwargs.get(assessment.name, {})
             assessment.run(**kwargs)
-        self.run_time = datetime.now().isoformat()
+        self.run_time = datetime.utcnow().isoformat()
         return self
 
     def export(self, destination="credoai"):
@@ -197,18 +197,18 @@ class Lens:
                 prepared_assessment = self._prepare_results(assessment)
                 if prepared_assessment is not None:
                     prepared_results.append(prepared_assessment)
-            except:
+            except Exception as e:
                 raise Exception(
-                    f"Assessment ({assessment.get_name()}) failed preparation")
+                    f"Assessment ({assessment.get_name()}) failed preparation. The error is reproduced below:\n\nError: {e}")
             try:
                 reporter = assessment.get_reporter()
                 if reporter is not None:
                     reporter_assets += reporter.report(plot=False)
                     logging.info(
                         f"** Reporting assets created")
-            except:
+            except Exception as e:
                 raise Exception(
-                    f"Reporter for assessment ({assessment.get_name()}) failed")
+                    f"Reporter for assessment ({assessment.get_name()}) failed. The error is reproduced below:\n\nError: {e}")
         logging.info("Exporting assessments...")
         self.gov.export_assessment_results(
             prepared_results, reporter_assets,
@@ -292,13 +292,16 @@ class Lens:
                 self.training_dataset.dev_mode(self.dev_mode)
 
     def _gather_meta(self, assessment):
-        if assessment.data_name == self.assessment_dataset.name:
-            dataset_id = self.gov.dataset_id
-        elif assessment.data_name == self.training_dataset.name:
-            dataset_id = self.gov.training_dataset_id
-        return {'process': f'Lens-v{__version__}_{assessment.name}',
-                'dataset_id': dataset_id,
-                'model_id': self.gov.model_id}
+        meta = {'process': f'{assessment.name}'}
+        if assessment.data_name:
+            if assessment.data_name == self.assessment_dataset.name:
+                dataset_id = self.gov.dataset_id
+            elif assessment.data_name == self.training_dataset.name:
+                dataset_id = self.gov.training_dataset_id
+            meta['dataset_id'] = dataset_id
+        if assessment.model_name:
+            meta['model_id'] = self.gov.model_id
+        return meta
 
     def _get_credo_destination(self, to_model=True):
         """Get destination for export and ensure all artifacts are registered"""
@@ -314,18 +317,17 @@ class Lens:
             for name, assessment in bunch.assessments.items():
                 kwargs = deepcopy(
                     self.assessment_plan.get(assessment.name, {}))
-                reqs = assessment.get_requirements()
-                if reqs['model_requirements']:
+                if bunch.model is not None:
                     kwargs['model'] = bunch.model
-                if reqs['data_requirements']:
+                if bunch.primary_dataset is not None:
                     kwargs['data'] = bunch.primary_dataset
-                if reqs['training_data_requirements']:
+                if bunch.secondary_dataset is not None:
                     kwargs['training_data'] = bunch.secondary_dataset
                 try:
                     assessment.init_module(**kwargs)
                 except Exception as e:
                     logging.error(f"Model and/or data meets requirements for Assessment ({name})"
-                                  " but it could not be initialized due to an error, likely related."
+                                  " but it could not be initialized due to an error, likely related"
                                   " to the assessment plan. Ensure the assessment plan is passing "
                                   " the required parameters to run this assessment."
                                   f" The error is reproduced below:\n\nError: {e}"

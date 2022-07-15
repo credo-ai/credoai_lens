@@ -7,12 +7,13 @@ import sys
 
 import credoai.modules as mod
 import credoai.utils as cutils
+import pandas as pd
 from credoai.assessment.credo_assessment import (AssessmentRequirements,
                                                  CredoAssessment)
 from credoai.data.utils import get_data_path
 from credoai.reporting import (BinaryClassificationReporter,
-                               DatasetFairnessReporter, FairnessReporter,
-                               NLPGeneratorAnalyzerReporter,
+                               DatasetFairnessReporter, EquityReporter,
+                               FairnessReporter, NLPGeneratorAnalyzerReporter,
                                RegressionReporter)
 from credoai.reporting.dataset_profiling import DatasetProfilingReporter
 from credoai.utils import InstallationError
@@ -109,6 +110,47 @@ class FairnessAssessment(CredoAssessment):
             self.reporter = FairnessReporter(self)
 
 
+class ModelEquityAssessment(CredoAssessment):
+    """Evaluation of the equity of model outcomes
+    """
+
+    def __init__(self):
+        super().__init__(
+            'ModelEquity',
+            mod.EquityModule,
+            AssessmentRequirements(
+                model_requirements=['predict'],
+                data_requirements=['sensitive_features']
+            )
+        )
+
+    def init_module(self, *, model, data, p_value=0.01):
+        """Initializes the assessment module
+
+        Parameters
+        ------------
+        model : CredoModel
+        data : CredoData
+        p_value : float
+            The significance value to evaluate statistical tests. Optional, default 0.01
+        """
+        super().init_module(model=model, data=data)
+        y = pd.Series(model.predict(data.X))
+        try:
+            y.name = f'predicted {data.y.name}'
+        except:
+            y.name = 'predicted outcome'
+
+        module = self.module(
+            data.sensitive_features,
+            y,
+            p_value=p_value)
+        self.initialized_module = module
+
+    def init_reporter(self):
+        self.reporter = EquityReporter(self)
+
+
 class NLPEmbeddingBiasAssessment(CredoAssessment):
     """
     NLP Embedding-Bias Assessments
@@ -200,7 +242,7 @@ class NLPGeneratorAssessment(CredoAssessment):
                 assessment_functions = cutils.nlp_utils.get_default_nlp_assessments()
             except AttributeError:
                 raise InstallationError(
-                    "To use default assessment functions requires installing credoai-lens[extras]")
+                    "To use default assessment functions requires installing credoai-lens[full]")
 
         # set up generation functions
         generation_functions = {model.name: model.generator_fun}
@@ -211,7 +253,7 @@ class NLPGeneratorAssessment(CredoAssessment):
                     cutils.nlp_utils.gpt2_text_generator
             except AttributeError:
                 raise InstallationError(
-                    "To use the default comparison model requires installing credoai-lens[extras]")
+                    "To use the default comparison model requires installing credoai-lens[full]")
         else:
             generation_functions.update(comparison_models)
 
@@ -313,101 +355,6 @@ class PerformanceAssessment(CredoAssessment):
     def init_reporter(self):
         if type_of_target(self.initialized_module.y_true) == 'binary':
             self.reporter = BinaryClassificationReporter(self)
-
-# *******************
-# Dataset Assessments
-# *******************
-
-
-class DatasetFairnessAssessment(CredoAssessment):
-    """
-    Dataset Assessment
-
-    Runs fairness assessment on a CredoDataset. This
-    includes:
-
-    * Distributional assessment of dataset
-    * Proxy detection
-    * Demographic Parity of outcomes
-
-    Note: this assessment runs on the the scrubbed data (see CredoData.get_scrubbed_data).
-
-    Modules:
-
-    * credoai.modules.dataset_fairness
-
-    """
-
-    def __init__(self):
-        super().__init__(
-            'DatasetFairness',
-            mod.DatasetFairness,
-            AssessmentRequirements(
-                data_requirements=['X', 'y', 'sensitive_features']
-            )
-        )
-
-    def init_module(self, *, data):
-        super().init_module(data=data)
-        scrubbed_data = data.get_scrubbed_data()
-        self.initialized_module = self.module(
-            scrubbed_data['X'],
-            scrubbed_data['y'],
-            scrubbed_data['sensitive_features'],
-            data.categorical_features_keys)
-
-    def init_reporter(self):
-        self.reporter = DatasetFairnessReporter(self)
-
-
-class DatasetProfilingAssessment(CredoAssessment):
-    """
-    Dataset Profiling
-
-    Generate profile reports 
-
-    Modules
-    -------
-    * credoai.modules.dataset_profiling
-
-    """
-
-    def __init__(self):
-        super().__init__(
-            'DatasetProfiling',
-            mod.DatasetProfiling,
-            AssessmentRequirements(
-                data_requirements=['X', 'y']
-            )
-        )
-
-    def init_module(self, *, data):
-        super().init_module(data=data)
-        self.initialized_module = self.module(
-            data.X,
-            data.y)
-
-    def init_reporter(self):
-        self.reporter = DatasetProfilingReporter(self)
-
-
-def list_assessments_exhaustive():
-    """List all defined assessments"""
-    return inspect.getmembers(sys.modules[__name__],
-                              lambda member: inspect.isclass(member) and member.__module__ == __name__)
-
-
-def list_assessments():
-    """List subset of all defined assessments where the module is importable"""
-    assessments = list_assessments_exhaustive()
-    usable_assessments = []
-    for assessment in assessments:
-        try:
-            _ = assessment[1]()
-            usable_assessments.append(assessment)
-        except AttributeError:
-            pass
-    return usable_assessments
 
 
 class PrivacyAssessment(CredoAssessment):
@@ -553,3 +500,134 @@ class SecurityAssessment(CredoAssessment):
         )
 
         self.initialized_module = module
+
+# *******************
+# Dataset Assessments
+# *******************
+
+
+class DatasetEquityAssessment(CredoAssessment):
+    """Evaluation of the equity of model outcomes
+    """
+
+    def __init__(self):
+        super().__init__(
+            'DatasetEquity',
+            mod.EquityModule,
+            AssessmentRequirements(
+                data_requirements=['y', 'sensitive_features']
+            )
+        )
+
+    def init_module(self, *, data, p_value=0.01):
+        """Initializes the assessment module
+
+        Parameters
+        ------------
+        model : CredoModel
+        data : CredoData
+        p_value : float
+            The significance value to evaluate statistical tests. Optional, default 0.01
+        """
+        super().init_module(data=data)
+        y = data.y
+
+        module = self.module(
+            data.sensitive_features,
+            y,
+            p_value=p_value)
+        self.initialized_module = module
+
+    def init_reporter(self):
+        self.reporter = EquityReporter(self)
+
+
+class DatasetFairnessAssessment(CredoAssessment):
+    """
+    Dataset Assessment
+
+    Runs fairness assessment on a CredoDataset. This
+    includes:
+
+    * Distributional assessment of dataset
+    * Proxy detection
+    * Demographic Parity of outcomes
+
+    Note: this assessment runs on the the scrubbed data (see CredoData.get_scrubbed_data).
+
+    Modules:
+
+    * credoai.modules.dataset_fairness
+
+    """
+
+    def __init__(self):
+        super().__init__(
+            'DatasetFairness',
+            mod.DatasetFairness,
+            AssessmentRequirements(
+                data_requirements=['X', 'y', 'sensitive_features']
+            )
+        )
+
+    def init_module(self, *, data):
+        super().init_module(data=data)
+        scrubbed_data = data.get_scrubbed_data()
+        self.initialized_module = self.module(
+            scrubbed_data['X'],
+            scrubbed_data['y'],
+            scrubbed_data['sensitive_features'],
+            data.categorical_features_keys)
+
+    def init_reporter(self):
+        self.reporter = DatasetFairnessReporter(self)
+
+
+class DatasetProfilingAssessment(CredoAssessment):
+    """
+    Dataset Profiling
+
+    Generate profile reports 
+
+    Modules
+    -------
+    * credoai.modules.dataset_profiling
+
+    """
+
+    def __init__(self):
+        super().__init__(
+            'DatasetProfiling',
+            mod.DatasetProfiling,
+            AssessmentRequirements(
+                data_requirements=['X', 'y']
+            )
+        )
+
+    def init_module(self, *, data):
+        super().init_module(data=data)
+        self.initialized_module = self.module(
+            data.X,
+            data.y)
+
+    def init_reporter(self):
+        self.reporter = DatasetProfilingReporter(self)
+
+
+def list_assessments_exhaustive():
+    """List all defined assessments"""
+    return inspect.getmembers(sys.modules[__name__],
+                              lambda member: inspect.isclass(member) and member.__module__ == __name__)
+
+
+def list_assessments():
+    """List subset of all defined assessments where the module is importable"""
+    assessments = list_assessments_exhaustive()
+    usable_assessments = []
+    for assessment in assessments:
+        try:
+            _ = assessment[1]()
+            usable_assessments.append(assessment)
+        except AttributeError:
+            pass
+    return usable_assessments

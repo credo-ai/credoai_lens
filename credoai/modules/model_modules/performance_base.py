@@ -179,11 +179,14 @@ class PerformanceModule(CredoModule):
         first_feature = self.sensitive_features.columns[0]
         overall_metrics = [metric_frame.overall for metric_frame
                            in self.metric_frames[first_feature].values()]
-        output_series = pd.concat(overall_metrics, axis=0) \
-                          .rename(index='value') \
-                          .to_frame() \
-                          .assign(subtype='overall_performance')
-        return output_series
+        if overall_metrics:
+            output_series = pd.concat(overall_metrics, axis=0) \
+                .rename(index='value') \
+                .to_frame() \
+                .assign(subtype='overall_performance')
+            return output_series
+        else:
+            logging.warn("No overall metrics could be calculated.")
 
     def get_disaggregated_performance(self):
         """Return performance metrics for each group
@@ -206,6 +209,8 @@ class PerformanceModule(CredoModule):
                 disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
             disaggregated_results[f'{sf_name}-disaggregated_performance'] = \
                 disaggregated_df.assign(subtype='disaggregated_performance')
+        if not disaggregated_results:
+            logging.warn("No disaggregated metrics could be calculated.")
         return disaggregated_results
 
     def get_sensitive_features(self):

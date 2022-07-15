@@ -184,7 +184,7 @@ class CredoGovernance:
         assessed_at : str, optional
             date when assessments were created, by default None
         """
-        assessed_at = assessed_at or datetime.now().isoformat()
+        assessed_at = assessed_at or datetime.utcnow().isoformat()
         payload = ci.prepare_assessment_payload(
             assessment_results, reporter_assets=reporter_assets, assessed_at=assessed_at)
         if destination == 'credoai':

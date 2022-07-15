@@ -39,7 +39,7 @@ class Metric():
         defined for documentation purposes
     takes_prob : bool, optional
         Whether the function takes the decision probabilities
-        vs. the predicted class, as for ROC AUC. Similar to `needs_proba` used by
+        instead of the predicted class, as for ROC AUC. Similar to `needs_proba` used by
         `sklearn <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.make_scorer.html>`_
         by default False
     equivalent_names : list
@@ -127,6 +127,9 @@ def find_metrics(metric_name, metric_category=None):
 BINARY_CLASSIFICATION_METRICS = metrics_from_dict(BINARY_CLASSIFICATION_FUNCTIONS,
                                                   "BINARY_CLASSIFICATION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
 
+REGRESSION_METRICS = metrics_from_dict(REGRESSION_FUNCTIONS,
+                                       "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
+
 FAIRNESS_METRICS = metrics_from_dict(FAIRNESS_FUNCTIONS, "FAIRNESS",
                                      PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
 
@@ -139,8 +142,6 @@ PRIVACY_METRICS = {m: Metric(m, "PRIVACY", None, False)
 SECURITY_METRICS = {m: Metric(m, "SECURITY", None, False)
                     for m in SECURITY_METRIC_TYPES}
 
-REGRESSION_METRICS = metrics_from_dict(REGRESSION_FUNCTIONS,
-                                       "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
 
 METRIC_NAMES = list(BINARY_CLASSIFICATION_METRICS.keys()) \
     + list(FAIRNESS_METRICS.keys()) \
