@@ -41,10 +41,12 @@ class EquityModule(CredoModule):
         self.sensitive_features = sensitive_features.iloc[:, 0]
         self.sf_name = self.sensitive_features.name
         self.y = y
+        if type(self.y) is not pd.Series:
+            self.y = pd.Series(y, name='outcome')
         self.type_of_target = type_of_target(self.y)
         # create df
         self.df = pd.concat(
-            [self.sensitive_features, pd.Series(y, name='outcome')], axis=1)
+            [self.sensitive_features, self.y], axis=1)
         # other parameters
         self.pvalue = p_value
 
@@ -69,6 +71,7 @@ class EquityModule(CredoModule):
             overall_equity = {'metric_type': 'equity_test',
                               'subtype': 'overall_test',
                               'value': stats['equity_test']['pvalue'],
+                              'test_type': stats['equity_test']['test_type'],
                               'metadata': stats['equity_test']}
             results.append(overall_equity)
             # add posthoc tests if needed
@@ -79,6 +82,7 @@ class EquityModule(CredoModule):
                             'metric_type': 'equity_test',
                             'subtype': 'posthoc_test',
                             'value': test['pvalue'],
+                            'test_type': test['test_type'],
                             'comparison_groups': list(test['comparison']),
                             'metadata': test
                         }
@@ -92,7 +96,8 @@ class EquityModule(CredoModule):
 
     def describe(self):
         """Create descriptive output"""
-        results = {'summary': self.df.groupby(self.sf_name).outcome.describe()}
+        results = {'summary': self.df.groupby(
+            self.sf_name)[self.y.name].describe()}
         r = results['summary']
         results['highest_group'] = r['mean'].idxmax()
         results['lowest_group'] = r['mean'].idxmin()
@@ -111,9 +116,9 @@ class EquityModule(CredoModule):
         # check for proportion bounding
         if self._check_range(self.y, 0, 1):
             self._proportion_transformation()
-            return self._anova_tukey_hsd('transformed_outcome')
+            return self._anova_tukey_hsd(f'transformed_{self.y.name}')
         else:
-            return self._anova_tukey_hsd('outcome')
+            return self._anova_tukey_hsd(self.y.name)
 
     def _chisquare_contingency(self):
         """
@@ -123,9 +128,9 @@ class EquityModule(CredoModule):
         posthoc tests for all pairwise comparisons. 
         Multiple comparisons are bonferronni corrected.
         """
-        contingency_df = self.df.groupby([self.sf_name, 'outcome'])\
+        contingency_df = self.df.groupby([self.sf_name, self.y.name])\
             .size().reset_index(name='counts')\
-            .pivot(self.sf_name, 'outcome')
+            .pivot(self.sf_name, self.y.name)
         chi2, p, dof, ex = chi2_contingency(contingency_df)
         results = {'equity_test': {
             'test_type': 'chisquared_contingency', 'statistic': chi2, 'pvalue': p}}
@@ -141,7 +146,8 @@ class EquityModule(CredoModule):
                 # running chi2 test
                 chi2, p, dof, ex = chi2_contingency(new_df, correction=False)
                 if p < bonferronni_p:
-                    posthoc_tests.append({'comparison': comb, 'chi2': chi2,
+                    posthoc_tests.append({'test_type': 'chisquared_contingency',
+                                          'comparison': comb, 'chi2': chi2,
                                           'pvalue': p, 'significance_threshold': bonferronni_p})
             results['significant_posthoc_tests'] = sorted(
                 posthoc_tests, key=lambda x: x['pvalue'])
@@ -168,7 +174,8 @@ class EquityModule(CredoModule):
             for indices in zip(*np.where(sig_compares)):
                 specific_labels = np.take(labels, indices)
                 statistic = r.statistic[indices]
-                posthoc_tests.append({'comparison': specific_labels, 'statistic': statistic,
+                posthoc_tests.append({'test_type': 'tukey_hsd',
+                                      'comparison': specific_labels, 'statistic': statistic,
                                       'pvalue': r.pvalue[indices], 'significance_threshold': self.pvalue})
             results['significant_posthoc_tests'] = sorted(
                 posthoc_tests, key=lambda x: x['pvalue'])
@@ -188,4 +195,5 @@ class EquityModule(CredoModule):
         def logit(x):
             eps = 1E-6
             return np.log(x/(1-x+eps)+eps)
-        self.df['transformed_outcome'] = self.df.outcome.apply(logit)
+        self.df[f'transformed_{self.y.name}'] = self.df[self.y.name].apply(
+            logit)
