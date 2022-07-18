@@ -21,7 +21,7 @@ App that supports multi-stakeholder alignment, AI assessment (via Lens) and AI r
 
 ## Dependencies
 
-- Credo AI Lens supports Python 3.7+
+- Credo AI Lens supports Python 3.8+
 - Sphinx (optional for local docs site)
 
 
