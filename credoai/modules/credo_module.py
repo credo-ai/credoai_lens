@@ -83,6 +83,8 @@ class MultiModule(CredoModule):
         """
         if static_kwargs is None:
             static_kwargs = {}
+        self.static_kwargs = static_kwargs
+        self.dynamic_kwargs = dynamic_kwargs
         self.modules = {}
         for name, kwargs in dynamic_kwargs.items():
             self.modules[name] = module(**static_kwargs, **kwargs)
