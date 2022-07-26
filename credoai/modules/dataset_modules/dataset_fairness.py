@@ -11,8 +11,7 @@ from credoai.utils.constants import MULTICLASS_THRESH
 from credoai.utils.dataset_utils import ColumnTransformerUtil
 from credoai.utils.model_utils import get_generic_classifier
 from sklearn.compose import ColumnTransformer
-from sklearn.feature_selection import (mutual_info_classif,
-                                       mutual_info_regression)
+from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 from sklearn.metrics import make_scorer, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
@@ -39,12 +38,14 @@ class DatasetFairness(CredoModule):
         `credoai.utils.common.is_categorical`
     """
 
-    def __init__(self,
-                 X,
-                 y,
-                 sensitive_features: pd.DataFrame,
-                 categorical_features_keys: Optional[List[str]] = None,
-                 categorical_threshold: float = 0.05):
+    def __init__(
+        self,
+        X,
+        y,
+        sensitive_features: pd.Series,
+        categorical_features_keys: Optional[List[str]] = None,
+        categorical_threshold: float = 0.05,
+    ):
 
         self.data = pd.concat([X, y], axis=1)
         self.sensitive_features = sensitive_features
@@ -56,13 +57,16 @@ class DatasetFairness(CredoModule):
             self.categorical_features_keys = categorical_features_keys.copy()
             for sensitive_feature_name in self.sensitive_features:
                 if sensitive_feature_name in self.categorical_features_keys:
-                    self.sensitive_features[sensitive_feature_name] = self.sensitive_features[sensitive_feature_name].astype(
-                        'category')
-                    self.categorical_features_keys.remove(
-                        sensitive_feature_name)
+                    self.sensitive_features[
+                        sensitive_feature_name
+                    ] = self.sensitive_features[sensitive_feature_name].astype(
+                        "category"
+                    )
+                    self.categorical_features_keys.remove(sensitive_feature_name)
         else:
             self.categorical_features_keys = self._find_categorical_features(
-                categorical_threshold)
+                categorical_threshold
+            )
 
     def run(self):
         """Runs the assessment process
@@ -74,18 +78,19 @@ class DatasetFairness(CredoModule):
             Values: detailed results associated with each category
         """
         self.results = {}
-        for sf_name, sf_series in self.sensitive_features.items():
-            sensitive_feature_prediction_results = self._run_cv(sf_series)
-            group_differences = self._group_differences(sf_series)
-            mi_results = self._calculate_mutual_information(sf_series)
-            balance_metrics = self._assess_balance_metrics(sf_series)
+        sensitive_feature_prediction_results = self._run_cv()
+        group_differences = self._group_differences()
+        mi_results = self._calculate_mutual_information()
+        balance_metrics = self._assess_balance_metrics()
 
-            self.results.update({
-                **self._prefix_sensitive_feature(balance_metrics, sf_name),
-                **self._prefix_sensitive_feature(sensitive_feature_prediction_results, sf_name),
-                **self._prefix_sensitive_feature(mi_results, sf_name),
-                f'{sf_name}-standardized_group_diffs': group_differences,
-            })
+        self.results.update(
+            {
+                **balance_metrics,
+                **sensitive_feature_prediction_results,
+                **mi_results,
+                f"standardized_group_diffs": group_differences,
+            }
+        )
         return self
 
     def prepare_results(self):
@@ -101,52 +106,43 @@ class DatasetFairness(CredoModule):
             If results have not been run, raise
         """
         if self.results is not None:
-            metric_types_names = [
-                'sensitive_feature_prediction_score',
-                'demographic_parity_difference',
-                'demographic_parity_ratio',
-                'max_proxy_mutual_information'
+            metric_types = [
+                "sensitive_feature_prediction_score",
+                "demographic_parity_difference",
+                "demographic_parity_ratio",
+                "max_proxy_mutual_information",
             ]
             prepared_arr = []
             index = []
-            for sensitive_feature_name in self.sensitive_features:
-                metric_types = [sensitive_feature_name +
-                                '-' + x for x in metric_types_names]
-                for metric_type in metric_types:
-                    if metric_type not in self.results:
-                        continue
-                    val = self.results[metric_type]
-                    # if multiple values were calculated for metric_type
-                    # add them all. Assumes each element of list is a dictionary with a "value" key,
-                    # and other optional keys as metricmetadata
-                    if isinstance(val, list):
-                        for l in val:
-                            index.append(metric_type)
-                            prepared_arr.append(l)
-                    else:
-                        # assumes the dictionary has a "value" key, along with other optional keys
-                        # as metric metadata
-                        if isinstance(val, dict):
-                            tmp = val
-                        elif isinstance(val, (int, float)):
-                            tmp = {'value': val}
+            for metric_type in metric_types:
+                if metric_type not in self.results:
+                    continue
+                val = self.results[metric_type]
+                # if multiple values were calculated for metric_type
+                # add them all. Assumes each element of list is a dictionary with a "value" key,
+                # and other optional keys as metricmetadata
+                if isinstance(val, list):
+                    for l in val:
                         index.append(metric_type)
-                        prepared_arr.append(tmp)
+                        prepared_arr.append(l)
+                else:
+                    # assumes the dictionary has a "value" key, along with other optional keys
+                    # as metric metadata
+                    if isinstance(val, dict):
+                        tmp = val
+                    elif isinstance(val, (int, float)):
+                        tmp = {"value": val}
+                    index.append(metric_type)
+                    prepared_arr.append(tmp)
             res = pd.DataFrame(prepared_arr, index=index).rename_axis(
-                index='metric_type')
-            res['sensitive_feature'] = res.index.to_series().apply(
-                lambda x: x.split('-')[0])
-            res.index = res.index.to_series().apply(lambda x: x.split('-')[1])
+                index="metric_type"
+            )
+            res["sensitive_feature"] = self.sensitive_features.name
             return res
         else:
-            raise NotRunError(
-                "Results not created yet. Call 'run' to create results"
-            )
+            raise NotRunError("Results not created yet. Call 'run' to create results")
 
-    def _prefix_sensitive_feature(self, dict, sf_name):
-        return {f'{sf_name}-{key}': val for key, val in dict.items()}
-
-    def _group_differences(self, sensitive_feature_series):
+    def _group_differences(self):
         """Calculates standardized mean differences
 
         It is performed for all numeric features and all possible group pairs combinations present in the sensitive feature.
@@ -160,22 +156,22 @@ class DatasetFairness(CredoModule):
                 Value: standardized mean difference
         """
         with warnings.catch_warnings():
-            warnings.simplefilter(action='ignore', category=FutureWarning)
-            group_means = self.X.groupby(sensitive_feature_series).mean()
+            warnings.simplefilter(action="ignore", category=FutureWarning)
+            group_means = self.X.groupby(self.sensitive_features).mean()
         std = self.X.std(numeric_only=True)
         diffs = {}
         for group1, group2 in combinations(group_means.index, 2):
-            diff = (group_means.loc[group1]-group_means.loc[group2])/std
-            diffs[f'{group1}-{group2}'] = diff.to_dict()
+            diff = (group_means.loc[group1] - group_means.loc[group2]) / std
+            diffs[f"{group1}-{group2}"] = diff.to_dict()
         return diffs
 
-    def _run_cv(self, sensitive_feature_series):
+    def _run_cv(self):
         """Determines redundant encoding
 
         A model is trained on the features to predict the sensitive attribute.
-        The score, called "sensitive-feature-prediction-score" is a cross-validated ROC-AUC score. 
+        The score, called "sensitive-feature-prediction-score" is a cross-validated ROC-AUC score.
         We scale the score from typical ROC range of 0.5-1 to 0-1.
-        It quantifies the performance of this prediction. 
+        It quantifies the performance of this prediction.
         A high score means the data collectively serves as a proxy.
 
         Parameters
@@ -189,31 +185,37 @@ class DatasetFairness(CredoModule):
             Cross-validation score
         """
         results = {}
-        if is_categorical(sensitive_feature_series):
-            sensitive_features = sensitive_feature_series.cat.codes
+        if is_categorical(self.sensitive_features):
+            sensitive_features = self.sensitive_features.cat.codes
         else:
-            sensitive_features = sensitive_feature_series
+            sensitive_features = self.sensitive_features
 
         pipe = self._make_pipe()
-        scorer = make_scorer(roc_auc_score,
-                             needs_proba=True,
-                             multi_class='ovo')
-        n_folds = max(2, min(len(self.X)//5, 5))
-        cv_results = cross_val_score(pipe, self.X, sensitive_features,
-                                     cv=StratifiedKFold(n_folds),
-                                     scoring=scorer,
-                                     error_score='raise')
+        scorer = make_scorer(roc_auc_score, needs_proba=True, multi_class="ovo")
+        n_folds = max(2, min(len(self.X) // 5, 5))
+        cv_results = cross_val_score(
+            pipe,
+            self.X,
+            sensitive_features,
+            cv=StratifiedKFold(n_folds),
+            scoring=scorer,
+            error_score="raise",
+        )
 
         # Get feature importances by running once
         pipe.fit(self.X, sensitive_features)
-        model = pipe['model']
-        preprocessor = pipe['preprocessor']
+        model = pipe["model"]
+        preprocessor = pipe["preprocessor"]
         col_names = ColumnTransformerUtil.get_ct_feature_names(preprocessor)
-        feature_importances = pd.Series(model.feature_importances_,
-                                        index=col_names).sort_values(ascending=False)
-        results['sensitive_feature_prediction_score'] = max(
-            cv_results.mean() * 2 - 1, 0)  # move to 0-1 range
-        results['sensitive_feature_prediction_feature_importances'] = feature_importances.to_dict()
+        feature_importances = pd.Series(
+            model.feature_importances_, index=col_names
+        ).sort_values(ascending=False)
+        results["sensitive_feature_prediction_score"] = max(
+            cv_results.mean() * 2 - 1, 0
+        )  # move to 0-1 range
+        results[
+            "sensitive_feature_prediction_feature_importances"
+        ] = feature_importances.to_dict()
 
         return results
 
@@ -226,8 +228,7 @@ class DatasetFairness(CredoModule):
             Pipeline of scaler and model transforms
         """
         categorical_features = self.categorical_features_keys.copy()
-        numeric_features = [
-            x for x in self.X.columns if x not in categorical_features]
+        numeric_features = [x for x in self.X.columns if x not in categorical_features]
 
         # Define features tansformers
         categorical_transformer = OneHotEncoder(handle_unknown="ignore")
@@ -235,21 +236,15 @@ class DatasetFairness(CredoModule):
         transformers = []
         if len(categorical_features):
             categorical_transformer = OneHotEncoder(handle_unknown="ignore")
-            transformers.append(
-                ("cat", categorical_transformer, categorical_features))
+            transformers.append(("cat", categorical_transformer, categorical_features))
         if len(numeric_features):
-            numeric_transformer = Pipeline(
-                steps=[("scaler", StandardScaler())])
+            numeric_transformer = Pipeline(steps=[("scaler", StandardScaler())])
             transformers.append(("num", numeric_transformer, numeric_features))
-        preprocessor = ColumnTransformer(
-            transformers=transformers
-        )
+        preprocessor = ColumnTransformer(transformers=transformers)
 
         model = get_generic_classifier()
 
-        pipe = Pipeline(
-            steps=[("preprocessor", preprocessor), ("model", model)]
-        )
+        pipe = Pipeline(steps=[("preprocessor", preprocessor), ("model", model)])
 
         return pipe
 
@@ -261,17 +256,15 @@ class DatasetFairness(CredoModule):
         list
             Names of categorical features
         """
-        for sensitive_feature_name in self.sensitive_features:
-            if is_categorical(self.sensitive_features[sensitive_feature_name], threshold=threshold):
-                self.sensitive_features[sensitive_feature_name] = self.sensitive_features[sensitive_feature_name].astype(
-                    'category')
+        if is_categorical(self.sensitive_features, threshold=threshold):
+            self.sensitive_features = self.sensitive_features.astype("category")
         cat_cols = []
         for name, column in self.X.iteritems():
             if is_categorical(column, threshold=threshold):
                 cat_cols.append(name)
         return cat_cols
 
-    def _calculate_mutual_information(self, sensitive_feature_series, normalize=True):
+    def _calculate_mutual_information(self, normalize=True):
         """Calculates normalized mutual information between sensitive feature and other features
 
         Mutual information is the "amount of information" obtained about the sensitive feature by observing another feature.
@@ -294,30 +287,37 @@ class DatasetFairness(CredoModule):
             self.X[col] = self.X[col].astype("category").cat.codes
 
         discrete_features = [
-            True if col in self.categorical_features_keys else False for col in self.X.columns
+            True if col in self.categorical_features_keys else False
+            for col in self.X.columns
         ]
 
         # Use the right mutual information methods based on the feature type of the sensitive attribute
-        if is_categorical(sensitive_feature_series):
-            sensitive_feature = sensitive_feature_series.cat.codes
+        if is_categorical(self.sensitive_features):
+            sensitive_feature = self.sensitive_features.cat.codes
             mi = mutual_info_classif(
                 self.X,
                 sensitive_feature,
                 discrete_features=discrete_features,
                 random_state=42,
             )
-            ref = mutual_info_classif(sensitive_feature.values[:, None], sensitive_feature,
-                                      discrete_features=[True], random_state=42)[0]
+            ref = mutual_info_classif(
+                sensitive_feature.values[:, None],
+                sensitive_feature,
+                discrete_features=[True],
+                random_state=42,
+            )[0]
         else:
             mi = mutual_info_regression(
                 self.X,
-                sensitive_feature_series,
+                self.sensitive_features,
                 discrete_features=discrete_features,
                 random_state=42,
             )
-            ref = mutual_info_regression(self.sensitive_features.values[:, None],
-                                         self.sensitive_features,
-                                         random_state=42)[0]
+            ref = mutual_info_regression(
+                self.sensitive_features.values[:, None],
+                self.sensitive_features,
+                random_state=42,
+            )[0]
 
         # Normalize the mutual information values, if requested
         mi = pd.Series(mi, index=self.X.columns)
@@ -330,30 +330,35 @@ class DatasetFairness(CredoModule):
         for k, v in mi.items():
             if k in self.categorical_features_keys:
                 mutual_information_results[k] = {
-                    "value": v, "feature_type": "categorical"}
+                    "value": v,
+                    "feature_type": "categorical",
+                }
             else:
                 mutual_information_results[k] = {
-                    "value": v, "feature_type": "continuous"}
-        max_proxy_value = max([i['value']
-                              for i in mutual_information_results.values()])
-        return {'proxy_mutual_information': mutual_information_results,
-                'max_proxy_mutual_information': max_proxy_value}
+                    "value": v,
+                    "feature_type": "continuous",
+                }
+        max_proxy_value = max([i["value"] for i in mutual_information_results.values()])
+        return {
+            "proxy_mutual_information": mutual_information_results,
+            "max_proxy_mutual_information": max_proxy_value,
+        }
 
-    def _assess_balance_metrics(self, sensitive_feature_series):
-        """Calculate dataset balance statistics and metrics 
+    def _assess_balance_metrics(self):
+        """Calculate dataset balance statistics and metrics
 
         Returns
         -------
         dict
             'sample_balance': distribution of samples across groups
             'label_balance': distribution of labels across groups
-            'metrics': demographic parity difference and ratio between groups for all preferred label value possibilities 
+            'metrics': demographic parity difference and ratio between groups for all preferred label value possibilities
         """
         balance_results = {}
 
         # Distribution of samples across groups
         sample_balance = (
-            self.y.groupby(sensitive_feature_series)
+            self.y.groupby(self.sensitive_features)
             .agg(
                 count=(len),
                 percentage=(lambda x: 100.0 * len(x) / len(self.y)),
@@ -367,10 +372,10 @@ class DatasetFairness(CredoModule):
         # number of categories
         if len(self.y.unique()) < MULTICLASS_THRESH:
             with warnings.catch_warnings():
-                warnings.simplefilter(action='ignore', category=FutureWarning)
+                warnings.simplefilter(action="ignore", category=FutureWarning)
                 # Distribution of samples across groups
                 label_balance = (
-                    self.data.groupby([sensitive_feature_series, self.y.name])
+                    self.data.groupby([self.sensitive_features, self.y.name])
                     .size()
                     .unstack(fill_value=0)
                     .stack()
@@ -380,23 +385,31 @@ class DatasetFairness(CredoModule):
                 balance_results["label_balance"] = label_balance
 
                 # Fairness metrics
-                r = self.data.groupby([sensitive_feature_series, self.y.name])\
-                    .agg({self.y.name: 'count'})\
-                    .groupby(level=0).apply(lambda x: x / float(x.sum()))\
-                    .rename({self.y.name: 'ratio'}, inplace=False, axis=1)\
+                r = (
+                    self.data.groupby([self.sensitive_features, self.y.name])
+                    .agg({self.y.name: "count"})
+                    .groupby(level=0)
+                    .apply(lambda x: x / float(x.sum()))
+                    .rename({self.y.name: "ratio"}, inplace=False, axis=1)
                     .reset_index(inplace=False)
+                )
 
             # Compute the maximum difference/ratio between any two pairs of groups
 
             def get_demo_parity(fun):
-                return r.groupby(self.y.name)['ratio']\
-                    .apply(fun)\
-                    .reset_index(name='value')\
-                    .iloc[1:].to_dict(orient='records')
+                return (
+                    r.groupby(self.y.name)["ratio"]
+                    .apply(fun)
+                    .reset_index(name="value")
+                    .iloc[1:]
+                    .to_dict(orient="records")
+                )
 
-            balance_results['demographic_parity_difference'] = get_demo_parity(
-                lambda x: np.max(x)-np.min(x))
-            balance_results['demographic_parity_ratio'] = get_demo_parity(
-                lambda x: np.min(x)/np.max(x))
+            balance_results["demographic_parity_difference"] = get_demo_parity(
+                lambda x: np.max(x) - np.min(x)
+            )
+            balance_results["demographic_parity_ratio"] = get_demo_parity(
+                lambda x: np.min(x) / np.max(x)
+            )
 
         return balance_results

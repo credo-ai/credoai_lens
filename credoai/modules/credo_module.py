@@ -17,7 +17,7 @@ class CredoModule(ABC):
     @abstractmethod
     def run(self):
         """
-        Creates self.results object. 
+        Creates self.results object.
 
         Returns
         -------
@@ -51,17 +51,14 @@ class CredoModule(ABC):
         if self.results is not None:
             return self.results
         else:
-            raise NotRunError(
-                "Results not created yet. Call 'run' to create results"
-            )
+            raise NotRunError("Results not created yet. Call 'run' to create results")
 
 
 class MultiModule(CredoModule):
-    def __init__(self,
-                 module: CredoModule,
-                 dynamic_kwargs: dict,
-                 static_kwargs: dict = None):
-        """Helper class to build modules that take in lists of arguments
+    def __init__(
+        self, module: CredoModule, dynamic_kwargs: dict, static_kwargs: dict = None
+    ):
+        """Helper class to build higher order modules that take in lists of arguments
 
         Example:
         The below example shows how you can run the EquityModule with two sets of sensitive
@@ -69,7 +66,7 @@ class MultiModule(CredoModule):
 
         dynamic_kwargs = {'race': {'sensitive_features': pd.DataFrame([0, 1, 1, 1])},
                           'gender': {'sensitive_features': pd.DataFrame([0, 1, 0, 1])}}
-        MultiModule(EquityModule, 
+        MultiModule(EquityModule,
                     dynamic_kwargs,
                     static_kwargs={'y': [0, 1, 1, 1]})
 
@@ -101,6 +98,5 @@ class MultiModule(CredoModule):
     def prepare_results(self):
         prepared_results = pd.DataFrame()
         for name, module in self.modules.items():
-            prepared_results = pd.concat(
-                [prepared_results, module.prepare_results()])
+            prepared_results = pd.concat([prepared_results, module.prepare_results()])
         return prepared_results

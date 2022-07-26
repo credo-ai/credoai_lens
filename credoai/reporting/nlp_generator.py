@@ -1,17 +1,17 @@
 import math
-import matplotlib.pyplot as plt
 import os
-import seaborn as sns
-
 from copy import deepcopy
-from credoai.reporting.credo_reporter import CredoReporter
-from credoai.reporting import plot_utils
 from datetime import datetime
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+from credoai.reporting import plot_utils
+from credoai.reporting.credo_reporter import CredoReporter
 
 
 class NLPGeneratorAnalyzerReporter(CredoReporter):
-    def __init__(self, assessment, size=4):
-        super().__init__(assessment)
+    def __init__(self, module, size=4):
+        super().__init__(module)
         self.num_gen_models = len(self.module.generation_functions)
         self.num_assessment_funs = len(self.module.assessment_functions)
         self.size = size

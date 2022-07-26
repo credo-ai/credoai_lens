@@ -14,13 +14,13 @@ from IPython.core.display import HTML, display
 
 
 class CredoReporter(ABC):
-    """Abstract base class for all CredoReports"""
+    """Abstract base class for all CredoReports
 
-    def __init__(self, assessment, module=None):
-        self.assessment = assessment
+    CredoReporters are associated with a module
+    """
+
+    def __init__(self, module):
         self.module = module
-        if module is None:
-            self.module = assessment.initialized_module
         self.key_lookup = None
         self.figs = []
 
@@ -44,7 +44,7 @@ class CredoReporter(ABC):
             self.figs = []
             self._create_assets()
         if plot:
-            [display(fig['figure']) for fig in self.figs]
+            [display(fig["figure"]) for fig in self.figs]
         return self.figs
 
     def set_key_lookup(self, lens_prepared_results):
@@ -58,12 +58,15 @@ class CredoReporter(ABC):
         self.key_lookup = lens_prepared_results
 
     def display_results_tables(self):
-        results = self.assessment.get_results()
+        results = self.module.get_results()
         for key, val in results.items():
             title = format_label(key.upper(), wrap_length=30)
-            anchor_name = f'{str(self.assessment)}-{"-".join(title.split())}'
-            display(HTML(
-                f'<h3 id="{anchor_name}"><span style="font-size:1em; text-align: left">{title}</span></h3>'))
+            anchor_name = f'{"-".join(title.split())}'
+            display(
+                HTML(
+                    f'<h3 id="{anchor_name}"><span style="font-size:1em; text-align: left">{title}</span></h3>'
+                )
+            )
             try:
                 val = pd.DataFrame(val)
                 display(val)
@@ -73,29 +76,35 @@ class CredoReporter(ABC):
                     display(val)
                 except:
                     print(val)
-            print('\n')
+            print("\n")
 
     @abstractmethod
     def _create_assets(self):
         """Creates assets, appending them to self.figs"""
         pass
 
-    def _create_chart(self,
-                      figure,
-                      description: str = None,
-                      name: str = 'Figure',
-                      metric_keys=None):
+    def _create_chart(
+        self, figure, description: str = None, name: str = "Figure", metric_keys=None
+    ):
         # if metric keys is not defined but key_lookup exists
         # set metric_keys to all associated metrics
         if self.key_lookup is not None and metric_keys is None:
-            metric_keys = self.key_lookup['metric_key'].tolist()
-        return {'name': name, 'figure': figure,
-                'description': description, 'metric_keys': metric_keys or []}
+            metric_keys = self.key_lookup["metric_key"].tolist()
+        return {
+            "name": name,
+            "figure": figure,
+            "description": description,
+            "metric_keys": metric_keys or [],
+        }
 
     def _create_html_blob(self, html, name: str = "File", metric_keys=None):
         # if metric keys is not defined but key_lookup exists
         # set metric_keys to all associated metrics
         if self.key_lookup is not None and metric_keys is None:
-            metric_keys = self.key_lookup['metric_key'].tolist()
-        return {'name': name, 'content': html,
-                'content_type': "text/html", 'metric_keys': metric_keys}
+            metric_keys = self.key_lookup["metric_key"].tolist()
+        return {
+            "name": name,
+            "content": html,
+            "content_type": "text/html",
+            "metric_keys": metric_keys,
+        }

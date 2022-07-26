@@ -89,6 +89,7 @@ class EquityModule(CredoModule):
                         }
                     )
             results = pd.DataFrame(results).set_index("metric_type")
+            results["sensitive_feature"] = self.sensitive_features.name
             return results
         else:
             raise NotRunError(
