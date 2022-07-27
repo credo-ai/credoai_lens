@@ -191,9 +191,11 @@ def apply_assessment_template(template_name, use_case_id, model_id):
     templates = deserialize(request.json())
     filtered = [t for t in templates if t["name"] == template_name]
     if len(filtered) > 1:
-        print("Bruh")
+        raise IntegrationError(
+            f"More than one template found with the name: {template_name}"
+        )
     elif not filtered:
-        print("Nah")
+        raise IntegrationError(f"No template found with the name: {template_name}")
     template = filtered[0]
 
     # get assessment plan
