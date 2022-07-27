@@ -25,6 +25,7 @@ from datetime import datetime
 from typing import Callable, List, Optional, Union
 
 import pandas as pd
+
 # This file defines CredoGovernance, CredoModel and CredoData
 from absl import logging
 from sklearn.impute import SimpleImputer
@@ -32,16 +33,28 @@ from sklearn.utils.multiclass import type_of_target
 
 import credoai.integration as ci
 from credoai.metrics.metrics import find_metrics
-from credoai.utils.common import (IntegrationError, ValidationError,
-                                  flatten_list, json_dumps, raise_or_warn,
-                                  update_dictionary)
-from credoai.utils.constants import (MODEL_TYPES, RISK_ISSUE_MAPPING,
-                                     SUPPORTED_FRAMEWORKS)
-from credoai.utils.credo_api_utils import (get_dataset_by_name,
-                                           get_dataset_name, get_model_by_name,
-                                           get_model_name,
-                                           get_use_case_by_name,
-                                           get_use_case_name)
+from credoai.utils.common import (
+    IntegrationError,
+    ValidationError,
+    flatten_list,
+    json_dumps,
+    raise_or_warn,
+    update_dictionary,
+)
+from credoai.utils.constants import (
+    MODEL_TYPES,
+    RISK_ISSUE_MAPPING,
+    SUPPORTED_FRAMEWORKS,
+)
+from credoai.utils.credo_api_utils import (
+    apply_assessment_template,
+    get_dataset_by_name,
+    get_dataset_name,
+    get_model_by_name,
+    get_model_name,
+    get_use_case_by_name,
+    get_use_case_name,
+)
 from credoai.utils.model_utils import get_model_info
 
 
@@ -49,7 +62,7 @@ class CredoGovernance:
     """Class to store governance data.
 
     This information is used to interact with the CredoAI
-    Governance App. 
+    Governance App.
 
     At least one of the credo_url or spec_path must be provided! If both
     are provided, the spec_path takes precedence.
@@ -66,15 +79,13 @@ class CredoGovernance:
         the assessment requirements of an Use Case on Credo AI's
         Governance App
     warning_level : int
-        warning level. 
+        warning level.
             0: warnings are off
             1: warnings are raised (default)
             2: warnings are raised as exceptions.
     """
 
-    def __init__(self,
-                 spec_destination: str = None,
-                 warning_level=1):
+    def __init__(self, spec_destination: str = None, warning_level=1):
         self.warning_level = warning_level
         self.assessment_spec = {}
         self.use_case_id = None
@@ -83,11 +94,7 @@ class CredoGovernance:
         self.training_dataset_id = None
         # set up assessment spec
         if spec_destination:
-            self.assessment_spec = ci.process_assessment_spec(spec_destination)
-            self.use_case_id = self.assessment_spec['use_case_id']
-            self.model_id = self.assessment_spec['model_id']
-            self.dataset_id = self.assessment_spec['validation_dataset_id']
-            self.training_dataset_id = self.assessment_spec['training_dataset_id']
+            self._process_spec(spec_destination)
 
     def get_assessment_plan(self):
         """Get assessment plan
@@ -96,12 +103,14 @@ class CredoGovernance:
         by model_id.
 
         If not retrieved yet, attempt to retrieve the plan first
-        from the AI Governance app. 
+        from the AI Governance app.
         """
         assessment_plan = defaultdict(dict)
         missing_metrics = []
-        for risk_issue, risk_plan in self.assessment_spec.get('assessment_plan', {}).items():
-            metrics = [m['type'] for m in risk_plan]
+        for risk_issue, risk_plan in self.assessment_spec.get(
+            "assessment_plan", {}
+        ).items():
+            metrics = [m["type"] for m in risk_plan]
             passed_metrics = []
             for m in metrics:
                 found = bool(find_metrics(m))
@@ -110,36 +119,43 @@ class CredoGovernance:
                 else:
                     passed_metrics.append(m)
             if risk_issue in RISK_ISSUE_MAPPING:
-                update_dictionary(assessment_plan[RISK_ISSUE_MAPPING[risk_issue]],
-                                  {'metrics': passed_metrics})
+                update_dictionary(
+                    assessment_plan[RISK_ISSUE_MAPPING[risk_issue]],
+                    {"metrics": passed_metrics},
+                )
         # alert about missing metrics
         for m in missing_metrics:
-            logging.warning(f"Metric ({m}) is defined in the assessment plan but is not defined by Credo AI.\n"
-                            "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
-                            "assessment plan passed to lens")
+            logging.warning(
+                f"Metric ({m}) is defined in the assessment plan but is not defined by Credo AI.\n"
+                "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
+                "assessment plan passed to lens"
+            )
         # remove repeated metrics
         for plan in assessment_plan.values():
-            plan['metrics'] = list(set(plan['metrics']))
+            plan["metrics"] = list(set(plan["metrics"]))
         return assessment_plan
 
     def get_policy_checklist(self):
-        return self.assessment_spec.get('policy_questions')
+        return self.assessment_spec.get("policy_questions")
 
     def get_info(self):
         """Return Credo AI Governance IDs"""
         to_return = self.__dict__.copy()
-        del to_return['assessment_spec']
-        del to_return['warning_level']
+        del to_return["assessment_spec"]
+        del to_return["warning_level"]
         return to_return
 
     def get_defined_ids(self):
         """Return IDS that have been defined"""
         return [k for k, v in self.get_info().items() if v]
 
-    def register(self,
-                 model_name=None,
-                 dataset_name=None,
-                 training_dataset_name=None):
+    def register(
+        self,
+        model_name=None,
+        dataset_name=None,
+        training_dataset_name=None,
+        assessment_template=None,
+    ):
         """Registers artifacts to Credo AI Governance App
 
         Convenience function to register multiple artifacts at once
@@ -152,6 +168,9 @@ class CredoGovernance:
             name of a dataset used to assess the model
         training_dataset_name : str
             name of a dataset used to train the model
+        assessment_template : str
+            name of an assessment template that already exists on the governance platform,
+            which will be applied to the model
 
         """
         if model_name:
@@ -159,15 +178,22 @@ class CredoGovernance:
         if dataset_name:
             self._register_dataset(dataset_name)
         if training_dataset_name:
-            self._register_dataset(training_dataset_name,
-                                   register_as_training=True)
+            self._register_dataset(training_dataset_name, register_as_training=True)
+        if assessment_template and self.model_id:
+            apply_assessment_template(
+                assessment_template, self.use_case_id, self.model_id
+            )
+            self._process_spec(
+                f"use_cases/{self.use_case_id}/models/{self.model_id}/assessment_spec"
+            )
 
-    def export_assessment_results(self,
-                                  assessment_results,
-                                  reporter_assets=None,
-                                  destination='credoai',
-                                  assessed_at=None
-                                  ):
+    def export_assessment_results(
+        self,
+        assessment_results,
+        reporter_assets=None,
+        destination="credoai",
+        assessed_at=None,
+    ):
         """Export assessment json to file or credo
 
         Parameters
@@ -186,33 +212,38 @@ class CredoGovernance:
         """
         assessed_at = assessed_at or datetime.utcnow().isoformat()
         payload = ci.prepare_assessment_payload(
-            assessment_results, reporter_assets=reporter_assets, assessed_at=assessed_at)
-        if destination == 'credoai':
+            assessment_results, reporter_assets=reporter_assets, assessed_at=assessed_at
+        )
+        if destination == "credoai":
             if self.use_case_id and self.model_id:
-                ci.post_assessment(self.use_case_id,
-                                   self.model_id, payload)
+                ci.post_assessment(self.use_case_id, self.model_id, payload)
                 logging.info(
-                    f"Successfully exported assessments to Credo AI's Governance App")
+                    f"Successfully exported assessments to Credo AI's Governance App"
+                )
             else:
-                logging.error("Couldn't upload assessment to Credo AI's Governance App. "
-                              "Ensure use_case_id is defined in CredoGovernance")
+                logging.error(
+                    "Couldn't upload assessment to Credo AI's Governance App. "
+                    "Ensure use_case_id is defined in CredoGovernance"
+                )
         else:
             if not os.path.exists(destination):
                 os.makedirs(destination, exist_ok=False)
             name_for_save = f"assessment_run-{assessed_at}.json"
             # change name in case of windows
-            if os.name == 'nt':
-                name_for_save = name_for_save.replace(':', '-')
+            if os.name == "nt":
+                name_for_save = name_for_save.replace(":", "-")
             output_file = os.path.join(destination, name_for_save)
-            with open(output_file, 'w') as f:
+            with open(output_file, "w") as f:
                 f.write(json_dumps(payload))
 
-    def set_governance_info_by_name(self,
-                                    *,
-                                    use_case_name=None,
-                                    model_name=None,
-                                    dataset_name=None,
-                                    training_dataset_name=None):
+    def set_governance_info_by_name(
+        self,
+        *,
+        use_case_name=None,
+        model_name=None,
+        dataset_name=None,
+        training_dataset_name=None,
+    ):
         """Sets governance info by name
 
         Sets model_id, and/or dataset_id(s)
@@ -233,19 +264,26 @@ class CredoGovernance:
         if use_case_name:
             ids = get_use_case_by_name(use_case_name)
             if ids is not None:
-                self.use_case_id = ids['use_case_id']
+                self.use_case_id = ids["use_case_id"]
         if model_name:
             ids = get_model_by_name(model_name)
             if ids is not None:
-                self.model_id = ids['model_id']
+                self.model_id = ids["model_id"]
         if dataset_name:
             ids = get_dataset_by_name(dataset_name)
             if ids is not None:
-                self.dataset_id = ids['dataset_id']
+                self.dataset_id = ids["dataset_id"]
         if training_dataset_name:
             ids = get_dataset_by_name(training_dataset_name)
             if ids is not None:
-                self.training_dataset_id = ids['dataset_id']
+                self.training_dataset_id = ids["dataset_id"]
+
+    def _process_spec(self, spec_destination):
+        self.assessment_spec = ci.process_assessment_spec(spec_destination)
+        self.use_case_id = self.assessment_spec["use_case_id"]
+        self.model_id = self.assessment_spec["model_id"]
+        self.dataset_id = self.assessment_spec["validation_dataset_id"]
+        self.training_dataset_id = self.assessment_spec["training_dataset_id"]
 
     def _register_dataset(self, dataset_name, register_as_training=False):
         """Registers a dataset
@@ -255,31 +293,34 @@ class CredoGovernance:
         dataset_name : str
             name of a dataset
         register_as_training : bool
-            If True and model_id is defined, register dataset to model as training data, 
+            If True and model_id is defined, register dataset to model as training data,
             default False
         """
-        prefix = ''
+        prefix = ""
         if register_as_training:
-            prefix = 'training_'
+            prefix = "training_"
         try:
             ids = ci.register_dataset(dataset_name=dataset_name)
-            setattr(self, f'{prefix}dataset_id', ids['dataset_id'])
+            setattr(self, f"{prefix}dataset_id", ids["dataset_id"])
         except IntegrationError:
-            self.set_governance_info_by_name(
-                **{f'{prefix}dataset_name': dataset_name})
-            raise_or_warn(IntegrationError,
-                          f"The dataset ({dataset_name}) is already registered.",
-                          f"The dataset ({dataset_name}) is already registered. Using registered dataset",
-                          self.warning_level)
+            self.set_governance_info_by_name(**{f"{prefix}dataset_name": dataset_name})
+            raise_or_warn(
+                IntegrationError,
+                f"The dataset ({dataset_name}) is already registered.",
+                f"The dataset ({dataset_name}) is already registered. Using registered dataset",
+                self.warning_level,
+            )
         if not register_as_training and self.model_id and self.use_case_id:
             ci.register_dataset_to_model_usecase(
-                use_case_id=self.use_case_id, model_id=self.model_id, dataset_id=self.dataset_id
+                use_case_id=self.use_case_id,
+                model_id=self.model_id,
+                dataset_id=self.dataset_id,
             )
         if register_as_training and self.model_id and self.training_dataset_id:
             logging.info(
-                f"Registering dataset ({dataset_name}) to model ({self.model_id})")
-            ci.register_dataset_to_model(
-                self.model_id, self.training_dataset_id)
+                f"Registering dataset ({dataset_name}) to model ({self.model_id})"
+            )
+            ci.register_dataset_to_model(self.model_id, self.training_dataset_id)
 
     def _register_model(self, model_name):
         """Registers a model
@@ -292,16 +333,19 @@ class CredoGovernance:
         """
         try:
             ids = ci.register_model(model_name=model_name)
-            self.model_id = ids['model_id']
+            self.model_id = ids["model_id"]
         except IntegrationError:
             self.set_governance_info_by_name(model_name=model_name)
-            raise_or_warn(IntegrationError,
-                          f"The model ({model_name}) is already registered.",
-                          f"The model ({model_name}) is already registered. Using registered model",
-                          self.warning_level)
+            raise_or_warn(
+                IntegrationError,
+                f"The model ({model_name}) is already registered.",
+                f"The model ({model_name}) is already registered. Using registered model",
+                self.warning_level,
+            )
         if self.use_case_id:
             logging.info(
-                f"Registering model ({model_name}) to Use Case ({self.use_case_id})")
+                f"Registering model ({model_name}) to Use Case ({self.use_case_id})"
+            )
             ci.register_model_to_usecase(self.use_case_id, self.model_id)
 
 
@@ -329,7 +373,7 @@ class CredoModel:
     can be passed directly to CredoModel's "model" argument and a model_config
     will be inferred.
 
-    Note a model or model_config *must* be passed. If both are passed, any 
+    Note a model or model_config *must* be passed. If both are passed, any
     functionality specified in the model_config will overwrite and inferences
     made from the model itself.
 
@@ -349,18 +393,14 @@ class CredoModel:
         and functions (e.g., "model.predict"), by default None
     model_type : str, optional
         Specifies the type of model. If a model is supplied, CredoModel will attempt to infer
-        the model_type (see utils.model_utils.get_model_info). 
-        When manually input, must be selected from supported MODEL_TYPES 
+        the model_type (see utils.model_utils.get_model_info).
+        When manually input, must be selected from supported MODEL_TYPES
         (Run CredoModel.model_types() to get list of supported types). Set model_type will
         override any inferred type. By default None
     """
 
     def __init__(
-        self,
-        name: str,
-        model=None,
-        model_config: dict = None,
-        model_type: str = None
+        self, name: str, model=None, model_config: dict = None, model_type: str = None
     ):
         self.name = name
         self.config = {}
@@ -370,8 +410,8 @@ class CredoModel:
         assert model is not None or model_config is not None
         if model is not None:
             info = get_model_info(model)
-            self.framework = info['framework']
-            self.model_type = info['model_type']
+            self.framework = info["framework"]
+            self.model_type = info["model_type"]
             self._init_config(model)
         if model_config is not None:
             self.config.update(model_config)
@@ -392,9 +432,9 @@ class CredoModel:
 
     def _init_config(self, model):
         config = {}
-        if self.framework == 'sklearn':
+        if self.framework == "sklearn":
             config = self._init_sklearn(model)
-        elif self.framework == 'xgboost':
+        elif self.framework == "xgboost":
             config = self._init_xgboost(model)
         self.config = config
 
@@ -405,16 +445,19 @@ class CredoModel:
         return self._sklearn_style_config(model)
 
     def _sklearn_style_config(self, model):
-        config = {'predict': model.predict}
+        config = {"predict": model.predict}
         # if binary classification, only return
         # the positive classes probabilities by default
         try:
             if len(model.classes_) == 2:
-                def predict_proba(X): return model.predict_proba(X)[:, 1]
+
+                def predict_proba(X):
+                    return model.predict_proba(X)[:, 1]
+
             else:
                 predict_proba = model.predict_proba
 
-            config['predict_proba'] = predict_proba
+            config["predict_proba"] = predict_proba
         except AttributeError:
             pass
         return config
@@ -427,7 +470,7 @@ class CredoData:
     and the assessments in CredoLens.
 
     Passed to Lens for certain assessments. Either will be used
-    by a CredoModel to make predictions or analyzed itself. 
+    by a CredoModel to make predictions or analyzed itself.
 
     See the `quickstart notebooks <https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html#CredoData>`_ for more information about usage
 
@@ -445,38 +488,39 @@ class CredoData:
         a feature related to fairness like 'race' or 'gender'
     categorical_features_keys : list[str], optional
         Names of categorical features. If the sensitive feature is categorical, include it in this list.
-        Note - ordinal features should not be included. 
+        Note - ordinal features should not be included.
     unused_features_keys : list[str], optional
         Names of the features to ignore when performing prediction.
         Include all the features in the data that were not used during model training
     drop_sensitive_feature : bool, optional
-        If True, automatically adds sensitive_feature_key to the list of 
+        If True, automatically adds sensitive_feature_key to the list of
         unused_features_keys. If you do not explicitly use the sensitive feature
         in your model, this argument should be True. Otherwise, set to False.
         Default, True
     nan_strategy : str or callable, optional
         The strategy for dealing with NaNs when get_scrubbed_data is called. Note, only some
         assessments used the scrubbed data. In general, recommend you deal with NaNs before
-        passing your data to Lens. 
+        passing your data to Lens.
 
         -- If "ignore" do nothing,
-        -- If "drop" drop any rows with any NaNs. 
+        -- If "drop" drop any rows with any NaNs.
         -- If any other string, pass to the "strategy" argument of `Simple Imputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
 
         You can also supply your own imputer with
         the same API as `SimpleImputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
     """
 
-    def __init__(self,
-                 name: str,
-                 data: pd.DataFrame,
-                 label_key: str,
-                 sensitive_feature_keys: list = None,
-                 categorical_features_keys: Optional[List[str]] = None,
-                 unused_features_keys: Optional[List[str]] = None,
-                 drop_sensitive_feature: bool = True,
-                 nan_strategy: Union[str, Callable] = 'drop'
-                 ):
+    def __init__(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        label_key: str,
+        sensitive_feature_keys: list = None,
+        categorical_features_keys: Optional[List[str]] = None,
+        unused_features_keys: Optional[List[str]] = None,
+        drop_sensitive_feature: bool = True,
+        nan_strategy: Union[str, Callable] = "drop",
+    ):
 
         self.name = name
         self.data = data
@@ -486,8 +530,7 @@ class CredoData:
         self.unused_features_keys = unused_features_keys
         self.drop_sensitive_feature = drop_sensitive_feature
         self.nan_strategy = nan_strategy
-        self.X, self.y, self.sensitive_features = self._process_data(
-            self.data).values()
+        self.X, self.y, self.sensitive_features = self._process_data(self.data).values()
         self.target_type = type_of_target(self.y)
 
     def __post_init__(self):
@@ -511,9 +554,9 @@ class CredoData:
             ValueError raised for nan_strategy cannot be used by SimpleImputer
         """
         data = self.data.copy()
-        if self.nan_strategy == 'drop':
+        if self.nan_strategy == "drop":
             data = data.dropna()
-        elif self.nan_strategy == 'ignore':
+        elif self.nan_strategy == "ignore":
             pass
         elif isinstance(self.nan_strategy, str):
             try:
@@ -522,7 +565,8 @@ class CredoData:
                 data.iloc[:, :] = imputed
             except ValueError:
                 raise ValueError(
-                    "CredoData's nan_strategy could not be successfully passed to SimpleImputer as a 'strategy' argument")
+                    "CredoData's nan_strategy could not be successfully passed to SimpleImputer as a 'strategy' argument"
+                )
         else:
             imputed = self.nan_strategy.fit_transform(data)
             data.iloc[:, :] = imputed
@@ -543,47 +587,53 @@ class CredoData:
 
         # drop columns from X
         X = data.drop(columns=to_drop, axis=1)
-        return {'X': X, 'y': y, 'sensitive_features': sensitive_features}
+        return {"X": X, "y": y, "sensitive_features": sensitive_features}
 
     def _validate_data(self):
         # Validate the types
         if not isinstance(self.data, pd.DataFrame):
             raise ValidationError(
-                "The provided data type is " + self.data.__class__.__name__ +
-                " but the required type is pd.DataFrame"
+                "The provided data type is "
+                + self.data.__class__.__name__
+                + " but the required type is pd.DataFrame"
             )
         if not isinstance(self.sensitive_feature_keys, list):
             raise ValidationError(
-                "The provided sensitive_feature_keys type is " +
-                self.sensitive_feature_keys.__class__.__name__ + " but the required type is list"
+                "The provided sensitive_feature_keys type is "
+                + self.sensitive_feature_keys.__class__.__name__
+                + " but the required type is list"
             )
         if not isinstance(self.label_key, str):
             raise ValidationError(
-                "The provided label_key type is " +
-                self.label_key.__class__.__name__ + " but the required type is str"
+                "The provided label_key type is "
+                + self.label_key.__class__.__name__
+                + " but the required type is str"
             )
-        if self.categorical_features_keys and not isinstance(self.categorical_features_keys, list):
+        if self.categorical_features_keys and not isinstance(
+            self.categorical_features_keys, list
+        ):
             raise ValidationError(
-                "The provided label_key type is " +
-                self.label_key.__class__.__name__ + " but the required type is list"
+                "The provided label_key type is "
+                + self.label_key.__class__.__name__
+                + " but the required type is list"
             )
         # Validate that the data column names are unique
-        if len(self.data. columns) != len(set(self.data. columns)):
-            raise ValidationError(
-                "The provided data contains duplicate column names"
-            )
+        if len(self.data.columns) != len(set(self.data.columns)):
+            raise ValidationError("The provided data contains duplicate column names")
         # Validate that the data contains the provided sensitive feature and label keys
         col_names = list(self.data.columns)
         for sensitive_feature_key in self.sensitive_feature_keys:
             if sensitive_feature_key not in col_names:
                 raise ValidationError(
-                    "The provided sensitive_feature_key " + sensitive_feature_key +
-                    " does not exist in the provided data"
+                    "The provided sensitive_feature_key "
+                    + sensitive_feature_key
+                    + " does not exist in the provided data"
                 )
         if self.label_key not in col_names:
             raise ValidationError(
-                "The provided label_key " + self.label_key +
-                " does not exist in the provided data"
+                "The provided label_key "
+                + self.label_key
+                + " does not exist in the provided data"
             )
 
     def dev_mode(self, frac=0.1):
@@ -596,6 +646,7 @@ class CredoData:
         frac : float
             The fraction of data to use
         """
-        data = self.data.groupby(self.sensitive_features,
-                                 group_keys=False).apply(lambda x: x.sample(frac=frac))
+        data = self.data.groupby(self.sensitive_features, group_keys=False).apply(
+            lambda x: x.sample(frac=frac)
+        )
         self._process_data(data)
