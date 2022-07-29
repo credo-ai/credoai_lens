@@ -9,17 +9,17 @@ but more requirements are needed for different modules. See README.md
 import importlib
 import inspect
 
-base = 'credoai.modules'
+base = "credoai.modules"
 modules = [
-    'dataset_modules.dataset_fairness',
-    'dataset_modules.dataset_profiling',
-    'model_modules.fairness_nlp',
-    'model_modules.fairness_base',
-    'model_modules.performance_base',
-    'model_modules.nlp_generator',
-    'model_modules.privacy',
-    'model_modules.security',
-    'general_modules.equity'
+    "dataset_modules.dataset_fairness",
+    "dataset_modules.dataset_profiling",
+    "model_modules.fairness_nlp",
+    "model_modules.fairness_base",
+    "model_modules.performance_base",
+    "model_modules.nlp_generator",
+    "model_modules.privacy",
+    "model_modules.security",
+    "general_modules.equity",
 ]
 
 importable_modules = []
@@ -27,8 +27,10 @@ __all__ = []
 
 
 def get_module_classes(module):
-    classes = inspect.getmembers(module, lambda member: inspect.isclass(member)
-                                 and member.__module__ == module.__name__)
+    classes = inspect.getmembers(
+        module,
+        lambda member: inspect.isclass(member) and member.__module__ == module.__name__,
+    )
     return [c[0] for c in classes]
 
 
@@ -36,7 +38,7 @@ def get_module_classes(module):
 # make the ones that are successful
 # importable with "from credoai.module import {module}"
 for module in modules:
-    module_path = f'{base}.{module}'
+    module_path = f"{base}.{module}"
     try:
         mod = importlib.import_module(module_path)
         importable_modules.append(module_path)

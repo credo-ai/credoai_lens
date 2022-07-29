@@ -1,13 +1,13 @@
 import copy
-import numpy as np
-import pandas as pd
 import warnings
 
-from art.estimators.classification.scikitlearn import SklearnClassifier
+import numpy as np
+import pandas as pd
 from art.attacks.inference.membership_inference import (
-    MembershipInferenceBlackBoxRuleBased,
     MembershipInferenceBlackBox,
+    MembershipInferenceBlackBoxRuleBased,
 )
+from art.estimators.classification.scikitlearn import SklearnClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
 from sklearn import metrics as sk_metrics
@@ -60,12 +60,16 @@ class PrivacyModule(CredoModule):
         model_based_attack_performance = self._model_based_attack()
 
         attack_scores = {
-            'rule_based_attack_score': self._rule_based_attack(),
-            'model_based_attack_score': self._model_based_attack()
+            "rule_based_attack_score": self._rule_based_attack(),
+            "model_based_attack_score": self._model_based_attack(),
         }
-        membership_inference_worst_case = max(attack_scores['rule_based_attack_score'], 
-                                              attack_scores['model_based_attack_score'])
-        attack_scores['membership_inference_attack_score'] = membership_inference_worst_case
+        membership_inference_worst_case = max(
+            attack_scores["rule_based_attack_score"],
+            attack_scores["model_based_attack_score"],
+        )
+        attack_scores[
+            "membership_inference_attack_score"
+        ] = membership_inference_worst_case
 
         self.results = attack_scores
 
@@ -87,7 +91,7 @@ class PrivacyModule(CredoModule):
             If results have not been run, raise
         """
         if self.results is not None:
-            return pd.Series(self.results, name='value')
+            return pd.Series(self.results, name="value")
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 
@@ -188,5 +192,3 @@ class PrivacyModule(CredoModule):
         )
 
         return sk_metrics.accuracy_score(y_true, y_pred)
-
-

@@ -65,7 +65,7 @@ class CredoAssessment(ABC):
 
     @abstractmethod
     def init_module(self, *, model=None, data=None, training_data=None):
-        """ Initializes the assessment module
+        """Initializes the assessment module
 
         Transforms CredoModel and CredoData into the proper form
         to create a runnable assessment.
@@ -104,7 +104,7 @@ class CredoAssessment(ABC):
         results = self.initialized_module.prepare_results(**kwargs)
         if results is None:
             return None
-        results = self._standardize_prepared_results(results).fillna('NA')
+        results = self._standardize_prepared_results(results).fillna("NA")
         self._validate_results(results)
         # add metadata
         metadata = metadata or {}
@@ -112,8 +112,7 @@ class CredoAssessment(ABC):
         return results
 
     def get_description(self):
-        return {'short': self.short_description,
-                'long': self.long_description}
+        return {"short": self.short_description, "long": self.long_description}
 
     def get_name(self):
         """Returns unique id for assessment
@@ -136,54 +135,58 @@ class CredoAssessment(ABC):
     def get_requirements(self):
         return self.requirements.get_requirements()
 
-    def check_requirements(self,
-                           credo_model=None,
-                           credo_data=None,
-                           credo_training_data=None):
+    def check_requirements(
+        self, credo_model=None, credo_data=None, credo_training_data=None
+    ):
         """
         Defines the functionality needed by the assessment
 
         Returns a list of functions that a CredoModel must
         instantiate to run. Defining this function supports
-        automated assessment inference by Lens. 
+        automated assessment inference by Lens.
 
         Returns
         ----------
         credo.assessment.AssessmentRequirements
         """
-        return self.requirements.check_requirements(credo_model,
-                                                    credo_data,
-                                                    credo_training_data)
+        return self.requirements.check_requirements(
+            credo_model, credo_data, credo_training_data
+        )
 
     def _standardize_prepared_results(self, results):
         if type(results) == dict:
-            results = pd.Series(results, name='value').to_frame()
+            results = pd.Series(results, name="value").to_frame()
         elif type(results) == pd.Series:
-            results.name = 'value'
+            results.name = "value"
             results = results.to_frame()
         elif type(results) == pd.DataFrame:
             pass
         else:
             raise TypeError("Results format not recognized")
-        results.index.name = 'metric_type'
+        results.index.name = "metric_type"
         return results
 
     def _validate_results(self, results):
-        if (type(results) != pd.DataFrame
-            or results.index.name != 'metric_type'
-                or 'value' not in results.columns):
+        if (
+            type(results) != pd.DataFrame
+            or results.index.name != "metric_type"
+            or "value" not in results.columns
+        ):
             raise ValidationError(
-                f'{self.name} assessment results not in correct format')
+                f"{self.name} assessment results not in correct format"
+            )
 
 
 class AssessmentRequirements:
-    def __init__(self,
-                 model_requirements=None,
-                 data_requirements=None,
-                 training_data_requirements=None,
-                 model_frameworks=None,
-                 model_types=None,
-                 target_types=None):
+    def __init__(
+        self,
+        model_requirements=None,
+        data_requirements=None,
+        training_data_requirements=None,
+        model_frameworks=None,
+        model_types=None,
+        target_types=None,
+    ):
         """
         Defines requirements for an assessment
 
@@ -192,22 +195,22 @@ class AssessmentRequirements:
         model_requirements : List(Union[List, str])
             Requirements as a list. Each element
             can be a single string representing a CredoModel
-            attribute/function or a list of such attributes/functions. 
-            If a list, only one of those attributes/functions are 
+            attribute/function or a list of such attributes/functions.
+            If a list, only one of those attributes/functions are
             needed to satisfy the requirements.
         {training_}data_requirements : List(Union[List, str])
             Requirements as a list. Each element
             can be a single string representing a CredoData
-            attribute/function or a list of such attributes/functions. 
-            If a list, only one of those attributes/functions are 
+            attribute/function or a list of such attributes/functions.
+            If a list, only one of those attributes/functions are
             needed to satisfy the requirements.
         model_frameworks : List(str)
-            List of Model framework(s) required by assessment. 
-            Each element must be taken from list defined by 
+            List of Model framework(s) required by assessment.
+            Each element must be taken from list defined by
             credoai.utils.constants.SUPPORTED_FRAMEWORKS
         model_types : List(str)
-            List of Model type(s) required by assessment. 
-            Each element must be taken from list defined by 
+            List of Model type(s) required by assessment.
+            Each element must be taken from list defined by
             credoai.utils.constants.MODEL_TYPES
         target_types : List(str)
             List of Target type(s) required by assessment. Must be an output
@@ -220,7 +223,9 @@ class AssessmentRequirements:
         self.model_types = model_types or []
         self.target_types = target_types or []
 
-    def check_requirements(self, credo_model=None, credo_data=None, credo_training_data=None):
+    def check_requirements(
+        self, credo_model=None, credo_data=None, credo_training_data=None
+    ):
         # disqualify if the assessment does not require any of the artifacts provided
         if (
             (credo_model and not self.model_requirements)
@@ -233,11 +238,12 @@ class AssessmentRequirements:
         for artifact, requirements in [
             (credo_model, self.model_requirements),
             (credo_data, self.data_requirements),
-            (credo_training_data, self.training_data_requirements)
+            (credo_training_data, self.training_data_requirements),
         ]:
             if artifact:
-                existing_keys = [k for k, v in artifact.__dict__.items()
-                                 if v is not None]
+                existing_keys = [
+                    k for k, v in artifact.__dict__.items() if v is not None
+                ]
                 functionality = set(existing_keys)
             else:
                 functionality = set()
@@ -271,6 +277,8 @@ class AssessmentRequirements:
         return True
 
     def get_requirements(self):
-        return {'model_requirements': self.model_requirements,
-                'data_requirements': self.data_requirements,
-                'training_data_requirements': self.training_data_requirements}
+        return {
+            "model_requirements": self.model_requirements,
+            "data_requirements": self.data_requirements,
+            "training_data_requirements": self.training_data_requirements,
+        }

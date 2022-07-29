@@ -1,26 +1,29 @@
 from abc import ABC, abstractmethod
+
 from credoai.utils import NotRunError
+
 
 class CredoModule(ABC):
     """
     Base Class to build other modules off of.
-    
+
     Defines basic functions for interacting with Credo AI's Governance App
     """
+
     def __init__(self):
         self.results = None
 
     @abstractmethod
     def run(self):
         """
-        Creates self.results object. 
-        
+        Creates self.results object.
+
         Returns
         -------
         self
         """
         return self
-    
+
     @abstractmethod
     def prepare_results(self):
         """
@@ -47,8 +50,4 @@ class CredoModule(ABC):
         if self.results is not None:
             return self.results
         else:
-            raise NotRunError(
-                "Results not created yet. Call 'run' to create results"
-            )
-        
-        
+            raise NotRunError("Results not created yet. Call 'run' to create results")
