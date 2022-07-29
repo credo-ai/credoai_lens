@@ -29,8 +29,11 @@ class DatasetProfilingReporter(CredoReporter):
         return self.figs
 
     def _create_assets(self):
-        self.figs = [self._create_html_blob(
-            self.module.get_html_report(), name='dataset_profile')]
+        self.figs = [
+            self._create_html_blob(
+                self.module.get_html_report(), name="dataset_profile"
+            )
+        ]
 
     def display_results_tables(self):
         pass

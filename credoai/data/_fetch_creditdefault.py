@@ -1,17 +1,48 @@
 import pandas as pd
-from sklearn.datasets import fetch_openml
-from .utils import get_local_credo_path
 from credoai.utils.common import SupressSettingWithCopyWarning
+from sklearn.datasets import fetch_openml
 
-FEATURES = ['LIMIT_BAL', 'SEX', 'EDUCATION', 'MARRIAGE', 'AGE', 'PAY_1', 'PAY_2',
-       'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6', 'BILL_AMT1', 'BILL_AMT2',
-       'BILL_AMT3', 'BILL_AMT4', 'BILL_AMT5', 'BILL_AMT6', 'PAY_AMT1',
-       'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AMT6']
-CATEGORICAL_FEATURES = ['EDUCATION', 'MARRIAGE','PAY_1', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6']
-TARGET = ['default payment next month']
+from .utils import get_local_credo_path
 
-def fetch_creditdefault(*, cache=True, data_home=None,
-                as_frame=True, return_X_y=False):
+FEATURES = [
+    "LIMIT_BAL",
+    "SEX",
+    "EDUCATION",
+    "MARRIAGE",
+    "AGE",
+    "PAY_1",
+    "PAY_2",
+    "PAY_3",
+    "PAY_4",
+    "PAY_5",
+    "PAY_6",
+    "BILL_AMT1",
+    "BILL_AMT2",
+    "BILL_AMT3",
+    "BILL_AMT4",
+    "BILL_AMT5",
+    "BILL_AMT6",
+    "PAY_AMT1",
+    "PAY_AMT2",
+    "PAY_AMT3",
+    "PAY_AMT4",
+    "PAY_AMT5",
+    "PAY_AMT6",
+]
+CATEGORICAL_FEATURES = [
+    "EDUCATION",
+    "MARRIAGE",
+    "PAY_1",
+    "PAY_2",
+    "PAY_3",
+    "PAY_4",
+    "PAY_5",
+    "PAY_6",
+]
+TARGET = ["default payment next month"]
+
+
+def fetch_creditdefault(*, cache=True, data_home=None, as_frame=True, return_X_y=False):
     """Load the UCI Adult dataset (binary classification).
     Download it if necessary.
     ==============   ==============
@@ -63,14 +94,14 @@ def fetch_creditdefault(*, cache=True, data_home=None,
         if ``return_X_y`` is True and ``as_frame`` is True
     References
     ----------
-    .. [1] Yeh, I. C., & Lien, C. H. (2009). The comparisons of data mining techniques 
-        for the predictive accuracy of probability of default of credit card clients. 
+    .. [1] Yeh, I. C., & Lien, C. H. (2009). The comparisons of data mining techniques
+        for the predictive accuracy of probability of default of credit card clients.
         Expert Systems with Applications, 36(2), 2473-2480.
         Available: https://archive.ics.uci.edu/ml/datasets/default+of+credit+card+clients
     """
     if not data_home:
         data_home = get_local_credo_path()
-    
+
     output = fetch_openml(
         data_id=42477,
         data_home=data_home,
@@ -78,19 +109,21 @@ def fetch_creditdefault(*, cache=True, data_home=None,
         as_frame=as_frame,
         return_X_y=return_X_y,
     )
-    
-    output['feature_names'] = FEATURES
-    output['target_names'] = TARGET
+
+    output["feature_names"] = FEATURES
+    output["target_names"] = TARGET
     if as_frame:
-        dataset = output['data']
+        dataset = output["data"]
         dataset.columns = FEATURES
         with SupressSettingWithCopyWarning():
-            dataset['SEX'] = dataset['SEX'].astype('category')\
-                .cat.rename_categories(['female','male'])
-        output['target'].name = TARGET[0]
-        output['target'] = output['target'].cat.rename_categories([0,1])        
+            dataset["SEX"] = (
+                dataset["SEX"]
+                .astype("category")
+                .cat.rename_categories(["female", "male"])
+            )
+        output["target"].name = TARGET[0]
+        output["target"] = output["target"].cat.rename_categories([0, 1])
         with SupressSettingWithCopyWarning():
             for col in CATEGORICAL_FEATURES:
-                dataset[col] = dataset[col].astype('category')
+                dataset[col] = dataset[col].astype("category")
     return output
-

@@ -5,7 +5,6 @@ import warnings
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-
 from art.attacks.evasion import HopSkipJump
 from art.attacks.extraction import CopycatCNN
 from art.estimators.classification import KerasClassifier

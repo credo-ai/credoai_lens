@@ -15,14 +15,14 @@ import sys
 #
 import furo
 
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath(".."))
 import credoai
 
 # -- Project information -----------------------------------------------------
 
-project = 'Credo AI | Lens'
-copyright = '2021, Credo AI Development Team'
-author = 'Credo AI Development Team'
+project = "Credo AI | Lens"
+copyright = "2021, Credo AI Development Team"
+author = "Credo AI Development Team"
 release = credoai.__version__
 
 # -- General configuration ---------------------------------------------------
@@ -31,65 +31,65 @@ release = credoai.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',  # Core library for html generation from docstrings
-    'sphinx.ext.autosectionlabel',
-    'sphinx.ext.autosummary',  # Create neat summary tables
-    'sphinx_copybutton',
-    'sphinx.ext.doctest',
-    'sphinx.ext.coverage',
-    'sphinx.ext.napoleon',
-    'sphinx_autodoc_typehints',  # needs to be AFTER napoleon
-    'sphinx_rtd_theme',
-    'nbsphinx'
+    "sphinx.ext.autodoc",  # Core library for html generation from docstrings
+    "sphinx.ext.autosectionlabel",
+    "sphinx.ext.autosummary",  # Create neat summary tables
+    "sphinx_copybutton",
+    "sphinx.ext.doctest",
+    "sphinx.ext.coverage",
+    "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",  # needs to be AFTER napoleon
+    "sphinx_rtd_theme",
+    "nbsphinx",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # Auto-Doc Options
 # ----------------
 # Change the ordering of the member documentation
-autodoc_member_order = 'groupwise'
-autoclass_content = 'both'
+autodoc_member_order = "groupwise"
+autoclass_content = "both"
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 # Enable 'expensive' imports for sphinx_autodoc_typehints
 set_type_checking_flag = True
 nbsphinx_allow_errors = True  # Continue through Jupyter errors
-nbsphinx_execute = 'never'  # do not execute jupyter notebooks
+nbsphinx_execute = "never"  # do not execute jupyter notebooks
 
 autodoc_mock_imports = [
-    'absl',
-    'cloudpickle',
-    'dotenv',
-    'fairlearn',
-    'googleapiclient',
-    'joblib',
-    'json_api_doc',
-    'matplotlib',
-    'matplotlib.backends',
-    'matplotlib.pyplot',
-    'matplotlib.ticker',
-    'nest_asyncio',
-    'numpy',
-    'pandas',
-    'pandas_profiling',
-    'scipy',
-    'seaborn',
-    'sklearn',
-    'sklearn.base',
-    'sklearn.datasets',
-    'sklearn.ensemble',
-    'sklearn.metrics',
-    'sklearn.utils',
-    'sklearn.utils.multiclass',
-    'sentence_transformers',
-    'tempfile',
-    'transformers'
+    "absl",
+    "cloudpickle",
+    "dotenv",
+    "fairlearn",
+    "googleapiclient",
+    "joblib",
+    "json_api_doc",
+    "matplotlib",
+    "matplotlib.backends",
+    "matplotlib.pyplot",
+    "matplotlib.ticker",
+    "nest_asyncio",
+    "numpy",
+    "pandas",
+    "pandas_profiling",
+    "scipy",
+    "seaborn",
+    "sklearn",
+    "sklearn.base",
+    "sklearn.datasets",
+    "sklearn.ensemble",
+    "sklearn.metrics",
+    "sklearn.utils",
+    "sklearn.utils.multiclass",
+    "sentence_transformers",
+    "tempfile",
+    "transformers",
 ]
 
 
@@ -102,14 +102,14 @@ autodoc_mock_imports = [
 
 # documentation for furo: https://pradyunsg.me/furo/quickstart/
 
-html_theme = 'furo'
+html_theme = "furo"
 
 # import sphinx_rtd_theme
 # html_theme = 'sphinx_rtd_theme'
 # html_theme_options = {
 #    'navigation_depth': 6
 # }
-html_static_path = ['_static']
+html_static_path = ["_static"]
 html_css_files = [
-    'css/custom.css',
+    "css/custom.css",
 ]

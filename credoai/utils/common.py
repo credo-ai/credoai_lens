@@ -1,26 +1,32 @@
 import collections
-import json
 import hashlib
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict
+
 import numpy as np
 import pandas as pd
-import os
 import requests
 import sklearn.utils as skutils
 from absl import logging
-from pathlib import Path
-from typing import Dict, Any
+
 
 class NotRunError(Exception):
     pass
 
+
 class ValidationError(Exception):
     pass
+
 
 class InstallationError(Exception):
     pass
 
+
 class IntegrationError(Exception):
     pass
+
 
 def raise_or_warn(exception, exception_text, warning_text=None, warning_level=1):
     warning_text = warning_text or exception_text
@@ -31,18 +37,22 @@ def raise_or_warn(exception, exception_text, warning_text=None, warning_level=1)
         logging.warning(warning_text)
     return
 
+
 class SupressSettingWithCopyWarning:
     def __enter__(self):
         pd.options.mode.chained_assignment = None
 
     def __exit__(self, *args):
-        pd.options.mode.chained_assignment = 'warn'
-    
+        pd.options.mode.chained_assignment = "warn"
+
+
 def get_project_root() -> Path:
     return Path(__file__).parent.parent
 
+
 def flatten_list(lst):
     return [item for sublist in lst for item in sublist]
+
 
 def update_dictionary(d, u):
     """Recursively updates a dictionary"""
@@ -55,6 +65,7 @@ def update_dictionary(d, u):
             d[k] = v
     return d
 
+
 def wrap_list(obj):
     if type(obj) == str:
         obj = [obj]
@@ -66,14 +77,18 @@ def wrap_list(obj):
         obj = [obj]
     return obj
 
+
 def remove_suffix(text, suffix):
-    return text[:-len(suffix)] if text.endswith(suffix) and len(suffix) != 0 else text
+    return text[: -len(suffix)] if text.endswith(suffix) and len(suffix) != 0 else text
+
 
 def humanize_label(s):
-    return ' '.join(s.split('_')).title()
+    return " ".join(s.split("_")).title()
+
 
 class NumpyEncoder(json.JSONEncoder):
-    """ Special json encoder for numpy types """
+    """Special json encoder for numpy types"""
+
     def default(self, obj):
         if isinstance(obj, np.integer):
             return int(obj)
@@ -83,9 +98,11 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
+
 def json_dumps(obj):
     """Custom json dumps with encoder"""
     return json.dumps(obj, cls=NumpyEncoder)
+
 
 def dict_hash(dictionary: Dict[str, Any]) -> str:
     """MD5 hash of a dictionary."""
@@ -95,6 +112,7 @@ def dict_hash(dictionary: Dict[str, Any]) -> str:
     encoded = json.dumps(dictionary, sort_keys=True).encode()
     dhash.update(encoded)
     return dhash.hexdigest()
+
 
 def to_array(lst):
     """
@@ -112,6 +130,7 @@ def to_array(lst):
         return lst
     else:
         raise TypeError
+
 
 def is_categorical(series, threshold=0.05):
     """Identifies whether a series is categorical or not
@@ -132,8 +151,8 @@ def is_categorical(series, threshold=0.05):
     bool
         Whether the series is categorical or not
     """
-    
-    if series.dtype.name in ['category', 'object']:
+
+    if series.dtype.name in ["category", "object"]:
         return True
     # float columns are assumed not-categorical
     elif len(series.unique()) / len(series) < threshold:
