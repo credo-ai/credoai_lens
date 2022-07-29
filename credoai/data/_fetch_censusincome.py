@@ -1,16 +1,39 @@
 import pandas as pd
-from sklearn.datasets import fetch_openml
-from .utils import get_local_credo_path
 from credoai.utils.common import SupressSettingWithCopyWarning
+from sklearn.datasets import fetch_openml
 
-FEATURES = ['age', 'workclass', 'fnlwgt', 'education', 'education.num',
-       'marital.status', 'occupation', 'relationship', 'race', 'sex',
-       'capital.gain', 'capital.loss', 'hours.per.week', 'native.country']
-CATEGORICAL_FEATURES = ['workclass', 'education','marital.status', 'occupation', 'relationship', 'race', 'sex', 'native.country']
-TARGET = ['income>=50k']
+from .utils import get_local_credo_path
 
-def fetch_censusincome(*, cache=True, data_home=None,
-                as_frame=True, return_X_y=False):
+FEATURES = [
+    "age",
+    "workclass",
+    "fnlwgt",
+    "education",
+    "education.num",
+    "marital.status",
+    "occupation",
+    "relationship",
+    "race",
+    "sex",
+    "capital.gain",
+    "capital.loss",
+    "hours.per.week",
+    "native.country",
+]
+CATEGORICAL_FEATURES = [
+    "workclass",
+    "education",
+    "marital.status",
+    "occupation",
+    "relationship",
+    "race",
+    "sex",
+    "native.country",
+]
+TARGET = ["income>=50k"]
+
+
+def fetch_censusincome(*, cache=True, data_home=None, as_frame=True, return_X_y=False):
     """Load the UCI Adult dataset (binary classification).
     Download it if necessary.
     ==============   ==============
@@ -62,14 +85,14 @@ def fetch_censusincome(*, cache=True, data_home=None,
         if ``return_X_y`` is True and ``as_frame`` is True
     References
     ----------
-    .. [1] Yeh, I. C., & Lien, C. H. (2009). The comparisons of data mining techniques 
-        for the predictive accuracy of probability of default of credit card clients. 
+    .. [1] Yeh, I. C., & Lien, C. H. (2009). The comparisons of data mining techniques
+        for the predictive accuracy of probability of default of credit card clients.
         Expert Systems with Applications, 36(2), 2473-2480.
         Available: https://archive.ics.uci.edu/ml/datasets/default+of+credit+card+clients
     """
     if not data_home:
         data_home = get_local_credo_path()
-    
+
     output = fetch_openml(
         data_id=1119,
         data_home=data_home,
@@ -77,18 +100,17 @@ def fetch_censusincome(*, cache=True, data_home=None,
         as_frame=as_frame,
         return_X_y=return_X_y,
     )
-    
-    output['feature_names'] = FEATURES
-    output['target_names'] = TARGET
+
+    output["feature_names"] = FEATURES
+    output["target_names"] = TARGET
     if as_frame:
         with SupressSettingWithCopyWarning():
-            dataset = output['data']
+            dataset = output["data"]
             dataset.columns = FEATURES
-            dataset.drop(columns=['fnlwgt'], inplace=True)
-            output['target'].name = TARGET[0]
-            output['target'] = output['target'].cat.rename_categories([0,1])        
+            dataset.drop(columns=["fnlwgt"], inplace=True)
+            output["target"].name = TARGET[0]
+            output["target"] = output["target"].cat.rename_categories([0, 1])
         with SupressSettingWithCopyWarning():
             for col in CATEGORICAL_FEATURES:
-                dataset[col] = dataset[col].astype('category')
+                dataset[col] = dataset[col].astype("category")
     return output
-
