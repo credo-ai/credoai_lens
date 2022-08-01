@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from credoai.reporting.plot_utils import format_label
 from credoai.utils import ValidationError
-from IPython.core.display import HTML, display
+from IPython.core.display import HTML
+from IPython import display
 
 
 class CredoReporter(ABC):
