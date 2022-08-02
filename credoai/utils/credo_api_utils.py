@@ -136,7 +136,7 @@ def get_use_case_name(use_case_id):
     Parameters
     ----------
     use_case_id : string
-        Identifier for Model on Credo AI Governance App
+        Identifier for Use Case on Credo AI Governance App
 
     Returns
     -------
@@ -168,6 +168,60 @@ def get_use_case_by_name(use_case_nmae):
     if returned:
         return {"name": use_case_nmae, "use_case_id": returned["id"]}
     return None
+
+
+def apply_assessment_template(template_name, use_case_id, model_id):
+    """Applies an assessment template to a model under a use case
+
+    The assessment templates are drawn from the list of assessment templates saved
+    in the Governance Platform
+
+    Parameters
+    ----------
+    template_name : str
+        The name of an assessment template.
+    use_case_id : string
+        Identifier for Use Case on Credo AI Governance App
+    model_id : string
+       Identifier for Model on Credo AI Governance App
+    """
+    # get template
+    end_point = get_end_point("assessment_plan_templates")
+    request = submit_request("get", end_point)
+    templates = deserialize(request.json())
+    filtered = [t for t in templates if t["name"] == template_name]
+    if len(filtered) > 1:
+        raise IntegrationError(
+            f"More than one template found with the name: {template_name}"
+        )
+    elif not filtered:
+        raise IntegrationError(f"No template found with the name: {template_name}")
+    template = filtered[0]
+
+    # get assessment plan
+    end_point = get_end_point(
+        f"use_cases/{use_case_id}/models/{model_id}/assessment_plans/draft"
+    )
+    plan = deserialize(submit_request("get", end_point).json())
+
+    # apply template
+    end_point = get_end_point(f"assessment_plan_templates/{template['id']}/apply")
+    data = json.dumps(serialize({"assessment_plan_id": plan["id"], "$type": "string"}))
+    submit_request(
+        "post",
+        end_point,
+        data=data,
+        headers={"content-type": "application/vnd.api+json"},
+    )
+
+    # publish
+    end_point = get_end_point(f"assessment_plans/{plan['id']}/publish")
+    submit_request(
+        "post",
+        end_point,
+        data=data,
+        headers={"content-type": "application/vnd.api+json"},
+    )
 
 
 def post_assessment(use_case_id, model_id, data):
