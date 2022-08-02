@@ -7,7 +7,6 @@ from art.attacks.inference.membership_inference import (
     MembershipInferenceBlackBox,
     MembershipInferenceBlackBoxRuleBased,
 )
-from art.estimators.classification.scikitlearn import SklearnClassifier
 from art.estimators.classification import BlackBoxClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
@@ -26,7 +25,7 @@ class PrivacyModule(CredoModule):
     model : model
         A trained binary or multi-class classification model
         The only requirement for the model is to have a `predict` function that returns 
-            predicted classes for a given n*m feature vector as an array of size n.
+            predicted classes for a given feature vector as an array.
     x_train : pandas.DataFrame
         The training features
     y_train : pandas.Series
