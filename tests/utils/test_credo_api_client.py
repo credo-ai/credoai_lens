@@ -1,8 +1,12 @@
+"""
+Test Credo API client
+"""
+
+import os
+import pathlib
 import pytest
 import responses
-import os
 from credoai.utils.credo_api_client import CredoApiClient, CredoApiConfig
-import pathlib
 
 
 class TestCredoApiConfig:

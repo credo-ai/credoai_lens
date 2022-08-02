@@ -1,6 +1,10 @@
+"""
+Defines Credo API client
+"""
+
 import os
-import requests
 from typing import Dict
+import requests
 from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
 from credoai.utils.common import json_dumps
@@ -8,6 +12,10 @@ from credoai.utils.constants import CREDO_URL
 
 
 class CredoApiConfig():
+    """
+    Defines Credo API configs
+    """
+
     def __init__(self, api_key: str = None, tenant: str = None, api_server: str = None):
         self._api_key = api_key
         self._tenant = tenant
@@ -16,25 +24,43 @@ class CredoApiConfig():
 
     @staticmethod
     def default_config_path():
+        """
+        Returns default config path
+        """
         return os.path.join(os.path.expanduser("~"), ".credoconfig")
 
     @property
     def api_key(self):
+        """
+        Returns api_key
+        """
         return self._api_key
 
     @property
     def api_server(self):
+        """
+        Returns api_server
+        """
         return self._api_server
 
     @property
     def tenant(self):
+        """
+        Returns tenant
+        """
         return self._tenant
 
     @property
     def api_base(self):
+        """
+        Returns api_base, which is base url for API request
+        """
         return self._api_base
 
     def load_config(self, config_path=None):
+        """
+        Load API configs from the config_path
+        """
         config_path = config_path or self.default_config_path()
 
         if not os.path.exists(config_path):
@@ -62,6 +88,10 @@ class CredoApiConfig():
 
 
 class CredoApiClient():
+    """
+    CredoApiClient is interface class to the Credo API server.
+    """
+
     def __init__(self, config: CredoApiConfig = None):
         if(config):
             self._config = config
@@ -73,6 +103,9 @@ class CredoApiClient():
         self.refresh_token()
 
     def refresh_token(self):
+        """
+        Get access token and set to headers
+        """
         data = {
             "api_token": self._config.api_key,
             "tenant": self._config.tenant
@@ -84,6 +117,9 @@ class CredoApiClient():
         self.set_access_token(access_token)
 
     def set_access_token(self, access_token):
+        """
+        Set access token to headers
+        """
         headers = {
             "Authorization": f"Bearer {access_token}",
             "accept": "application/vnd.api+json",
@@ -109,15 +145,27 @@ class CredoApiClient():
         return os.path.join(self._config.api_base, path)
 
     def get(self, path: str, **kwargs):
+        """
+        Send get request and return retult
+        """
         return self.__make_request("get", path, **kwargs)
 
     def post(self, path: str, data: Dict = None, **kwargs):
+        """
+        Send post request and return retult
+        """
         data = json_dumps(serialize(data))
         return self.__make_request("post", path, data=data, **kwargs)
 
     def patch(self, path: str, data: Dict = None, **kwargs):
+        """
+        Send patch request and return retult
+        """
         data = json_dumps(serialize(data))
         return self.__make_request("patch", path, data=data, **kwargs)
 
     def delete(self, path: str, **kwargs):
+        """
+        Send delete request and return retult
+        """
         return self.__make_request("delete", path, **kwargs)
