@@ -7,7 +7,7 @@ from credoai.utils.common import ValidationError, humanize_label, remove_suffix
 
 
 @dataclass
-class Metric():
+class Metric:
     """Class to define metrics
 
     Metric categories determine what kind of use the metric is designed for. Credo AI assumes
@@ -45,6 +45,7 @@ class Metric():
     equivalent_names : list
         list of other names for metric
     """
+
     name: str
     metric_category: str
     fun: callable = None
@@ -58,8 +59,7 @@ class Metric():
             self.equivalent_names = set(self.equivalent_names + [self.name])
         self.metric_category = self.metric_category.upper()
         if self.metric_category not in METRIC_CATEGORIES:
-            raise ValidationError(
-                f"metric type ({self.metric_category}) isn't valid")
+            raise ValidationError(f"metric type ({self.metric_category}) isn't valid")
         self.humanized_type = humanize_label(self.name)
 
     def __call__(self, **kwargs):
@@ -67,7 +67,7 @@ class Metric():
 
     def get_fun_doc(self):
         if self.fun:
-            return (self.fun.__doc__)
+            return self.fun.__doc__
 
     def print_fun_doc(self):
         print(self.get_fun_doc())
@@ -82,8 +82,7 @@ class Metric():
     def standardize_metric_name(self, metric):
         # standardize
         # lower, remove spaces, replace delimiters with underscores
-        standard = '_'.join(re.split('[- \s _]',
-                            re.sub('\s\s+', ' ', metric.lower())))
+        standard = "_".join(re.split("[- \s _]", re.sub("\s\s+", " ", metric.lower())))
         return standard
 
 
@@ -91,12 +90,10 @@ def metrics_from_dict(dict, metric_category, probability_functions, metric_equiv
     # Convert to metric objects
     metrics = {}
     for metric_name, fun in dict.items():
-        equivalents = metric_equivalents.get(
-            metric_name, [])  # get equivalent names
+        equivalents = metric_equivalents.get(metric_name, [])  # get equivalent names
         # whether the metric takes probabities instead of predictions
         takes_prob = metric_name in probability_functions
-        metric = Metric(metric_name, metric_category,
-                        fun, takes_prob, equivalents)
+        metric = Metric(metric_name, metric_category, fun, takes_prob, equivalents)
         metrics[metric_name] = metric
     return metrics
 
@@ -118,41 +115,51 @@ def find_metrics(metric_name, metric_category=None):
     """
     if isinstance(metric_category, str):
         metric_category = [metric_category]
-    matched_metrics = [i for i in ALL_METRICS if i.is_metric(
-        metric_name, metric_category)]
+    matched_metrics = [
+        i for i in ALL_METRICS if i.is_metric(metric_name, metric_category)
+    ]
     return matched_metrics
 
 
 # Convert To List of Metrics
-BINARY_CLASSIFICATION_METRICS = metrics_from_dict(BINARY_CLASSIFICATION_FUNCTIONS,
-                                                  "BINARY_CLASSIFICATION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
+BINARY_CLASSIFICATION_METRICS = metrics_from_dict(
+    BINARY_CLASSIFICATION_FUNCTIONS,
+    "BINARY_CLASSIFICATION",
+    PROBABILITY_FUNCTIONS,
+    METRIC_EQUIVALENTS,
+)
 
-REGRESSION_METRICS = metrics_from_dict(REGRESSION_FUNCTIONS,
-                                       "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
+REGRESSION_METRICS = metrics_from_dict(
+    REGRESSION_FUNCTIONS, "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS
+)
 
-FAIRNESS_METRICS = metrics_from_dict(FAIRNESS_FUNCTIONS, "FAIRNESS",
-                                     PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS)
+FAIRNESS_METRICS = metrics_from_dict(
+    FAIRNESS_FUNCTIONS, "FAIRNESS", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS
+)
 
-DATASET_METRICS = {m: Metric(m, "DATASET", None, False)
-                   for m in DATASET_METRIC_TYPES}
+DATASET_METRICS = {m: Metric(m, "DATASET", None, False) for m in DATASET_METRIC_TYPES}
 
-PRIVACY_METRICS = {m: Metric(m, "PRIVACY", None, False)
-                   for m in PRIVACY_METRIC_TYPES}
+PRIVACY_METRICS = {m: Metric(m, "PRIVACY", None, False) for m in PRIVACY_METRIC_TYPES}
 
-SECURITY_METRICS = {m: Metric(m, "SECURITY", None, False)
-                    for m in SECURITY_METRIC_TYPES}
+SECURITY_METRICS = {
+    m: Metric(m, "SECURITY", None, False) for m in SECURITY_METRIC_TYPES
+}
 
 
-METRIC_NAMES = list(BINARY_CLASSIFICATION_METRICS.keys()) \
-    + list(FAIRNESS_METRICS.keys()) \
-    + list(DATASET_METRICS.keys()) \
-    + list(PRIVACY_METRICS.keys()) \
-    + list(SECURITY_METRICS.keys()) \
+METRIC_NAMES = (
+    list(BINARY_CLASSIFICATION_METRICS.keys())
+    + list(FAIRNESS_METRICS.keys())
+    + list(DATASET_METRICS.keys())
+    + list(PRIVACY_METRICS.keys())
+    + list(SECURITY_METRICS.keys())
     + list(REGRESSION_METRICS.keys())
+)
 
-ALL_METRICS = list(BINARY_CLASSIFICATION_METRICS.values()) \
-    + list(FAIRNESS_METRICS.values()) \
-    + list(DATASET_METRICS.values()) \
-    + list(PRIVACY_METRICS.values()) \
-    + list(SECURITY_METRICS.values()) \
+ALL_METRICS = (
+    list(BINARY_CLASSIFICATION_METRICS.values())
+    + list(FAIRNESS_METRICS.values())
+    + list(DATASET_METRICS.values())
+    + list(PRIVACY_METRICS.values())
+    + list(SECURITY_METRICS.values())
     + list(REGRESSION_METRICS.values())
+)
