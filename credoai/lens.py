@@ -133,7 +133,7 @@ class Lens:
         self.assessments = self._select_assessments(assessments)
 
         # set up reporter objects
-        self.reporters = []
+        self.reporters = {}
 
         # if data is defined and dev mode, convert data
         self._apply_dev_mode(self.dev_mode)
@@ -208,10 +208,11 @@ class Lens:
                     f"Assessment ({assessment.get_name()}) failed preparation. The error is reproduced below:\n\nError: {e}"
                 )
             try:
-                reporter = assessment.get_reporter()
-                if reporter is not None:
-                    reporter_assets += reporter.report(plot=False)
-                    logging.info(f"** Reporting assets created")
+                reporters = assessment.get_reporters()
+                if reporters is not None:
+                    for reporter in reporters:
+                        reporter_assets += reporter.report(plot=False)
+                logging.info(f"** Reporting assets created")
             except Exception as e:
                 raise Exception(
                     f"Reporter for assessment ({assessment.get_name()}) failed. The error is reproduced below:\n\nError: {e}"
@@ -285,12 +286,12 @@ class Lens:
         if not self.reporters:
             self._init_reporters()
         assessments = wrap_list(assessments)
-        for reporter in self.reporters:
-            name = reporter.assessment.name
-            if assessments and name not in assessments:
+        for assessment_name, reporters in self.reporters.items():
+            if assessments and assessment_name not in assessments:
                 continue
-            reporter.display_results_tables()
-            _ = reporter.report()
+            for reporter in reporters:
+                reporter.display_results_tables()
+                _ = reporter.report()
         return self
 
     def _apply_dev_mode(self, dev_mode):
@@ -351,16 +352,17 @@ class Lens:
         for assessment in self.get_assessments(True):
             name = assessment.get_name()
             # initialize reporters
-            assessment.init_reporter()
-            reporter = assessment.get_reporter()
-            if reporter is None:
-                logging.info(f"No reporter found for assessment-{name}")
+            assessment.init_reporters()
+            reporters = assessment.get_reporters()
+            if reporters is None:
+                logging.info(f"No reporters found for assessment-{name}")
             else:
-                logging.info(f"Reporter initialized for assessment-{name}")
+                logging.info(f"Reporters initialized for assessment-{name}")
                 # if governance defined, set up reporter for key lookup
                 if self.gov is not None:
-                    reporter.set_key_lookup(self._prepare_results(assessment))
-                self.reporters.append(reporter)
+                    for reporter in reporters:
+                        reporter.set_key_lookup(self._prepare_results(assessment))
+                self.reporters[name] = reporters
 
     def _prepare_results(self, assessment, **kwargs):
         """Prepares results and adds metric keys"""

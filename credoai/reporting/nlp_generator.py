@@ -10,8 +10,8 @@ from credoai.reporting.credo_reporter import CredoReporter
 
 
 class NLPGeneratorAnalyzerReporter(CredoReporter):
-    def __init__(self, assessment, size=4):
-        super().__init__(assessment)
+    def __init__(self, module, size=4):
+        super().__init__(module)
         self.num_gen_models = len(self.module.generation_functions)
         self.num_assessment_funs = len(self.module.assessment_functions)
         self.size = size

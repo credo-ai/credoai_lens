@@ -10,6 +10,7 @@ import credoai.utils as cutils
 import pandas as pd
 from credoai.assessment.credo_assessment import AssessmentRequirements, CredoAssessment
 from credoai.data.utils import get_data_path
+from credoai.modules.utils import init_sensitive_feature_module
 from credoai.reporting import (
     BinaryClassificationReporter,
     DatasetFairnessReporter,
@@ -19,7 +20,6 @@ from credoai.reporting import (
     RegressionReporter,
 )
 from credoai.reporting.dataset_profiling import DatasetProfilingReporter
-from credoai.utils import InstallationError
 from credoai.utils.model_utils import get_default_metrics
 from sklearn.utils.multiclass import type_of_target
 
@@ -96,16 +96,24 @@ class FairnessAssessment(CredoAssessment):
             raise cutils.ValidationError(
                 "Metrics are not defined for 'Fairness' Assessment in the assessment plan"
             )
-        module = self.module(metrics, data.sensitive_features, data.y, y_pred, y_prob)
+        module = init_sensitive_feature_module(
+            self.module,
+            data.sensitive_features,
+            metrics=metrics,
+            y_true=data.y,
+            y_pred=y_pred,
+            y_prob=y_prob,
+        )
         self.initialized_module = module
 
-    def init_reporter(self):
-        if type_of_target(self.initialized_module.y_true) == "binary":
-            self.reporter = BinaryClassificationReporter(self)
-        elif type_of_target(self.initialized_module.y_true) == "continuous":
-            self.reporter = RegressionReporter(self)
-        else:
-            self.reporter = FairnessReporter(self)
+    def init_reporters(self):
+        for module in self.initialized_module.modules.values():
+            if type_of_target(module.y_true) == "binary":
+                self.reporters = BinaryClassificationReporter(module)
+            elif type_of_target(module.y_true) == "continuous":
+                self.reporters = RegressionReporter(module)
+            else:
+                self.reporters = FairnessReporter(module)
 
 
 class ModelEquityAssessment(CredoAssessment):
@@ -137,11 +145,16 @@ class ModelEquityAssessment(CredoAssessment):
         except:
             y.name = "predicted outcome"
 
-        module = self.module(data.sensitive_features, y, p_value=p_value)
+        module = init_sensitive_feature_module(
+            self.module, data.sensitive_features, y=y, p_value=p_value
+        )
         self.initialized_module = module
 
-    def init_reporter(self):
-        self.reporter = EquityReporter(self)
+    def init_reporters(self):
+        reporters = [
+            EquityReporter(m) for m in self.initialized_module.modules.values()
+        ]
+        self.reporters = reporters
 
 
 class NLPEmbeddingBiasAssessment(CredoAssessment):
@@ -238,7 +251,7 @@ class NLPGeneratorAssessment(CredoAssessment):
             try:
                 assessment_functions = cutils.nlp_utils.get_default_nlp_assessments()
             except AttributeError:
-                raise InstallationError(
+                raise cutils.InstallationError(
                     "To use default assessment functions requires installing credoai-lens[full]"
                 )
 
@@ -251,7 +264,7 @@ class NLPGeneratorAssessment(CredoAssessment):
                     "gpt2_comparison"
                 ] = cutils.nlp_utils.gpt2_text_generator
             except AttributeError:
-                raise InstallationError(
+                raise cutils.InstallationError(
                     "To use the default comparison model requires installing credoai-lens[full]"
                 )
         else:
@@ -263,8 +276,8 @@ class NLPGeneratorAssessment(CredoAssessment):
 
         self.initialized_module = module
 
-    def init_reporter(self):
-        self.reporter = NLPGeneratorAnalyzerReporter(self)
+    def init_reporters(self):
+        self.reporters = NLPGeneratorAnalyzerReporter(self.initialized_module)
 
 
 class PerformanceAssessment(CredoAssessment):
@@ -342,12 +355,30 @@ class PerformanceAssessment(CredoAssessment):
             )
 
         sensitive_features = None if ignore_sensitive else data.sensitive_features
-        module = self.module(metrics, data.y, y_pred, y_prob, sensitive_features)
+        if sensitive_features is not None:
+            module = init_sensitive_feature_module(
+                self.module,
+                data.sensitive_features,
+                metrics=metrics,
+                y_true=data.y,
+                y_pred=y_pred,
+                y_prob=y_prob,
+            )
+        else:
+            module = self.module(metrics, data.y, y_pred, y_prob, sensitive_features)
         self.initialized_module = module
 
-    def init_reporter(self):
-        if type_of_target(self.initialized_module.y_true) == "binary":
-            self.reporter = BinaryClassificationReporter(self)
+    def init_reporters(self):
+        try:
+            modules = getattr(self.initialized_module, "modules")
+            for module in modules.values():
+                if type_of_target(module.y_true) == "binary":
+                    self.reporters = BinaryClassificationReporter(
+                        self.initialized_module
+                    )
+        except AttributeError:
+            if type_of_target(self.initialized_module.y_true) == "binary":
+                self.reporters = BinaryClassificationReporter(self.initialized_module)
 
 
 class PrivacyAssessment(CredoAssessment):
@@ -502,12 +533,16 @@ class DatasetEquityAssessment(CredoAssessment):
         """
         super().init_module(data=data)
         y = data.y
-
-        module = self.module(data.sensitive_features, y, p_value=p_value)
+        module = init_sensitive_feature_module(
+            self.module, data.sensitive_features, y=y, p_value=p_value
+        )
         self.initialized_module = module
 
-    def init_reporter(self):
-        self.reporter = EquityReporter(self)
+    def init_reporters(self):
+        reporters = [
+            EquityReporter(m) for m in self.initialized_module.modules.values()
+        ]
+        self.reporters = reporters
 
 
 class DatasetFairnessAssessment(CredoAssessment):
@@ -539,15 +574,20 @@ class DatasetFairnessAssessment(CredoAssessment):
     def init_module(self, *, data):
         super().init_module(data=data)
         scrubbed_data = data.get_scrubbed_data()
-        self.initialized_module = self.module(
-            scrubbed_data["X"],
-            scrubbed_data["y"],
+        module = init_sensitive_feature_module(
+            self.module,
             scrubbed_data["sensitive_features"],
-            data.categorical_features_keys,
+            X=scrubbed_data["X"],
+            y=scrubbed_data["y"],
+            categorical_features_keys=data.categorical_features_keys,
         )
+        self.initialized_module = module
 
-    def init_reporter(self):
-        self.reporter = DatasetFairnessReporter(self)
+    def init_reporters(self):
+        reporters = [
+            DatasetFairnessReporter(m) for m in self.initialized_module.modules.values()
+        ]
+        self.reporters = reporters
 
 
 class DatasetProfilingAssessment(CredoAssessment):
@@ -573,8 +613,8 @@ class DatasetProfilingAssessment(CredoAssessment):
         super().init_module(data=data)
         self.initialized_module = self.module(data.X, data.y)
 
-    def init_reporter(self):
-        self.reporter = DatasetProfilingReporter(self)
+    def init_reporters(self):
+        self.reporters = DatasetProfilingReporter(self.initialized_module)
 
 
 def list_assessments_exhaustive():

@@ -8,8 +8,8 @@ from seaborn.utils import relative_luminance
 
 
 class EquityReporter(CredoReporter):
-    def __init__(self, assessment, size=3):
-        super().__init__(assessment)
+    def __init__(self, module, size=3):
+        super().__init__(module)
         self.size = size
 
     def _create_assets(self):
@@ -23,7 +23,9 @@ class EquityReporter(CredoReporter):
         outcome = mod.y.name
         metric_keys = []
         if self.key_lookup is not None:
-            metric_keys = self.key_lookup["metric_key"].tolist()
+            metric_keys = self.key_lookup.query(
+                f'sensitive_feature=="{self.module.sensitive_features.name}"'
+            )["metric_key"].tolist()
         with get_style(figsize=self.size):
             f = plt.figure()
             if mod.type_of_target in ("binary", "multiclass"):

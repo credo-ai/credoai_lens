@@ -2,8 +2,8 @@ from credoai.reporting.credo_reporter import CredoReporter
 
 
 class DatasetProfilingReporter(CredoReporter):
-    def __init__(self, assessment, size=5):
-        super().__init__(assessment)
+    def __init__(self, module, size=5):
+        super().__init__(module)
         self.size = size
 
     def report(self, plot=True, rerun=False):

@@ -35,10 +35,9 @@ def test_lens_with_model():
     lens = cl.Lens(model=credo_model, data=credo_data, assessment_plan=assessment_plan)
 
     results = lens.run_assessments().get_results()
-    metric = results["validation_model"]["Fairness"]["fairness"].index[0]
-    score = round(
-        results["validation_model"]["Fairness"]["fairness"].iloc[0]["value"], 2
-    )
+    fairness_results = results["validation_model"]["Fairness"]["gender"]["fairness"]
+    metric = fairness_results.index[0]
+    score = round(fairness_results.iloc[0]["value"], 2)
     expected_assessments = {
         "DatasetFairness",
         "DatasetProfiling",
@@ -57,14 +56,16 @@ def test_lens_with_model():
         set([a.name for a in lens.get_assessments(flatten=True)])
         == expected_assessments
     )
-    assert fairness_assessment.initialized_module.metrics == ["precision_score"]
+    assert fairness_assessment.initialized_module.static_kwargs["metrics"] == [
+        "precision_score"
+    ]
 
 
 def test_lens_without_model():
     lens = cl.Lens(data=credo_data)
     results = lens.run_assessments().get_results()
-    metric_score = results["validation"]["DatasetFairness"][
-        "gender-demographic_parity_ratio"
+    metric_score = results["validation"]["DatasetFairness"]["gender"][
+        "demographic_parity_ratio"
     ][0]["value"]
     assert metric_score == 0.5
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {
@@ -104,8 +105,8 @@ def test_lens_dataset_with_missing_data():
 
     lens = cl.Lens(data=credo_data)
     results = lens.run_assessments().get_results()
-    metric_score = results["validation"]["DatasetFairness"][
-        "gender-demographic_parity_ratio"
+    metric_score = results["validation"]["DatasetFairness"]["gender"][
+        "demographic_parity_ratio"
     ][0]["value"]
     print(sensitive_feature, metric_score)
     assert round(metric_score, 4) == 0.4444
