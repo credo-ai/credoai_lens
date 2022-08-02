@@ -11,3 +11,4 @@ adversarial-robustness-toolbox>=1.10.1
 pytest>=6.2.5
 pytest-cov>=3.0.0
 pytest-watch>=4.2
+responses>=0.21.0
