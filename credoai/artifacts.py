@@ -28,7 +28,7 @@ import pandas as pd
 
 # This file defines CredoGovernance, CredoModel and CredoData
 from absl import logging
-from sklearn.impute import SimpleImputer
+from sklearn import impute
 from sklearn.utils.multiclass import type_of_target
 
 import credoai.integration as ci
@@ -560,7 +560,7 @@ class CredoData:
             pass
         elif isinstance(self.nan_strategy, str):
             try:
-                imputer = SimpleImputer(strategy=self.nan_strategy)
+                imputer = impute.SimpleImputer(strategy=self.nan_strategy)
                 imputed = imputer.fit_transform(data)
                 data.iloc[:, :] = imputed
             except ValueError:

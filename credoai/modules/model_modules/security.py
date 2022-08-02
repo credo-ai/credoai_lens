@@ -15,7 +15,7 @@ from keras.layers import Dense
 from keras.models import Sequential
 from keras.utils.np_utils import to_categorical
 from sklearn import metrics as sk_metrics
-from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.metrics import pairwise
 from sklearn.preprocessing import StandardScaler
 
 tf.compat.v1.disable_eager_execution()
@@ -239,7 +239,9 @@ class SecurityModule(CredoModule):
         """
         length = len(origl_sample_scaled)
         distances = (
-            np.diag(euclidean_distances(origl_sample_scaled, adver_sample_scaled))
+            np.diag(
+                pairwise.euclidean_distances(origl_sample_scaled, adver_sample_scaled)
+            )
             / length
         )
         idx = np.where(distances <= distance_threshold)
