@@ -8,7 +8,7 @@ import tensorflow as tf
 from art.attacks.evasion import HopSkipJump
 from art.attacks.extraction import CopycatCNN
 from art.estimators.classification import KerasClassifier
-from art.estimators.classification.scikitlearn import SklearnClassifier
+from art.estimators.classification import BlackBoxClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
 from keras.layers import Dense
@@ -32,7 +32,9 @@ class SecurityModule(CredoModule):
     Parameters
     ----------
     model : model
-        A trained ML model
+        A trained binary or multi-class classification model
+        The only requirement for the model is to have a `predict` function that returns 
+            predicted classes for a given feature vector as an array.
     x_train : pandas.DataFrame
         The training features
     y_train : pandas.Series
@@ -46,10 +48,15 @@ class SecurityModule(CredoModule):
     def __init__(self, model, x_train, y_train, x_test, y_test):
         self.x_train = x_train.to_numpy()
         self.y_train = y_train
+        self.nb_classes = len(np.unique(self.y_train))
         self.x_test = x_test.to_numpy()
-        self.y_test = to_categorical(y_test, num_classes=2)
+        self.y_test = to_categorical(y_test, num_classes=self.nb_classes)
         self.model = model.model
-        self.victim_model = SklearnClassifier(self.model)
+        self.victim_model = BlackBoxClassifier(
+            predict_fn=self._predict_convert,
+            input_shape=self.x_train[0].shape,
+            nb_classes=self.nb_classes
+        )
         np.random.seed(10)
 
     def run(self):
@@ -126,7 +133,7 @@ class SecurityModule(CredoModule):
         ]
         thieved_classifier_acc = sk_metrics.accuracy_score(y_true, y_pred)
 
-        y_pred = self.victim_model._model.predict(x_test)
+        y_pred = [np.argmax(y, axis=None, out=None) for y in self.victim_model.predict(x_test)]
         victim_classifier_acc = sk_metrics.accuracy_score(y_true, y_pred)
 
         metrics = {
@@ -163,7 +170,8 @@ class SecurityModule(CredoModule):
         """Model evasion security attack
 
         In model evasion, the adversary only has access to the prediction API of a target model
-            which she queries to extract information about the model internals and train a substitute model.
+            which she queries to create minimally-perturbed samples that get misclassified 
+            by the model.
 
         Parameters
         ----------
@@ -185,8 +193,8 @@ class SecurityModule(CredoModule):
         origl_sample = self.x_test[0:nsamples]
         adver_sample = hsj.generate(origl_sample)
 
-        origl_pred = self.victim_model._model.predict(origl_sample)
-        adver_pred = self.victim_model._model.predict(adver_sample)
+        origl_pred = [np.argmax(y, axis=None, out=None) for y in self.victim_model.predict(origl_sample)]
+        adver_pred = [np.argmax(y, axis=None, out=None) for y in self.victim_model.predict(adver_sample)]
 
         # standardize for robust distance calculation
         scaler = StandardScaler()
@@ -245,6 +253,8 @@ class SecurityModule(CredoModule):
             / length
         )
         idx = np.where(distances <= distance_threshold)
+        origl_pred = np.array(origl_pred)
+        adver_pred = np.array(adver_pred)
         if origl_pred[idx].size > 0:
             return (
                 np.count_nonzero(np.not_equal(origl_pred[idx], adver_pred[idx]))
@@ -252,3 +262,21 @@ class SecurityModule(CredoModule):
             )
         else:
             return 0
+
+    def _predict_convert(self, x):
+        """Converts predictions shape to compatible shape
+        Converts predictions shape from (n,) to (n,number_of_classes)
+            for compatibility with BlackBoxClassifier
+        Parameters
+        ----------
+        x : features array
+        Returns
+        -------
+        numpy.array
+            shape (n,number_of_classes)
+        """
+        y = self.model.predict(x)
+        y_transformed = np.zeros((len(x), self.nb_classes))
+        for ai, bi in zip(y_transformed, y):
+            ai[bi] = 1
+        return y_transformed
