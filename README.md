@@ -91,13 +91,13 @@ API_KEY=<your api key> # Example: JSMmd26...
 
 ## Running tests
 
-Install extara requirements.
+Install requirements needed for testing.
 
 ```shell
 pip install -r requirements-extras.txt
 ```
 
-Runing a test
+Running a test
 
 ```shell
 scripts/test.sh
