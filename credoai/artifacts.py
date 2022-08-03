@@ -28,7 +28,7 @@ import pandas as pd
 
 # This file defines CredoGovernance, CredoModel and CredoData
 from absl import logging
-from sklearn.impute import SimpleImputer
+from sklearn import impute
 from sklearn.utils.multiclass import type_of_target
 
 import credoai.integration as ci
@@ -91,13 +91,7 @@ class CredoGovernance:
 
         # set up assessment spec
         if spec_destination:
-            self.assessment_spec = ci.process_assessment_spec(
-                spec_destination, self._api
-            )
-            self.use_case_id = self.assessment_spec["use_case_id"]
-            self.model_id = self.assessment_spec["model_id"]
-            self.dataset_id = self.assessment_spec["validation_dataset_id"]
-            self.training_dataset_id = self.assessment_spec["training_dataset_id"]
+            self._process_spec(spec_destination)
 
     def get_assessment_plan(self):
         """Get assessment plan
@@ -152,7 +146,13 @@ class CredoGovernance:
         """Return IDS that have been defined"""
         return [k for k, v in self.get_info().items() if v]
 
-    def register(self, model_name=None, dataset_name=None, training_dataset_name=None):
+    def register(
+        self,
+        model_name=None,
+        dataset_name=None,
+        training_dataset_name=None,
+        assessment_template=None,
+    ):
         """Registers artifacts to Credo AI Governance App
 
         Convenience function to register multiple artifacts at once
@@ -165,6 +165,9 @@ class CredoGovernance:
             name of a dataset used to assess the model
         training_dataset_name : str
             name of a dataset used to train the model
+        assessment_template : str
+            name of an assessment template that already exists on the governance platform,
+            which will be applied to the model
 
         """
         if model_name:
@@ -173,6 +176,13 @@ class CredoGovernance:
             self._register_dataset(dataset_name)
         if training_dataset_name:
             self._register_dataset(training_dataset_name, register_as_training=True)
+        if assessment_template and self.model_id:
+            self._api.apply_assessment_template(
+                assessment_template, self.use_case_id, self.model_id
+            )
+            self._process_spec(
+                f"use_cases/{self.use_case_id}/models/{self.model_id}/assessment_spec"
+            )
 
     def export_assessment_results(
         self,
@@ -264,6 +274,13 @@ class CredoGovernance:
             ids = self._api.get_dataset_by_name(training_dataset_name)
             if ids is not None:
                 self.training_dataset_id = ids["dataset_id"]
+
+    def _process_spec(self, spec_destination):
+        self.assessment_spec = ci.process_assessment_spec(spec_destination, self._api)
+        self.use_case_id = self.assessment_spec["use_case_id"]
+        self.model_id = self.assessment_spec["model_id"]
+        self.dataset_id = self.assessment_spec["validation_dataset_id"]
+        self.training_dataset_id = self.assessment_spec["training_dataset_id"]
 
     def _register_dataset(self, dataset_name, register_as_training=False):
         """Registers a dataset
@@ -540,7 +557,7 @@ class CredoData:
             pass
         elif isinstance(self.nan_strategy, str):
             try:
-                imputer = SimpleImputer(strategy=self.nan_strategy)
+                imputer = impute.SimpleImputer(strategy=self.nan_strategy)
                 imputed = imputer.fit_transform(data)
                 data.iloc[:, :] = imputed
             except ValueError:

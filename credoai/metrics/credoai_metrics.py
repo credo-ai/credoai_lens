@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.stats as st
 from fairlearn.metrics import make_derived_metric, true_positive_rate
-from fairlearn.metrics._disparities import _get_eo_frame
 from sklearn import metrics as sk_metrics
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.utils import check_consistent_length

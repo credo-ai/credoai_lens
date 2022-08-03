@@ -39,7 +39,6 @@ EXTRAS_REQUIRES = {"full": extras_requirements, "dev": dev_requirements}
 CLASSIFIERS = [
     "Intended Audience :: Information Technology",
     "Intended Audience :: Science/Research",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",

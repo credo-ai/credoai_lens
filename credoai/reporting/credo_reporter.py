@@ -15,11 +15,13 @@ from IPython import display
 
 
 class CredoReporter(ABC):
-    """Abstract base class for all CredoReports"""
+    """Abstract base class for all CredoReports
 
-    def __init__(self, assessment):
-        self.assessment = assessment
-        self.module = assessment.initialized_module
+    CredoReporters are associated with a module
+    """
+
+    def __init__(self, module):
+        self.module = module
         self.key_lookup = None
         self.figs = []
 
@@ -57,10 +59,10 @@ class CredoReporter(ABC):
         self.key_lookup = lens_prepared_results
 
     def display_results_tables(self):
-        results = self.assessment.get_results()
+        results = self.module.get_results()
         for key, val in results.items():
             title = format_label(key.upper(), wrap_length=30)
-            anchor_name = f'{str(self.assessment)}-{"-".join(title.split())}'
+            anchor_name = f'{"-".join(title.split())}'
             display(
                 HTML(
                     f'<h3 id="{anchor_name}"><span style="font-size:1em; text-align: left">{title}</span></h3>'

@@ -7,9 +7,6 @@ from credoai.metrics.credoai_metrics import (
     ks_statistic,
 )
 from fairlearn import metrics as fl_metrics
-from fairlearn.metrics._group_metric_set import (
-    BINARY_CLASSIFICATION_METRICS as fairlearn_binary,
-)
 from sklearn import metrics as sk_metrics
 from sklearn.metrics import SCORERS
 
@@ -50,13 +47,12 @@ BINARY_CLASSIFICATION_FUNCTIONS = {
 # Define Fairness Metric Name Mapping
 # Fairness metrics must have a similar signature to fairlearn.metrics.equalized_odds_difference
 # (they should take sensitive_features and method)
-fairness_metric_list = [
-    fl_metrics.demographic_parity_difference,
-    fl_metrics.demographic_parity_ratio,
-    fl_metrics.equalized_odds_difference,
-]
-FAIRNESS_FUNCTIONS = {func.__name__: func for func in fairness_metric_list}
-FAIRNESS_FUNCTIONS["equal_opportunity_difference"] = equal_opportunity_difference
+FAIRNESS_FUNCTIONS = {
+    "demographic_parity_difference": fl_metrics.demographic_parity_difference,
+    "demographic_parity_ratio": fl_metrics.demographic_parity_ratio,
+    "equalized_odds_difference": fl_metrics.equalized_odds_difference,
+    "equal_opportunity_difference": equal_opportunity_difference,
+}
 
 
 # Define functions that require probabilities ***

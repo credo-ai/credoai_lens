@@ -5,7 +5,7 @@ Defines abstract base class for all CredoAssessments
 from abc import ABC, abstractmethod
 
 import pandas as pd
-from credoai.utils.common import ValidationError
+from credoai.utils.common import ValidationError, wrap_list
 
 # Class Docstring below is a template used for all assessments __init__
 # Following this template helps for consistency, and filters down
@@ -50,7 +50,7 @@ class CredoAssessment(ABC):
         self.name = name
         self.module = module
         self.initialized_module = None
-        self.reporter = None
+        self.reporters = None
         if requirements is None:
             requirements = AssessmentRequirements()
         self.requirements = requirements
@@ -93,7 +93,7 @@ class CredoAssessment(ABC):
         if training_data:
             self.training_data = training_data.name
 
-    def init_reporter(self):
+    def init_reporters(self):
         """Initialize a reporter object"""
         pass
 
@@ -125,12 +125,12 @@ class CredoAssessment(ABC):
     def get_results(self):
         return self.initialized_module.get_results()
 
-    def get_reporter(self):
-        """Gets reporter to visualize the assessment
+    def get_reporters(self):
+        """Gets reporters to visualize the assessment
 
         Does nothing if not overwritten
         """
-        return self.reporter
+        return wrap_list(self.reporters)
 
     def get_requirements(self):
         return self.requirements.get_requirements()

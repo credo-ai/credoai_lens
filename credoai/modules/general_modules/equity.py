@@ -34,8 +34,7 @@ class EquityModule(CredoModule):
 
     def __init__(self, sensitive_features, y, p_value=0.01):
         super().__init__()
-        self.sensitive_features = sensitive_features.iloc[:, 0]
-        self.sf_name = self.sensitive_features.name
+        self.sensitive_features = sensitive_features
         self.y = y
         if type(self.y) is not pd.Series:
             self.y = pd.Series(y, name="outcome")
@@ -90,6 +89,7 @@ class EquityModule(CredoModule):
                         }
                     )
             results = pd.DataFrame(results).set_index("metric_type")
+            results["sensitive_feature"] = self.sensitive_features.name
             return results
         else:
             raise NotRunError(
@@ -98,12 +98,17 @@ class EquityModule(CredoModule):
 
     def describe(self):
         """Create descriptive output"""
-        results = {"summary": self.df.groupby(self.sf_name)[self.y.name].describe()}
+        results = {
+            "summary": self.df.groupby(self.sensitive_features.name)[
+                self.y.name
+            ].describe()
+        }
         r = results["summary"]
+        results["sensitive_feature"] = self.sensitive_features.name
         results["highest_group"] = r["mean"].idxmax()
         results["lowest_group"] = r["mean"].idxmin()
         results["demographic_parity_difference"] = r["mean"].max() - r["mean"].min()
-        results["demographic_parity_ratio"] = r["mean"].max() / r["mean"].min()
+        results["demographic_parity_ratio"] = r["mean"].min() / r["mean"].max()
         return results
 
     def discrete_stats(self):
@@ -128,10 +133,10 @@ class EquityModule(CredoModule):
         Multiple comparisons are bonferronni corrected.
         """
         contingency_df = (
-            self.df.groupby([self.sf_name, self.y.name])
+            self.df.groupby([self.sensitive_features.name, self.y.name])
             .size()
             .reset_index(name="counts")
-            .pivot(self.sf_name, self.y.name)
+            .pivot(self.sensitive_features.name, self.y.name)
         )
         chi2, p, dof, ex = chi2_contingency(contingency_df)
         results = {
@@ -175,7 +180,7 @@ class EquityModule(CredoModule):
         The Tukey HSD test is a posthoc test that is only performed if the
         anova is significant.
         """
-        groups = self.df.groupby(self.sf_name)[outcome_col]
+        groups = self.df.groupby(self.sensitive_features.name)[outcome_col]
         group_lists = groups.apply(list)
         labels = np.array(group_lists.index)
         overall_test = f_oneway(*group_lists)

@@ -3,9 +3,10 @@ Credo API functions
 """
 
 from collections import defaultdict
+
 import requests
-from credoai.utils.credo_api_client import CredoApiClient
 from credoai.utils.common import IntegrationError
+from credoai.utils.credo_api_client import CredoApiClient
 
 
 def _process_policies(policies):
@@ -46,6 +47,42 @@ class CredoApi:
         get assessment
         """
         return self._client.get(f"use_case_assessments/{assessment_id}")
+
+    def apply_assessment_template(self, template_name, use_case_id, model_id):
+        """Applies an assessment template to a model under a use case
+
+        The assessment templates are drawn from the list of assessment templates saved
+        in the Governance Platform
+
+        Parameters
+        ----------
+        template_name : str
+            The name of an assessment template.
+        use_case_id : string
+            Identifier for Use Case on Credo AI Governance App
+        model_id : string
+            Identifier for Model on Credo AI Governance App
+        """
+        # get template
+        templates = self._client.get("assessment_plan_templates")
+        filtered = [t for t in templates if t["name"] == template_name]
+        if len(filtered) > 1:
+            raise IntegrationError(
+                f"More than one template found with the name: {template_name}"
+            )
+        elif not filtered:
+            raise IntegrationError(f"No template found with the name: {template_name}")
+        template = filtered[0]
+
+        # get assessment plan
+        plan = self._client.get(
+            f"use_cases/{use_case_id}/models/{model_id}/assessment_plans/draft"
+        )
+
+        # apply template
+        data = {"assessment_plan_id": plan["id"], "$type": "string"}
+        self._client.post(f"assessment_plan_templates/{template['id']}/apply", data)
+        self._client.post(f"assessment_plans/{plan['id']}/publish", data)
 
     def create_assessment(self, use_case_id: str, model_id, data: str):
         """
