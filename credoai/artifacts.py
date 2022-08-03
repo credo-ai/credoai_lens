@@ -46,14 +46,8 @@ from credoai.utils.constants import (
     RISK_ISSUE_MAPPING,
     SUPPORTED_FRAMEWORKS,
 )
-from credoai.utils.credo_api_utils import (
-    get_dataset_by_name,
-    get_dataset_name,
-    get_model_by_name,
-    get_model_name,
-    get_use_case_by_name,
-    get_use_case_name,
-)
+from credoai.utils.credo_api import CredoApi
+from credoai.utils.credo_api_client import CredoApiClient
 from credoai.utils.model_utils import get_model_info
 
 
@@ -91,9 +85,15 @@ class CredoGovernance:
         self.model_id = None
         self.dataset_id = None
         self.training_dataset_id = None
+
+        client = CredoApiClient()
+        self._api = CredoApi(client=client)
+
         # set up assessment spec
         if spec_destination:
-            self.assessment_spec = ci.process_assessment_spec(spec_destination)
+            self.assessment_spec = ci.process_assessment_spec(
+                spec_destination, self._api
+            )
             self.use_case_id = self.assessment_spec["use_case_id"]
             self.model_id = self.assessment_spec["model_id"]
             self.dataset_id = self.assessment_spec["validation_dataset_id"]
@@ -203,7 +203,7 @@ class CredoGovernance:
         )
         if destination == "credoai":
             if self.use_case_id and self.model_id:
-                ci.post_assessment(self.use_case_id, self.model_id, payload)
+                self._api.create_assessment(self.use_case_id, self.model_id, payload)
                 logging.info(
                     f"Successfully exported assessments to Credo AI's Governance App"
                 )
@@ -249,19 +249,19 @@ class CredoGovernance:
             name of a dataset used to train the model
         """
         if use_case_name:
-            ids = get_use_case_by_name(use_case_name)
+            ids = self._api.get_use_case_by_name(use_case_name)
             if ids is not None:
                 self.use_case_id = ids["use_case_id"]
         if model_name:
-            ids = get_model_by_name(model_name)
+            ids = self._api.get_model_by_name(model_name)
             if ids is not None:
                 self.model_id = ids["model_id"]
         if dataset_name:
-            ids = get_dataset_by_name(dataset_name)
+            ids = self._api.get_dataset_by_name(dataset_name)
             if ids is not None:
                 self.dataset_id = ids["dataset_id"]
         if training_dataset_name:
-            ids = get_dataset_by_name(training_dataset_name)
+            ids = self._api.get_dataset_by_name(training_dataset_name)
             if ids is not None:
                 self.training_dataset_id = ids["dataset_id"]
 
@@ -280,7 +280,7 @@ class CredoGovernance:
         if register_as_training:
             prefix = "training_"
         try:
-            ids = ci.register_dataset(dataset_name=dataset_name)
+            ids = self._api.register_dataset(name=dataset_name)
             setattr(self, f"{prefix}dataset_id", ids["dataset_id"])
         except IntegrationError:
             self.set_governance_info_by_name(**{f"{prefix}dataset_name": dataset_name})
@@ -291,7 +291,7 @@ class CredoGovernance:
                 self.warning_level,
             )
         if not register_as_training and self.model_id and self.use_case_id:
-            ci.register_dataset_to_model_usecase(
+            self._api.register_dataset_to_model_usecase(
                 use_case_id=self.use_case_id,
                 model_id=self.model_id,
                 dataset_id=self.dataset_id,
@@ -300,7 +300,7 @@ class CredoGovernance:
             logging.info(
                 f"Registering dataset ({dataset_name}) to model ({self.model_id})"
             )
-            ci.register_dataset_to_model(self.model_id, self.training_dataset_id)
+            self._api.register_dataset_to_model(self.model_id, self.training_dataset_id)
 
     def _register_model(self, model_name):
         """Registers a model
@@ -312,7 +312,7 @@ class CredoGovernance:
         solution.
         """
         try:
-            ids = ci.register_model(model_name=model_name)
+            ids = self._api.register_model(name=model_name)
             self.model_id = ids["model_id"]
         except IntegrationError:
             self.set_governance_info_by_name(model_name=model_name)
@@ -326,7 +326,7 @@ class CredoGovernance:
             logging.info(
                 f"Registering model ({model_name}) to Use Case ({self.use_case_id})"
             )
-            ci.register_model_to_usecase(self.use_case_id, self.model_id)
+            self._api.register_model_to_usecase(self.use_case_id, self.model_id)
 
 
 class CredoModel:

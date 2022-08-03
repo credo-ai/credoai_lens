@@ -41,27 +41,26 @@ class CredoApi:
         self._client = client
 
     # Not used
-    def get_assessment(self, assessment_id):
+    def get_assessment(self, assessment_id: str):
         """
         get assessment
         """
         return self._client.get(f"use_case_assessments/{assessment_id}")
 
-    def create_assessment(self, use_case_id, model_id, data):
+    def create_assessment(self, use_case_id: str, model_id, data: str):
         """
         create assessment
         """
         endpoint = f"use_cases/{use_case_id}/models/{model_id}/assessments"
         return self._client.post(endpoint, data)
 
-    def get_assessment_spec(self, spec_url):
+    def get_assessment_spec(self, spec_url: str):
         """
         Get assessment spec
         """
         try:
             downloaded_spec = self._client.get(spec_url)
-            assessment_spec = {k: v for k,
-                               v in downloaded_spec.items() if "_id" in k}
+            assessment_spec = {k: v for k, v in downloaded_spec.items() if "_id" in k}
             assessment_spec["assessment_plan"] = downloaded_spec["assessment_plan"]
             assessment_spec["policy_questions"] = _process_policies(
                 downloaded_spec["policies"]
@@ -72,7 +71,7 @@ class CredoApi:
             )
         return assessment_spec
 
-    def get_dataset_by_name(self, name):
+    def get_dataset_by_name(self, name: str):
         """
         Get dataset by name
         """
@@ -94,7 +93,7 @@ class CredoApi:
 
         return None
 
-    def get_use_case_by_name(self, name):
+    def get_use_case_by_name(self, name: str):
         """
         Get use_case by name
         """
@@ -105,7 +104,7 @@ class CredoApi:
 
         return None
 
-    def register_dataset(self, name):
+    def register_dataset(self, name: str):
         """
         Find a dataset by name, if it does not exist create one.
         """
@@ -116,7 +115,7 @@ class CredoApi:
         data = {"name": name, "$type": "datasets"}
         return self._client.post("datasets", data)
 
-    def register_model(self, name):
+    def register_model(self, name: str, version: str = "1.0"):
         """
         Find a model by name, if it does not exist create one.
         """
@@ -124,10 +123,10 @@ class CredoApi:
         if model:
             return model
 
-        data = {"name": name, "version": "1.0", "$type": "models"}
+        data = {"name": name, "version": version, "$type": "models"}
         return self._client.post("models", data)
 
-    def register_model_to_usecase(self, use_case_id, model_id):
+    def register_model_to_usecase(self, use_case_id: str, model_id: str):
         """
         Register a model to use_case.
         """
@@ -135,7 +134,7 @@ class CredoApi:
         data = [{"id": model_id, "$type": "models"}]
         self._client.post(endpoint, data)
 
-    def register_dataset_to_model(self, model_id, dataset_id):
+    def register_dataset_to_model(self, model_id: str, dataset_id: str):
         """
         Register a dataset to model.
         """
@@ -143,7 +142,9 @@ class CredoApi:
         data = {"id": dataset_id, "$type": "datasets"}
         self._client.patch(endpoint, data)
 
-    def register_dataset_to_model_usecase(self, use_case_id, model_id, dataset_id):
+    def register_dataset_to_model_usecase(
+        self, use_case_id: str, model_id: str, dataset_id: str
+    ):
         """
         Register a dataset to use_case model.
         """
@@ -151,6 +152,6 @@ class CredoApi:
         data = {
             "dataset_id": dataset_id,
             "$type": "use_case_model_configs",
-            "id": "unknown"
+            "id": "unknown",
         }
         self._client.patch(endpoint, data)
