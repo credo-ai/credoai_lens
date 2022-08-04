@@ -7,8 +7,7 @@ import pandas as pd
 import tensorflow as tf
 from art.attacks.evasion import HopSkipJump
 from art.attacks.extraction import CopycatCNN
-from art.estimators.classification import KerasClassifier
-from art.estimators.classification import BlackBoxClassifier
+from art.estimators.classification import BlackBoxClassifier, KerasClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
 from keras.layers import Dense
@@ -53,7 +52,7 @@ class SecurityModule(CredoModule):
         self.y_test = to_categorical(y_test, num_classes=self.nb_classes)
         self.model = model.model
         self.victim_model = BlackBoxClassifier(
-            predict_fn=self._predict_convert,
+            predict_fn=self._predict_binary_class_matrix,
             input_shape=self.x_train[0].shape,
             nb_classes=self.nb_classes
         )
@@ -155,18 +154,20 @@ class SecurityModule(CredoModule):
         model = Sequential()
         model.add(
             Dense(
-                units=max(int(input_dim / 2), 2), input_dim=input_dim, activation="relu"
+                units=max(int(input_dim / 2), self.nb_classes), input_dim=input_dim, activation="relu"
             )
         )
-        model.add(Dense(units=max(int(input_dim / 4), 2), activation="relu"))
-        model.add(Dense(2, activation="sigmoid"))
+        model.add(Dense(units=max(int(input_dim / 4), self.nb_classes), activation="relu"))
+        model.add(Dense(self.nb_classes))
         model.compile(
-            loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"]
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            optimizer="adam",
+            metrics=["accuracy"]
         )
 
         return model
 
-    def _evasion_attack(self, nsamples=100, distance_threshold=0.1):
+    def _evasion_attack(self, nsamples=10, distance_threshold=0.1):
         """Model evasion security attack
 
         In model evasion, the adversary only has access to the prediction API of a target model
@@ -263,17 +264,17 @@ class SecurityModule(CredoModule):
         else:
             return 0
 
-    def _predict_convert(self, x):
-        """Converts predictions shape to compatible shape
-        Converts predictions shape from (n,) to (n,number_of_classes)
-            for compatibility with BlackBoxClassifier
-        Parameters
+    def _predict_binary_class_matrix(self, x):
+        """ `predict` that returns a binary class matrix
+
         ----------
         x : features array
+            shape (nb_inputs, nb_features)
+
         Returns
         -------
         numpy.array
-            shape (n,number_of_classes)
+            shape (nb_inputs, nb_classes)
         """
         y = self.model.predict(x)
         y_transformed = np.zeros((len(x), self.nb_classes))
