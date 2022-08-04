@@ -25,7 +25,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 class SecurityModule(CredoModule):
     """Security module for Credo AI.
 
-    This module takes in binary classification model and data and
+    This module takes in classification model and data and
      provides functionality to perform security assessment
 
     Parameters
@@ -33,7 +33,7 @@ class SecurityModule(CredoModule):
     model : model
         A trained binary or multi-class classification model
         The only requirement for the model is to have a `predict` function that returns 
-            predicted classes for a given feature vector as an array.
+        predicted classes for a given feature vectors as a one-dimensional array.
     x_train : pandas.DataFrame
         The training features
     y_train : pandas.Series

@@ -18,14 +18,15 @@ warnings.filterwarnings("ignore")
 class PrivacyModule(CredoModule):
     """Privacy module for Credo AI.
 
-    This module takes in model and data and provides functionality to perform privacy assessment
+    This module takes in in classification model and data and provides functionality 
+        to perform privacy assessment
 
     Parameters
     ----------
     model : model
         A trained binary or multi-class classification model
         The only requirement for the model is to have a `predict` function that returns 
-            predicted classes for a given feature vector as an array.
+        predicted classes for a given feature vectors as a one-dimensional array.
     x_train : pandas.DataFrame
         The training features
     y_train : pandas.Series

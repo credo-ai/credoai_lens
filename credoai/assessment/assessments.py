@@ -354,13 +354,12 @@ class PrivacyAssessment(CredoAssessment):
     """Basic evaluation of the privacy of ML models
 
     Runs privacy analysis on models with well-defined
-    objective functions. Examples include:
+    objective functions. Currently includes:
 
-    * classification
+    * Multi-class classification
 
-    Supports models from  the following libraries:
-
-    * Scikit-learn
+    Supports models from any platform that have a `predict` function that returns 
+        predicted classes for a given feature vectors as a one-dimensional array.
 
     Modules:
 
@@ -368,7 +367,7 @@ class PrivacyAssessment(CredoAssessment):
 
     Requirements
     ------------
-    Requires that the CredoModel defines is a Scikit-learn model
+    Requires that the CredoModel defines it as "CLASSIFIER"
     """
 
     def __init__(self):
@@ -380,7 +379,6 @@ class PrivacyAssessment(CredoAssessment):
                 data_requirements=["X", "y"],
                 training_data_requirements=["X", "y"],
                 model_types=["CLASSIFIER"],
-                target_types=["binary"],
             ),
         )
 
@@ -423,13 +421,12 @@ class SecurityAssessment(CredoAssessment):
     """Basic evaluation of the security of ML models
 
     Runs security analysis on models with well-defined
-    objective functions. Examples include:
+    objective functions. Currently includes:
 
-    * classification
+    * Multi-class classification
 
-    Supports models from  the following libraries:
-
-    * Scikit-learn
+    Supports models  from any platform that have a `predict` function that returns 
+        predicted classes for a given feature vectors as a one-dimensional array.
 
     Modules:
 
@@ -437,7 +434,7 @@ class SecurityAssessment(CredoAssessment):
 
     Requirements
     ------------
-    Requires that the CredoModel defines is a Scikit-learn model
+    Requires that the CredoModel defines it as "CLASSIFIER"
     """
 
     def __init__(self):
@@ -449,7 +446,6 @@ class SecurityAssessment(CredoAssessment):
                 data_requirements=["X", "y"],
                 training_data_requirements=["X", "y"],
                 model_types=["CLASSIFIER"],
-                target_types=["binary"],
             ),
         )
 
