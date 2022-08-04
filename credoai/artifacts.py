@@ -259,21 +259,21 @@ class CredoGovernance:
             name of a dataset used to train the model
         """
         if use_case_name:
-            ids = self._api.get_use_case_by_name(use_case_name)
-            if ids is not None:
-                self.use_case_id = ids["use_case_id"]
+            use_case = self._api.get_use_case_by_name(use_case_name)
+            if use_case is not None:
+                self.use_case_id = use_case["id"]
         if model_name:
-            ids = self._api.get_model_by_name(model_name)
-            if ids is not None:
-                self.model_id = ids["model_id"]
+            model = self._api.get_model_by_name(model_name)
+            if model is not None:
+                self.model_id = model["id"]
         if dataset_name:
-            ids = self._api.get_dataset_by_name(dataset_name)
-            if ids is not None:
-                self.dataset_id = ids["dataset_id"]
+            dataset = self._api.get_dataset_by_name(dataset_name)
+            if dataset is not None:
+                self.dataset_id = dataset["id"]
         if training_dataset_name:
-            ids = self._api.get_dataset_by_name(training_dataset_name)
-            if ids is not None:
-                self.training_dataset_id = ids["dataset_id"]
+            dataset = self._api.get_dataset_by_name(training_dataset_name)
+            if dataset is not None:
+                self.training_dataset_id = dataset["id"]
 
     def _process_spec(self, spec_destination):
         self.assessment_spec = ci.process_assessment_spec(spec_destination, self._api)
@@ -297,8 +297,8 @@ class CredoGovernance:
         if register_as_training:
             prefix = "training_"
         try:
-            ids = self._api.register_dataset(name=dataset_name)
-            setattr(self, f"{prefix}dataset_id", ids["dataset_id"])
+            dataset_id = self._api.register_dataset(name=dataset_name)["id"]
+            setattr(self, f"{prefix}dataset_id", dataset_id)
         except IntegrationError:
             self.set_governance_info_by_name(**{f"{prefix}dataset_name": dataset_name})
             raise_or_warn(
@@ -329,8 +329,7 @@ class CredoGovernance:
         solution.
         """
         try:
-            ids = self._api.register_model(name=model_name)
-            self.model_id = ids["model_id"]
+            self.model_id = self._api.register_model(name=model_name)["id"]
         except IntegrationError:
             self.set_governance_info_by_name(model_name=model_name)
             raise_or_warn(
