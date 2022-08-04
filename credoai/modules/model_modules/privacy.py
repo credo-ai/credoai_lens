@@ -7,7 +7,7 @@ from art.attacks.inference.membership_inference import (
     MembershipInferenceBlackBox,
     MembershipInferenceBlackBoxRuleBased,
 )
-from art.estimators.classification.scikitlearn import SklearnClassifier
+from art.estimators.classification import BlackBoxClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
 from sklearn import metrics as sk_metrics
@@ -23,7 +23,9 @@ class PrivacyModule(CredoModule):
     Parameters
     ----------
     model : model
-        A trained ML model
+        A trained binary or multi-class classification model
+        The only requirement for the model is to have a `predict` function that returns 
+            predicted classes for a given feature vector as an array.
     x_train : pandas.DataFrame
         The training features
     y_train : pandas.Series
@@ -44,7 +46,12 @@ class PrivacyModule(CredoModule):
         self.y_test = y_test.to_numpy()
         self.model = model.model
         self.attack_train_ratio = attack_train_ratio
-        self.attack_model = SklearnClassifier(self.model)
+        self.nb_classes = len(np.unique(self.y_train))
+        self.attack_model = BlackBoxClassifier(
+            predict_fn=self._predict_convert,
+            input_shape=self.x_train[0].shape,
+            nb_classes=self.nb_classes
+        )
         np.random.seed(10)
 
     def run(self):
@@ -56,20 +63,16 @@ class PrivacyModule(CredoModule):
             Key: metric name
             Value: metric value
         """
-        rule_based_attack_performance = self._rule_based_attack()
-        model_based_attack_performance = self._model_based_attack()
-
         attack_scores = {
             "rule_based_attack_score": self._rule_based_attack(),
             "model_based_attack_score": self._model_based_attack(),
         }
-        membership_inference_worst_case = max(
-            attack_scores["rule_based_attack_score"],
-            attack_scores["model_based_attack_score"],
-        )
+
+        membership_inference_worst_case = max(attack_scores.values())
+
         attack_scores[
             "membership_inference_attack_score"
-        ] = membership_inference_worst_case
+            ] = membership_inference_worst_case
 
         self.results = attack_scores
 
@@ -132,6 +135,7 @@ class PrivacyModule(CredoModule):
                 np.zeros(len(inferred_test.flatten()), dtype=int),
             ]
         )
+
         return sk_metrics.accuracy_score(y_true, y_pred)
 
     def _model_based_attack(self):
@@ -192,3 +196,24 @@ class PrivacyModule(CredoModule):
         )
 
         return sk_metrics.accuracy_score(y_true, y_pred)
+
+    def _predict_convert(self, x):
+        """Converts predictions shape to compatible shape
+
+        Converts predictions shape from (n,) to (n,number_of_classes)
+            for compatibility with BlackBoxClassifier
+
+        Parameters
+        ----------
+        x : features array
+
+        Returns
+        -------
+        numpy.array
+            shape (n,number_of_classes)
+        """
+        y = self.model.predict(x)
+        y_transformed = np.zeros((len(x), self.nb_classes))
+        for ai, bi in zip(y_transformed, y):
+            ai[bi] = 1
+        return y_transformed
