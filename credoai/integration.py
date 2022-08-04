@@ -22,15 +22,8 @@ from credoai.utils.common import (
     humanize_label,
     wrap_list,
 )
-from credoai.utils.credo_api_utils import (
-    get_assessment_spec,
-    post_assessment,
-    register_dataset,
-    register_dataset_to_model,
-    register_dataset_to_model_usecase,
-    register_model,
-    register_model_to_usecase,
-)
+from credoai.utils.credo_api import CredoApi
+
 
 META = {"source": "credoai_ml_library", "version": credoai.__version__}
 
@@ -342,7 +335,7 @@ def prepare_assessment_payload(
     return payload
 
 
-def process_assessment_spec(spec_destination):
+def process_assessment_spec(spec_destination, api: CredoApi):
     """Get assessment spec from Credo's Governance App or file
 
     At least one of the credo_url or spec_path must be provided! If both
@@ -368,7 +361,7 @@ def process_assessment_spec(spec_destination):
     """
     spec = {}
     try:
-        spec = get_assessment_spec(spec_destination)
+        spec = api.get_assessment_spec(spec_destination)
     except:
         spec = deserialize(json.load(open(spec_destination)))
 

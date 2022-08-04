@@ -87,3 +87,24 @@ TENANT={tenant name} # Example: credoai
 API_KEY=<your api key> # Example: JSMmd26...
 ```
  
+# For Lens developers
+
+## Running tests
+
+Install requirements needed for testing.
+
+```shell
+pip install -r requirements-extras.txt
+```
+
+Running a test
+
+```shell
+scripts/test.sh
+```
+
+Running tests with pytest-watch
+
+```shell
+ptw --runner "pytest -s"
+```
