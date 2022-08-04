@@ -11,7 +11,7 @@ from credoai.utils.common import json_dumps
 from credoai.utils.constants import CREDO_URL
 
 
-class CredoApiConfig():
+class CredoApiConfig:
     """
     Defines Credo API configs
     """
@@ -57,6 +57,10 @@ class CredoApiConfig():
         """
         return self._api_base
 
+    @property
+    def valid(self):
+        return bool(self._api_key) and bool(self._api_server)
+
     def load_config(self, config_path=None):
         """
         Load API configs from the config_path
@@ -82,18 +86,18 @@ class CredoApiConfig():
         return os.path.join(config.get("CREDO_URL", CREDO_URL))
 
     def __build_api_base(self):
-        if(self._api_server):
+        if self._api_server:
             return os.path.join(self._api_server, "api/v1", self._tenant)
         return None
 
 
-class CredoApiClient():
+class CredoApiClient:
     """
     CredoApiClient is interface class to the Credo API server.
     """
 
     def __init__(self, config: CredoApiConfig = None):
-        if(config):
+        if config:
             self._config = config
         else:
             self._config = CredoApiConfig()
@@ -106,15 +110,13 @@ class CredoApiClient():
         """
         Get access token and set to headers
         """
-        data = {
-            "api_token": self._config.api_key,
-            "tenant": self._config.tenant
-        }
-        headers = {"content-type": "application/json", "charset": "utf-8"}
-        auth_url = os.path.join(self._config.api_server, "auth", "exchange")
-        response = requests.post(auth_url, json=data, headers=headers)
-        access_token = response.json()["access_token"]
-        self.set_access_token(access_token)
+        if self._config.valid:
+            data = {"api_token": self._config.api_key, "tenant": self._config.tenant}
+            headers = {"content-type": "application/json", "charset": "utf-8"}
+            auth_url = os.path.join(self._config.api_server, "auth", "exchange")
+            response = requests.post(auth_url, json=data, headers=headers)
+            access_token = response.json()["access_token"]
+            self.set_access_token(access_token)
 
     def set_access_token(self, access_token):
         """
@@ -123,7 +125,7 @@ class CredoApiClient():
         headers = {
             "Authorization": f"Bearer {access_token}",
             "accept": "application/vnd.api+json",
-            "content-type": "application/vnd.api+json"
+            "content-type": "application/vnd.api+json",
         }
         self._session.headers.update(headers)
 
@@ -136,7 +138,7 @@ class CredoApiClient():
 
         response.raise_for_status()
 
-        if(response.content):
+        if response.content:
             return deserialize(response.json())
         else:
             return None
