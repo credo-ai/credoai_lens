@@ -48,7 +48,7 @@ class PrivacyModule(CredoModule):
         self.attack_train_ratio = attack_train_ratio
         self.nb_classes = len(np.unique(self.y_train))
         self.attack_model = BlackBoxClassifier(
-            predict_fn=self._predict_convert,
+            predict_fn=self._predict_binary_class_matrix,
             input_shape=self.x_train[0].shape,
             nb_classes=self.nb_classes
         )
@@ -113,7 +113,7 @@ class PrivacyModule(CredoModule):
         """
         attack = MembershipInferenceBlackBoxRuleBased(self.attack_model)
 
-        # undersample training/test so that they are balanced
+        # under-sample training/test so that they are balanced
         if len(self.x_test) < len(self.x_train):
             idx = np.random.choice(
                 np.arange(len(self.x_train)), len(self.x_test), replace=False
@@ -172,7 +172,7 @@ class PrivacyModule(CredoModule):
             self.x_test[attack_test_size:],
             self.y_test[attack_test_size:],
         )
-        # undersample training/test so that they are balanced
+        # under-sample training/test so that they are balanced
         if len(x_test_assess) < len(x_train_assess):
             idx = np.random.choice(
                 np.arange(len(x_train_assess)), len(x_test_assess), replace=False
@@ -197,20 +197,17 @@ class PrivacyModule(CredoModule):
 
         return sk_metrics.accuracy_score(y_true, y_pred)
 
-    def _predict_convert(self, x):
-        """Converts predictions shape to compatible shape
+    def _predict_binary_class_matrix(self, x):
+        """ `predict` that returns a binary class matrix
 
-        Converts predictions shape from (n,) to (n,number_of_classes)
-            for compatibility with BlackBoxClassifier
-
-        Parameters
         ----------
         x : features array
+            shape (nb_inputs, nb_features)
 
         Returns
         -------
         numpy.array
-            shape (n,number_of_classes)
+            shape (nb_inputs, nb_classes)
         """
         y = self.model.predict(x)
         y_transformed = np.zeros((len(x), self.nb_classes))
