@@ -7,7 +7,7 @@ from art.attacks.inference.membership_inference import (
     MembershipInferenceBlackBox,
     MembershipInferenceBlackBoxRuleBased,
 )
-from art.estimators.classification.scikitlearn import SklearnClassifier
+from art.estimators.classification import BlackBoxClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
 from sklearn import metrics as sk_metrics
@@ -18,12 +18,15 @@ warnings.filterwarnings("ignore")
 class PrivacyModule(CredoModule):
     """Privacy module for Credo AI.
 
-    This module takes in model and data and provides functionality to perform privacy assessment
+    This module takes in in classification model and data and provides functionality 
+        to perform privacy assessment
 
     Parameters
     ----------
     model : model
-        A trained ML model
+        A trained binary or multi-class classification model
+        The only requirement for the model is to have a `predict` function that returns 
+        predicted classes for a given feature vectors as a one-dimensional array.
     x_train : pandas.DataFrame
         The training features
     y_train : pandas.Series
@@ -44,7 +47,12 @@ class PrivacyModule(CredoModule):
         self.y_test = y_test.to_numpy()
         self.model = model.model
         self.attack_train_ratio = attack_train_ratio
-        self.attack_model = SklearnClassifier(self.model)
+        self.nb_classes = len(np.unique(self.y_train))
+        self.attack_model = BlackBoxClassifier(
+            predict_fn=self._predict_binary_class_matrix,
+            input_shape=self.x_train[0].shape,
+            nb_classes=self.nb_classes
+        )
         np.random.seed(10)
 
     def run(self):
@@ -56,20 +64,16 @@ class PrivacyModule(CredoModule):
             Key: metric name
             Value: metric value
         """
-        rule_based_attack_performance = self._rule_based_attack()
-        model_based_attack_performance = self._model_based_attack()
-
         attack_scores = {
             "rule_based_attack_score": self._rule_based_attack(),
             "model_based_attack_score": self._model_based_attack(),
         }
-        membership_inference_worst_case = max(
-            attack_scores["rule_based_attack_score"],
-            attack_scores["model_based_attack_score"],
-        )
+
+        membership_inference_worst_case = max(attack_scores.values())
+
         attack_scores[
             "membership_inference_attack_score"
-        ] = membership_inference_worst_case
+            ] = membership_inference_worst_case
 
         self.results = attack_scores
 
@@ -110,7 +114,7 @@ class PrivacyModule(CredoModule):
         """
         attack = MembershipInferenceBlackBoxRuleBased(self.attack_model)
 
-        # undersample training/test so that they are balanced
+        # under-sample training/test so that they are balanced
         if len(self.x_test) < len(self.x_train):
             idx = np.random.choice(
                 np.arange(len(self.x_train)), len(self.x_test), replace=False
@@ -132,6 +136,7 @@ class PrivacyModule(CredoModule):
                 np.zeros(len(inferred_test.flatten()), dtype=int),
             ]
         )
+
         return sk_metrics.accuracy_score(y_true, y_pred)
 
     def _model_based_attack(self):
@@ -168,7 +173,7 @@ class PrivacyModule(CredoModule):
             self.x_test[attack_test_size:],
             self.y_test[attack_test_size:],
         )
-        # undersample training/test so that they are balanced
+        # under-sample training/test so that they are balanced
         if len(x_test_assess) < len(x_train_assess):
             idx = np.random.choice(
                 np.arange(len(x_train_assess)), len(x_test_assess), replace=False
@@ -192,3 +197,21 @@ class PrivacyModule(CredoModule):
         )
 
         return sk_metrics.accuracy_score(y_true, y_pred)
+
+    def _predict_binary_class_matrix(self, x):
+        """ `predict` that returns a binary class matrix
+
+        ----------
+        x : features array
+            shape (nb_inputs, nb_features)
+
+        Returns
+        -------
+        numpy.array
+            shape (nb_inputs, nb_classes)
+        """
+        y = self.model.predict(x)
+        y_transformed = np.zeros((len(x), self.nb_classes))
+        for ai, bi in zip(y_transformed, y):
+            ai[bi] = 1
+        return y_transformed
