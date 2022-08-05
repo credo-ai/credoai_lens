@@ -29,10 +29,7 @@ jobs:
           pip install -r requirements-extras.txt
       - name: Run tests
         run: |
-          scripts/test.sh > pytest-coverage.txt 2>&1
-          retval=$?
-          cat pytest-coverage.txt
-          exit $retval
+          scripts/test.sh 
       - name: my-artifact
         if: always()
         uses: actions/upload-artifact@v3

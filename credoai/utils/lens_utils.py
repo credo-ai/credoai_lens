@@ -19,7 +19,9 @@ def add_metric_keys(prepared_results):
     """
     if prepared_results is None:
         return
-    ignored = ['value', 'metadata']
-    keys = [dict_hash({k: v for k, v in metric_dict.items() if k not in ignored})
-            for metric_dict in prepared_results.reset_index().to_dict('records')]
-    prepared_results['metric_key'] = keys
+    ignored = ["value", "metadata"]
+    keys = [
+        dict_hash({k: v for k, v in metric_dict.items() if k not in ignored})
+        for metric_dict in prepared_results.reset_index().to_dict("records")
+    ]
+    prepared_results["metric_key"] = keys

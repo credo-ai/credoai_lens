@@ -21,7 +21,7 @@ App that supports multi-stakeholder alignment, AI assessment (via Lens) and AI r
 
 ## Dependencies
 
-- Credo AI Lens supports Python 3.7+
+- Credo AI Lens supports Python 3.8+
 - Sphinx (optional for local docs site)
 
 
@@ -87,3 +87,24 @@ TENANT={tenant name} # Example: credoai
 API_KEY=<your api key> # Example: JSMmd26...
 ```
  
+# For Lens developers
+
+## Running tests
+
+Install requirements needed for testing.
+
+```shell
+pip install -r requirements-extras.txt
+```
+
+Running a test
+
+```shell
+scripts/test.sh
+```
+
+Running tests with pytest-watch
+
+```shell
+ptw --runner "pytest -s"
+```

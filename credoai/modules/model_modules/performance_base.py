@@ -15,7 +15,7 @@ from sklearn.utils import check_consistent_length
 class PerformanceModule(CredoModule):
     """
     Performance module for Credo AI. Handles any metric that can be
-    calculated on a set of ground truth labels and predictions, 
+    calculated on a set of ground truth labels and predictions,
     e.g., binary classification, multiclass classification, regression.
 
     This module takes in a set of metrics  and provides functionality to:
@@ -27,7 +27,7 @@ class PerformanceModule(CredoModule):
     metrics : List-like
         list of metric names as string or list of Metrics (credoai.metrics.Metric).
         Metric strings should in list returned by credoai.metrics.list_metrics.
-        Note for performance parity metrics like 
+        Note for performance parity metrics like
         "false negative rate parity" just list "false negative rate". Parity metrics
         are calculated automatically if the performance metric is supplied
     y_true : (List, pandas.Series, numpy.ndarray)
@@ -36,17 +36,11 @@ class PerformanceModule(CredoModule):
         The predicted labels for classification
     y_prob : (List, pandas.Series, numpy.ndarray), optional
         The unthresholded predictions, confidence values or probabilities.
-    sensitive_features :  pandas.DataFrame
-        The segmentation feature(s) which should be used to create subgroups to analyze.
+    sensitive_features :  pandas.Series
+        The segmentation feature which should be used to create subgroups to analyze.
     """
 
-    def __init__(self,
-                 metrics,
-                 y_true,
-                 y_pred,
-                 y_prob=None,
-                 sensitive_features=None
-                 ):
+    def __init__(self, metrics, y_true, y_pred, y_prob=None, sensitive_features=None):
         super().__init__()
         # data variables
         self.y_true = to_array(y_true)
@@ -56,8 +50,7 @@ class PerformanceModule(CredoModule):
         if sensitive_features is None:
             self.perform_disaggregation = False
             # only set to use metric frame
-            sensitive_features = pd.DataFrame(
-                {'NA': ['NA'] * len(self.y_true)})
+            sensitive_features = pd.Series(["NA"] * len(self.y_true), name="NA")
         self.sensitive_features = sensitive_features
         self._validate_inputs()
 
@@ -78,23 +71,17 @@ class PerformanceModule(CredoModule):
         -------
         self
         """
-        self.results = {'overall_performance': self.get_overall_metrics()}
+        self.results = {"overall_performance": self.get_overall_metrics()}
         if self.perform_disaggregation:
             self.results.update(self.get_disaggregated_performance())
         return self
 
-    def prepare_results(self, filter=None):
+    def prepare_results(self):
         """Prepares results for Credo AI's governance platform
 
         Structures results for export as a dataframe with appropriate structure
         for exporting. See credoai.modules.credo_module.
-        Parameters
-        ----------
-        filter : str, optional
-            Regex string to filter fairness results if only a subset are desired.
-            Passed as a regex argument to pandas `filter` function applied to the
-            concatenated output of Fairnessmodule.get_fairness_results and
-            Fairnessmodule.get_disaggregated_performance, by default None
+
         Returns
         -------
         pd.DataFrame
@@ -104,23 +91,23 @@ class PerformanceModule(CredoModule):
             Occurs if self.run is not called yet to generate the raw assessment results
         """
         if self.results is not None:
-            if 'overall_performance' in self.results:
-                results = self.results['overall_performance']
+            if "overall_performance" in self.results:
+                results = self.results["overall_performance"]
             else:
                 results = pd.DataFrame()
 
             if self.perform_disaggregation:
-                for sf_name in self.sensitive_features:
-                    disaggregated_df = self.results[f'{sf_name}-disaggregated_performance'].copy(
+                disaggregated_df = self.results[f"disaggregated_performance"].copy()
+                disaggregated_df = (
+                    disaggregated_df.reset_index()
+                    .melt(
+                        id_vars=[disaggregated_df.index.name, "subtype"],
+                        var_name="metric_type",
                     )
-                    disaggregated_df = disaggregated_df.reset_index().melt(
-                        id_vars=[disaggregated_df.index.name, 'subtype'], var_name='metric_type'
-                    ).set_index('metric_type')
-                    disaggregated_df['sensitive_feature'] = sf_name
-                    results = pd.concat([results, disaggregated_df])
-
-            if filter:
-                results = results.filter(regex=filter)
+                    .set_index("metric_type")
+                )
+                disaggregated_df["sensitive_feature"] = self.sensitive_features.name
+                results = pd.concat([results, disaggregated_df])
             return results
         else:
             raise NotRunError(
@@ -135,7 +122,7 @@ class PerformanceModule(CredoModule):
         metrics : List-like
             list of metric names as string or list of Metrics (credoai.metrics.Metric).
             Metric strings should in list returned by credoai.metrics.list_metrics.
-            Note for performance parity metrics like 
+            Note for performance parity metrics like
             "false negative rate parity" just list "false negative rate". Parity metrics
             are calculated automatically if the performance metric is supplied
         """
@@ -143,9 +130,11 @@ class PerformanceModule(CredoModule):
             self.metrics = metrics
         else:
             self.metrics += metrics
-        (self.performance_metrics,
-         self.prob_metrics,
-         self.failed_metrics) = self._process_metrics(self.metrics)
+        (
+            self.performance_metrics,
+            self.prob_metrics,
+            self.failed_metrics,
+        ) = self._process_metrics(self.metrics)
         self._setup_metric_frames()
 
     def get_df(self):
@@ -156,13 +145,12 @@ class PerformanceModule(CredoModule):
         pandas.DataFrame
             Dataframe containing the input arrays
         """
-        df = pd.DataFrame({'true': self.y_true,
-                           'pred': self.y_pred})
-        df = df.join(self.get_sensitive_features().reset_index(drop=True))
+        df = pd.DataFrame({"true": self.y_true, "pred": self.y_pred})
+        if self.sensitive_features.name != "NA":
+            df = df.join(self.sensitive_features.reset_index(drop=True))
         if self.y_prob is not None:
             y_prob_df = pd.DataFrame(self.y_prob)
-            y_prob_df.columns = [
-                f'y_prob_{i}' for i in range(y_prob_df.shape[1])]
+            y_prob_df.columns = [f"y_prob_{i}" for i in range(y_prob_df.shape[1])]
             df = pd.concat([df, y_prob_df], axis=1)
 
         return df
@@ -176,14 +164,16 @@ class PerformanceModule(CredoModule):
             The overall performance metrics
         """
         # retrive overall metrics for one of the sensitive features only as they are the same
-        first_feature = self.sensitive_features.columns[0]
-        overall_metrics = [metric_frame.overall for metric_frame
-                           in self.metric_frames[first_feature].values()]
+        overall_metrics = [
+            metric_frame.overall for metric_frame in self.metric_frames.values()
+        ]
         if overall_metrics:
-            output_series = pd.concat(overall_metrics, axis=0) \
-                .rename(index='value') \
-                .to_frame() \
-                .assign(subtype='overall_performance')
+            output_series = (
+                pd.concat(overall_metrics, axis=0)
+                .rename(index="value")
+                .to_frame()
+                .assign(subtype="overall_performance")
+            )
             return output_series
         else:
             logging.warn("No overall metrics could be calculated.")
@@ -202,19 +192,20 @@ class PerformanceModule(CredoModule):
             The disaggregated performance metrics
         """
         disaggregated_results = {}
-        for sf_name, metric_frames in self.metric_frames.items():
-            disaggregated_df = pd.DataFrame()
-            for metric_frame in metric_frames.values():
-                df = metric_frame.by_group.copy().convert_dtypes()
-                disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
-            disaggregated_results[f'{sf_name}-disaggregated_performance'] = \
-                disaggregated_df.assign(subtype='disaggregated_performance')
+        disaggregated_df = pd.DataFrame()
+        for metric_frame in self.metric_frames.values():
+            df = metric_frame.by_group.copy().convert_dtypes()
+            disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
+        disaggregated_results["disaggregated_performance"] = disaggregated_df.assign(
+            subtype="disaggregated_performance"
+        )
         if not disaggregated_results:
             logging.warn("No disaggregated metrics could be calculated.")
         return disaggregated_results
 
-    def get_sensitive_features(self):
-        return self.sensitive_features.drop('NA', axis=1, errors='ignore')
+    def get_sensitive_feature(self):
+        if self.sensitive_features.name != "NA":
+            return self.sensitive_features
 
     def _process_metrics(self, metrics):
         """Separates metrics
@@ -241,18 +232,20 @@ class PerformanceModule(CredoModule):
                     metric = metric[0]
                 elif len(metric) == 0:
                     raise Exception(
-                        f"Returned no metrics when searching using the provided metric name <{metric_name}>. Expected to find one matching metric.")
+                        f"Returned no metrics when searching using the provided metric name <{metric_name}>. Expected to find one matching metric."
+                    )
                 else:
                     raise Exception(
-                        f"Returned multiple metrics when searching using the provided metric name <{metric_name}>. Expected to find only one matching metric.")
+                        f"Returned multiple metrics when searching using the provided metric name <{metric_name}>. Expected to find only one matching metric."
+                    )
             else:
                 metric_name = metric.name
             if not isinstance(metric, Metric):
-                raise ValidationError(
-                    "Metric is not of type credoai.metric.Metric")
+                raise ValidationError("Metric is not of type credoai.metric.Metric")
             if metric.metric_category == "FAIRNESS":
                 logging.info(
-                    f"fairness metric, {metric_name}, unused by PerformanceModule")
+                    f"fairness metric, {metric_name}, unused by PerformanceModule"
+                )
                 pass
             elif metric.metric_category in MODEL_METRIC_CATEGORIES:
                 if metric.takes_prob:
@@ -260,38 +253,40 @@ class PerformanceModule(CredoModule):
                 else:
                     performance_metrics[metric_name] = metric
             else:
-                logging.warning(
-                    f"{metric_name} failed to be used by FairnessModule")
+                logging.warning(f"{metric_name} failed to be used by FairnessModule")
                 failed_metrics.append(metric_name)
 
-        return (performance_metrics, prob_metrics,
-                failed_metrics)
+        return (performance_metrics, prob_metrics, failed_metrics)
 
     def _create_metric_frame(self, metrics, y_pred, sensitive_features):
         """Creates metric frame from dictionary of key:Metric"""
         metrics = {name: metric.fun for name, metric in metrics.items()}
-        return MetricFrame(metrics=metrics,
-                           y_true=self.y_true,
-                           y_pred=y_pred,
-                           sensitive_features=sensitive_features)
+        return MetricFrame(
+            metrics=metrics,
+            y_true=self.y_true,
+            y_pred=y_pred,
+            sensitive_features=sensitive_features,
+        )
 
     def _setup_metric_frames(self):
         self.metric_frames = {}
-        for sf_name, sf_series in self.sensitive_features.items():
-            self.metric_frames[sf_name] = {}
+        if self.y_pred is not None and self.performance_metrics:
+            self.metric_frames["pred"] = self._create_metric_frame(
+                self.performance_metrics,
+                self.y_pred,
+                sensitive_features=self.sensitive_features,
+            )
 
-            if self.y_pred is not None and self.performance_metrics:
-                self.metric_frames[sf_name]['pred'] = self._create_metric_frame(
-                    self.performance_metrics, self.y_pred,
-                    sensitive_features=sf_series)
-
-                # for metrics that require the probabilities
-                self.prob_metric_frame = None
-                if self.y_prob is not None and self.prob_metrics:
-                    self.metric_frames[sf_name]['prob'] = self._create_metric_frame(
-                        self.prob_metrics, self.y_prob,
-                        sensitive_features=sf_series)
+            # for metrics that require the probabilities
+            self.prob_metric_frame = None
+            if self.y_prob is not None and self.prob_metrics:
+                self.metric_frames["prob"] = self._create_metric_frame(
+                    self.prob_metrics,
+                    self.y_prob,
+                    sensitive_features=self.sensitive_features,
+                )
 
     def _validate_inputs(self):
-        check_consistent_length(self.y_true, self.y_pred,
-                                self.y_prob, self.sensitive_features)
+        check_consistent_length(
+            self.y_true, self.y_pred, self.y_prob, self.sensitive_features
+        )

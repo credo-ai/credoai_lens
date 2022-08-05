@@ -1,17 +1,18 @@
 """Requires installation of requirements-extras.txt"""
 
-import pandas as pd
 import os
-import seaborn as sns
+from functools import partial
+from time import sleep
 
+import pandas as pd
+import seaborn as sns
 from absl import logging
-from ._nlp_constants import PROMPTS_PATHS, PERSPECTIVE_API_MODELS
 from credoai.data.utils import get_data_path
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError, ValidationError, wrap_list
-from functools import partial
 from googleapiclient import discovery
-from time import sleep
+
+from ._nlp_constants import PERSPECTIVE_API_MODELS, PROMPTS_PATHS
 
 
 class NLPGeneratorAnalyzer(CredoModule):
@@ -22,9 +23,9 @@ class NLPGeneratorAnalyzer(CredoModule):
     ----------
     prompts : str
         choices are builtin datasets, which include:
-            'bold_gender', 'bold_political_ideology', 'bold_profession', 
+            'bold_gender', 'bold_political_ideology', 'bold_profession',
             'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
-            'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 
+            'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20',
             'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
             'conversationai_age', 'conversationai_disability', 'conversationai_gender', 'conversationai_race',
             'conversationai_religious_ideology', 'conversationai_sexual_orientation' (Dixon et al. 2018)
@@ -34,11 +35,11 @@ class NLPGeneratorAnalyzer(CredoModule):
         keys are names of the models and values are their callable generation functions
 
     assessment_functions : dict
-        keys are names of the assessment functions and values could be custom callable assessment functions 
-        or name of builtin assessment functions. 
+        keys are names of the assessment functions and values could be custom callable assessment functions
+        or name of builtin assessment functions.
         Current choices, all using Perspective API include:
-                'perspective_toxicity', 'perspective_severe_toxicity', 
-                'perspective_identify_attack', 'perspective_insult', 
+                'perspective_toxicity', 'perspective_severe_toxicity',
+                'perspective_identify_attack', 'perspective_insult',
                 'perspective_profanity', 'perspective_threat'
 
     perspective_config : dict
@@ -78,7 +79,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         if self.results is not None:
             # Calculate statistics across groups and assessment attributes
             results = (
-                self.results['assessment_results'][
+                self.results["assessment_results"][
                     ["generation_model", "group", "assessment_attribute", "value"]
                 ]
                 .groupby(
@@ -117,21 +118,23 @@ class NLPGeneratorAnalyzer(CredoModule):
 
         # Perform prerun checks
         self._perform_prerun_checks()
-        logging.info(
-            "Performed prerun checks of generation and assessment functions"
-        )
+        logging.info("Performed prerun checks of generation and assessment functions")
 
         # Generate and record responses for the prompts with all the generation models n_iterations times
         dfruns_lst = []
         for gen_name, gen_fun in self.generation_functions.items():
             gen_fun = partial(gen_fun, num_sequences=n_iterations)
-            logging.info(f"Generating {n_iterations} text responses per prompt with model: {gen_name}")
-            prompts = df['prompt']
-            responses = [self._gen_fun_robust(p, gen_fun) for p in prompts]   
-            temp = pd.concat([df, pd.DataFrame(responses)], axis=1) \
-                    .assign(prompt=prompts) \
-                    .melt(id_vars=df.columns, var_name='run', value_name='response') \
-                    .assign(generation_model = gen_name)
+            logging.info(
+                f"Generating {n_iterations} text responses per prompt with model: {gen_name}"
+            )
+            prompts = df["prompt"]
+            responses = [self._gen_fun_robust(p, gen_fun) for p in prompts]
+            temp = (
+                pd.concat([df, pd.DataFrame(responses)], axis=1)
+                .assign(prompt=prompts)
+                .melt(id_vars=df.columns, var_name="run", value_name="response")
+                .assign(generation_model=gen_name)
+            )
 
             dfruns_lst.append(temp)
 
@@ -162,7 +165,7 @@ class NLPGeneratorAnalyzer(CredoModule):
 
         dfrunst_assess = pd.concat(dfrunst_assess_lst).reset_index(drop=True)
 
-        self.results = {'assessment_results': dfrunst_assess}
+        self.results = {"assessment_results": dfrunst_assess}
 
         return self
 
@@ -234,8 +237,10 @@ class NLPGeneratorAnalyzer(CredoModule):
         responses = gen_fun(prompt)
         # replace empty responses
         error_text = "nlp generator error"
-        responses = [(r or error_text) if isinstance(r, str) and len(r) > 1 else error_text
-                    for r in responses]
+        responses = [
+            (r or error_text) if isinstance(r, str) and len(r) > 1 else error_text
+            for r in responses
+        ]
         return responses
 
     def _get_prompts(self, prompts):
@@ -246,9 +251,9 @@ class NLPGeneratorAnalyzer(CredoModule):
         prompts : str
             One of the following:
                 Name of a builtin prompt dataset. Choices are
-                    'bold_gender', 'bold_political_ideology', 'bold_profession', 
+                    'bold_gender', 'bold_political_ideology', 'bold_profession',
                     'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
-                    'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20', 
+                    'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20',
                     'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
                     'conversationai_age', 'conversationai_disability', 'conversationai_gender', 'conversationai_race',
                     'conversationai_religious_ideology', 'conversationai_sexual_orientation' (Dixon et al. 2018)

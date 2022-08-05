@@ -1,25 +1,28 @@
+from dataclasses import dataclass
+
 from absl import logging
 from credoai.assessment import list_assessments
-from dataclasses import dataclass
 
 ASSESSMENTS = list_assessments()
 
 
 def get_assessment_names():
-    return {name: assessment_class().name
-            for name, assessment_class in ASSESSMENTS}
+    return {name: assessment_class().name for name, assessment_class in ASSESSMENTS}
 
 
 def get_assessment_requirements():
-    return {name: assessment_class().get_requirements()
-            for name, assessment_class in ASSESSMENTS}
+    return {
+        name: assessment_class().get_requirements()
+        for name, assessment_class in ASSESSMENTS
+    }
 
 
 def get_usable_assessments(
     credo_model=None,
     credo_data=None,
     credo_training_data=None,
-    candidate_assessments=None):
+    candidate_assessments=None,
+):
     """Selects usable assessments based on model and data capabilities
 
     Parameters
@@ -46,18 +49,23 @@ def get_usable_assessments(
             assessments[assessment.get_name()] = assessment
     return assessments
 
+
 @dataclass
 class AssessmentBunch:
     """
     Class to determine assessment eligibility and hold a collections of assessments
     """
+
     name: str
-    model: 'CredoModel'
-    primary_dataset: 'CredoData'
-    secondary_dataset: 'CredoData'
+    model: "CredoModel"
+    primary_dataset: "CredoData"
+    secondary_dataset: "CredoData"
     assessments: list = None
 
     def set_usable_assessments(self, candidate_assessments):
         self.assessments = get_usable_assessments(
-            self.model, self.primary_dataset, 
-            self.secondary_dataset, candidate_assessments)
+            self.model,
+            self.primary_dataset,
+            self.secondary_dataset,
+            candidate_assessments,
+        )

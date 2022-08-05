@@ -2,8 +2,8 @@ from credoai.reporting.credo_reporter import CredoReporter
 
 
 class DatasetProfilingReporter(CredoReporter):
-    def __init__(self, assessment, size=5):
-        super().__init__(assessment)
+    def __init__(self, module, size=5):
+        super().__init__(module)
         self.size = size
 
     def report(self, plot=True, rerun=False):
@@ -29,8 +29,11 @@ class DatasetProfilingReporter(CredoReporter):
         return self.figs
 
     def _create_assets(self):
-        self.figs = [self._create_html_blob(
-            self.module.get_html_report(), name='dataset_profile')]
+        self.figs = [
+            self._create_html_blob(
+                self.module.get_html_report(), name="dataset_profile"
+            )
+        ]
 
     def display_results_tables(self):
         pass
