@@ -18,6 +18,7 @@
 # CredoAssessment is the interface between a CredoModel,
 # CredoData and a module, which performs some assessment.
 
+import itertools
 import os
 from collections import defaultdict
 from copy import deepcopy
@@ -25,8 +26,6 @@ from datetime import datetime
 from typing import Callable, List, Optional, Union
 
 import pandas as pd
-
-# This file defines CredoGovernance, CredoModel and CredoData
 from absl import logging
 from sklearn import impute
 from sklearn.utils.multiclass import type_of_target
@@ -462,7 +461,7 @@ class CredoModel:
 class CredoData:
     """Class wrapper around data-to-be-assessed
 
-    CredoData serves as an adapter between tabular datasets
+    CredoData serves as an adapter between datasets
     and the assessments in CredoLens.
 
     Passed to Lens for certain assessments. Either will be used
@@ -474,163 +473,105 @@ class CredoData:
     -------------
     name : str
         Label of the dataset
-    data : pd.DataFrame
-        Dataset dataframe that includes all features and labels
-    label_key : str
-        Name of the label column
-    sensitive_feature_key : str, optional
-        Name of the sensitive feature column, which will be used for disaggregating performance
-        metrics. This can a column you want to perform segmentation analysis on, or
+    X : array-like of shape (n_samples, n_features)
+        Dataset
+    y : array-like of shape (n_samples, n_outputs)
+        Outcome
+    sensitive_features : pd.Series, pd.DataFrame, optional
+        Sensitive Features, which will be used for disaggregating performance
+        metrics. This can be the columns you want to perform segmentation analysis on, or
         a feature related to fairness like 'race' or 'gender'
+    sensitive_intersections : bool, list
+        Whether to add intersections of sensitive features. If True, add all possible
+        intersections. If list, only create intersections from specified sensitive features.
+        If False, no intersections will be created. Defaults False
     categorical_features_keys : list[str], optional
         Names of categorical features. If the sensitive feature is categorical, include it in this list.
         Note - ordinal features should not be included.
-    unused_features_keys : list[str], optional
-        Names of the features to ignore when performing prediction.
-        Include all the features in the data that were not used during model training
-    drop_sensitive_feature : bool, optional
-        If True, automatically adds sensitive_feature_key to the list of
-        unused_features_keys. If you do not explicitly use the sensitive feature
-        in your model, this argument should be True. Otherwise, set to False.
-        Default, True
-    nan_strategy : str or callable, optional
-        The strategy for dealing with NaNs when get_scrubbed_data is called. Note, only some
-        assessments used the scrubbed data. In general, recommend you deal with NaNs before
-        passing your data to Lens.
-
-        -- If "ignore" do nothing,
-        -- If "drop" drop any rows with any NaNs.
-        -- If any other string, pass to the "strategy" argument of `Simple Imputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
-
-        You can also supply your own imputer with
-        the same API as `SimpleImputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
     """
 
     def __init__(
         self,
         name: str,
-        data: pd.DataFrame,
-        label_key: str,
-        sensitive_feature_keys: list = None,
+        X=None,
+        y=None,
+        sensitive_features=None,
+        sensitive_intersections: Union[bool, list] = False,
         categorical_features_keys: Optional[List[str]] = None,
-        unused_features_keys: Optional[List[str]] = None,
-        drop_sensitive_feature: bool = True,
-        nan_strategy: Union[str, Callable] = "drop",
     ):
-
         self.name = name
-        self.data = data
-        self.sensitive_feature_keys = sensitive_feature_keys
-        self.label_key = label_key
+        self.X = X
+        self.y = y
+        self.sensitive_features = self._process_sensitive(
+            sensitive_features, sensitive_intersections
+        )
+        self.X_type = self._get_X_type()
+        self.target_type = self._get_y_type()
         self.categorical_features_keys = categorical_features_keys
-        self.unused_features_keys = unused_features_keys
-        self.drop_sensitive_feature = drop_sensitive_feature
-        self.nan_strategy = nan_strategy
-        self.X, self.y, self.sensitive_features = self._process_data(self.data).values()
-        self.target_type = type_of_target(self.y)
 
     def __post_init__(self):
         self.metadata = self.metadata or {}
         self._validate_data()
 
-    def get_scrubbed_data(self):
-        """Return scrubbed data
+    def _get_X_type(self):
+        return type(self.X)
 
-        Implements NaN strategy indicated by nan_strategy before returning
-        X, y and sensitive_features dataframes/series.
+    def _get_y_type(self):
+        return type_of_target(self.y) if self.y else None
 
-        Returns
-        -------
-        pd.DataFrame, pd.pd.Series
-            X, y, sensitive_features
-
-        Raises
-        ------
-        ValueError
-            ValueError raised for nan_strategy cannot be used by SimpleImputer
-        """
-        data = self.data.copy()
-        if self.nan_strategy == "drop":
-            data = data.dropna()
-        elif self.nan_strategy == "ignore":
-            pass
-        elif isinstance(self.nan_strategy, str):
-            try:
-                imputer = impute.SimpleImputer(strategy=self.nan_strategy)
-                imputed = imputer.fit_transform(data)
-                data.iloc[:, :] = imputed
-            except ValueError:
-                raise ValueError(
-                    "CredoData's nan_strategy could not be successfully passed to SimpleImputer as a 'strategy' argument"
-                )
-        else:
-            imputed = self.nan_strategy.fit_transform(data)
-            data.iloc[:, :] = imputed
-        return self._process_data(data)
-
-    def _process_data(self, data):
-        # set up sensitive features, y and X
-        y = data[self.label_key]
-        to_drop = [self.label_key]
-        if self.unused_features_keys:
-            to_drop += self.unused_features_keys
-
-        sensitive_features = None
-        if self.sensitive_feature_keys:
-            sensitive_features = data[self.sensitive_feature_keys]
-            if self.drop_sensitive_feature:
-                to_drop.extend(self.sensitive_feature_keys)
-
-        # drop columns from X
-        X = data.drop(columns=to_drop, axis=1)
-        return {"X": X, "y": y, "sensitive_features": sensitive_features}
+    def _process_sensitive(self, sensitive_features, sensitive_intersections):
+        df = pd.DataFrame(sensitive_features).copy()
+        features = df.columns
+        if sensitive_intersections is False or len(features) == 1:
+            return df
+        elif sensitive_intersections is True:
+            sensitive_intersections = features
+        intersections = []
+        for i in range(2, len(features) + 1):
+            intersections += list(itertools.combinations(sensitive_intersections, i))
+        for intersection in intersections:
+            tmp = df[intersection[0]]
+            for col in intersection[1:]:
+                tmp = tmp.str.cat(df[col].astype(str), sep="_")
+            label = "_".join(intersection)
+            df[label] = tmp
+        return df
 
     def _validate_data(self):
         # Validate the types
-        if not isinstance(self.data, pd.DataFrame):
+        if not isinstance(self.sensitive_features, pd.DataFrame):
             raise ValidationError(
-                "The provided data type is "
-                + self.data.__class__.__name__
-                + " but the required type is pd.DataFrame"
-            )
-        if not isinstance(self.sensitive_feature_keys, list):
-            raise ValidationError(
-                "The provided sensitive_feature_keys type is "
+                "Sensitive_feature_keys type is "
                 + self.sensitive_feature_keys.__class__.__name__
-                + " but the required type is list"
-            )
-        if not isinstance(self.label_key, str):
-            raise ValidationError(
-                "The provided label_key type is "
-                + self.label_key.__class__.__name__
-                + " but the required type is str"
+                + " but the required type is pd.DataFrame"
             )
         if self.categorical_features_keys and not isinstance(
             self.categorical_features_keys, list
         ):
             raise ValidationError(
-                "The provided label_key type is "
-                + self.label_key.__class__.__name__
+                "Categorical_features_keys type is "
+                + self.categorical_features_keys.__class__.__name__
                 + " but the required type is list"
             )
-        # Validate that the data column names are unique
-        if len(self.data.columns) != len(set(self.data.columns)):
-            raise ValidationError("The provided data contains duplicate column names")
-        # Validate that the data contains the provided sensitive feature and label keys
-        col_names = list(self.data.columns)
-        for sensitive_feature_key in self.sensitive_feature_keys:
-            if sensitive_feature_key not in col_names:
-                raise ValidationError(
-                    "The provided sensitive_feature_key "
-                    + sensitive_feature_key
-                    + " does not exist in the provided data"
-                )
-        if self.label_key not in col_names:
+        if self.y and len(self.X) != len(self.y):
             raise ValidationError(
-                "The provided label_key "
-                + self.label_key
-                + " does not exist in the provided data"
+                "X and y are not the same length. "
+                + f"X Length: {len(self.X)}, y Length: {len(self.y)}"
             )
+        if self.sensitive_features and len(self.X) != len(self.sensitive_features):
+            raise ValidationError(
+                "X and sensitive_features are not the same length. "
+                + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
+            )
+
+        self._validate_X()
+
+    def _validate_X(self):
+        # DataFrame validate
+        if self.X_type == pd.DataFrame:
+            # Validate that the data column names are unique
+            if len(self.X.columns) != len(set(self.X.columns)):
+                raise ValidationError("X contains duplicate column names")
 
     def dev_mode(self, frac=0.1):
         """Samples data down for faster assessment and iteration
