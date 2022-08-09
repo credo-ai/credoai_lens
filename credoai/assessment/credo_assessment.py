@@ -270,7 +270,7 @@ class AssessmentRequirements:
         # check target type
         if self.target_types:
             for dataset in (credo_data, credo_training_data):
-                if dataset and dataset.target_type in self.target_types:
+                if dataset and dataset.y_type in self.target_types:
                     pass
                 else:
                     return False

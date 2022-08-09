@@ -23,11 +23,12 @@ import os
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
+from tkinter import Y
 from typing import Callable, List, Optional, Union
 
+import numpy as np
 import pandas as pd
 from absl import logging
-from sklearn import impute
 from sklearn.utils.multiclass import type_of_target
 
 import credoai.integration as ci
@@ -502,25 +503,58 @@ class CredoData:
         self.name = name
         self.X = X
         self.y = y
-        self.sensitive_features = self._process_sensitive(
-            sensitive_features, sensitive_intersections
-        )
-        self.X_type = self._get_X_type()
-        self.target_type = self._get_y_type()
+        self.sensitive_features = sensitive_features
         self.categorical_features_keys = categorical_features_keys
-
-    def __post_init__(self):
-        self.metadata = self.metadata or {}
         self._validate_data()
+        self._process_y()
+        self._process_sensitive(sensitive_intersections)
+        self.X_type = self._determine_X_type()
+        self.y_type = self._determine_y_type()
 
-    def _get_X_type(self):
+    def get_data(self):
+        data = {"X": self.X, "y": self.y, "sensitive_features": self.sensitive_features}
+        return data
+
+    def get_X_type(self):
+        return self.X_type
+
+    def get_y_type(self):
+        return self.y_type
+
+    def _determine_X_type(self):
+        # placeholder. Ideally we will replace with more relevant types
+        # i.e., tabular, image, etc.
         return type(self.X)
 
-    def _get_y_type(self):
-        return type_of_target(self.y) if self.y else None
+    def _determine_y_type(self):
+        return type_of_target(self.y) if self.y is not None else None
 
-    def _process_sensitive(self, sensitive_features, sensitive_intersections):
-        df = pd.DataFrame(sensitive_features).copy()
+    def _process_y(self):
+        if self.y is None:
+            return
+        # if X is pandas object, and y is convertable, convert y to
+        # pandas object with X's index
+        if isinstance(self.X, (pd.Series, pd.DataFrame)):
+            if isinstance(self.y, (np.ndarray, list)):
+                pd_type = pd.Series
+                if (
+                    isinstance(self.y, np.ndarray)
+                    and self.y.ndim == 2
+                    and self.y.shape[1] > 1
+                ):
+                    pd_type = pd.DataFrame
+                else:
+                    self.y = pd_type(self.y, index=self.X.index, name="target")
+            if isinstance(self.y, (pd.DataFrame, pd.Series)):
+                self.y.index = self.X.index
+
+    def _process_sensitive(self, sensitive_intersections):
+        if self.sensitive_features is None:
+            return
+        df = pd.DataFrame(self.sensitive_features).copy()
+        if isinstance(self.X, (pd.Series, pd.DataFrame)):
+            df.index = self.X.index
+        # add intersections
         features = df.columns
         if sensitive_intersections is False or len(features) == 1:
             return df
@@ -535,30 +569,32 @@ class CredoData:
                 tmp = tmp.str.cat(df[col].astype(str), sep="_")
             label = "_".join(intersection)
             df[label] = tmp
-        return df
+        self.sensitive_features = df
 
     def _validate_data(self):
         # Validate the types
-        if not isinstance(self.sensitive_features, pd.DataFrame):
+        if not isinstance(self.sensitive_features, (pd.DataFrame, pd.Series)):
             raise ValidationError(
-                "Sensitive_feature_keys type is "
-                + self.sensitive_feature_keys.__class__.__name__
-                + " but the required type is pd.DataFrame"
+                "Sensitive_feature type is '"
+                + type(self.sensitive_features).__name__
+                + "' but the required type is either pd.DataFrame or pd.Series"
             )
-        if self.categorical_features_keys and not isinstance(
+        if self.categorical_features_keys is not None and not isinstance(
             self.categorical_features_keys, list
         ):
             raise ValidationError(
-                "Categorical_features_keys type is "
-                + self.categorical_features_keys.__class__.__name__
-                + " but the required type is list"
+                "Categorical_features_keys type is '"
+                + type(self.categorical_features_keys).__name__
+                + "' but the required type is list"
             )
-        if self.y and len(self.X) != len(self.y):
+        if self.y is not None and len(self.X) != len(self.y):
             raise ValidationError(
                 "X and y are not the same length. "
                 + f"X Length: {len(self.X)}, y Length: {len(self.y)}"
             )
-        if self.sensitive_features and len(self.X) != len(self.sensitive_features):
+        if self.sensitive_features is not None and len(self.X) != len(
+            self.sensitive_features
+        ):
             raise ValidationError(
                 "X and sensitive_features are not the same length. "
                 + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
@@ -568,7 +604,7 @@ class CredoData:
 
     def _validate_X(self):
         # DataFrame validate
-        if self.X_type == pd.DataFrame:
+        if isinstance(self.X, pd.DataFrame):
             # Validate that the data column names are unique
             if len(self.X.columns) != len(set(self.X.columns)):
                 raise ValidationError("X contains duplicate column names")

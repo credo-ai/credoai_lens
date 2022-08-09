@@ -389,7 +389,7 @@ class PrivacyAssessment(CredoAssessment):
 
     * Multi-class classification
 
-    Supports models from any platform that have a `predict` function that returns 
+    Supports models from any platform that have a `predict` function that returns
         predicted classes for a given feature vectors as a one-dimensional array.
 
     Modules:
@@ -456,7 +456,7 @@ class SecurityAssessment(CredoAssessment):
 
     * Multi-class classification
 
-    Supports models  from any platform that have a `predict` function that returns 
+    Supports models  from any platform that have a `predict` function that returns
         predicted classes for a given feature vectors as a one-dimensional array.
 
     Modules:
@@ -552,7 +552,7 @@ class DatasetFairnessAssessment(CredoAssessment):
     * Proxy detection
     * Demographic Parity of outcomes
 
-    Note: this assessment runs on the the scrubbed data (see CredoData.get_scrubbed_data).
+    Note: this assessment scrubs the data first (see utils.dataset_utils.scrub_data).
 
     Modules:
 
@@ -569,12 +569,12 @@ class DatasetFairnessAssessment(CredoAssessment):
 
     def init_module(self, *, data):
         super().init_module(data=data)
-        scrubbed_data = data.get_scrubbed_data()
+        X, y, sensitive_features = cutils.scrub_data(data)
         module = init_sensitive_feature_module(
             self.module,
-            scrubbed_data["sensitive_features"],
-            X=scrubbed_data["X"],
-            y=scrubbed_data["y"],
+            sensitive_features,
+            X=X,
+            y=y,
             categorical_features_keys=data.categorical_features_keys,
         )
         self.initialized_module = module
