@@ -60,7 +60,7 @@ class FairnessAssessment(CredoAssessment):
             ),
         )
 
-    def init_module(self, *, model, data, metrics=None):
+    def init_module(self, *, model, data, metrics=None, **module_kwargs):
         """Initializes the assessment module
 
         Parameters
@@ -73,6 +73,8 @@ class FairnessAssessment(CredoAssessment):
             Note for performance parity metrics like
             "false negative rate parity" just list "false negative rate". Parity metrics
             are calculated automatically if the performance metric is supplied
+        module_kwargs : dict
+            Optional keyword arguments to pass to FairnessModule
 
         Example
         ---------
@@ -103,6 +105,7 @@ class FairnessAssessment(CredoAssessment):
             y_true=data.y,
             y_pred=y_pred,
             y_prob=y_prob,
+            **module_kwargs,
         )
         self.initialized_module = module
 
@@ -128,15 +131,15 @@ class ModelEquityAssessment(CredoAssessment):
             ),
         )
 
-    def init_module(self, *, model, data, p_value=0.01):
+    def init_module(self, *, model, data, **module_kwargs):
         """Initializes the assessment module
 
         Parameters
         ------------
         model : CredoModel
         data : CredoData
-        p_value : float
-            The significance value to evaluate statistical tests. Optional, default 0.01
+        module_kwargs : dict
+            Optional keyword arguments to pass to FairnessModule
         """
         super().init_module(model=model, data=data)
         y = pd.Series(model.predict(data.X))
@@ -146,7 +149,7 @@ class ModelEquityAssessment(CredoAssessment):
             y.name = "predicted outcome"
 
         module = init_sensitive_feature_module(
-            self.module, data.sensitive_features, y=y, p_value=p_value
+            self.module, data.sensitive_features, y=y
         )
         self.initialized_module = module
 
@@ -517,20 +520,20 @@ class DatasetEquityAssessment(CredoAssessment):
             AssessmentRequirements(data_requirements=["y", "sensitive_features"]),
         )
 
-    def init_module(self, *, data, p_value=0.01):
+    def init_module(self, *, data):
         """Initializes the assessment module
 
         Parameters
         ------------
         model : CredoModel
         data : CredoData
-        p_value : float
-            The significance value to evaluate statistical tests. Optional, default 0.01
+        module_kwargs : dict
+            Optional keyword arguments to pass to FairnessModule
         """
         super().init_module(data=data)
         y = data.y
         module = init_sensitive_feature_module(
-            self.module, data.sensitive_features, y=y, p_value=p_value
+            self.module, data.sensitive_features, y=y
         )
         self.initialized_module = module
 

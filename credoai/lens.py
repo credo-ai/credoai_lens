@@ -155,27 +155,16 @@ class Lens:
                 self.checklist = PolicyChecklist(checklist)
                 self.checklist.create_checklist()
 
-    def run_assessments(self, assessment_kwargs=None):
+    def run_assessments(self):
         """Runs assessments on the associated model and/or data
-
-        Parameters
-        ----------
-        assessment_kwargs : dict, optional
-            key word arguments passed to each assessments `run` or
-            `prepare_results` function. Each key must correspond to
-            an assessment name (CredoAssessment.name). The assessments
-            loaded by an instance of Lens can be accessed by calling
-            `get_assessments`.
 
         Returns
         -------
         self
         """
-        assessment_kwargs = assessment_kwargs or {}
         for assessment in self.get_assessments(flatten=True):
             logging.info(f"Running assessment: {assessment.get_name()}")
-            kwargs = assessment_kwargs.get(assessment.name, {})
-            assessment.run(**kwargs)
+            assessment.run()
         self.run_time = datetime.utcnow().isoformat()
         return self
 
@@ -327,7 +316,8 @@ class Lens:
         for bunch in self.assessments:
             to_remove = []
             for name, assessment in bunch.assessments.items():
-                kwargs = deepcopy(self.assessment_plan.get(assessment.name, {}))
+                init_kwargs = self.assessment_plan.get(assessment.name, {})
+                kwargs = deepcopy(init_kwargs)
                 if bunch.model is not None:
                     kwargs["model"] = bunch.model
                 if bunch.primary_dataset is not None:
@@ -336,9 +326,12 @@ class Lens:
                     kwargs["training_data"] = bunch.secondary_dataset
                 try:
                     assessment.init_module(**kwargs)
-                    logging.info(
-                        f"Initializing Assessment ({name}) with kwargs: {kwargs}"
-                    )
+                    if init_kwargs:
+                        logging.info(
+                            f"Initializing Assessment ({name}) with kwargs: {init_kwargs}"
+                        )
+                    else:
+                        logging.info(f"Initializing Assessment ({name})")
                 except Exception as e:
                     logging.error(
                         f"Model and/or data meets requirements for Assessment ({name})"

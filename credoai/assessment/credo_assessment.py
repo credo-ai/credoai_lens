@@ -97,8 +97,8 @@ class CredoAssessment(ABC):
         """Initialize a reporter object"""
         pass
 
-    def run(self, **kwargs):
-        return self.initialized_module.run(**kwargs)
+    def run(self):
+        return self.initialized_module.run()
 
     def prepare_results(self, metadata=None, **kwargs):
         results = self.initialized_module.prepare_results(**kwargs)
