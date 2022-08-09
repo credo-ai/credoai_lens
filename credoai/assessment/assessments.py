@@ -567,9 +567,31 @@ class DatasetFairnessAssessment(CredoAssessment):
             AssessmentRequirements(data_requirements=["X", "y", "sensitive_features"]),
         )
 
-    def init_module(self, *, data):
+    def init_module(self, *, data, nan_strategy="ignore"):
+        """Initializes the assessment module
+
+        Transforms CredoModel and CredoData into the proper form
+        to create a runnable assessment.
+
+        See the lens_customization notebook for examples
+
+        Parameters
+        ------------
+        data : CredoData
+        nan_strategy : str or callable, optional
+            The strategy for dealing with NaNs, passed to credoai.utils.scrub_data.
+            In general, recommend you deal with NaNs before passing your data to Lens.
+
+            -- If "ignore" do nothing,
+            -- If "drop" drop any rows with any NaNs. X must be a pd.DataFrame
+            -- If any other string, pass to the "strategy" argument of `Simple Imputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
+
+            You can also supply your own imputer with
+            the same API as `SimpleImputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
+
+        """
         super().init_module(data=data)
-        X, y, sensitive_features = cutils.scrub_data(data)
+        X, y, sensitive_features = cutils.scrub_data(data, nan_strategy)
         module = init_sensitive_feature_module(
             self.module,
             sensitive_features,

@@ -67,9 +67,7 @@ def scrub_data(credo_data, nan_strategy="ignore"):
     credo_data : CredoData
         Data object
     nan_strategy : str or callable, optional
-        The strategy for dealing with NaNs when get_scrubbed_data is called. Note, only some
-        assessments used the scrubbed data. In general, recommend you deal with NaNs before
-        passing your data to Lens.
+        The strategy for dealing with NaNs.
 
         -- If "ignore" do nothing,
         -- If "drop" drop any rows with any NaNs. X must be a pd.DataFrame
@@ -93,11 +91,14 @@ def scrub_data(credo_data, nan_strategy="ignore"):
     imputed = None
     if nan_strategy == "drop":
         if credo_data.get_X_type() == pd.DataFrame:
-            X = X.dropna()
+            # determine index of no nan rows
+            tmp = pd.concat([X, y, sensitive_features], axis=1).dropna()
+            # apply dropped index
+            X = X.loc[tmp.index]
             if y is not None:
-                y = y.loc[X.index]
+                y = y.loc[tmp.index]
             if sensitive_features is not None:
-                sensitive_features = sensitive_features.loc[X.index]
+                sensitive_features = sensitive_features.loc[tmp.index]
         else:
             raise TypeError("X must be a pd.DataFrame when using the drop option")
     elif nan_strategy == "ignore":

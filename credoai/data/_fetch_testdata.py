@@ -7,6 +7,7 @@ def fetch_testdata(add_nan=False):
     df = pd.DataFrame(
         {
             "gender": ["f", "f", "f", "f", "f", "f", "m", "m", "m", "m", "m", "m"],
+            "race": ["b", "b", "b", "w", "w", "w", "b", "b", "b", "w", "w", "w"],
             "experience": [0, 0.1, 0.2, 0.4, 0.5, 0.6, 0, 0.1, 0.2, 0.4, 0.5, 0.6],
         }
     )

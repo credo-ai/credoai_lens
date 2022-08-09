@@ -5,6 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 data = fetch_creditdefault()
 df = data["data"]
 df["target"] = data["target"].astype(int)
+sensitive_features = df["SEX"]
 
 # fit model
 model = RandomForestClassifier()

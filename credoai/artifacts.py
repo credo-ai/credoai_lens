@@ -557,7 +557,8 @@ class CredoData:
         # add intersections
         features = df.columns
         if sensitive_intersections is False or len(features) == 1:
-            return df
+            self.sensitive_features = df
+            return
         elif sensitive_intersections is True:
             sensitive_intersections = features
         intersections = []
@@ -573,7 +574,9 @@ class CredoData:
 
     def _validate_data(self):
         # Validate the types
-        if not isinstance(self.sensitive_features, (pd.DataFrame, pd.Series)):
+        if self.sensitive_features is not None and not isinstance(
+            self.sensitive_features, (pd.DataFrame, pd.Series)
+        ):
             raise ValidationError(
                 "Sensitive_feature type is '"
                 + type(self.sensitive_features).__name__

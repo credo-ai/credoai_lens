@@ -336,6 +336,9 @@ class Lens:
                     kwargs["training_data"] = bunch.secondary_dataset
                 try:
                     assessment.init_module(**kwargs)
+                    logging.info(
+                        f"Initializing Assessment ({name}) with kwargs: {kwargs}"
+                    )
                 except Exception as e:
                     logging.error(
                         f"Model and/or data meets requirements for Assessment ({name})"
