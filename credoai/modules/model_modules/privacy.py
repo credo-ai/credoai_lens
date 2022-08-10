@@ -67,6 +67,18 @@ class PrivacyModule(CredoModule):
             y_test = y_test[idx]
         return x_train, y_train, x_test, y_test
 
+    @staticmethod
+    def assess_attack(train, test, metric):
+        y_pred = np.concatenate([train.flatten(), test.flatten()])
+        y_true = np.concatenate(
+            [
+                np.ones(len(train.flatten()), dtype=int),
+                np.zeros(len(test.flatten()), dtype=int),
+            ]
+        )
+
+        return metric(y_true, y_pred)
+
     def run(self):
         """Runs the assessment process
 
@@ -128,22 +140,16 @@ class PrivacyModule(CredoModule):
         """
         attack = MembershipInferenceBlackBoxRuleBased(self.attack_model)
 
+        # Sets balancing
         x_train_bln, y_train_bln, x_test_bln, y_test_bln = self.balance_sets(
             self.x_train, self.y_train, self.x_test, self.y_test
         )
 
-        inferred_train = attack.infer(x_train_bln, y_train_bln)
-        inferred_test = attack.infer(x_test_bln, y_test_bln)
+        # Attack inference
+        train = attack.infer(x_train_bln, y_train_bln)
+        test = attack.infer(x_test_bln, y_test_bln)
 
-        # check performance
-        y_pred = np.concatenate([inferred_train.flatten(), inferred_test.flatten()])
-        y_true = np.concatenate(
-            [
-                np.ones(len(inferred_train.flatten()), dtype=int),
-                np.zeros(len(inferred_test.flatten()), dtype=int),
-            ]
-        )
-        return sk_metrics.accuracy_score(y_true, y_pred)
+        return self.assess_attack(train, test, sk_metrics.accuracy_score)
 
     def _model_based_attack(self):
         """Model-based privacy attack
@@ -179,27 +185,14 @@ class PrivacyModule(CredoModule):
             self.x_test[attack_test_size:],
             self.y_test[attack_test_size:],
         )
-        # undersample training/test so that they are balanced
-        if len(x_test_assess) < len(x_train_assess):
-            idx = np.random.choice(
-                np.arange(len(x_train_assess)), len(x_test_assess), replace=False
-            )
-            inferred_train = attack.infer(x_train_assess[idx], y_train_assess[idx])
-            inferred_test = attack.infer(x_test_assess, y_test_assess)
-        else:
-            idx = np.random.choice(
-                np.arange(len(x_test_assess)), len(x_train_assess), replace=False
-            )
-            inferred_train = attack.infer(x_train_assess, y_train_assess)
-            inferred_test = attack.infer(x_test_assess[idx], y_test_assess[idx])
 
-        # check performance
-        y_pred = np.concatenate([inferred_train.flatten(), inferred_test.flatten()])
-        y_true = np.concatenate(
-            [
-                np.ones(len(inferred_train.flatten()), dtype=int),
-                np.zeros(len(inferred_test.flatten()), dtype=int),
-            ]
+        # Sets balancing
+        x_train_bln, y_train_bln, x_test_bln, y_test_bln = self.balance_sets(
+            x_train_assess, y_train_assess, x_test_assess, y_test_assess
         )
 
-        return sk_metrics.accuracy_score(y_true, y_pred)
+        # Attack inference
+        train = attack.infer(x_train_bln, y_train_bln)
+        test = attack.infer(x_test_bln, y_test_bln)
+
+        return self.assess_attack(train, test, sk_metrics.accuracy_score)
