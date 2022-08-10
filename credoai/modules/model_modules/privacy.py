@@ -1,4 +1,3 @@
-from tarfile import SUPPORTED_TYPES
 from warnings import filterwarnings
 
 import numpy as np
@@ -22,7 +21,6 @@ class PrivacyModule(CredoModule):
 
     Parameters
     ----------
-    # TODO: Double check with Ian if types are correct for usage in Lens
     model : CredoModel
         A trained ML model
     x_train : pandas.DataFrame
