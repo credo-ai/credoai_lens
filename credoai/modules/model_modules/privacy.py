@@ -1,8 +1,6 @@
-import copy
-import warnings
+from warnings import filterwarnings
 
 import numpy as np
-import pandas as pd
 from art.attacks.inference.membership_inference import (
     MembershipInferenceBlackBox,
     MembershipInferenceBlackBoxRuleBased,
@@ -10,9 +8,10 @@ from art.attacks.inference.membership_inference import (
 from art.estimators.classification.scikitlearn import SklearnClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
+from pandas import Series
 from sklearn import metrics as sk_metrics
 
-warnings.filterwarnings("ignore")
+filterwarnings("ignore")
 
 
 class PrivacyModule(CredoModule):
@@ -68,7 +67,10 @@ class PrivacyModule(CredoModule):
         return x_train, y_train, x_test, y_test
 
     @staticmethod
-    def assess_attack(train, test, metric):
+    def assess_attack(train, test, metric) -> float:
+        """
+        Assess attack using a specific metric.
+        """
         y_pred = np.concatenate([train.flatten(), test.flatten()])
         y_true = np.concatenate(
             [
@@ -121,7 +123,7 @@ class PrivacyModule(CredoModule):
             If results have not been run, raise
         """
         if self.results is not None:
-            return pd.Series(self.results, name="value")
+            return Series(self.results, name="value")
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 
