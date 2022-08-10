@@ -5,7 +5,7 @@ from art.attacks.inference.membership_inference import (
     MembershipInferenceBlackBox,
     MembershipInferenceBlackBoxRuleBased,
 )
-from art.estimators.classification.scikitlearn import SklearnClassifier
+from art.estimators.classification import BlackBoxClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
 from pandas import Series
@@ -17,12 +17,15 @@ filterwarnings("ignore")
 class PrivacyModule(CredoModule):
     """Privacy module for Credo AI.
 
-    This module takes in model and data and provides functionality to perform privacy assessment
+    This module takes in in classification model and data and provides functionality
+        to perform privacy assessment
 
     Parameters
     ----------
-    model : CredoModel
-        A trained ML model
+    model : model
+        A trained binary or multi-class classification model
+        The only requirement for the model is to have a `predict` function that returns
+        predicted classes for a given feature vectors as a one-dimensional array.
     x_train : pandas.DataFrame
         The training features
     y_train : pandas.Series
@@ -43,7 +46,12 @@ class PrivacyModule(CredoModule):
         self.y_test = y_test.to_numpy()
         self.model = model.model
         self.attack_train_ratio = attack_train_ratio
-        self.attack_model = SklearnClassifier(self.model)
+        self.nb_classes = len(np.unique(self.y_train))
+        self.attack_model = BlackBoxClassifier(
+            predict_fn=self._predict_binary_class_matrix,
+            input_shape=self.x_train[0].shape,
+            nb_classes=self.nb_classes,
+        )
 
         self.SUPPORTED_PRIVACY_ATTACKS = {
             "MembershipInferenceBlackBox": {
@@ -166,6 +174,24 @@ class PrivacyModule(CredoModule):
 
         return self._assess_attack(train, test, accuracy_score)
 
+    def _predict_binary_class_matrix(self, x):
+        """`predict` that returns a binary class matrix
+
+        ----------
+        x : features array
+            shape (nb_inputs, nb_features)
+
+        Returns
+        -------
+        numpy.array
+            shape (nb_inputs, nb_classes)
+        """
+        y = self.model.predict(x)
+        y_transformed = np.zeros((len(x), self.nb_classes))
+        for ai, bi in zip(y_transformed, y):
+            ai[bi] = 1
+        return y_transformed
+
     @staticmethod
     def _balance_sets(x_train, y_train, x_test, y_test) -> tuple:
         """
@@ -198,4 +224,4 @@ class PrivacyModule(CredoModule):
             ]
         )
 
-        return metric(y_true, y_pred)
+        return accuracy_score(y_true, y_pred)
