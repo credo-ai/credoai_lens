@@ -22,7 +22,8 @@ class PrivacyModule(CredoModule):
 
     Parameters
     ----------
-    model : model
+    # TODO: Double check with Ian if types are correct for usage in Lens
+    model : CredoModel
         A trained ML model
     x_train : pandas.DataFrame
         The training features
@@ -47,6 +48,25 @@ class PrivacyModule(CredoModule):
         self.attack_model = SklearnClassifier(self.model)
         np.random.seed(10)
 
+    @staticmethod
+    def balance_sets(x_train, y_train, x_test, y_test) -> tuple:
+        """
+        Balances x and y across train and test sets.
+
+        This is used after any fitting is done, it's needed if we maintain
+        the performance score as accuracy. Balancing is done by downsampling the
+        greater between train and test.
+        """
+        if len(x_train) > len(x_test):
+            idx = np.random.choice(np.arange(len(x_train)), len(x_test), replace=False)
+            x_train = x_train[idx]
+            y_train = y_train[idx]
+        else:
+            idx = np.random.choice(np.arange(len(x_test)), len(x_train), replace=False)
+            x_test = x_test[idx]
+            y_test = y_test[idx]
+        return x_train, y_train, x_test, y_test
+
     def run(self):
         """Runs the assessment process
 
@@ -56,8 +76,6 @@ class PrivacyModule(CredoModule):
             Key: metric name
             Value: metric value
         """
-        rule_based_attack_performance = self._rule_based_attack()
-        model_based_attack_performance = self._model_based_attack()
 
         attack_scores = {
             "rule_based_attack_score": self._rule_based_attack(),
@@ -110,19 +128,12 @@ class PrivacyModule(CredoModule):
         """
         attack = MembershipInferenceBlackBoxRuleBased(self.attack_model)
 
-        # undersample training/test so that they are balanced
-        if len(self.x_test) < len(self.x_train):
-            idx = np.random.choice(
-                np.arange(len(self.x_train)), len(self.x_test), replace=False
-            )
-            inferred_train = attack.infer(self.x_train[idx], self.y_train[idx])
-            inferred_test = attack.infer(self.x_test, self.y_test)
-        else:
-            idx = np.random.choice(
-                np.arange(len(self.x_test)), len(self.x_train), replace=False
-            )
-            inferred_train = attack.infer(self.x_train, self.y_train)
-            inferred_test = attack.infer(self.x_test[idx], self.y_test[idx])
+        x_train_bln, y_train_bln, x_test_bln, y_test_bln = self.balance_sets(
+            self.x_train, self.y_train, self.x_test, self.y_test
+        )
+
+        inferred_train = attack.infer(x_train_bln, y_train_bln)
+        inferred_test = attack.infer(x_test_bln, y_test_bln)
 
         # check performance
         y_pred = np.concatenate([inferred_train.flatten(), inferred_test.flatten()])
