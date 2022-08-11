@@ -38,7 +38,6 @@ from credoai.utils.common import (
     ValidationError,
     flatten_list,
     json_dumps,
-    raise_or_warn,
     update_dictionary,
 )
 from credoai.utils.constants import (
@@ -71,15 +70,9 @@ class CredoGovernance:
         * The file location for the assessment spec json downloaded from
         the assessment requirements of an Use Case on Credo AI's
         Governance App
-    warning_level : int
-        warning level.
-            0: warnings are off
-            1: warnings are raised (default)
-            2: warnings are raised as exceptions.
     """
 
-    def __init__(self, spec_destination: str = None, warning_level=1):
-        self.warning_level = warning_level
+    def __init__(self, spec_destination: str = None):
         self.assessment_spec = {}
         self.use_case_id = None
         self.model_id = None
@@ -139,7 +132,6 @@ class CredoGovernance:
         """Return Credo AI Governance IDs"""
         to_return = self.__dict__.copy()
         del to_return["assessment_spec"]
-        del to_return["warning_level"]
         return to_return
 
     def get_defined_ids(self):
@@ -180,8 +172,14 @@ class CredoGovernance:
             self._api.apply_assessment_template(
                 assessment_template, self.use_case_id, self.model_id
             )
+        # reset assessment spec if assessment_plan not defined yet
+        if not self.assessment_spec.get("assessment_plan", {}):
+            logging.info(
+                "Attempting to download new assessment plan after registration"
+            )
             self._process_spec(
-                f"use_cases/{self.use_case_id}/models/{self.model_id}/assessment_spec"
+                f"use_cases/{self.use_case_id}/models/{self.model_id}/assessment_spec",
+                set_ids=False,
             )
 
     def export_assessment_results(
@@ -275,12 +273,13 @@ class CredoGovernance:
             if dataset is not None:
                 self.training_dataset_id = dataset["id"]
 
-    def _process_spec(self, spec_destination):
+    def _process_spec(self, spec_destination, set_ids=True):
         self.assessment_spec = ci.process_assessment_spec(spec_destination, self._api)
-        self.use_case_id = self.assessment_spec["use_case_id"]
-        self.model_id = self.assessment_spec["model_id"]
-        self.dataset_id = self.assessment_spec["validation_dataset_id"]
-        self.training_dataset_id = self.assessment_spec["training_dataset_id"]
+        if set_ids:
+            self.use_case_id = self.assessment_spec["use_case_id"]
+            self.model_id = self.assessment_spec["model_id"]
+            self.dataset_id = self.assessment_spec["validation_dataset_id"]
+            self.training_dataset_id = self.assessment_spec["training_dataset_id"]
 
     def _register_dataset(self, dataset_name, register_as_training=False):
         """Registers a dataset
@@ -298,14 +297,12 @@ class CredoGovernance:
             prefix = "training_"
         try:
             dataset_id = self._api.register_dataset(name=dataset_name)["id"]
+            logging.info(f"Registering dataset: ({dataset_name})")
             setattr(self, f"{prefix}dataset_id", dataset_id)
         except IntegrationError:
             self.set_governance_info_by_name(**{f"{prefix}dataset_name": dataset_name})
-            raise_or_warn(
-                IntegrationError,
-                f"The dataset ({dataset_name}) is already registered.",
-                f"The dataset ({dataset_name}) is already registered. Using registered dataset",
-                self.warning_level,
+            logging.info(
+                f"The dataset ({dataset_name}) is already registered. Using registered dataset"
             )
         if not register_as_training and self.model_id and self.use_case_id:
             self._api.register_dataset_to_model_usecase(
@@ -330,13 +327,11 @@ class CredoGovernance:
         """
         try:
             self.model_id = self._api.register_model(name=model_name)["id"]
+            logging.info(f"Registering model: ({model_name})")
         except IntegrationError:
             self.set_governance_info_by_name(model_name=model_name)
-            raise_or_warn(
-                IntegrationError,
-                f"The model ({model_name}) is already registered.",
-                f"The model ({model_name}) is already registered. Using registered model",
-                self.warning_level,
+            logging.info(
+                f"The model ({model_name}) is already registered. Using registered model"
             )
         if self.use_case_id:
             logging.info(

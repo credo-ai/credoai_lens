@@ -20,7 +20,6 @@ from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.utils.common import (
     NotRunError,
     ValidationError,
-    raise_or_warn,
     update_dictionary,
     wrap_list,
 )
@@ -40,7 +39,6 @@ class Lens:
         display_policy_checklist: bool = True,
         dev_mode: Union[bool, float] = False,
         logging_level: Union[str, int] = "info",
-        warning_level=1,
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance
 
@@ -98,11 +96,6 @@ class Lens:
             * 'info'
             * 'warning'
             * 'error'
-        warning_level : int
-            warning level.
-                0: warnings are off
-                1: warnings are raised (default)
-                2: warnings are raised as exceptions.
         """
         self.model = model
         self.assessment_dataset = data
@@ -114,7 +107,6 @@ class Lens:
                 )
         self.assessment_plan = {}
         set_logging_level(logging_level)
-        self.warning_level = warning_level
         self.dev_mode = dev_mode
         self.run_time = False
 
@@ -122,9 +114,7 @@ class Lens:
         self.gov = None
         if governance:
             if isinstance(governance, str):
-                self.gov = CredoGovernance(
-                    spec_destination=governance, warning_level=warning_level
-                )
+                self.gov = CredoGovernance(spec_destination=governance)
             else:
                 self.gov = governance
             self._register_artifacts()
@@ -370,27 +360,10 @@ class Lens:
     def _register_artifacts(self):
         to_register = {}
         if self.gov.model_id is None and self.model:
-            raise_or_warn(
-                ValidationError, "No model_id supplied to export to Credo AI."
-            )
-            logging.info(f"**** Registering model ({self.model.name})")
             to_register["model_name"] = self.model.name
         if self.gov.dataset_id is None and self.assessment_dataset:
-            raise_or_warn(
-                ValidationError, "No dataset_id supplied to export to Credo AI."
-            )
-            logging.info(
-                f"**** Registering assessment dataset ({self.assessment_dataset.name})"
-            )
             to_register["dataset_name"] = self.assessment_dataset.name
         if self.gov.training_dataset_id is None and self.training_dataset:
-            raise_or_warn(
-                ValidationError,
-                "No training dataset_id supplied to export to Credo AI.",
-            )
-            logging.info(
-                f"**** Registering training dataset ({self.training_dataset.name})"
-            )
             to_register["training_dataset_name"] = self.training_dataset.name
         if to_register:
             self.gov.register(**to_register)
