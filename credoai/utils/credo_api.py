@@ -1,10 +1,10 @@
 """
 Credo API functions
 """
-
 from collections import defaultdict
 
 import requests
+from absl import logging
 from credoai.utils.common import IntegrationError
 from credoai.utils.credo_api_client import CredoApiClient
 
@@ -147,8 +147,10 @@ class CredoApi:
         """
         dataset = self.get_dataset_by_name(name)
         if dataset:
+            logging.info(f"Found dataset ({name}) registered on platform")
             return dataset
 
+        logging.info(f"Registering dataset: ({name})")
         data = {"name": name, "$type": "datasets"}
         return self._client.post("datasets", data)
 
@@ -158,8 +160,10 @@ class CredoApi:
         """
         model = self.get_model_by_name(name)
         if model:
+            logging.info(f"Found model ({name}) registered on platform")
             return model
 
+        logging.info(f"Registering model: ({name})")
         data = {"name": name, "version": version, "$type": "models"}
         return self._client.post("models", data)
 

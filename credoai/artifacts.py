@@ -174,13 +174,12 @@ class CredoGovernance:
             )
         # reset assessment spec if assessment_plan not defined yet
         if not self.assessment_spec.get("assessment_plan", {}):
-            logging.info(
-                "Attempting to download new assessment plan after registration"
-            )
             self._process_spec(
                 f"use_cases/{self.use_case_id}/models/{self.model_id}/assessment_spec",
                 set_ids=False,
             )
+            if self.assessment_spec.get("assessment_plan", {}):
+                logging.info("Assessment plan downloaded after artifact registration")
 
     def export_assessment_results(
         self,
@@ -231,48 +230,6 @@ class CredoGovernance:
             with open(output_file, "w") as f:
                 f.write(json_dumps(payload))
 
-    def set_governance_info_by_name(
-        self,
-        *,
-        use_case_name=None,
-        model_name=None,
-        dataset_name=None,
-        training_dataset_name=None,
-    ):
-        """Sets governance info by name
-
-        Sets model_id, and/or dataset_id(s)
-        using names. This assumes that artifacts have already
-        been registered
-
-        Parameters
-        ----------
-        use_case_name : str
-            name of a use_case
-        model_name : str
-            name of a model
-        dataset_name : str
-            name of a dataset used to assess the model
-        training_dataset_name : str
-            name of a dataset used to train the model
-        """
-        if use_case_name:
-            use_case = self._api.get_use_case_by_name(use_case_name)
-            if use_case is not None:
-                self.use_case_id = use_case["id"]
-        if model_name:
-            model = self._api.get_model_by_name(model_name)
-            if model is not None:
-                self.model_id = model["id"]
-        if dataset_name:
-            dataset = self._api.get_dataset_by_name(dataset_name)
-            if dataset is not None:
-                self.dataset_id = dataset["id"]
-        if training_dataset_name:
-            dataset = self._api.get_dataset_by_name(training_dataset_name)
-            if dataset is not None:
-                self.training_dataset_id = dataset["id"]
-
     def _process_spec(self, spec_destination, set_ids=True):
         self.assessment_spec = ci.process_assessment_spec(spec_destination, self._api)
         if set_ids:
@@ -295,15 +252,9 @@ class CredoGovernance:
         prefix = ""
         if register_as_training:
             prefix = "training_"
-        try:
-            dataset_id = self._api.register_dataset(name=dataset_name)["id"]
-            logging.info(f"Registering dataset: ({dataset_name})")
-            setattr(self, f"{prefix}dataset_id", dataset_id)
-        except IntegrationError:
-            self.set_governance_info_by_name(**{f"{prefix}dataset_name": dataset_name})
-            logging.info(
-                f"The dataset ({dataset_name}) is already registered. Using registered dataset"
-            )
+        dataset_id = self._api.register_dataset(name=dataset_name)["id"]
+        setattr(self, f"{prefix}dataset_id", dataset_id)
+
         if not register_as_training and self.model_id and self.use_case_id:
             self._api.register_dataset_to_model_usecase(
                 use_case_id=self.use_case_id,
@@ -325,14 +276,8 @@ class CredoGovernance:
         If an AI solution has been set, the model will be registered to that
         solution.
         """
-        try:
-            self.model_id = self._api.register_model(name=model_name)["id"]
-            logging.info(f"Registering model: ({model_name})")
-        except IntegrationError:
-            self.set_governance_info_by_name(model_name=model_name)
-            logging.info(
-                f"The model ({model_name}) is already registered. Using registered model"
-            )
+        self.model_id = self._api.register_model(name=model_name)["id"]
+
         if self.use_case_id:
             logging.info(
                 f"Registering model ({model_name}) to Use Case ({self.use_case_id})"
