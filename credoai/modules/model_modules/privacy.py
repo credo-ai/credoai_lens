@@ -207,13 +207,13 @@ class PrivacyModule(CredoModule):
         greater between train and test.
         """
         if len(x_train) > len(x_test):
-            idx = np.random.choice(np.arange(len(x_train)), len(x_test), replace=False)
-            x_train = x_train[idx].copy()
-            y_train = y_train[idx].copy()
+            idx = np.random.permutation(len(x_train))[: len(x_test)]
+            x_train = x_train[idx]
+            y_train = y_train[idx]
         else:
-            idx = np.random.choice(np.arange(len(x_test)), len(x_train), replace=False)
-            x_test = x_test[idx].copy()
-            y_test = y_test[idx].copy()
+            idx = np.random.permutation(len(x_test))[: len(x_train)]
+            x_test = x_test[idx]
+            y_test = y_test[idx]
         return x_train, y_train, x_test, y_test
 
     @staticmethod
