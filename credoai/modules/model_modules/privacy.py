@@ -142,26 +142,31 @@ class PrivacyModule(CredoModule):
             )
 
         if attack_details["type"] == "model_based":
-
-            attack_train_size = int(len(self.x_train) * self.attack_train_ratio)
-            attack_test_size = int(len(self.x_test) * self.attack_train_ratio)
+            train_n = len(self.x_train)
+            test_n = len(self.x_test)
+            attack_train_size = int(train_n * self.attack_train_ratio)
+            attack_test_size = int(test_n * self.attack_train_ratio)
+            # generate indices for train/test for attacker
+            (
+                x_train_attack,
+                x_train_assess,
+                x_test_attack,
+                x_test_assess,
+                y_train_attack,
+                y_train_assess,
+                y_test_attack,
+                y_test_assess,
+            ) = train_test_split(
+                self.x_train,
+                self.x_test,
+                self.y_train,
+                self.y_test,
+                train_size=self.attack_train_ratio,
+                random_stae=42,
+            )
 
             # Split train and test further and fit the model
-            attack.fit(
-                self.x_train[:attack_train_size],
-                self.y_train[:attack_train_size],
-                self.x_test[:attack_test_size],
-                self.y_test[:attack_test_size],
-            )
-
-            x_train_assess, y_train_assess = (
-                self.x_train[attack_train_size:],
-                self.y_train[attack_train_size:],
-            )
-            x_test_assess, y_test_assess = (
-                self.x_test[attack_test_size:],
-                self.y_test[attack_test_size:],
-            )
+            attack.fit(x_train_attack, y_train_attack, x_test_attack, y_test_attack)
 
         # Sets balancing -> This might become optional if we use other metrics, tbd
         x_train_bln, y_train_bln, x_test_bln, y_test_bln = self._balance_sets(
@@ -187,7 +192,7 @@ class PrivacyModule(CredoModule):
             shape (nb_inputs, nb_classes)
         """
         y = self.model.predict(x)
-        y_transformed = np.zeros((len(x), self.nb_classes))
+        y_transformed = np.zeros((len(y), self.nb_classes))
         for ai, bi in zip(y_transformed, y):
             ai[bi] = 1
         return y_transformed
