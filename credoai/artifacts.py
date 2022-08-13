@@ -445,9 +445,9 @@ class CredoData:
         self.y = y
         self.sensitive_features = sensitive_features
         self.categorical_features_keys = categorical_features_keys
-        self._validate_data()
         self._process_y()
         self._process_sensitive(sensitive_intersections)
+        self._validate_data()
         self.X_type = self._determine_X_type()
         self.y_type = self._determine_y_type()
 
@@ -485,15 +485,11 @@ class CredoData:
                     pd_type = pd.DataFrame
                 else:
                     self.y = pd_type(self.y, index=self.X.index, name="target")
-            if isinstance(self.y, (pd.DataFrame, pd.Series)):
-                self.y.index = self.X.index
 
     def _process_sensitive(self, sensitive_intersections):
         if self.sensitive_features is None:
             return
         df = pd.DataFrame(self.sensitive_features).copy()
-        if isinstance(self.X, (pd.Series, pd.DataFrame)):
-            df.index = self.X.index
         # add intersections
         features = df.columns
         if sensitive_intersections is False or len(features) == 1:
@@ -530,18 +526,28 @@ class CredoData:
                 + type(self.categorical_features_keys).__name__
                 + "' but the required type is list"
             )
-        if self.y is not None and len(self.X) != len(self.y):
-            raise ValidationError(
-                "X and y are not the same length. "
-                + f"X Length: {len(self.X)}, y Length: {len(self.y)}"
-            )
-        if self.sensitive_features is not None and len(self.X) != len(
-            self.sensitive_features
-        ):
-            raise ValidationError(
-                "X and sensitive_features are not the same length. "
-                + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
-            )
+        if self.y is not None:
+            if len(self.X) != len(self.y):
+                raise ValidationError(
+                    "X and y are not the same length. "
+                    + f"X Length: {len(self.X)}, y Length: {len(self.y)}"
+                )
+            if isinstance(
+                self.X, (pd.Series, pd.DataFrame)
+            ) and not self.X.index.equals(self.y.index):
+                raise ValidationError("X and y must have the same index")
+        if self.sensitive_features is not None:
+            if len(self.X) != len(self.sensitive_features):
+                raise ValidationError(
+                    "X and sensitive_features are not the same length. "
+                    + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
+                )
+            if isinstance(
+                self.X, (pd.Series, pd.DataFrame)
+            ) and not self.X.index.equals(self.sensitive_features.index):
+                raise ValidationError(
+                    "X and sensitive features must have the same index"
+                )
 
         self._validate_X()
 
