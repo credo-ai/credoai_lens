@@ -10,6 +10,7 @@ from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
 from pandas import Series
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 
 filterwarnings("ignore")
 
@@ -162,7 +163,7 @@ class PrivacyModule(CredoModule):
                 self.y_train,
                 self.y_test,
                 train_size=self.attack_train_ratio,
-                random_stae=42,
+                random_state=42,
             )
 
             # Split train and test further and fit the model
