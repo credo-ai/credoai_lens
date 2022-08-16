@@ -5,6 +5,7 @@ from art.attacks.inference.membership_inference import (
     MembershipInferenceBlackBox,
     MembershipInferenceBlackBoxRuleBased,
 )
+from art.attacks.inference.attribute_inference import AttributeInferenceBaseline
 from art.estimators.classification import BlackBoxClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
@@ -35,10 +36,24 @@ class PrivacyModule(CredoModule):
         The test features
     y_test : pandas.Series
         The test outcome labels
+    attack_train_ratio : float
+        If further split of the data is required to create a validation set,
+        this deciedes the ratio
+    attack_feature : Union[int,list]
+        For attribute inference the position of the attribute/s to be inferred
+        in the original dataset. In case of multiple columns, e.g., one hot encoded
+        categorical variable, the list of indexes should be sequential.
     """
 
     def __init__(
-        self, model, x_train, y_train, x_test, y_test, attack_train_ratio=0.50
+        self,
+        model,
+        x_train,
+        y_train,
+        x_test,
+        y_test,
+        attack_train_ratio=0.50,
+        attack_feature=None,
     ):
 
         self.x_train = x_train.to_numpy()
@@ -53,6 +68,7 @@ class PrivacyModule(CredoModule):
             input_shape=self.x_train[0].shape,
             nb_classes=self.nb_classes,
         )
+        self.attack_feature = attack_feature
 
         self.SUPPORTED_PRIVACY_ATTACKS = {
             "MembershipInferenceBlackBox": {
@@ -62,6 +78,11 @@ class PrivacyModule(CredoModule):
             "MembershipInferenceBlackBoxRuleBased": {
                 "attack": MembershipInferenceBlackBoxRuleBased,
                 "type": "rule_based",
+            },
+            "AttributeInferenceBaseline": {
+                "attack": AttributeInferenceBaseline,
+                "type": "model_based",
+                "condition": self.attack_feature,
             },
         }
 
@@ -76,10 +97,10 @@ class PrivacyModule(CredoModule):
             Key: metric name
             Value: metric value
         """
-
         attack_scores = {}
         for attack_name, attack_info in self.SUPPORTED_PRIVACY_ATTACKS.items():
-            attack_scores[attack_name] = self._general_attack_method(attack_info)
+            if attack_info.get("condition", True):
+                attack_scores[attack_name] = self._general_attack_method(attack_info)
 
         # Best model = worst case
         membership_inference_worst_case = max(attack_scores.values())
@@ -112,6 +133,9 @@ class PrivacyModule(CredoModule):
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 
+    def prepare_data(self):
+        pass
+
     def _general_attack_method(self, attack_details):
         """
         General wrapper for privacy modules from ART.
@@ -143,10 +167,6 @@ class PrivacyModule(CredoModule):
             )
 
         if attack_details["type"] == "model_based":
-            train_n = len(self.x_train)
-            test_n = len(self.x_test)
-            attack_train_size = int(train_n * self.attack_train_ratio)
-            attack_test_size = int(test_n * self.attack_train_ratio)
             # generate indices for train/test for attacker
             (
                 x_train_attack,
@@ -230,4 +250,4 @@ class PrivacyModule(CredoModule):
             ]
         )
 
-        return accuracy_score(y_true, y_pred)
+        return metric(y_true, y_pred)
