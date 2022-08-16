@@ -1,3 +1,4 @@
+from math import floor
 from warnings import filterwarnings
 
 import numpy as np
@@ -72,17 +73,32 @@ class PrivacyModule(CredoModule):
 
         self.SUPPORTED_PRIVACY_ATTACKS = {
             "MembershipInferenceBlackBox": {
-                "attack": MembershipInferenceBlackBox,
-                "type": "model_based",
+                "attack": {
+                    "name": MembershipInferenceBlackBox,
+                    "kwargs": {"estimator": self.attack_model},
+                },
+                "data_handling": "attack-assess",
+                "fit": "train_test",
+                "assess": "membership",
             },
             "MembershipInferenceBlackBoxRuleBased": {
-                "attack": MembershipInferenceBlackBoxRuleBased,
-                "type": "rule_based",
+                "attack": {
+                    "name": MembershipInferenceBlackBoxRuleBased,
+                    "kwargs": {"classifier": self.attack_model},
+                },
+                "data_handling": "assess",
+                "fit": None,
+                "assess": "membership",
             },
             "AttributeInferenceBaseline": {
-                "attack": AttributeInferenceBaseline,
-                "type": "model_based",
                 "condition": self.attack_feature,
+                "attack": {
+                    "name": AttributeInferenceBaseline,
+                    "kwargs": {"attack_feature": self.attack_feature},
+                },
+                "data_handling": "assess",
+                "fit": "train",
+                "assess": "attribute",
             },
         }
 
@@ -155,10 +171,10 @@ class PrivacyModule(CredoModule):
         float
             Accuracy assessment of the attack.
         """
-        # Call the main function associated to the attack
-        attack = attack_details["attack"](self.attack_model)
+        # Call the main function associated to the attack and pass necessary arguments
+        attack = attack_details["attack"]["name"](**attack_details["attack"]["kwargs"])
 
-        if attack_details["type"] == "rule_based":
+        if attack_details["data_handling"] == "assess":
             x_train_assess, y_train_assess, x_test_assess, y_test_assess = (
                 self.x_train,
                 self.y_train,
@@ -166,26 +182,24 @@ class PrivacyModule(CredoModule):
                 self.y_test,
             )
 
-        if attack_details["type"] == "model_based":
+        if attack_details["data_handling"] == "attack-assess":
             # generate indices for train/test for attacker
-            (
-                x_train_attack,
-                x_train_assess,
-                x_test_attack,
-                x_test_assess,
-                y_train_attack,
-                y_train_assess,
-                y_test_attack,
-                y_test_assess,
-            ) = train_test_split(
-                self.x_train,
-                self.x_test,
-                self.y_train,
-                self.y_test,
-                train_size=self.attack_train_ratio,
-                random_state=42,
+            attack_train_size = int(len(self.x_train) * self.attack_train_ratio)
+            attack_test_size = int(len(self.x_test) * self.attack_train_ratio)
+            (x_train_attack, y_train_attack, x_test_attack, y_test_attack) = (
+                self.x_train[:attack_train_size],
+                self.y_train[:attack_train_size],
+                self.x_test[:attack_test_size],
+                self.y_test[:attack_test_size],
+            )
+            (x_train_assess, y_train_assess, x_test_assess, y_test_assess) = (
+                self.x_train[attack_train_size:],
+                self.y_train[attack_train_size:],
+                self.x_test[attack_test_size:],
+                self.y_test[attack_test_size:],
             )
 
+        if attack_details.get("fit", None) == "train_test":
             # Split train and test further and fit the model
             attack.fit(x_train_attack, y_train_attack, x_test_attack, y_test_attack)
 
