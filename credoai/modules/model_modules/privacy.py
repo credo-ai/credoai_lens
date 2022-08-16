@@ -39,10 +39,10 @@ class PrivacyModule(CredoModule):
     attack_train_ratio : float
         If further split of the data is required to create a validation set,
         this deciedes the ratio
-    attack_feature : Union[int,list]
-        For attribute inference the position of the attribute/s to be inferred
+    attack_feature : int,list
+        For attribute inference the indexe/s of the attribute/s to be inferred
         in the original dataset. In case of multiple columns, e.g., one hot encoded
-        categorical variable, the list of indexes should be sequential.
+        categorical variable, the indexes must be sequentials.
     """
 
     def __init__(
@@ -68,7 +68,7 @@ class PrivacyModule(CredoModule):
             input_shape=self.x_train[0].shape,
             nb_classes=self.nb_classes,
         )
-        self.attack_feature = attack_feature
+        self.attack_feature = self.validate_attack_features(attack_feature)
 
         self.SUPPORTED_PRIVACY_ATTACKS = {
             "MembershipInferenceBlackBox": {
@@ -217,6 +217,21 @@ class PrivacyModule(CredoModule):
         for ai, bi in zip(y_transformed, y):
             ai[bi] = 1
         return y_transformed
+
+    @staticmethod
+    def validate_attack_features(att_feat):
+        """
+        Checks attack feature is int or list of sequential indexes.
+        If the latter return a slice object which is expected by attribute
+        inferece class.
+        """
+        if isinstance(att_feat, int) or att_feat is None:
+            return att_feat
+        if isinstance(att_feat, list):
+            if sorted(att_feat) == list(range(min(att_feat), max(att_feat) + 1)):
+                return slice(min(att_feat), max(att_feat) + 1)
+        else:
+            raise ValueError("Attack feature should be a sequential list of indexes")
 
     @staticmethod
     def _balance_sets(x_train, y_train, x_test, y_test) -> tuple:
