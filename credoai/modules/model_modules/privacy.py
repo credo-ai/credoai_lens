@@ -12,7 +12,6 @@ from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
 from pandas import Series
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
 
 filterwarnings("ignore")
 
@@ -72,24 +71,24 @@ class PrivacyModule(CredoModule):
         self.attack_feature = self.validate_attack_features(attack_feature)
 
         self.SUPPORTED_PRIVACY_ATTACKS = {
-            "MembershipInferenceBlackBox": {
-                "attack": {
-                    "name": MembershipInferenceBlackBox,
-                    "kwargs": {"estimator": self.attack_model},
-                },
-                "data_handling": "attack-assess",
-                "fit": "train_test",
-                "assess": "membership",
-            },
-            "MembershipInferenceBlackBoxRuleBased": {
-                "attack": {
-                    "name": MembershipInferenceBlackBoxRuleBased,
-                    "kwargs": {"classifier": self.attack_model},
-                },
-                "data_handling": "assess",
-                "fit": None,
-                "assess": "membership",
-            },
+            # "MembershipInferenceBlackBox": {
+            #     "attack": {
+            #         "name": MembershipInferenceBlackBox,
+            #         "kwargs": {"estimator": self.attack_model},
+            #     },
+            #     "data_handling": "attack-assess",
+            #     "fit": "train_test",
+            #     "assess": "membership",
+            # },
+            # "MembershipInferenceBlackBoxRuleBased": {
+            #     "attack": {
+            #         "name": MembershipInferenceBlackBoxRuleBased,
+            #         "kwargs": {"classifier": self.attack_model},
+            #     },
+            #     "data_handling": "assess",
+            #     "fit": None,
+            #     "assess": "membership",
+            # },
             "AttributeInferenceBaseline": {
                 "condition": self.attack_feature,
                 "attack": {
@@ -221,10 +220,11 @@ class PrivacyModule(CredoModule):
             return self._assess_attack(train, test, accuracy_score)
 
         if attack_details["assess"] == "attribute":
-            # Comper infered feature with original
-            inferred = x_test_bln[:, self.attack_feature].copy().reshape(-1, 1)
+            # Compare infered feature with original TODO: check output shape
+            inferred = x_test_bln[:, self.attack_feature].copy()
             original = attack.infer(np.delete(x_test_bln, self.attack_feature, 1))
-            return accuracy_score(inferred, original)
+
+            return np.sum(inferred == original) / len(inferred)
 
     def _predict_binary_class_matrix(self, x):
         """`predict` that returns a binary class matrix
