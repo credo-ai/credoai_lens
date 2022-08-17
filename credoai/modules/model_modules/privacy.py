@@ -6,7 +6,10 @@ from art.attacks.inference.membership_inference import (
     MembershipInferenceBlackBox,
     MembershipInferenceBlackBoxRuleBased,
 )
-from art.attacks.inference.attribute_inference import AttributeInferenceBaseline
+from art.attacks.inference.attribute_inference import (
+    AttributeInferenceBaseline,
+    AttributeInferenceBlackBox,
+)
 from art.estimators.classification import BlackBoxClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
@@ -71,29 +74,42 @@ class PrivacyModule(CredoModule):
         self.attack_feature = self.validate_attack_features(attack_feature)
 
         self.SUPPORTED_PRIVACY_ATTACKS = {
-            # "MembershipInferenceBlackBox": {
-            #     "attack": {
-            #         "name": MembershipInferenceBlackBox,
-            #         "kwargs": {"estimator": self.attack_model},
-            #     },
-            #     "data_handling": "attack-assess",
-            #     "fit": "train_test",
-            #     "assess": "membership",
-            # },
-            # "MembershipInferenceBlackBoxRuleBased": {
-            #     "attack": {
-            #         "name": MembershipInferenceBlackBoxRuleBased,
-            #         "kwargs": {"classifier": self.attack_model},
-            #     },
-            #     "data_handling": "assess",
-            #     "fit": None,
-            #     "assess": "membership",
-            # },
+            "MembershipInferenceBlackBox": {
+                "attack": {
+                    "name": MembershipInferenceBlackBox,
+                    "kwargs": {"estimator": self.attack_model},
+                },
+                "data_handling": "attack-assess",
+                "fit": "train_test",
+                "assess": "membership",
+            },
+            "MembershipInferenceBlackBoxRuleBased": {
+                "attack": {
+                    "name": MembershipInferenceBlackBoxRuleBased,
+                    "kwargs": {"classifier": self.attack_model},
+                },
+                "data_handling": "assess",
+                "fit": None,
+                "assess": "membership",
+            },
             "AttributeInferenceBaseline": {
                 "condition": self.attack_feature,
                 "attack": {
                     "name": AttributeInferenceBaseline,
                     "kwargs": {"attack_feature": self.attack_feature},
+                },
+                "data_handling": "assess",
+                "fit": "train_only",
+                "assess": "attribute",
+            },
+            "AttributeInferenceBlackBox": {
+                "condition": self.attack_feature,
+                "attack": {
+                    "name": AttributeInferenceBlackBox,
+                    "kwargs": {
+                        "estimator": self.attack_model,
+                        "attack_feature": self.attack_feature,
+                    },
                 },
                 "data_handling": "assess",
                 "fit": "train_only",
@@ -118,11 +134,16 @@ class PrivacyModule(CredoModule):
                 attack_scores[attack_name] = self._general_attack_method(attack_info)
 
         # Best model = worst case
-        membership_inference_worst_case = max(attack_scores.values())
+        attack_scores = {k: round(v, 3) for k, v in attack_scores.items()}
+        membership_inference_worst_case = max(
+            [v for k, v in attack_scores.items() if "Membership" in k]
+        )
+        attribute_inference_worst_case = max(
+            [v for k, v in attack_scores.items() if "Attribute" in k]
+        )
 
-        attack_scores[
-            "membership_inference_attack_score"
-        ] = membership_inference_worst_case
+        attack_scores["worst_attribute_attack"] = attribute_inference_worst_case
+        attack_scores["worst_membership_attack"] = membership_inference_worst_case
 
         self.results = attack_scores
 
@@ -220,9 +241,21 @@ class PrivacyModule(CredoModule):
             return self._assess_attack(train, test, accuracy_score)
 
         if attack_details["assess"] == "attribute":
-            # Compare infered feature with original TODO: check output shape
-            inferred = x_test_bln[:, self.attack_feature].copy()
-            original = attack.infer(np.delete(x_test_bln, self.attack_feature, 1))
+            # Compare infered feature with original
+            extra_arg = {}
+            if "estimator" in attack_details["attack"]["kwargs"].keys():
+                extra_arg = {
+                    "pred": np.array(
+                        [
+                            np.argmax(arr)
+                            for arr in self.attack_model.predict(x_test_bln)
+                        ]
+                    ).reshape(-1, 1)
+                }
+            original = x_test_bln[:, self.attack_feature].copy()
+            inferred = attack.infer(
+                np.delete(x_test_bln, self.attack_feature, 1), **extra_arg
+            )
 
             return np.sum(inferred == original) / len(inferred)
 
