@@ -1,4 +1,3 @@
-from math import floor
 from warnings import filterwarnings
 
 import numpy as np
