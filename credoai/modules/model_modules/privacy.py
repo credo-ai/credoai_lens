@@ -135,15 +135,6 @@ class PrivacyModule(CredoModule):
 
         # Best model = worst case
         attack_scores = {k: round(v, 3) for k, v in attack_scores.items()}
-        membership_inference_worst_case = max(
-            [v for k, v in attack_scores.items() if "Membership" in k]
-        )
-        attribute_inference_worst_case = max(
-            [v for k, v in attack_scores.items() if "Attribute" in k]
-        )
-
-        attack_scores["worst_attribute_attack"] = attribute_inference_worst_case
-        attack_scores["worst_membership_attack"] = membership_inference_worst_case
 
         self.results = attack_scores
 
