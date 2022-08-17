@@ -97,7 +97,7 @@ class PrivacyModule(CredoModule):
                     "kwargs": {"attack_feature": self.attack_feature},
                 },
                 "data_handling": "assess",
-                "fit": "train",
+                "fit": "train_only",
                 "assess": "attribute",
             },
         }
@@ -174,6 +174,7 @@ class PrivacyModule(CredoModule):
         # Call the main function associated to the attack and pass necessary arguments
         attack = attack_details["attack"]["name"](**attack_details["attack"]["kwargs"])
 
+        # Data Handling
         if attack_details["data_handling"] == "assess":
             x_train_assess, y_train_assess, x_test_assess, y_test_assess = (
                 self.x_train,
@@ -199,20 +200,31 @@ class PrivacyModule(CredoModule):
                 self.y_test[attack_test_size:],
             )
 
-        if attack_details.get("fit", None) == "train_test":
+        # Fit of attack model
+        if attack_details["fit"] == "train_test":
             # Split train and test further and fit the model
             attack.fit(x_train_attack, y_train_attack, x_test_attack, y_test_attack)
 
+        if attack_details["fit"] == "train_only":
+            attack.fit(x_train_assess)
+
+        ## Assessment
         # Sets balancing -> This might become optional if we use other metrics, tbd
         x_train_bln, y_train_bln, x_test_bln, y_test_bln = self._balance_sets(
             x_train_assess, y_train_assess, x_test_assess, y_test_assess
         )
 
         # Attack inference
-        train = attack.infer(x_train_bln, y_train_bln)
-        test = attack.infer(x_test_bln, y_test_bln)
+        if attack_details["assess"] == "membership":
+            train = attack.infer(x_train_bln, y_train_bln)
+            test = attack.infer(x_test_bln, y_test_bln)
+            return self._assess_attack(train, test, accuracy_score)
 
-        return self._assess_attack(train, test, accuracy_score)
+        if attack_details["assess"] == "attribute":
+            # Comper infered feature with original
+            inferred = x_test_bln[:, self.attack_feature].copy().reshape(-1, 1)
+            original = attack.infer(np.delete(x_test_bln, self.attack_feature, 1))
+            return accuracy_score(inferred, original)
 
     def _predict_binary_class_matrix(self, x):
         """`predict` that returns a binary class matrix
