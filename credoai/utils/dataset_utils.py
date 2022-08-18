@@ -85,12 +85,12 @@ def scrub_data(credo_data, nan_strategy="ignore"):
     ValueError
         ValueError raised for nan_strategy cannot be used by SimpleImputer
     """
-    if credo_data.get_X_type() not in (pd.DataFrame, np.ndarray):
+    if credo_data.X_type not in (pd.DataFrame, np.ndarray):
         return credo_data
     X, y, sensitive_features = credo_data.get_data().values()
     imputed = None
     if nan_strategy == "drop":
-        if credo_data.get_X_type() == pd.DataFrame:
+        if credo_data.X_type == pd.DataFrame:
             # determine index of no nan rows
             tmp = pd.concat([X, y, sensitive_features], axis=1).dropna()
             # apply dropped index

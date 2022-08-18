@@ -402,11 +402,15 @@ class CredoModel:
 class CredoData:
     """Class wrapper around data-to-be-assessed
 
-    CredoData serves as an adapter between datasets
-    and the assessments in CredoLens.
-
-    Passed to Lens for certain assessments. Either will be used
+    CredoData is passed to Lens for certain assessments. Either will be used
     by a CredoModel to make predictions or analyzed itself.
+
+    CredoData serves as an adapter between datasets
+    and the assessments in CredoLens. For tabular datasets,
+    the preferred form for X is a pandas Dataframe. If X is of a different
+    form (e.g., image data), tensors or arrays can be passed.
+
+    In the case where X is a pandas object, Y will be processed to also be a pandas object.
 
     See the `quickstart notebooks <https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html#CredoData>`_ for more information about usage
 
@@ -454,12 +458,6 @@ class CredoData:
     def get_data(self):
         data = {"X": self.X, "y": self.y, "sensitive_features": self.sensitive_features}
         return data
-
-    def get_X_type(self):
-        return self.X_type
-
-    def get_y_type(self):
-        return self.y_type
 
     def _determine_X_type(self):
         # placeholder. Ideally we will replace with more relevant types
