@@ -20,7 +20,6 @@ from credoai.assessment.credo_assessment import CredoAssessment
 from credoai.utils.common import (
     NotRunError,
     ValidationError,
-    raise_or_warn,
     update_dictionary,
     wrap_list,
 )
@@ -40,7 +39,6 @@ class Lens:
         display_policy_checklist: bool = True,
         dev_mode: Union[bool, float] = False,
         logging_level: Union[str, int] = "info",
-        warning_level=1,
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance
 
@@ -98,11 +96,6 @@ class Lens:
             * 'info'
             * 'warning'
             * 'error'
-        warning_level : int
-            warning level.
-                0: warnings are off
-                1: warnings are raised (default)
-                2: warnings are raised as exceptions.
         """
         self.model = model
         self.assessment_dataset = data
@@ -114,7 +107,6 @@ class Lens:
                 )
         self.assessment_plan = {}
         set_logging_level(logging_level)
-        self.warning_level = warning_level
         self.dev_mode = dev_mode
         self.run_time = False
 
@@ -122,9 +114,7 @@ class Lens:
         self.gov = None
         if governance:
             if isinstance(governance, str):
-                self.gov = CredoGovernance(
-                    spec_destination=governance, warning_level=warning_level
-                )
+                self.gov = CredoGovernance(spec_destination=governance)
             else:
                 self.gov = governance
             self._register_artifacts()
@@ -155,27 +145,16 @@ class Lens:
                 self.checklist = PolicyChecklist(checklist)
                 self.checklist.create_checklist()
 
-    def run_assessments(self, assessment_kwargs=None):
+    def run_assessments(self):
         """Runs assessments on the associated model and/or data
-
-        Parameters
-        ----------
-        assessment_kwargs : dict, optional
-            key word arguments passed to each assessments `run` or
-            `prepare_results` function. Each key must correspond to
-            an assessment name (CredoAssessment.name). The assessments
-            loaded by an instance of Lens can be accessed by calling
-            `get_assessments`.
 
         Returns
         -------
         self
         """
-        assessment_kwargs = assessment_kwargs or {}
         for assessment in self.get_assessments(flatten=True):
             logging.info(f"Running assessment: {assessment.get_name()}")
-            kwargs = assessment_kwargs.get(assessment.name, {})
-            assessment.run(**kwargs)
+            assessment.run()
         self.run_time = datetime.utcnow().isoformat()
         return self
 
@@ -327,7 +306,8 @@ class Lens:
         for bunch in self.assessments:
             to_remove = []
             for name, assessment in bunch.assessments.items():
-                kwargs = deepcopy(self.assessment_plan.get(assessment.name, {}))
+                init_kwargs = self.assessment_plan.get(assessment.name, {})
+                kwargs = deepcopy(init_kwargs)
                 if bunch.model is not None:
                     kwargs["model"] = bunch.model
                 if bunch.primary_dataset is not None:
@@ -336,6 +316,12 @@ class Lens:
                     kwargs["training_data"] = bunch.secondary_dataset
                 try:
                     assessment.init_module(**kwargs)
+                    if init_kwargs:
+                        logging.info(
+                            f"Initializing Assessment ({name}) with kwargs: {init_kwargs}"
+                        )
+                    else:
+                        logging.info(f"Initializing Assessment ({name})")
                 except Exception as e:
                     logging.error(
                         f"Model and/or data meets requirements for Assessment ({name})"
@@ -374,27 +360,10 @@ class Lens:
     def _register_artifacts(self):
         to_register = {}
         if self.gov.model_id is None and self.model:
-            raise_or_warn(
-                ValidationError, "No model_id supplied to export to Credo AI."
-            )
-            logging.info(f"**** Registering model ({self.model.name})")
             to_register["model_name"] = self.model.name
         if self.gov.dataset_id is None and self.assessment_dataset:
-            raise_or_warn(
-                ValidationError, "No dataset_id supplied to export to Credo AI."
-            )
-            logging.info(
-                f"**** Registering assessment dataset ({self.assessment_dataset.name})"
-            )
             to_register["dataset_name"] = self.assessment_dataset.name
         if self.gov.training_dataset_id is None and self.training_dataset:
-            raise_or_warn(
-                ValidationError,
-                "No training dataset_id supplied to export to Credo AI.",
-            )
-            logging.info(
-                f"**** Registering training dataset ({self.training_dataset.name})"
-            )
             to_register["training_dataset_name"] = self.training_dataset.name
         if to_register:
             self.gov.register(**to_register)

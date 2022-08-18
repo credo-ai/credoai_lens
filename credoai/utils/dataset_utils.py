@@ -1,5 +1,6 @@
 import numpy as np
-from sklearn import feature_extraction, feature_selection, pipeline
+import pandas as pd
+from sklearn import feature_extraction, feature_selection, impute, pipeline
 
 
 class ColumnTransformerUtil:
@@ -53,3 +54,66 @@ class ColumnTransformerUtil:
             elif estimator == "passthrough":
                 output_features.extend(ct._feature_names_in[features])
         return output_features
+
+
+def scrub_data(credo_data, nan_strategy="ignore"):
+    """Return scrubbed data
+
+    Implements NaN strategy indicated by nan_strategy before returning
+    X, y and sensitive_features dataframes/series.
+
+    Parameters
+    ----------
+    credo_data : CredoData
+        Data object
+    nan_strategy : str or callable, optional
+        The strategy for dealing with NaNs.
+
+        -- If "ignore" do nothing,
+        -- If "drop" drop any rows with any NaNs. X must be a pd.DataFrame
+        -- If any other string, pass to the "strategy" argument of `Simple Imputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
+
+        You can also supply your own imputer with
+        the same API as `SimpleImputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
+
+    Returns
+    -------
+    X
+
+    Raises
+    ------
+    ValueError
+        ValueError raised for nan_strategy cannot be used by SimpleImputer
+    """
+    if credo_data.X_type not in (pd.DataFrame, np.ndarray):
+        return credo_data
+    X, y, sensitive_features = credo_data.get_data().values()
+    imputed = None
+    if nan_strategy == "drop":
+        if credo_data.X_type == pd.DataFrame:
+            # determine index of no nan rows
+            tmp = pd.concat([X, y, sensitive_features], axis=1).dropna()
+            # apply dropped index
+            X = X.loc[tmp.index]
+            if y is not None:
+                y = y.loc[tmp.index]
+            if sensitive_features is not None:
+                sensitive_features = sensitive_features.loc[tmp.index]
+        else:
+            raise TypeError("X must be a pd.DataFrame when using the drop option")
+    elif nan_strategy == "ignore":
+        pass
+    elif isinstance(nan_strategy, str):
+        try:
+            imputer = impute.SimpleImputer(strategy=nan_strategy)
+            imputed = imputer.fit_transform(X)
+        except ValueError:
+            raise ValueError(
+                "Nan_strategy could not be successfully passed to SimpleImputer as a 'strategy' argument"
+            )
+    else:
+        imputed = nan_strategy.fit_transform(X)
+    if imputed:
+        X = X.copy()
+        X.iloc[:, :] = imputed
+    return X, y, sensitive_features

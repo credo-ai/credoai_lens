@@ -64,7 +64,7 @@ Within the framework we have provided interfaces to well known responsible AI to
 as well as to Credo AI's own modules. Lens can be applied to any modeling framework - 
 it was built with the breadth of the ML ecosystem in mind.
 
-.. image:: _static/images/lens_schematic.png
+.. image:: _static/images/lens_schematic.jpg
    :width: 600
 
 Lens supports AI evaluation by automatically determining the assessments to run,

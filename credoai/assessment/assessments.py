@@ -60,7 +60,7 @@ class FairnessAssessment(CredoAssessment):
             ),
         )
 
-    def init_module(self, *, model, data, metrics=None):
+    def init_module(self, *, model, data, metrics=None, **module_kwargs):
         """Initializes the assessment module
 
         Parameters
@@ -73,6 +73,8 @@ class FairnessAssessment(CredoAssessment):
             Note for performance parity metrics like
             "false negative rate parity" just list "false negative rate". Parity metrics
             are calculated automatically if the performance metric is supplied
+        module_kwargs : dict
+            Optional keyword arguments to pass to FairnessModule
 
         Example
         ---------
@@ -103,6 +105,7 @@ class FairnessAssessment(CredoAssessment):
             y_true=data.y,
             y_pred=y_pred,
             y_prob=y_prob,
+            **module_kwargs,
         )
         self.initialized_module = module
 
@@ -128,15 +131,15 @@ class ModelEquityAssessment(CredoAssessment):
             ),
         )
 
-    def init_module(self, *, model, data, p_value=0.01):
+    def init_module(self, *, model, data, **module_kwargs):
         """Initializes the assessment module
 
         Parameters
         ------------
         model : CredoModel
         data : CredoData
-        p_value : float
-            The significance value to evaluate statistical tests. Optional, default 0.01
+        module_kwargs : dict
+            Optional keyword arguments to pass to FairnessModule
         """
         super().init_module(model=model, data=data)
         y = pd.Series(model.predict(data.X))
@@ -146,7 +149,7 @@ class ModelEquityAssessment(CredoAssessment):
             y.name = "predicted outcome"
 
         module = init_sensitive_feature_module(
-            self.module, data.sensitive_features, y=y, p_value=p_value
+            self.module, data.sensitive_features, y=y
         )
         self.initialized_module = module
 
@@ -389,7 +392,7 @@ class PrivacyAssessment(CredoAssessment):
 
     * Multi-class classification
 
-    Supports models from any platform that have a `predict` function that returns 
+    Supports models from any platform that have a `predict` function that returns
         predicted classes for a given feature vectors as a one-dimensional array.
 
     Modules:
@@ -456,7 +459,7 @@ class SecurityAssessment(CredoAssessment):
 
     * Multi-class classification
 
-    Supports models  from any platform that have a `predict` function that returns 
+    Supports models  from any platform that have a `predict` function that returns
         predicted classes for a given feature vectors as a one-dimensional array.
 
     Modules:
@@ -517,20 +520,20 @@ class DatasetEquityAssessment(CredoAssessment):
             AssessmentRequirements(data_requirements=["y", "sensitive_features"]),
         )
 
-    def init_module(self, *, data, p_value=0.01):
+    def init_module(self, *, data):
         """Initializes the assessment module
 
         Parameters
         ------------
         model : CredoModel
         data : CredoData
-        p_value : float
-            The significance value to evaluate statistical tests. Optional, default 0.01
+        module_kwargs : dict
+            Optional keyword arguments to pass to FairnessModule
         """
         super().init_module(data=data)
         y = data.y
         module = init_sensitive_feature_module(
-            self.module, data.sensitive_features, y=y, p_value=p_value
+            self.module, data.sensitive_features, y=y
         )
         self.initialized_module = module
 
@@ -552,7 +555,7 @@ class DatasetFairnessAssessment(CredoAssessment):
     * Proxy detection
     * Demographic Parity of outcomes
 
-    Note: this assessment runs on the the scrubbed data (see CredoData.get_scrubbed_data).
+    Note: this assessment scrubs the data first (see utils.dataset_utils.scrub_data).
 
     Modules:
 
@@ -567,14 +570,36 @@ class DatasetFairnessAssessment(CredoAssessment):
             AssessmentRequirements(data_requirements=["X", "y", "sensitive_features"]),
         )
 
-    def init_module(self, *, data):
+    def init_module(self, *, data, nan_strategy="ignore"):
+        """Initializes the assessment module
+
+        Transforms CredoModel and CredoData into the proper form
+        to create a runnable assessment.
+
+        See the lens_customization notebook for examples
+
+        Parameters
+        ------------
+        data : CredoData
+        nan_strategy : str or callable, optional
+            The strategy for dealing with NaNs, passed to credoai.utils.scrub_data.
+            In general, recommend you deal with NaNs before passing your data to Lens.
+
+            -- If "ignore" do nothing,
+            -- If "drop" drop any rows with any NaNs. X must be a pd.DataFrame
+            -- If any other string, pass to the "strategy" argument of `Simple Imputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
+
+            You can also supply your own imputer with
+            the same API as `SimpleImputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
+
+        """
         super().init_module(data=data)
-        scrubbed_data = data.get_scrubbed_data()
+        X, y, sensitive_features = cutils.scrub_data(data, nan_strategy)
         module = init_sensitive_feature_module(
             self.module,
-            scrubbed_data["sensitive_features"],
-            X=scrubbed_data["X"],
-            y=scrubbed_data["y"],
+            sensitive_features,
+            X=X,
+            y=y,
             categorical_features_keys=data.categorical_features_keys,
         )
         self.initialized_module = module
