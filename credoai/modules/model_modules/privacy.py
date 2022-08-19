@@ -98,7 +98,6 @@ class PrivacyModule(CredoModule):
         }
         self.SUPPORTED_ATTRIBUTE_ATTACKS = {
             "AttributeInferenceBaseline": {
-                "condition": self.attack_feature,
                 "attack": {
                     "function": AttributeInferenceBaseline,
                     "kwargs": {"attack_feature": self.attack_feature},
@@ -240,28 +239,29 @@ class PrivacyModule(CredoModule):
 
         # Attack inference
         if attack_details["assess"] == "membership":
-            train = attack.infer(x_train_bln, y_train_bln)
-            test = attack.infer(x_test_bln, y_test_bln)
-            return self._assess_attack_membership(train, test)
-
-        if attack_details["assess"] == "attribute":
-            # Compare infered feature with original
-
-            extra_arg = {}
-            if "estimator" in attack_details["attack"]["kwargs"].keys():
-                original_model_pred = np.array(
-                    [np.argmax(arr) for arr in self.model.predict(x_test_bln)]
-                ).reshape(-1, 1)
-                # Pass this to model inference
-                extra_arg = {"pred": original_model_pred}
-
-            # Compare original feature with the one deduced by the model
-            original = x_test_bln[:, self.attack_feature].copy()
-            inferred = attack.infer(
-                np.delete(x_test_bln, self.attack_feature, 1), **extra_arg
+            return self._assess_attack_membership(
+                attack, x_train_bln, y_train_bln, x_test_bln, y_test_bln
             )
 
-            return np.sum(inferred == original) / len(inferred)
+        if attack_details["assess"] == "attribute":
+            return self._assess_attack_attribute(attack, attack_details, x_test_bln)
+
+    def _assess_attack_attribute(self, attack, attack_details, x_test_bln):
+        # Compare infered feature with original
+        extra_arg = {}
+        if "estimator" in attack_details["attack"]["kwargs"].keys():
+            original_model_pred = np.array(
+                [np.argmax(arr) for arr in self.model.predict(x_test_bln)]
+            ).reshape(-1, 1)
+            # Pass this to model inference
+            extra_arg = {"pred": original_model_pred}
+
+        # Compare original feature with the one deduced by the model
+        original = x_test_bln[:, self.attack_feature].copy()
+        inferred = attack.infer(
+            np.delete(x_test_bln, self.attack_feature, 1), **extra_arg
+        )
+        return np.sum(inferred == original) / len(inferred)
 
     @staticmethod
     def _balance_sets(x_train, y_train, x_test, y_test) -> tuple:
@@ -283,10 +283,14 @@ class PrivacyModule(CredoModule):
         return x_train, y_train, x_test, y_test
 
     @staticmethod
-    def _assess_attack_membership(train, test) -> float:
+    def _assess_attack_membership(
+        attack, x_train_bln, y_train_bln, x_test_bln, y_test_bln
+    ) -> float:
         """
         Assess attack using a specific metric.
         """
+        train = attack.infer(x_train_bln, y_train_bln)
+        test = attack.infer(x_test_bln, y_test_bln)
         y_pred = np.concatenate([train.flatten(), test.flatten()])
         y_true = np.concatenate(
             [
