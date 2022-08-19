@@ -555,6 +555,8 @@ class CredoData:
             # Validate that the data column names are unique
             if len(self.X.columns) != len(set(self.X.columns)):
                 raise ValidationError("X contains duplicate column names")
+            if len(self.X.index) != len(set(self.X.index)):
+                raise ValidationError("X's index cannot contain duplicates")
 
     def dev_mode(self, frac=0.1):
         """Samples data down for faster assessment and iteration

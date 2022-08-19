@@ -5,16 +5,19 @@ from credoai.data._fetch_testdata import fetch_testdata
 from sklearn.linear_model import LogisticRegression
 
 # set up data and models
-data = fetch_testdata()
-X = data["data"][["experience"]]
-y = data["target"]
-sensitive_feature = data["data"]["gender"]
+train_data, test_data = fetch_testdata(False, 1, 1)
 
-credo_data = cl.CredoData(
-    name="income_data", X=X, y=y, sensitive_features=sensitive_feature
+train_credo_data = cl.CredoData(
+    name="test_data_train",
+    X=train_data["X"],
+    y=train_data["y"],
+    sensitive_features=train_data["sensitive_features"],
 )
-credo_training_data = cl.CredoData(
-    name="income_data", X=X, y=y, sensitive_features=sensitive_feature
+test_credo_data = cl.CredoData(
+    name="test_data_test",
+    X=test_data["X"],
+    y=test_data["y"],
+    sensitive_features=test_data["sensitive_features"],
 )
 
 gov = cl.CredoGovernance()
@@ -22,7 +25,7 @@ gov.model_id = "model_test"
 gov.use_case_id = "use_case_test"
 gov.dataset_id = "dataset_test"
 
-model = LogisticRegression(random_state=0).fit(X, y)
+model = LogisticRegression(random_state=0).fit(train_data["X"], train_data["y"])
 credo_model = cl.CredoModel(name="income_classifier", model=model)
 assessment_plan = {
     "Fairness": {"metrics": ["precision_score"]},
@@ -31,12 +34,14 @@ assessment_plan = {
 
 
 def test_lens_with_model():
-    lens = cl.Lens(model=credo_model, data=credo_data, assessment_plan=assessment_plan)
+    lens = cl.Lens(
+        model=credo_model, data=test_credo_data, assessment_plan=assessment_plan
+    )
 
     results = lens.run_assessments().get_results()
     fairness_results = results["validation_model"]["Fairness"]["gender"]["fairness"]
     metric = fairness_results.index[0]
-    score = round(fairness_results.iloc[0]["value"], 2)
+    metric_score = round(fairness_results.iloc[0]["value"], 2)
     expected_assessments = {
         "DatasetFairness",
         "DatasetProfiling",
@@ -50,7 +55,7 @@ def test_lens_with_model():
     ][0].assessments["Fairness"]
 
     assert metric == "precision_score"
-    assert score == 0.33
+    assert metric_score == 0.17
     assert (
         set([a.name for a in lens.get_assessments(flatten=True)])
         == expected_assessments
@@ -61,12 +66,12 @@ def test_lens_with_model():
 
 
 def test_lens_without_model():
-    lens = cl.Lens(data=credo_data)
+    lens = cl.Lens(data=test_credo_data)
     results = lens.run_assessments().get_results()
     metric_score = results["validation"]["DatasetFairness"]["gender"][
         "demographic_parity_ratio"
     ][0]["value"]
-    assert metric_score == 0.5
+    assert round(metric_score, 2) == 0.8
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {
         "DatasetFairness",
         "DatasetProfiling",
@@ -75,8 +80,10 @@ def test_lens_without_model():
 
 
 def test_lens_without_sensitive_feature():
-    credo_data = cl.CredoData(name="income_data", X=X, y=y)
-    lens = cl.Lens(model=credo_model, data=credo_data, assessment_plan=assessment_plan)
+    test_credo_data = cl.CredoData(name="test_data", X=test_data["X"], y=test_data["y"])
+    lens = cl.Lens(
+        model=credo_model, data=test_credo_data, assessment_plan=assessment_plan
+    )
     results = lens.run_assessments().get_results()
     expected_assessments = {"DatasetProfiling", "Performance"}
     assert (
@@ -86,18 +93,21 @@ def test_lens_without_sensitive_feature():
 
 
 def test_lens_with_intersectionality():
-    sensitive_features = data["data"].loc[:, ["race", "gender"]]
-    credo_data = cl.CredoData(
-        name="income_data",
-        X=X,
-        y=y,
-        sensitive_features=sensitive_features,
+    test_credo_data = cl.CredoData(
+        name="test_data",
+        X=test_data["X"],
+        y=test_data["y"],
+        sensitive_features=test_data["sensitive_features"],
         sensitive_intersections=True,
     )
-    lens = cl.Lens(model=credo_model, data=credo_data, assessment_plan=assessment_plan)
+    lens = cl.Lens(
+        model=credo_model, data=test_credo_data, assessment_plan=assessment_plan
+    )
     results = lens.run_assessments().get_results()
     expected_sensitive_features = {"race", "gender", "race_gender"}
-    assert set(credo_data.sensitive_features.columns) == expected_sensitive_features
+    assert (
+        set(test_credo_data.sensitive_features.columns) == expected_sensitive_features
+    )
     assert (
         set(results["validation"]["DatasetEquity"].keys())
         == expected_sensitive_features
@@ -117,26 +127,25 @@ def test_lens_with_intersectionality():
 
 
 def test_lens_dataset_with_missing_data():
-    np.random.seed(1)
-    data = fetch_testdata(add_nan=True)
-    X = data["data"][["experience"]]
-    y = data["target"]
-    sensitive_feature = data["data"]["gender"]
+    _, test_data = fetch_testdata(True, 1, 1)
 
-    data = pd.concat([data["data"], y], axis=1)
-    credo_data = cl.CredoData(
-        name="income_data", X=X, y=y, sensitive_features=sensitive_feature
+    test_credo_data = cl.CredoData(
+        name="test_data",
+        X=test_data["X"],
+        y=test_data["y"],
+        sensitive_features=test_data["sensitive_features"],
     )
 
     lens = cl.Lens(
-        data=credo_data, assessment_plan={"DatasetFairness": {"nan_strategy": "drop"}}
+        data=test_credo_data,
+        assessment_plan={"DatasetFairness": {"nan_strategy": "drop"}},
     )
     results = lens.run_assessments().get_results()
 
     metric_score = results["validation"]["DatasetFairness"]["gender"][
         "demographic_parity_ratio"
     ][0]["value"]
-    assert metric_score == 0.5
+    assert round(metric_score, 2) == 0.44
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {
         "DatasetFairness",
         "DatasetProfiling",
@@ -145,7 +154,9 @@ def test_lens_dataset_with_missing_data():
 
 
 def test_display():
-    lens = cl.Lens(model=credo_model, data=credo_data, assessment_plan=assessment_plan)
+    lens = cl.Lens(
+        model=credo_model, data=test_credo_data, assessment_plan=assessment_plan
+    )
     lens.run_assessments()
     lens.display_results()
 
@@ -153,7 +164,7 @@ def test_display():
 def test_asset_creation():
     lens = cl.Lens(
         model=credo_model,
-        data=credo_data,
+        data=test_credo_data,
         assessment_plan=assessment_plan,
         governance=gov,
     )
@@ -164,8 +175,8 @@ def test_asset_creation():
 def test_lens_with_model_and_training():
     lens = cl.Lens(
         model=credo_model,
-        data=credo_data,
-        training_data=credo_training_data,
+        data=test_credo_data,
+        training_data=train_credo_data,
         assessment_plan=assessment_plan,
     )
 
@@ -187,7 +198,7 @@ def test_lens_with_model_and_training():
         "Security",
     }
 
-    assert rule_based_attack_score == 0.5
+    assert rule_based_attack_score == 0.42
     assert (
         set([a.name for a in lens.get_assessments(flatten=True)])
         == expected_assessments
