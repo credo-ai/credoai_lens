@@ -137,9 +137,10 @@ class PrivacyModule(CredoModule):
             [v for k, v in attack_scores.items() if "Membership" in k]
         )
 
-        attack_scores["attribute_inference_attack_score"] = max(
-            [v for k, v in attack_scores.items() if "Attribute" in k]
-        )
+        if self.attack_feature:
+            attack_scores["attribute_inference_attack_score"] = max(
+                [v for k, v in attack_scores.items() if "Attribute" in k]
+            )
 
         self.results = attack_scores
 
@@ -150,9 +151,7 @@ class PrivacyModule(CredoModule):
         General wrapper for privacy modules from ART.
 
         There are 2 types of modules: the ones leveraging machine learning and
-        the rule based ones. The former require an extra fit step, and a further
-        split of tranining and test so that there is no leakage during the assessment
-        phase.
+        the rule based ones. The former require an extra fit step.
 
         Parameters
         ----------
@@ -169,8 +168,7 @@ class PrivacyModule(CredoModule):
             **self._define_model_arguments(attack_details)
         )
 
-        # Data Handling
-
+        ## Data preparation
         if attack_details["data_handling"] == "assess":
             (
                 x_train_assess,
@@ -195,7 +193,7 @@ class PrivacyModule(CredoModule):
                 y_test_assess,
             ) = attack_assess[1]
 
-        # Fit of attack model
+        ## Fit of attack model
         if attack_details["fit"] == "train_test":
             # Split train and test further and fit the model
             attack.fit(x_train_attack, y_train_attack, x_test_attack, y_test_attack)
@@ -203,7 +201,7 @@ class PrivacyModule(CredoModule):
         if attack_details["fit"] == "train_only":
             attack.fit(x_train_assess)
 
-        # Rebalancing of the assessment datasets
+        ## Rebalancing of the assessment datasets
         x_train_bln, y_train_bln, x_test_bln, y_test_bln = self._balance_sets(
             x_train_assess, y_train_assess, x_test_assess, y_test_assess
         )
@@ -232,8 +230,8 @@ class PrivacyModule(CredoModule):
             Named arguments dictionary for the attack function
         """
         arg_dict = {
-            "estimator": self.model,
-            "classifier": self.model,
+            "estimator": self.attack_model,
+            "classifier": self.attack_model,
             "attack_feature": self.attack_feature,
         }
         return {i: arg_dict[i] for i in attack_details["attack"]["kwargs"]}
@@ -265,6 +263,8 @@ class PrivacyModule(CredoModule):
     def _assess_attack_attribute(self, attack, attack_details, x_test_bln) -> float:
         """
         Assess attack result for attribute type attack.
+
+        A comparison between the original feature and the inferred one.
 
         Parameters
         ----------
