@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 
-RNG = np.random.RandomState(1)
-
 
 def hiring_probabilities(x):
     prob = 0.4 if x.gender == "f" else 0.7
@@ -12,6 +10,8 @@ def hiring_probabilities(x):
 
 def fetch_testdata(add_nan=False, train_repeats=30, test_repeats=30):
     """Returns testing data for Lens"""
+    RNG = np.random.RandomState(1)
+
     train_df = pd.DataFrame(
         {
             "gender": ["f", "f", "f", "f", "f", "f", "m", "m", "m", "m", "m", "m"],

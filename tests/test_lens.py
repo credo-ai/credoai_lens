@@ -71,7 +71,7 @@ def test_lens_without_model():
     metric_score = results["validation"]["DatasetFairness"]["gender"][
         "demographic_parity_ratio"
     ][0]["value"]
-    assert round(metric_score, 2) == 0.17
+    assert round(metric_score, 2) == 0.8
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {
         "DatasetFairness",
         "DatasetProfiling",
@@ -145,7 +145,7 @@ def test_lens_dataset_with_missing_data():
     metric_score = results["validation"]["DatasetFairness"]["gender"][
         "demographic_parity_ratio"
     ][0]["value"]
-    assert metric_score == 0.9375
+    assert round(metric_score, 2) == 0.44
     assert set([a.name for a in lens.get_assessments(flatten=True)]) == {
         "DatasetFairness",
         "DatasetProfiling",
@@ -198,7 +198,7 @@ def test_lens_with_model_and_training():
         "Security",
     }
 
-    assert rule_based_attack_score == 0.54
+    assert rule_based_attack_score == 0.42
     assert (
         set([a.name for a in lens.get_assessments(flatten=True)])
         == expected_assessments
