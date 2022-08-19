@@ -1,4 +1,5 @@
 from cgi import test
+from doctest import testfile
 from warnings import filterwarnings
 
 import numpy as np
@@ -66,31 +67,32 @@ class PrivacyModule(CredoModule):
         self.y_test = y_test.to_numpy()
         self.model = model
         self.attack_train_ratio = attack_train_ratio
+        self.attack_feature = attack_feature
         self.nb_classes = len(np.unique(self.y_train))
+
         self.attack_model = BlackBoxClassifier(
             predict_fn=self._predict_binary_class_matrix,
             input_shape=self.x_train[0].shape,
             nb_classes=self.nb_classes,
         )
-        self.attack_feature = self.validate_attack_features(attack_feature)
 
         self.SUPPORTED_MEMBERSHIP_ATTACKS = {
-            "MembershipInferenceBlackBox": {
-                "attack": {
-                    "function": MembershipInferenceBlackBox,
-                    "kwargs": {"estimator": self.attack_model},
-                },
-                "data_handling": "attack-assess",
-                "fit": "train_test",
-                "assess": "membership",
-            },
             "MembershipInferenceBlackBoxRuleBased": {
                 "attack": {
                     "function": MembershipInferenceBlackBoxRuleBased,
-                    "kwargs": {"classifier": self.attack_model},
+                    "kwargs": {"classifier": self.model},
                 },
                 "data_handling": "assess",
                 "fit": None,
+                "assess": "membership",
+            },
+            "MembershipInferenceBlackBox": {
+                "attack": {
+                    "function": MembershipInferenceBlackBox,
+                    "kwargs": {"estimator": self.model},
+                },
+                "data_handling": "attack-assess",
+                "fit": "train_test",
                 "assess": "membership",
             },
         }
@@ -109,7 +111,7 @@ class PrivacyModule(CredoModule):
                 "attack": {
                     "function": AttributeInferenceBlackBox,
                     "kwargs": {
-                        "estimator": self.attack_model,
+                        "estimator": self.model,
                         "attack_feature": self.attack_feature,
                     },
                 },
@@ -152,26 +154,6 @@ class PrivacyModule(CredoModule):
         self.results = attack_scores_membership | attack_scores_attribute
 
         return self
-
-    def prepare_results(self):
-        """Prepares results for export to Credo AI's Governance App
-
-        Structures a subset of results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
-
-        Returns
-        -------
-        pd.DataFrame
-
-        Raises
-        ------
-        NotRunError
-            If results have not been run, raise
-        """
-        if self.results is not None:
-            return Series(self.results, name="value")
-        else:
-            raise NotRunError("Results not created yet. Call 'run' to create results")
 
     def _preprocess_data(self, *args) -> tuple:
         """
@@ -224,7 +206,7 @@ class PrivacyModule(CredoModule):
                 y_train_assess,
                 x_test_assess,
                 y_test_assess,
-            ) = (self.x_train, self.y_train, self.x_test, self.x_train)
+            ) = (self.x_train, self.y_train, self.x_test, self.y_test)
         else:
             attack_assess = self._preprocess_data(
                 self.x_train, self.y_train, self.x_test, self.y_test
@@ -250,69 +232,36 @@ class PrivacyModule(CredoModule):
         if attack_details["fit"] == "train_only":
             attack.fit(x_train_assess)
 
-        ## Assessment
-        # Sets balancing -> This might become optional if we use other metrics, tbd
         x_train_bln, y_train_bln, x_test_bln, y_test_bln = self._balance_sets(
             x_train_assess, y_train_assess, x_test_assess, y_test_assess
         )
+
+        ## Assessment
 
         # Attack inference
         if attack_details["assess"] == "membership":
             train = attack.infer(x_train_bln, y_train_bln)
             test = attack.infer(x_test_bln, y_test_bln)
-            return self._assess_attack(train, test, accuracy_score)
+            return self._assess_attack_membership(train, test)
 
         if attack_details["assess"] == "attribute":
             # Compare infered feature with original
+
             extra_arg = {}
             if "estimator" in attack_details["attack"]["kwargs"].keys():
-                extra_arg = {
-                    "pred": np.array(
-                        [
-                            np.argmax(arr)
-                            for arr in self.attack_model.predict(x_test_bln)
-                        ]
-                    ).reshape(-1, 1)
-                }
+                original_model_pred = np.array(
+                    [np.argmax(arr) for arr in self.model.predict(x_test_bln)]
+                ).reshape(-1, 1)
+                # Pass this to model inference
+                extra_arg = {"pred": original_model_pred}
+
+            # Compare original feature with the one deduced by the model
             original = x_test_bln[:, self.attack_feature].copy()
             inferred = attack.infer(
                 np.delete(x_test_bln, self.attack_feature, 1), **extra_arg
             )
 
             return np.sum(inferred == original) / len(inferred)
-
-    def _predict_binary_class_matrix(self, x):
-        """`predict` that returns a binary class matrix
-
-        ----------
-        x : features array
-            shape (nb_inputs, nb_features)
-
-        Returns
-        -------
-        numpy.array
-            shape (nb_inputs, nb_classes)
-        """
-        y = self.model.predict(x)
-        y_transformed = np.zeros((len(y), self.nb_classes))
-        for ai, bi in zip(y_transformed, y):
-            ai[bi] = 1
-        return y_transformed
-
-    @staticmethod
-    def validate_attack_features(att_feat):
-        """
-        Checks attack feature is int or list of sequential indexes.
-        If the latter return a slice object which is expected by attribute
-        inferece class.
-        """
-        if isinstance(att_feat, int) or att_feat is None:
-            return att_feat
-        if isinstance(att_feat, list):
-            if sorted(att_feat) == list(range(min(att_feat), max(att_feat) + 1)):
-                return slice(min(att_feat), max(att_feat) + 1)
-        else:
-            raise ValueError("Attack feature should be a sequential list of indexes")
 
     @staticmethod
     def _balance_sets(x_train, y_train, x_test, y_test) -> tuple:
@@ -334,7 +283,7 @@ class PrivacyModule(CredoModule):
         return x_train, y_train, x_test, y_test
 
     @staticmethod
-    def _assess_attack(train, test, metric) -> float:
+    def _assess_attack_membership(train, test) -> float:
         """
         Assess attack using a specific metric.
         """
@@ -345,5 +294,42 @@ class PrivacyModule(CredoModule):
                 np.zeros(len(test.flatten()), dtype=int),
             ]
         )
+        return accuracy_score(y_true, y_pred)
 
-        return metric(y_true, y_pred)
+    def prepare_results(self):
+        """Prepares results for export to Credo AI's Governance App
+
+        Structures a subset of results for export as a dataframe with appropriate structure
+        for exporting. See credoai.modules.credo_module.
+
+        Returns
+        -------
+        pd.DataFrame
+
+        Raises
+        ------
+        NotRunError
+            If results have not been run, raise
+        """
+        if self.results is not None:
+            return Series(self.results, name="value")
+        else:
+            raise NotRunError("Results not created yet. Call 'run' to create results")
+
+    def _predict_binary_class_matrix(self, x):
+        """`predict` that returns a binary class matrix
+
+        ----------
+        x : features array
+            shape (nb_inputs, nb_features)
+
+        Returns
+        -------
+        numpy.array
+            shape (nb_inputs, nb_classes)
+        """
+        y = self.model.predict(x)
+        y_transformed = np.zeros((len(y), self.nb_classes))
+        for ai, bi in zip(y_transformed, y):
+            ai[bi] = 1
+        return y_transformed
