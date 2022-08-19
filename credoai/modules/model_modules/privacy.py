@@ -80,7 +80,7 @@ class PrivacyModule(CredoModule):
             "MembershipInferenceBlackBoxRuleBased": {
                 "attack": {
                     "function": MembershipInferenceBlackBoxRuleBased,
-                    "kwargs": {"classifier": self.model},
+                    "kwargs": ["classifier"],
                 },
                 "data_handling": "assess",
                 "fit": None,
@@ -89,7 +89,7 @@ class PrivacyModule(CredoModule):
             "MembershipInferenceBlackBox": {
                 "attack": {
                     "function": MembershipInferenceBlackBox,
-                    "kwargs": {"estimator": self.model},
+                    "kwargs": ["estimator"],
                 },
                 "data_handling": "attack-assess",
                 "fit": "train_test",
@@ -100,7 +100,7 @@ class PrivacyModule(CredoModule):
             "AttributeInferenceBaseline": {
                 "attack": {
                     "function": AttributeInferenceBaseline,
-                    "kwargs": {"attack_feature": self.attack_feature},
+                    "kwargs": ["attack_feature"],
                 },
                 "data_handling": "assess",
                 "fit": "train_only",
@@ -109,10 +109,7 @@ class PrivacyModule(CredoModule):
             "AttributeInferenceBlackBox": {
                 "attack": {
                     "function": AttributeInferenceBlackBox,
-                    "kwargs": {
-                        "estimator": self.model,
-                        "attack_feature": self.attack_feature,
-                    },
+                    "kwargs": ["estimator", "attack_feature"],
                 },
                 "data_handling": "assess",
                 "fit": "train_only",
@@ -129,28 +126,24 @@ class PrivacyModule(CredoModule):
             Key: metric name
             Value: metric value
         """
-        attack_scores_membership = {}
-        for attack_name, attack_info in self.SUPPORTED_MEMBERSHIP_ATTACKS.items():
-            attack_scores_membership[attack_name] = self._general_attack_method(
-                attack_info
-            )
+        attacks_to_run = self.SUPPORTED_MEMBERSHIP_ATTACKS
+        if self.attack_feature:
+            attacks_to_run = attacks_to_run | self.SUPPORTED_ATTRIBUTE_ATTACKS
+
+        attack_scores = {}
+        for attack_name, attack_info in attacks_to_run.items():
+            attack_scores[attack_name] = self._general_attack_method(attack_info)
+
         # Best model = worst case
-        attack_scores_membership["membership_inference_attack_score"] = max(
-            attack_scores_membership.values()
+        attack_scores["membership_inference_attack_score"] = max(
+            [v for k, v in attack_scores.items() if "Membership" in k]
         )
 
-        # Run attribute attack on if feature is available
-        attack_scores_attribute = {}
-        if self.attack_feature:
-            for attack_name, attack_info in self.SUPPORTED_ATTRIBUTE_ATTACKS.items():
-                attack_scores_attribute[attack_name] = self._general_attack_method(
-                    attack_info
-                )
-            attack_scores_attribute["attribute_inference_attack_score"] = max(
-                attack_scores_attribute.values()
-            )
+        attack_scores["attribute_inference_attack_score"] = max(
+            [v for k, v in attack_scores.items() if "Attribute" in k]
+        )
 
-        self.results = attack_scores_membership | attack_scores_attribute
+        self.results = attack_scores
 
         return self
 
@@ -173,6 +166,14 @@ class PrivacyModule(CredoModule):
         )
         return (train_sets, test_sets)
 
+    def _define_model_arguments(self, attack_details):
+        arg_dict = {
+            "estimator": self.model,
+            "classifier": self.model,
+            "attack_feature": self.attack_feature,
+        }
+        return {i: arg_dict[i] for i in attack_details["attack"]["kwargs"]}
+
     def _general_attack_method(self, attack_details):
         """
         General wrapper for privacy modules from ART.
@@ -194,7 +195,7 @@ class PrivacyModule(CredoModule):
         """
         # Call the main function associated to the attack and pass necessary arguments
         attack = attack_details["attack"]["function"](
-            **attack_details["attack"]["kwargs"]
+            **self._define_model_arguments(attack_details)
         )
 
         # Data Handling
@@ -249,7 +250,7 @@ class PrivacyModule(CredoModule):
     def _assess_attack_attribute(self, attack, attack_details, x_test_bln):
         # Compare infered feature with original
         extra_arg = {}
-        if "estimator" in attack_details["attack"]["kwargs"].keys():
+        if "estimator" in attack_details["attack"]["kwargs"]:
             original_model_pred = np.array(
                 [np.argmax(arr) for arr in self.model.predict(x_test_bln)]
             ).reshape(-1, 1)
