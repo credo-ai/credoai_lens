@@ -1,5 +1,3 @@
-from cgi import test
-from doctest import testfile
 from warnings import filterwarnings
 
 import numpy as np
@@ -19,6 +17,47 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
 filterwarnings("ignore")
+
+SUPPORTED_MEMBERSHIP_ATTACKS = {
+    "MembershipInferenceBlackBoxRuleBased": {
+        "attack": {
+            "function": MembershipInferenceBlackBoxRuleBased,
+            "kwargs": ["classifier"],
+        },
+        "data_handling": "assess",
+        "fit": None,
+        "assess": "membership",
+    },
+    "MembershipInferenceBlackBox": {
+        "attack": {
+            "function": MembershipInferenceBlackBox,
+            "kwargs": ["estimator"],
+        },
+        "data_handling": "attack-assess",
+        "fit": "train_test",
+        "assess": "membership",
+    },
+}
+SUPPORTED_ATTRIBUTE_ATTACKS = {
+    "AttributeInferenceBaseline": {
+        "attack": {
+            "function": AttributeInferenceBaseline,
+            "kwargs": ["attack_feature"],
+        },
+        "data_handling": "assess",
+        "fit": "train_only",
+        "assess": "attribute",
+    },
+    "AttributeInferenceBlackBox": {
+        "attack": {
+            "function": AttributeInferenceBlackBox,
+            "kwargs": ["estimator", "attack_feature"],
+        },
+        "data_handling": "assess",
+        "fit": "train_only",
+        "assess": "attribute",
+    },
+}
 
 
 class PrivacyModule(CredoModule):
@@ -76,47 +115,6 @@ class PrivacyModule(CredoModule):
             nb_classes=self.nb_classes,
         )
 
-        self.SUPPORTED_MEMBERSHIP_ATTACKS = {
-            "MembershipInferenceBlackBoxRuleBased": {
-                "attack": {
-                    "function": MembershipInferenceBlackBoxRuleBased,
-                    "kwargs": ["classifier"],
-                },
-                "data_handling": "assess",
-                "fit": None,
-                "assess": "membership",
-            },
-            "MembershipInferenceBlackBox": {
-                "attack": {
-                    "function": MembershipInferenceBlackBox,
-                    "kwargs": ["estimator"],
-                },
-                "data_handling": "attack-assess",
-                "fit": "train_test",
-                "assess": "membership",
-            },
-        }
-        self.SUPPORTED_ATTRIBUTE_ATTACKS = {
-            "AttributeInferenceBaseline": {
-                "attack": {
-                    "function": AttributeInferenceBaseline,
-                    "kwargs": ["attack_feature"],
-                },
-                "data_handling": "assess",
-                "fit": "train_only",
-                "assess": "attribute",
-            },
-            "AttributeInferenceBlackBox": {
-                "attack": {
-                    "function": AttributeInferenceBlackBox,
-                    "kwargs": ["estimator", "attack_feature"],
-                },
-                "data_handling": "assess",
-                "fit": "train_only",
-                "assess": "attribute",
-            },
-        }
-
     def run(self):
         """Runs the assessment process
 
@@ -126,9 +124,9 @@ class PrivacyModule(CredoModule):
             Key: metric name
             Value: metric value
         """
-        attacks_to_run = self.SUPPORTED_MEMBERSHIP_ATTACKS
+        attacks_to_run = SUPPORTED_MEMBERSHIP_ATTACKS
         if self.attack_feature:
-            attacks_to_run = attacks_to_run | self.SUPPORTED_ATTRIBUTE_ATTACKS
+            attacks_to_run = attacks_to_run | SUPPORTED_ATTRIBUTE_ATTACKS
 
         attack_scores = {}
         for attack_name, attack_info in attacks_to_run.items():
@@ -147,33 +145,6 @@ class PrivacyModule(CredoModule):
 
         return self
 
-    def _preprocess_data(self, *args) -> tuple:
-        """
-        Preprocess train and test set, if extra data split is needed.
-
-        Returns
-        -------
-        tuple
-            Length 2 tuple, first elements contains the split of the train set,
-            the second element contains the split of the test set.
-        """
-
-        train_sets = train_test_split(
-            args[0], args[1], random_state=42, train_size=self.attack_train_ratio
-        )
-        test_sets = train_test_split(
-            args[2], args[3], random_state=42, train_size=self.attack_train_ratio
-        )
-        return (train_sets, test_sets)
-
-    def _define_model_arguments(self, attack_details):
-        arg_dict = {
-            "estimator": self.model,
-            "classifier": self.model,
-            "attack_feature": self.attack_feature,
-        }
-        return {i: arg_dict[i] for i in attack_details["attack"]["kwargs"]}
-
     def _general_attack_method(self, attack_details):
         """
         General wrapper for privacy modules from ART.
@@ -186,7 +157,7 @@ class PrivacyModule(CredoModule):
         Parameters
         ----------
         attack_details : dict
-            Map of all the supported ART privacy modules and their relative type.
+            Dictionary containing all the attack details
 
         Returns
         -------
@@ -232,13 +203,12 @@ class PrivacyModule(CredoModule):
         if attack_details["fit"] == "train_only":
             attack.fit(x_train_assess)
 
+        # Rebalancing of the assessment datasets
         x_train_bln, y_train_bln, x_test_bln, y_test_bln = self._balance_sets(
             x_train_assess, y_train_assess, x_test_assess, y_test_assess
         )
 
         ## Assessment
-
-        # Attack inference
         if attack_details["assess"] == "membership":
             return self._assess_attack_membership(
                 attack, x_train_bln, y_train_bln, x_test_bln, y_test_bln
@@ -247,7 +217,69 @@ class PrivacyModule(CredoModule):
         if attack_details["assess"] == "attribute":
             return self._assess_attack_attribute(attack, attack_details, x_test_bln)
 
-    def _assess_attack_attribute(self, attack, attack_details, x_test_bln):
+    def _define_model_arguments(self, attack_details):
+        """
+        Collates the arguments to feed to the attack initialization.
+
+        Parameters
+        ----------
+        attack_details : dict
+            Dictionary containing all the attack details
+
+        Returns
+        -------
+        dict
+            Named arguments dictionary for the attack function
+        """
+        arg_dict = {
+            "estimator": self.model,
+            "classifier": self.model,
+            "attack_feature": self.attack_feature,
+        }
+        return {i: arg_dict[i] for i in attack_details["attack"]["kwargs"]}
+
+    def _preprocess_data(self, *args) -> tuple:
+        """
+        Further split test and train dataset.
+
+        Parameters
+        ----------
+        args : dict
+            x_train, y_train, x_test, y_test. The order needs to be respected.
+
+        Returns
+        -------
+        tuple
+            Length 2 tuple, first elements contains the split of the train set,
+            the second element contains the split of the test set.
+        """
+
+        train_sets = train_test_split(
+            args[0], args[1], random_state=42, train_size=self.attack_train_ratio
+        )
+        test_sets = train_test_split(
+            args[2], args[3], random_state=42, train_size=self.attack_train_ratio
+        )
+        return (train_sets, test_sets)
+
+    def _assess_attack_attribute(self, attack, attack_details, x_test_bln) -> float:
+        """
+        Assess attack result for attribute type attack.
+
+        Parameters
+        ----------
+        attack :
+            ART attack model ready for inference
+        attack_details : dict
+            Dictionary containing all the attack details
+        x_test_bln : numpy.array
+            Balanced test dataset
+
+        Returns
+        -------
+        float
+            Accuracy of the attack
+        """
         # Compare infered feature with original
         extra_arg = {}
         if "estimator" in attack_details["attack"]["kwargs"]:
@@ -263,6 +295,24 @@ class PrivacyModule(CredoModule):
             np.delete(x_test_bln, self.attack_feature, 1), **extra_arg
         )
         return np.sum(inferred == original) / len(inferred)
+
+    @staticmethod
+    def _assess_attack_membership(
+        attack, x_train_bln, y_train_bln, x_test_bln, y_test_bln
+    ) -> float:
+        """
+        Assess attack using a specific metric.
+        """
+        train = attack.infer(x_train_bln, y_train_bln)
+        test = attack.infer(x_test_bln, y_test_bln)
+        y_pred = np.concatenate([train.flatten(), test.flatten()])
+        y_true = np.concatenate(
+            [
+                np.ones(len(train.flatten()), dtype=int),
+                np.zeros(len(test.flatten()), dtype=int),
+            ]
+        )
+        return accuracy_score(y_true, y_pred)
 
     @staticmethod
     def _balance_sets(x_train, y_train, x_test, y_test) -> tuple:
@@ -282,24 +332,6 @@ class PrivacyModule(CredoModule):
             x_test = x_test[idx]
             y_test = y_test[idx]
         return x_train, y_train, x_test, y_test
-
-    @staticmethod
-    def _assess_attack_membership(
-        attack, x_train_bln, y_train_bln, x_test_bln, y_test_bln
-    ) -> float:
-        """
-        Assess attack using a specific metric.
-        """
-        train = attack.infer(x_train_bln, y_train_bln)
-        test = attack.infer(x_test_bln, y_test_bln)
-        y_pred = np.concatenate([train.flatten(), test.flatten()])
-        y_true = np.concatenate(
-            [
-                np.ones(len(train.flatten()), dtype=int),
-                np.zeros(len(test.flatten()), dtype=int),
-            ]
-        )
-        return accuracy_score(y_true, y_pred)
 
     def prepare_results(self):
         """Prepares results for export to Credo AI's Governance App
