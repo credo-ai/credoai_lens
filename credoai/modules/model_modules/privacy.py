@@ -109,7 +109,7 @@ class PrivacyModule(CredoModule):
         self.attack_feature = attack_feature
         self.nb_classes = len(np.unique(self.y_train))
 
-        self.attack_model = BlackBoxClassifier(
+        self.attacked_model = BlackBoxClassifier(
             predict_fn=self._predict_binary_class_matrix,
             input_shape=self.x_train[0].shape,
             nb_classes=self.nb_classes,
@@ -230,8 +230,8 @@ class PrivacyModule(CredoModule):
             Named arguments dictionary for the attack function
         """
         arg_dict = {
-            "estimator": self.attack_model,
-            "classifier": self.attack_model,
+            "estimator": self.attacked_model,
+            "classifier": self.attacked_model,
             "attack_feature": self.attack_feature,
         }
         return {i: arg_dict[i] for i in attack_details["attack"]["kwargs"]}
