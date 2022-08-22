@@ -18,17 +18,17 @@
 # CredoAssessment is the interface between a CredoModel,
 # CredoData and a module, which performs some assessment.
 
+import itertools
 import os
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
+from tkinter import Y
 from typing import Callable, List, Optional, Union
 
+import numpy as np
 import pandas as pd
-
-# This file defines CredoGovernance, CredoModel and CredoData
 from absl import logging
-from sklearn import impute
 from sklearn.utils.multiclass import type_of_target
 
 import credoai.integration as ci
@@ -38,7 +38,6 @@ from credoai.utils.common import (
     ValidationError,
     flatten_list,
     json_dumps,
-    raise_or_warn,
     update_dictionary,
 )
 from credoai.utils.constants import (
@@ -71,15 +70,9 @@ class CredoGovernance:
         * The file location for the assessment spec json downloaded from
         the assessment requirements of an Use Case on Credo AI's
         Governance App
-    warning_level : int
-        warning level.
-            0: warnings are off
-            1: warnings are raised (default)
-            2: warnings are raised as exceptions.
     """
 
-    def __init__(self, spec_destination: str = None, warning_level=1):
-        self.warning_level = warning_level
+    def __init__(self, spec_destination: str = None):
         self.assessment_spec = {}
         self.use_case_id = None
         self.model_id = None
@@ -139,7 +132,6 @@ class CredoGovernance:
         """Return Credo AI Governance IDs"""
         to_return = self.__dict__.copy()
         del to_return["assessment_spec"]
-        del to_return["warning_level"]
         return to_return
 
     def get_defined_ids(self):
@@ -180,9 +172,14 @@ class CredoGovernance:
             self._api.apply_assessment_template(
                 assessment_template, self.use_case_id, self.model_id
             )
+        # reset assessment spec if assessment_plan not defined yet
+        if not self.assessment_spec.get("assessment_plan", {}):
             self._process_spec(
-                f"use_cases/{self.use_case_id}/models/{self.model_id}/assessment_spec"
+                f"use_cases/{self.use_case_id}/models/{self.model_id}/assessment_spec",
+                set_ids=False,
             )
+            if self.assessment_spec.get("assessment_plan", {}):
+                logging.info("Assessment plan downloaded after artifact registration")
 
     def export_assessment_results(
         self,
@@ -233,54 +230,13 @@ class CredoGovernance:
             with open(output_file, "w") as f:
                 f.write(json_dumps(payload))
 
-    def set_governance_info_by_name(
-        self,
-        *,
-        use_case_name=None,
-        model_name=None,
-        dataset_name=None,
-        training_dataset_name=None,
-    ):
-        """Sets governance info by name
-
-        Sets model_id, and/or dataset_id(s)
-        using names. This assumes that artifacts have already
-        been registered
-
-        Parameters
-        ----------
-        use_case_name : str
-            name of a use_case
-        model_name : str
-            name of a model
-        dataset_name : str
-            name of a dataset used to assess the model
-        training_dataset_name : str
-            name of a dataset used to train the model
-        """
-        if use_case_name:
-            use_case = self._api.get_use_case_by_name(use_case_name)
-            if use_case is not None:
-                self.use_case_id = use_case["id"]
-        if model_name:
-            model = self._api.get_model_by_name(model_name)
-            if model is not None:
-                self.model_id = model["id"]
-        if dataset_name:
-            dataset = self._api.get_dataset_by_name(dataset_name)
-            if dataset is not None:
-                self.dataset_id = dataset["id"]
-        if training_dataset_name:
-            dataset = self._api.get_dataset_by_name(training_dataset_name)
-            if dataset is not None:
-                self.training_dataset_id = dataset["id"]
-
-    def _process_spec(self, spec_destination):
+    def _process_spec(self, spec_destination, set_ids=True):
         self.assessment_spec = ci.process_assessment_spec(spec_destination, self._api)
-        self.use_case_id = self.assessment_spec["use_case_id"]
-        self.model_id = self.assessment_spec["model_id"]
-        self.dataset_id = self.assessment_spec["validation_dataset_id"]
-        self.training_dataset_id = self.assessment_spec["training_dataset_id"]
+        if set_ids:
+            self.use_case_id = self.assessment_spec["use_case_id"]
+            self.model_id = self.assessment_spec["model_id"]
+            self.dataset_id = self.assessment_spec["validation_dataset_id"]
+            self.training_dataset_id = self.assessment_spec["training_dataset_id"]
 
     def _register_dataset(self, dataset_name, register_as_training=False):
         """Registers a dataset
@@ -296,17 +252,9 @@ class CredoGovernance:
         prefix = ""
         if register_as_training:
             prefix = "training_"
-        try:
-            dataset_id = self._api.register_dataset(name=dataset_name)["id"]
-            setattr(self, f"{prefix}dataset_id", dataset_id)
-        except IntegrationError:
-            self.set_governance_info_by_name(**{f"{prefix}dataset_name": dataset_name})
-            raise_or_warn(
-                IntegrationError,
-                f"The dataset ({dataset_name}) is already registered.",
-                f"The dataset ({dataset_name}) is already registered. Using registered dataset",
-                self.warning_level,
-            )
+        dataset_id = self._api.register_dataset(name=dataset_name)["id"]
+        setattr(self, f"{prefix}dataset_id", dataset_id)
+
         if not register_as_training and self.model_id and self.use_case_id:
             self._api.register_dataset_to_model_usecase(
                 use_case_id=self.use_case_id,
@@ -328,16 +276,8 @@ class CredoGovernance:
         If an AI solution has been set, the model will be registered to that
         solution.
         """
-        try:
-            self.model_id = self._api.register_model(name=model_name)["id"]
-        except IntegrationError:
-            self.set_governance_info_by_name(model_name=model_name)
-            raise_or_warn(
-                IntegrationError,
-                f"The model ({model_name}) is already registered.",
-                f"The model ({model_name}) is already registered. Using registered model",
-                self.warning_level,
-            )
+        self.model_id = self._api.register_model(name=model_name)["id"]
+
         if self.use_case_id:
             logging.info(
                 f"Registering model ({model_name}) to Use Case ({self.use_case_id})"
@@ -462,11 +402,15 @@ class CredoModel:
 class CredoData:
     """Class wrapper around data-to-be-assessed
 
-    CredoData serves as an adapter between tabular datasets
-    and the assessments in CredoLens.
-
-    Passed to Lens for certain assessments. Either will be used
+    CredoData is passed to Lens for certain assessments. Either will be used
     by a CredoModel to make predictions or analyzed itself.
+
+    CredoData serves as an adapter between datasets
+    and the assessments in CredoLens. For tabular datasets,
+    the preferred form for X is a pandas Dataframe. If X is of a different
+    form (e.g., image data), tensors or arrays can be passed.
+
+    In the case where X is a pandas object, Y will be processed to also be a pandas object.
 
     See the `quickstart notebooks <https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html#CredoData>`_ for more information about usage
 
@@ -474,163 +418,145 @@ class CredoData:
     -------------
     name : str
         Label of the dataset
-    data : pd.DataFrame
-        Dataset dataframe that includes all features and labels
-    label_key : str
-        Name of the label column
-    sensitive_feature_key : str, optional
-        Name of the sensitive feature column, which will be used for disaggregating performance
-        metrics. This can a column you want to perform segmentation analysis on, or
+    X : array-like of shape (n_samples, n_features)
+        Dataset
+    y : array-like of shape (n_samples, n_outputs)
+        Outcome
+    sensitive_features : pd.Series, pd.DataFrame, optional
+        Sensitive Features, which will be used for disaggregating performance
+        metrics. This can be the columns you want to perform segmentation analysis on, or
         a feature related to fairness like 'race' or 'gender'
+    sensitive_intersections : bool, list
+        Whether to add intersections of sensitive features. If True, add all possible
+        intersections. If list, only create intersections from specified sensitive features.
+        If False, no intersections will be created. Defaults False
     categorical_features_keys : list[str], optional
         Names of categorical features. If the sensitive feature is categorical, include it in this list.
         Note - ordinal features should not be included.
-    unused_features_keys : list[str], optional
-        Names of the features to ignore when performing prediction.
-        Include all the features in the data that were not used during model training
-    drop_sensitive_feature : bool, optional
-        If True, automatically adds sensitive_feature_key to the list of
-        unused_features_keys. If you do not explicitly use the sensitive feature
-        in your model, this argument should be True. Otherwise, set to False.
-        Default, True
-    nan_strategy : str or callable, optional
-        The strategy for dealing with NaNs when get_scrubbed_data is called. Note, only some
-        assessments used the scrubbed data. In general, recommend you deal with NaNs before
-        passing your data to Lens.
-
-        -- If "ignore" do nothing,
-        -- If "drop" drop any rows with any NaNs.
-        -- If any other string, pass to the "strategy" argument of `Simple Imputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
-
-        You can also supply your own imputer with
-        the same API as `SimpleImputer <https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html>`_.
     """
 
     def __init__(
         self,
         name: str,
-        data: pd.DataFrame,
-        label_key: str,
-        sensitive_feature_keys: list = None,
+        X=None,
+        y=None,
+        sensitive_features=None,
+        sensitive_intersections: Union[bool, list] = False,
         categorical_features_keys: Optional[List[str]] = None,
-        unused_features_keys: Optional[List[str]] = None,
-        drop_sensitive_feature: bool = True,
-        nan_strategy: Union[str, Callable] = "drop",
     ):
-
         self.name = name
-        self.data = data
-        self.sensitive_feature_keys = sensitive_feature_keys
-        self.label_key = label_key
+        self.X = X
+        self.y = y
+        self.sensitive_features = sensitive_features
         self.categorical_features_keys = categorical_features_keys
-        self.unused_features_keys = unused_features_keys
-        self.drop_sensitive_feature = drop_sensitive_feature
-        self.nan_strategy = nan_strategy
-        self.X, self.y, self.sensitive_features = self._process_data(self.data).values()
-        self.target_type = type_of_target(self.y)
-
-    def __post_init__(self):
-        self.metadata = self.metadata or {}
+        self._process_y()
+        self._process_sensitive(sensitive_intersections)
         self._validate_data()
+        self.X_type = self._determine_X_type()
+        self.y_type = self._determine_y_type()
 
-    def get_scrubbed_data(self):
-        """Return scrubbed data
+    def get_data(self):
+        data = {"X": self.X, "y": self.y, "sensitive_features": self.sensitive_features}
+        return data
 
-        Implements NaN strategy indicated by nan_strategy before returning
-        X, y and sensitive_features dataframes/series.
+    def _determine_X_type(self):
+        # placeholder. Ideally we will replace with more relevant types
+        # i.e., tabular, image, etc.
+        return type(self.X)
 
-        Returns
-        -------
-        pd.DataFrame, pd.pd.Series
-            X, y, sensitive_features
+    def _determine_y_type(self):
+        return type_of_target(self.y) if self.y is not None else None
 
-        Raises
-        ------
-        ValueError
-            ValueError raised for nan_strategy cannot be used by SimpleImputer
-        """
-        data = self.data.copy()
-        if self.nan_strategy == "drop":
-            data = data.dropna()
-        elif self.nan_strategy == "ignore":
-            pass
-        elif isinstance(self.nan_strategy, str):
-            try:
-                imputer = impute.SimpleImputer(strategy=self.nan_strategy)
-                imputed = imputer.fit_transform(data)
-                data.iloc[:, :] = imputed
-            except ValueError:
-                raise ValueError(
-                    "CredoData's nan_strategy could not be successfully passed to SimpleImputer as a 'strategy' argument"
-                )
-        else:
-            imputed = self.nan_strategy.fit_transform(data)
-            data.iloc[:, :] = imputed
-        return self._process_data(data)
+    def _process_y(self):
+        if self.y is None:
+            return
+        # if X is pandas object, and y is convertable, convert y to
+        # pandas object with X's index
+        if isinstance(self.X, (pd.Series, pd.DataFrame)):
+            if isinstance(self.y, (np.ndarray, list)):
+                pd_type = pd.Series
+                if (
+                    isinstance(self.y, np.ndarray)
+                    and self.y.ndim == 2
+                    and self.y.shape[1] > 1
+                ):
+                    pd_type = pd.DataFrame
+                else:
+                    self.y = pd_type(self.y, index=self.X.index, name="target")
 
-    def _process_data(self, data):
-        # set up sensitive features, y and X
-        y = data[self.label_key]
-        to_drop = [self.label_key]
-        if self.unused_features_keys:
-            to_drop += self.unused_features_keys
-
-        sensitive_features = None
-        if self.sensitive_feature_keys:
-            sensitive_features = data[self.sensitive_feature_keys]
-            if self.drop_sensitive_feature:
-                to_drop.extend(self.sensitive_feature_keys)
-
-        # drop columns from X
-        X = data.drop(columns=to_drop, axis=1)
-        return {"X": X, "y": y, "sensitive_features": sensitive_features}
+    def _process_sensitive(self, sensitive_intersections):
+        if self.sensitive_features is None:
+            return
+        df = pd.DataFrame(self.sensitive_features).copy()
+        # add intersections
+        features = df.columns
+        if sensitive_intersections is False or len(features) == 1:
+            self.sensitive_features = df
+            return
+        elif sensitive_intersections is True:
+            sensitive_intersections = features
+        intersections = []
+        for i in range(2, len(features) + 1):
+            intersections += list(itertools.combinations(sensitive_intersections, i))
+        for intersection in intersections:
+            tmp = df[intersection[0]]
+            for col in intersection[1:]:
+                tmp = tmp.str.cat(df[col].astype(str), sep="_")
+            label = "_".join(intersection)
+            df[label] = tmp
+        self.sensitive_features = df
 
     def _validate_data(self):
         # Validate the types
-        if not isinstance(self.data, pd.DataFrame):
+        if self.sensitive_features is not None and not isinstance(
+            self.sensitive_features, (pd.DataFrame, pd.Series)
+        ):
             raise ValidationError(
-                "The provided data type is "
-                + self.data.__class__.__name__
-                + " but the required type is pd.DataFrame"
+                "Sensitive_feature type is '"
+                + type(self.sensitive_features).__name__
+                + "' but the required type is either pd.DataFrame or pd.Series"
             )
-        if not isinstance(self.sensitive_feature_keys, list):
-            raise ValidationError(
-                "The provided sensitive_feature_keys type is "
-                + self.sensitive_feature_keys.__class__.__name__
-                + " but the required type is list"
-            )
-        if not isinstance(self.label_key, str):
-            raise ValidationError(
-                "The provided label_key type is "
-                + self.label_key.__class__.__name__
-                + " but the required type is str"
-            )
-        if self.categorical_features_keys and not isinstance(
+        if self.categorical_features_keys is not None and not isinstance(
             self.categorical_features_keys, list
         ):
             raise ValidationError(
-                "The provided label_key type is "
-                + self.label_key.__class__.__name__
-                + " but the required type is list"
+                "Categorical_features_keys type is '"
+                + type(self.categorical_features_keys).__name__
+                + "' but the required type is list"
             )
-        # Validate that the data column names are unique
-        if len(self.data.columns) != len(set(self.data.columns)):
-            raise ValidationError("The provided data contains duplicate column names")
-        # Validate that the data contains the provided sensitive feature and label keys
-        col_names = list(self.data.columns)
-        for sensitive_feature_key in self.sensitive_feature_keys:
-            if sensitive_feature_key not in col_names:
+        if self.y is not None:
+            if len(self.X) != len(self.y):
                 raise ValidationError(
-                    "The provided sensitive_feature_key "
-                    + sensitive_feature_key
-                    + " does not exist in the provided data"
+                    "X and y are not the same length. "
+                    + f"X Length: {len(self.X)}, y Length: {len(self.y)}"
                 )
-        if self.label_key not in col_names:
-            raise ValidationError(
-                "The provided label_key "
-                + self.label_key
-                + " does not exist in the provided data"
-            )
+            if isinstance(
+                self.X, (pd.Series, pd.DataFrame)
+            ) and not self.X.index.equals(self.y.index):
+                raise ValidationError("X and y must have the same index")
+        if self.sensitive_features is not None:
+            if len(self.X) != len(self.sensitive_features):
+                raise ValidationError(
+                    "X and sensitive_features are not the same length. "
+                    + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
+                )
+            if isinstance(
+                self.X, (pd.Series, pd.DataFrame)
+            ) and not self.X.index.equals(self.sensitive_features.index):
+                raise ValidationError(
+                    "X and sensitive features must have the same index"
+                )
+
+        self._validate_X()
+
+    def _validate_X(self):
+        # DataFrame validate
+        if isinstance(self.X, pd.DataFrame):
+            # Validate that the data column names are unique
+            if len(self.X.columns) != len(set(self.X.columns)):
+                raise ValidationError("X contains duplicate column names")
+            if len(self.X.index) != len(set(self.X.index)):
+                raise ValidationError("X's index cannot contain duplicates")
 
     def dev_mode(self, frac=0.1):
         """Samples data down for faster assessment and iteration

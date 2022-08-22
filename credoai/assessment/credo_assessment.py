@@ -97,8 +97,8 @@ class CredoAssessment(ABC):
         """Initialize a reporter object"""
         pass
 
-    def run(self, **kwargs):
-        return self.initialized_module.run(**kwargs)
+    def run(self):
+        return self.initialized_module.run()
 
     def prepare_results(self, metadata=None, **kwargs):
         results = self.initialized_module.prepare_results(**kwargs)
@@ -270,7 +270,7 @@ class AssessmentRequirements:
         # check target type
         if self.target_types:
             for dataset in (credo_data, credo_training_data):
-                if dataset and dataset.target_type in self.target_types:
+                if dataset and dataset.y_type in self.target_types:
                     pass
                 else:
                     return False
