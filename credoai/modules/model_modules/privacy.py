@@ -84,9 +84,8 @@ class PrivacyModule(CredoModule):
         If further split of the data is required to create a validation set,
         this decides the ratio
     attack_feature : int,list
-        For attribute inference the indexe/s of the attribute/s to be inferred
-        in the original dataset. In case of multiple columns, e.g., one hot encoded
-        categorical variable, the indexes must be sequentials.
+        For attribute inference: the index of the attribute to be inferred
+        in the original dataset.
     """
 
     def __init__(
@@ -106,7 +105,7 @@ class PrivacyModule(CredoModule):
         self.y_test = y_test.to_numpy()
         self.model = model
         self.attack_train_ratio = attack_train_ratio
-        self.attack_feature = attack_feature
+        self.attack_feature = self._validate_attack_feature(attack_feature)
         self.nb_classes = len(np.unique(self.y_train))
 
         self.attacked_model = BlackBoxClassifier(
@@ -145,6 +144,26 @@ class PrivacyModule(CredoModule):
         self.results = attack_scores
 
         return self
+
+    def prepare_results(self):
+        """Prepares results for export to Credo AI's Governance App
+
+        Structures a subset of results for export as a dataframe with appropriate structure
+        for exporting. See credoai.modules.credo_module.
+
+        Returns
+        -------
+        pd.DataFrame
+
+        Raises
+        ------
+        NotRunError
+            If results have not been run, raise
+        """
+        if self.results is not None:
+            return Series(self.results, name="value")
+        else:
+            raise NotRunError("Results not created yet. Call 'run' to create results")
 
     def _general_attack_method(self, attack_details):
         """
@@ -296,6 +315,33 @@ class PrivacyModule(CredoModule):
         )
         return np.sum(inferred == original) / len(inferred)
 
+    def _predict_binary_class_matrix(self, x):
+        """`predict` that returns a binary class matrix
+
+        ----------
+        x : features array
+            shape (nb_inputs, nb_features)
+
+        Returns
+        -------
+        numpy.array
+            shape (nb_inputs, nb_classes)
+        """
+        y = self.model.predict(x)
+        y_transformed = np.zeros((len(y), self.nb_classes))
+        for ai, bi in zip(y_transformed, y):
+            ai[bi] = 1
+        return y_transformed
+
+    @staticmethod
+    def _validate_attack_feature(attack_feature):
+        if isinstance(attack_feature, int) or attack_feature is None:
+            return attack_feature
+        else:
+            raise ValueError(
+                f"The argument attack_feature is expected to be int. Current type {type(attack_feature)}"
+            )
+
     @staticmethod
     def _assess_attack_membership(
         attack, x_train_bln, y_train_bln, x_test_bln, y_test_bln
@@ -332,41 +378,3 @@ class PrivacyModule(CredoModule):
             x_test = x_test[idx]
             y_test = y_test[idx]
         return x_train, y_train, x_test, y_test
-
-    def prepare_results(self):
-        """Prepares results for export to Credo AI's Governance App
-
-        Structures a subset of results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
-
-        Returns
-        -------
-        pd.DataFrame
-
-        Raises
-        ------
-        NotRunError
-            If results have not been run, raise
-        """
-        if self.results is not None:
-            return Series(self.results, name="value")
-        else:
-            raise NotRunError("Results not created yet. Call 'run' to create results")
-
-    def _predict_binary_class_matrix(self, x):
-        """`predict` that returns a binary class matrix
-
-        ----------
-        x : features array
-            shape (nb_inputs, nb_features)
-
-        Returns
-        -------
-        numpy.array
-            shape (nb_inputs, nb_classes)
-        """
-        y = self.model.predict(x)
-        y_transformed = np.zeros((len(y), self.nb_classes))
-        for ai, bi in zip(y_transformed, y):
-            ai[bi] = 1
-        return y_transformed

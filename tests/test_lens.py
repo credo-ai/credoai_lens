@@ -145,7 +145,7 @@ def test_lens_with_model_and_training():
     results = lens.run_assessments().get_results()
     rule_based_attack_score = round(
         results["validation_training_model"]["Privacy"][
-            "MembershipInferenceBlackBoxRuleBased"
+            "membership_inference_attack_score"
         ],
         2,
     )
