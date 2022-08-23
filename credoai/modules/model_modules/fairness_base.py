@@ -39,9 +39,21 @@ class FairnessModule(PerformanceModule):
         The predicted labels for classification
     y_prob : (List, pandas.Series, numpy.ndarray), optional
         The unthresholded predictions, confidence values or probabilities.
+    method : str, optional
+        How to compute the differences: "between_groups" or "to_overall".
+        See fairlearn.metrics.MetricFrame.difference
+        for details, by default 'between_groups'
     """
 
-    def __init__(self, metrics, sensitive_features, y_true, y_pred, y_prob=None):
+    def __init__(
+        self,
+        metrics,
+        sensitive_features,
+        y_true,
+        y_pred,
+        y_prob=None,
+        method="between_groups",
+    ):
         super().__init__(
             metrics=metrics,
             sensitive_features=sensitive_features,
@@ -50,20 +62,14 @@ class FairnessModule(PerformanceModule):
             y_prob=y_prob,
         )
         # assign variables
+        self.fairness_method = method
         self.fairness_metrics = None
         self.fairness_prob_metrics = None
         self.update_metrics(metrics)
 
-    def run(self, method="between_groups"):
+    def run(self):
         """
         Run fairness base module
-
-        Parameters
-        ----------
-        method : str, optional
-            How to compute the differences: "between_groups" or "to_overall".
-            See fairlearn.metrics.MetricFrame.difference
-            for details, by default 'between_groups'
 
         Returns
         -------
@@ -76,7 +82,7 @@ class FairnessModule(PerformanceModule):
         """
         super().run()
         del self.results["overall_performance"]
-        fairness_results = self.get_fairness_results(method=method)
+        fairness_results = self.get_fairness_results()
         self.results["fairness"] = fairness_results
         return self
 
@@ -129,7 +135,7 @@ class FairnessModule(PerformanceModule):
         ) = self._process_metrics(self.metrics)
         self._setup_metric_frames()
 
-    def get_fairness_results(self, method="between_groups"):
+    def get_fairness_results(self):
         """Return fairness and performance parity metrics
 
         Note, performance parity metrics are labeled with their
@@ -138,10 +144,7 @@ class FairnessModule(PerformanceModule):
 
         Parameters
         ----------
-        method : str, optional
-            How to compute the differences: "between_groups" or "to_overall".
-            See fairlearn.metrics.MetricFrame.difference
-            for details, by default 'between_groups'
+
 
         Returns
         -------
@@ -156,7 +159,7 @@ class FairnessModule(PerformanceModule):
                     y_true=self.y_true,
                     y_pred=self.y_pred,
                     sensitive_features=self.sensitive_features,
-                    method=method,
+                    method=self.fairness_method,
                 )
             except Exception as e:
                 logging.error(
@@ -178,7 +181,7 @@ class FairnessModule(PerformanceModule):
                     y_true=self.y_true,
                     y_prob=self.y_prob,
                     sensitive_features=self.sensitive_features,
-                    method=method,
+                    method=self.fairness_method,
                 )
             except Exception as e:
                 logging.error(
@@ -199,7 +202,7 @@ class FairnessModule(PerformanceModule):
         parity_results = pd.Series(dtype=float)
         parity_results = []
         for metric_frame in self.metric_frames.values():
-            diffs = metric_frame.difference(method=method)
+            diffs = metric_frame.difference(method=self.fairness_method)
             diffs = pd.DataFrame({"metric_type": diffs.index, "value": diffs.values})
             diffs["sensitive_feature"] = self.sensitive_features.name
             parity_results.append(diffs)

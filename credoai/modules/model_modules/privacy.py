@@ -1,8 +1,6 @@
-import copy
-import warnings
+from warnings import filterwarnings
 
 import numpy as np
-import pandas as pd
 from art.attacks.inference.membership_inference import (
     MembershipInferenceBlackBox,
     MembershipInferenceBlackBoxRuleBased,
@@ -10,22 +8,24 @@ from art.attacks.inference.membership_inference import (
 from art.estimators.classification import BlackBoxClassifier
 from credoai.modules.credo_module import CredoModule
 from credoai.utils.common import NotRunError
-from sklearn import metrics as sk_metrics
+from pandas import Series
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 
-warnings.filterwarnings("ignore")
+filterwarnings("ignore")
 
 
 class PrivacyModule(CredoModule):
     """Privacy module for Credo AI.
 
-    This module takes in in classification model and data and provides functionality 
+    This module takes in in classification model and data and provides functionality
         to perform privacy assessment
 
     Parameters
     ----------
     model : model
         A trained binary or multi-class classification model
-        The only requirement for the model is to have a `predict` function that returns 
+        The only requirement for the model is to have a `predict` function that returns
         predicted classes for a given feature vectors as a one-dimensional array.
     x_train : pandas.DataFrame
         The training features
@@ -51,8 +51,20 @@ class PrivacyModule(CredoModule):
         self.attack_model = BlackBoxClassifier(
             predict_fn=self._predict_binary_class_matrix,
             input_shape=self.x_train[0].shape,
-            nb_classes=self.nb_classes
+            nb_classes=self.nb_classes,
         )
+
+        self.SUPPORTED_PRIVACY_ATTACKS = {
+            "MembershipInferenceBlackBox": {
+                "attack": MembershipInferenceBlackBox,
+                "type": "model_based",
+            },
+            "MembershipInferenceBlackBoxRuleBased": {
+                "attack": MembershipInferenceBlackBoxRuleBased,
+                "type": "rule_based",
+            },
+        }
+
         np.random.seed(10)
 
     def run(self):
@@ -64,16 +76,17 @@ class PrivacyModule(CredoModule):
             Key: metric name
             Value: metric value
         """
-        attack_scores = {
-            "rule_based_attack_score": self._rule_based_attack(),
-            "model_based_attack_score": self._model_based_attack(),
-        }
 
+        attack_scores = {}
+        for attack_name, attack_info in self.SUPPORTED_PRIVACY_ATTACKS.items():
+            attack_scores[attack_name] = self._general_attack_method(attack_info)
+
+        # Best model = worst case
         membership_inference_worst_case = max(attack_scores.values())
 
         attack_scores[
             "membership_inference_attack_score"
-            ] = membership_inference_worst_case
+        ] = membership_inference_worst_case
 
         self.results = attack_scores
 
@@ -95,111 +108,80 @@ class PrivacyModule(CredoModule):
             If results have not been run, raise
         """
         if self.results is not None:
-            return pd.Series(self.results, name="value")
+            return Series(self.results, name="value")
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 
-    def _rule_based_attack(self):
-        """Rule-based privacy attack
+    def _general_attack_method(self, attack_details):
+        """
+        General wrapper for privacy modules from ART.
 
-        The rule-based attack uses the simple rule to determine membership in the training data:
-            if the model's prediction for a sample is correct, then it is a member.
-            Otherwise, it is not a member.
+        There are 2 types of modules: the ones leveraging machine learning and
+        the rule based ones. The former require an extra fit step, and a further
+        split of tranining and test so that there is no leakage during the assessment
+        phase.
+
+        Parameters
+        ----------
+        attack_details : dict
+            Map of all the supported ART privacy modules and their relative type.
 
         Returns
         -------
-        dict
-            Key: rule_based_attack_accuracy_score
-            Value: membership prediction accuracy of the rule-based attack
+        float
+            Accuracy assessment of the attack.
         """
-        attack = MembershipInferenceBlackBoxRuleBased(self.attack_model)
+        # Call the main function associated to the attack
+        attack = attack_details["attack"](self.attack_model)
 
-        # under-sample training/test so that they are balanced
-        if len(self.x_test) < len(self.x_train):
-            idx = np.random.choice(
-                np.arange(len(self.x_train)), len(self.x_test), replace=False
+        if attack_details["type"] == "rule_based":
+            x_train_assess, y_train_assess, x_test_assess, y_test_assess = (
+                self.x_train,
+                self.y_train,
+                self.x_test,
+                self.y_test,
             )
-            inferred_train = attack.infer(self.x_train[idx], self.y_train[idx])
-            inferred_test = attack.infer(self.x_test, self.y_test)
-        else:
-            idx = np.random.choice(
-                np.arange(len(self.x_test)), len(self.x_train), replace=False
+
+        if attack_details["type"] == "model_based":
+            train_n = len(self.x_train)
+            test_n = len(self.x_test)
+            attack_train_size = int(train_n * self.attack_train_ratio)
+            attack_test_size = int(test_n * self.attack_train_ratio)
+            # generate indices for train/test for attacker
+            (
+                x_train_attack,
+                x_train_assess,
+                x_test_attack,
+                x_test_assess,
+                y_train_attack,
+                y_train_assess,
+                y_test_attack,
+                y_test_assess,
+            ) = train_test_split(
+                self.x_train,
+                self.x_test,
+                self.y_train,
+                self.y_test,
+                train_size=self.attack_train_ratio,
+                random_state=42,
             )
-            inferred_train = attack.infer(self.x_train, self.y_train)
-            inferred_test = attack.infer(self.x_test[idx], self.y_test[idx])
 
-        # check performance
-        y_pred = np.concatenate([inferred_train.flatten(), inferred_test.flatten()])
-        y_true = np.concatenate(
-            [
-                np.ones(len(inferred_train.flatten()), dtype=int),
-                np.zeros(len(inferred_test.flatten()), dtype=int),
-            ]
+            # Split train and test further and fit the model
+            attack.fit(x_train_attack, y_train_attack, x_test_attack, y_test_attack)
+
+        # Sets balancing -> This might become optional if we use other metrics, tbd
+        x_train_bln, y_train_bln, x_test_bln, y_test_bln = self._balance_sets(
+            x_train_assess, y_train_assess, x_test_assess, y_test_assess
         )
 
-        return sk_metrics.accuracy_score(y_true, y_pred)
+        # Attack inference
+        train = attack.infer(x_train_bln, y_train_bln)
+        test = attack.infer(x_test_bln, y_test_bln)
 
-    def _model_based_attack(self):
-        """Model-based privacy attack
-
-        The model-based attack trains an additional classifier (called the attack model)
-            to predict the membership status of a sample. It can use as input to the learning process
-            probabilities/logits or losses, depending on the type of model and provided configuration.
-
-        Returns
-        -------
-        dict
-            Key: model_based_attack_accuracy_score
-            Value: membership prediction accuracy of the model-based attack
-        """
-        attack_train_size = int(len(self.x_train) * self.attack_train_ratio)
-        attack_test_size = int(len(self.x_test) * self.attack_train_ratio)
-
-        attack = MembershipInferenceBlackBox(self.attack_model)
-
-        # train attack model
-        attack.fit(
-            self.x_train[:attack_train_size],
-            self.y_train[:attack_train_size],
-            self.x_test[:attack_test_size],
-            self.y_test[:attack_test_size],
-        )
-
-        x_train_assess, y_train_assess = (
-            self.x_train[attack_train_size:],
-            self.y_train[attack_train_size:],
-        )
-        x_test_assess, y_test_assess = (
-            self.x_test[attack_test_size:],
-            self.y_test[attack_test_size:],
-        )
-        # under-sample training/test so that they are balanced
-        if len(x_test_assess) < len(x_train_assess):
-            idx = np.random.choice(
-                np.arange(len(x_train_assess)), len(x_test_assess), replace=False
-            )
-            inferred_train = attack.infer(x_train_assess[idx], y_train_assess[idx])
-            inferred_test = attack.infer(x_test_assess, y_test_assess)
-        else:
-            idx = np.random.choice(
-                np.arange(len(x_test_assess)), len(x_train_assess), replace=False
-            )
-            inferred_train = attack.infer(x_train_assess, y_train_assess)
-            inferred_test = attack.infer(x_test_assess[idx], y_test_assess[idx])
-
-        # check performance
-        y_pred = np.concatenate([inferred_train.flatten(), inferred_test.flatten()])
-        y_true = np.concatenate(
-            [
-                np.ones(len(inferred_train.flatten()), dtype=int),
-                np.zeros(len(inferred_test.flatten()), dtype=int),
-            ]
-        )
-
-        return sk_metrics.accuracy_score(y_true, y_pred)
+        return self._assess_attack(train, test, accuracy_score)
 
     def _predict_binary_class_matrix(self, x):
-        """ `predict` that returns a binary class matrix
+        """`predict` that returns a binary class matrix
 
         ----------
         x : features array
@@ -211,7 +193,41 @@ class PrivacyModule(CredoModule):
             shape (nb_inputs, nb_classes)
         """
         y = self.model.predict(x)
-        y_transformed = np.zeros((len(x), self.nb_classes))
+        y_transformed = np.zeros((len(y), self.nb_classes))
         for ai, bi in zip(y_transformed, y):
             ai[bi] = 1
         return y_transformed
+
+    @staticmethod
+    def _balance_sets(x_train, y_train, x_test, y_test) -> tuple:
+        """
+        Balances x and y across train and test sets.
+
+        This is used after any fitting is done, it's needed if we maintain
+        the performance score as accuracy. Balancing is done by downsampling the
+        greater between train and test.
+        """
+        if len(x_train) > len(x_test):
+            idx = np.random.permutation(len(x_train))[: len(x_test)]
+            x_train = x_train[idx]
+            y_train = y_train[idx]
+        else:
+            idx = np.random.permutation(len(x_test))[: len(x_train)]
+            x_test = x_test[idx]
+            y_test = y_test[idx]
+        return x_train, y_train, x_test, y_test
+
+    @staticmethod
+    def _assess_attack(train, test, metric) -> float:
+        """
+        Assess attack using a specific metric.
+        """
+        y_pred = np.concatenate([train.flatten(), test.flatten()])
+        y_true = np.concatenate(
+            [
+                np.ones(len(train.flatten()), dtype=int),
+                np.zeros(len(test.flatten()), dtype=int),
+            ]
+        )
+
+        return accuracy_score(y_true, y_pred)
