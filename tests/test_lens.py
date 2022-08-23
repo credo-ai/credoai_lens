@@ -198,7 +198,7 @@ def test_lens_with_model_and_training():
         "Security",
     }
 
-    assert rule_based_attack_score == 0.42
+    assert rule_based_attack_score == 0.5
     assert (
         set([a.name for a in lens.get_assessments(flatten=True)])
         == expected_assessments
