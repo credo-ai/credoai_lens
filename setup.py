@@ -47,9 +47,9 @@ CLASSIFIERS = [
 
 PACKAGE_DATA = {
     "credoai": [
-        "data/*",
-        "data/static/nlp_generator_analyzer/persisted_models/*",
-        "data/static/nlp_generator_analyzer/prompts/*",
+        "datasets/*",
+        "datasets/static/nlp_generator_analyzer/persisted_models/*",
+        "datasets/static/nlp_generator_analyzer/prompts/*",
     ]
 }
 
