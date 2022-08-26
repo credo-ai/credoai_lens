@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import inspect
 from typing import List, Type, Union
 from credoai.artifacts import CredoGovernance, CredoModel, CredoData
 from credoai.utils.common import (
