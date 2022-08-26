@@ -1,5 +1,3 @@
-from credoai.utils import ValidationError
-
 from .model import Model
 
 
@@ -22,17 +20,13 @@ class ClassificationModel(Model):
     """
 
     def __init__(self, name: str, model_like=None):
-        super().__init__("Classification", name, model_like)
-        self._build()
-
-    def _build(self):
-        self._add_functionality("predict", self.model_like)
-        self._add_functionality("predict_proba", self.model_like)
-
-    def _validate(self):
-        validated = getattr(self.model_like, "predict", False)
-        if not validated:
-            raise ValidationError("Model-like must have prediction function")
+        super().__init__(
+            "Classification",
+            ["predict", "predict_proba"],
+            ["predict"],
+            name,
+            model_like,
+        )
 
 
 class DummyClassifier:

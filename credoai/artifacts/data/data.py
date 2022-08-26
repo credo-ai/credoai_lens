@@ -1,6 +1,5 @@
 """Data used by Lens"""
 # Data is a lightweight wrapper that stores data
-
 import itertools
 from abc import ABC, abstractmethod
 from tkinter import N
