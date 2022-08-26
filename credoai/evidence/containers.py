@@ -22,7 +22,7 @@ class EvidenceContainer(ABC):
         df : pd.DataFrame
             The dataframe, formatted appropriately for the evidence type
         """
-        self.evidence_class
+        self.evidence_class = evidence_class
         if not isinstance(df, pd.DataFrame):
             raise ValidationError("'df' must be a dataframe")
         self._validate(df)
@@ -45,7 +45,7 @@ class MetricContainer(EvidenceContainer):
     def __init__(self, df):
         super().__init__(Metric, df)
 
-    def as_evidence(self):
+    def to_evidence(self):
         evidence = []
         for i, row in self._df.iterrows():
             evidence.append(self.evidence_class(**row))
@@ -62,5 +62,11 @@ class TableContainer(EvidenceContainer):
     def __init__(self, df):
         super().__init__(Table, df)
 
-    def as_evidence(self):
-        return self.evidence_class(self._df)
+    def to_evidence(self):
+        return self.evidence_class(self._df.name, self._df)
+
+    def _validate(self, df):
+        try:
+            df.name
+        except AttributeError:
+            raise ValidationError("DataFrame must have a 'name' attribute")
