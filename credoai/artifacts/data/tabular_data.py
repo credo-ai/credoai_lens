@@ -8,11 +8,9 @@ from .data import Data
 
 
 class TabularData(Data):
-    """Class wrapper around data-to-be-assessed
+    """Class wrapper around tabular data
 
-    Data is passed to Lens for certain assessments.
-
-    Data serves as an adapter between datasets
+    TabularData serves as an adapter between tabular datasets
     and the evaluators in Lens.
 
     Parameters

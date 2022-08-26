@@ -3,6 +3,7 @@
 
 import itertools
 from abc import ABC, abstractmethod
+from tkinter import N
 from typing import Union
 
 import pandas as pd
