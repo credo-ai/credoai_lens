@@ -63,7 +63,15 @@ class Lens:
             )
         if id is None:
             id = f"{evaluator.name}_{str(uuid.uuid1())[:6]}"
-        self.pipeline[id] = {"evaluator": evaluator, "meta": metadata}
+
+        self.pipeline[id] = {
+            "evaluator": evaluator(
+                model=self.model,
+                assessment_dataset=self.assessment_dataset,
+                training_data=self.training_dataset,
+            ),
+            "meta": metadata,
+        }
         return self
 
     def remove(self, id: str):
