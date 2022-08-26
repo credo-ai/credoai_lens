@@ -1,32 +1,6 @@
+from credoai.utils import ValidationError
+
 from .model import Model
-
-
-class DummyClassifier:
-    """Class wrapper around classification model predictions
-
-    This class can be used when a classification model is not available but its outputs are.
-        The output include the array containing the predicted class labels and/or the array
-        containing the class labels probabilities.
-        Wrap the outputs with this class into a dummy classifier and pass it as
-        the model to `ClassificationModel`.
-
-    Parameters
-    ----------
-    predict_output : array
-        Array containing the predicted class labels for each sample.
-    predict_output : array
-        Array containing the class labels probabilities for each sample.
-    """
-
-    def __init__(self, predict_output=None, predict_proba_output=None):
-        self.predict_output = predict_output
-        self.predict_proba_output = predict_proba_output
-
-    def predict(self, X):
-        return self.prediction_output
-
-    def predict_proba(self, X):
-        return self.prediction_proba_output
 
 
 class ClassificationModel(Model):
@@ -47,21 +21,43 @@ class ClassificationModel(Model):
             the class labels probabilities for each sample.
     """
 
-    def __init__(
-        self,
-        name: str,
-        model_like=None,
-    ):
+    def __init__(self, name: str, model_like=None):
         super().__init__("Classification", name, model_like)
+        self._build()
 
-    def predict(self):
-        try:
-            return self.model_like.predict()
-        except:
-            AttributeError
+    def _build(self):
+        self._add_functionality("predict", self.model_like)
+        self._add_functionality("predict_proba", self.model_like)
 
-    def predict_proba(self):
-        try:
-            return self.model_like.predict_proba()
-        except:
-            return
+    def _validate(self):
+        validated = getattr(self.model_like, "predict", False)
+        if not validated:
+            raise ValidationError("Model-like must have prediction function")
+
+
+class DummyClassifier:
+    """Class wrapper around classification model predictions
+
+    This class can be used when a classification model is not available but its outputs are.
+        The output include the array containing the predicted class labels and/or the array
+        containing the class labels probabilities.
+        Wrap the outputs with this class into a dummy classifier and pass it as
+        the model to `ClassificationModel`.
+
+    Parameters
+    ----------
+    predict_output : array
+        Array containing the output of a model's "predict" method
+    predict_proba_output : array
+        Array containing the output of a model's "predict_proba" method
+    """
+
+    def __init__(self, predict_output=None, predict_proba_output=None):
+        self.predict_output = predict_output
+        self.predict_proba_output = predict_proba_output
+
+    def predict(self, X):
+        return self.predict_output
+
+    def predict_proba(self, X):
+        return self.predict_proba_output
