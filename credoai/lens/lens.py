@@ -1,10 +1,9 @@
-import inspect
-import uuid
-from dataclasses import dataclass
 from typing import List, Type, Union
+import uuid
 
 from absl import logging
-from credoai.artifacts import CredoData, CredoGovernance, CredoModel
+from credoai.artifacts import Data
+from credoai.artifacts import Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.utils.common import ValidationError
 
@@ -29,7 +28,6 @@ class Lens:
         model: Model = (None,),
         data: Data = (None,),
         training_data: Data = (None,),
-        governance: Union[Governance, str] = (None,),
         logging_level: Union[str, int] = "info",
     ) -> None:
         self.model = model
@@ -38,7 +36,6 @@ class Lens:
         self.assessment_plan = {}
         self.run_time = False
         self.gov = None
-        self.governance = governance
         self.pipeline = {}
         self.pipeline_results = []
         self._validate()
