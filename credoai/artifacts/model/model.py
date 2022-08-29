@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from credoai.utils import ValidationError
 from credoai.utils.model_utils import get_model_info
-from Typing import List
+from typing import List
 
 
 class Model(ABC):
