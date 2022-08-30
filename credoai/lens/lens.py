@@ -73,10 +73,13 @@ class Lens:
         del self.pipeline[id]
         return self
 
-    def run(self):
+    def run(self, pipeline=None):
         """
         Run the main loop across all the pipeline steps
         """
+        # Can  pass pipeline directly
+        if pipeline:
+            self.pipeline = pipeline
         for step, details in self.pipeline.items():
             details["evaluator"].evaluate()
             # Populate pipeline results

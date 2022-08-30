@@ -62,7 +62,7 @@ SUPPORTED_ATTRIBUTE_ATTACKS = {
 }
 
 
-class PrivacyModule(Evaluator):
+class Privacy(Evaluator):
     """Privacy module for Credo AI.
 
     This module takes in in classification model and data and provides functionality
