@@ -13,6 +13,12 @@ class Evaluator(ABC):
     def __init__(self):
         self.results = None
 
+    @property
+    @abstractmethod
+    def name(self):
+        """Used to define a unique identifier for the specific evaluator"""
+        pass
+
     @abstractmethod
     def __call__(self):
         """

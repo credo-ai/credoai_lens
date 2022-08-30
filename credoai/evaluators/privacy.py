@@ -79,6 +79,8 @@ class PrivacyModule(Evaluator):
         # Validates and assigns attack feature/s
         self._validate_attack_feature(attack_feature, attack_feature_name)
 
+    name = "privacy"
+
     def __call__(self, model, assessment, training):
         self.model = model
         self.test = assessment
@@ -99,8 +101,45 @@ class PrivacyModule(Evaluator):
 
         return self
 
+    def evaluate(self):
+        """Runs the assessment process
+
+        Returns
+        -------
+        dict
+            Key: metric name
+            Value: metric value
+        """
+        ## TODO: Decide on re-evaluation
+        # if self.results:
+        #     raise ValueError(
+        #         "Evaluation was already run, change override flag to overried"
+        #     )
+
+        attacks_to_run = SUPPORTED_MEMBERSHIP_ATTACKS
+        if self.attack_feature:
+            attacks_to_run = attacks_to_run | SUPPORTED_ATTRIBUTE_ATTACKS
+
+        attack_scores = {}
+        for attack_name, attack_info in attacks_to_run.items():
+            attack_scores[attack_name] = self._general_attack_method(attack_info)
+
+        # Best model = worst case
+        attack_scores["membership_inference_attack_score"] = max(
+            [v for k, v in attack_scores.items() if "Membership" in k]
+        )
+
+        if self.attack_feature:
+            attack_scores["attribute_inference_attack_score"] = max(
+                [v for k, v in attack_scores.items() if "Attribute" in k]
+            )
+
+        self.results = attack_scores
+
+        return self
+
     def _validate_arguments(self):
-        # Check types, all three are needed -> None is not allowed as default
+        # Check types, all three are needed -> None is not allowed in this case
         if not isinstance(self.train, TabularData):
             raise ValidationError(
                 """Training data is not of type TabularData.
@@ -126,37 +165,6 @@ class PrivacyModule(Evaluator):
                 raise ValidationError(
                     f"Feature {self.attack_feature} not in test data."
                 )
-
-    def evaluate(self):
-        """Runs the assessment process
-
-        Returns
-        -------
-        dict
-            Key: metric name
-            Value: metric value
-        """
-        attacks_to_run = SUPPORTED_MEMBERSHIP_ATTACKS
-        if self.attack_feature:
-            attacks_to_run = attacks_to_run | SUPPORTED_ATTRIBUTE_ATTACKS
-
-        attack_scores = {}
-        for attack_name, attack_info in attacks_to_run.items():
-            attack_scores[attack_name] = self._general_attack_method(attack_info)
-
-        # Best model = worst case
-        attack_scores["membership_inference_attack_score"] = max(
-            [v for k, v in attack_scores.items() if "Membership" in k]
-        )
-
-        if self.attack_feature:
-            attack_scores["attribute_inference_attack_score"] = max(
-                [v for k, v in attack_scores.items() if "Attribute" in k]
-            )
-
-        self.results = attack_scores
-
-        return self
 
     def _prepare_results(self):
         """Prepares results for export to Credo AI's Governance App

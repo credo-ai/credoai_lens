@@ -59,13 +59,13 @@ class Lens:
                 f"Evaluator has to be of type evaluator... not {type(evaluator)}"
             )
         if id is None:
-            id = f"{evaluator.name}_{str(uuid.uuid1())[:6]}"
+            id = f"{evaluator.name}_{str(uuid.uuid4())}"
 
         self.pipeline[id] = {
             "evaluator": evaluator(
                 model=self.model,
-                assessment_dataset=self.assessment_dataset,
-                training_data=self.training_dataset,
+                assessment=self.assessment_dataset,
+                training=self.training_dataset,
             ),
             "meta": metadata,
         }
@@ -80,13 +80,13 @@ class Lens:
         """
         Run the main loop across all the pipeline steps
         """
-        for step in self.pipeline:
+        for step, details in self.pipeline.items():
             ## TODO: formalize when internal evidence class is completed how to pass metadata
-            step["evaluator"].evaluate()
+            details["evaluator"].evaluate()
             ## TODO check results is the actual attribute in the evaluator class
             # Populate pipeline results
             self.pipeline_results.append(
-                {"id": step["id"], "results": step["evaluator"].results}
+                {"id": step, "results": details["evaluator"].results}
             )
         return self
 
