@@ -70,18 +70,14 @@ class PrivacyModule(Evaluator):
     """
 
     def __init__(
-        self, attack_train_ratio=0.50, attack_feature=None, attack_feature_name=None
+        self,
+        attack_feature=None,
+        attack_feature_name=None,
+        attack_train_ratio=0.50,
     ):
         self.attack_train_ratio = attack_train_ratio
         # Validates and assigns attack feature/s
         self._validate_attack_feature(attack_feature, attack_feature_name)
-        self.nb_classes = len(np.unique(self.y_train))
-
-        self.attacked_model = BlackBoxClassifier(
-            predict_fn=self._predict_binary_class_matrix,
-            input_shape=self.x_train[0].shape,
-            nb_classes=self.nb_classes,
-        )
 
     def __call__(self, model, assessment, training):
         self.model = model
@@ -94,6 +90,12 @@ class PrivacyModule(Evaluator):
         self.y_train = self.train.y.to_numpy()
         self.x_test = self.test.X.to_numpy()
         self.y_test = self.test.y.to_numpy()
+        self.nb_classes = len(np.unique(self.y_train))
+        self.attacked_model = BlackBoxClassifier(
+            predict_fn=self._predict_binary_class_matrix,
+            input_shape=self.x_train[0].shape,
+            nb_classes=self.nb_classes,
+        )
 
         return self
 
@@ -115,12 +117,15 @@ class PrivacyModule(Evaluator):
                 Please wrap dataset in: credoai.artifacts.Classification Model"""
             )
         # Check attack feature in dataset
-        if not self.attack_feature in self.train.X.columns:
-            raise ValidationError(
-                f"Feature {self.attack_feature} not in training data."
-            )
-        if not self.attack_feature in self.test.X.columns:
-            raise ValidationError(f"Feature {self.attack_feature} not in test data.")
+        if self.attack_feature:
+            if not self.attack_feature in self.train.X.columns:
+                raise ValidationError(
+                    f"Feature {self.attack_feature} not in training data."
+                )
+            if not self.attack_feature in self.test.X.columns:
+                raise ValidationError(
+                    f"Feature {self.attack_feature} not in test data."
+                )
 
     def evaluate(self):
         """Runs the assessment process
@@ -343,9 +348,10 @@ class PrivacyModule(Evaluator):
 
     def _validate_attack_feature(self, attack_feature, attack_feature_name):
         if isinstance(attack_feature, int) and attack_feature_name is None:
-            raise ValidationError("Attack feature name must be provided")
+            raise ValidationError("attack_feature_name must be provided")
+
         self.attack_feature_name = attack_feature_name
-        self.attack_feaure = attack_feature
+        self.attack_feature = attack_feature
 
     @staticmethod
     def _assess_attack_membership(
