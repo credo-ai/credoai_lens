@@ -12,10 +12,6 @@ from credoai.utils.common import ValidationError
 
 ## TODO: Display policy checklists -> decide if necessary
 
-## TODO: dev mode? -> decide if necessary
-
-## TODO: compare with original lens and scope difference
-
 
 def set_logging_level(logging_level):
     """Alias for absl.logging.set_verbosity"""
@@ -25,10 +21,11 @@ def set_logging_level(logging_level):
 class Lens:
     def __init__(
         self,
+        logging_level: Union[str, int] = "info",
+        *,
         model: Model = (None,),
         data: Data = (None,),
         training_data: Data = (None,),
-        logging_level: Union[str, int] = "info",
     ) -> None:
         self.model = model
         self.assessment_dataset = data
@@ -81,9 +78,7 @@ class Lens:
         Run the main loop across all the pipeline steps
         """
         for step, details in self.pipeline.items():
-            ## TODO: formalize when internal evidence class is completed how to pass metadata
             details["evaluator"].evaluate()
-            ## TODO check results is the actual attribute in the evaluator class
             # Populate pipeline results
             self.pipeline_results.append(
                 {"id": step, "results": details["evaluator"].results}
@@ -109,12 +104,11 @@ class Lens:
 
     def _validate(self):
         """
-        Validate validity of arguments passed to Lens. All checks should be here
+        Validate arguments passed to Lens. All checks should be here
 
         Raises
         ------
         ValidationError
-            _description_
         """
         if self.assessment_dataset and self.training_dataset:
             if self.assessment_dataset == self.training_dataset:
