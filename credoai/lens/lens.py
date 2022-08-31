@@ -8,10 +8,10 @@ from credoai.evaluators.evaluator import Evaluator
 from credoai.utils.common import ValidationError
 from credoai.lens.utils import log_command
 
-## TODO: Define what format is the assessment plan coming from
-## the platform.
 
 ## TODO: Display policy checklists -> decide if necessary
+
+## TODO: Format the list of commands nicely
 
 
 def set_logging_level(logging_level):
@@ -19,7 +19,6 @@ def set_logging_level(logging_level):
     logging.set_verbosity(logging_level)
 
 
-@log_command
 class Lens:
     def __init__(
         self,
