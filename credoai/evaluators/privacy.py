@@ -92,6 +92,11 @@ class Privacy(Evaluator):
         self.y_train = self.train.y.to_numpy()
         self.x_test = self.test.X.to_numpy()
         self.y_test = self.test.y.to_numpy()
+        if isinstance(self.attack_feature, str):
+            (
+                self.attack_feature_name,
+                self.attack_feature,
+            ) = self.attack_feature, self.train.X.columns.get_loc(self.attack_feature)
         self.nb_classes = len(np.unique(self.y_train))
         self.attacked_model = BlackBoxClassifier(
             predict_fn=self._predict_binary_class_matrix,

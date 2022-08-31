@@ -51,17 +51,6 @@ class DataFairness(Evaluator):
 
     name = "DataFairness"
 
-    def _validate_arguments(self):
-        if not isinstance(self.data_to_eval, TabularData):
-            raise ValidationError("Data under evaluation is not of type TabularData.")
-
-        if self.data_to_eval.sensitive_features is None:
-            raise ValidationError(
-                f"Step: {DataFairness.__name__} ->  No sensitive feature were found in the dataset"
-            )
-
-        return self
-
     def __call__(self, model, assessment, training):
         self.model = model
         self.test = assessment
@@ -98,6 +87,17 @@ class DataFairness(Evaluator):
         else:
             self.categorical_features_keys = self._find_categorical_features(
                 self.categorical_threshold
+            )
+
+        return self
+
+    def _validate_arguments(self):
+        if not isinstance(self.data_to_eval, TabularData):
+            raise ValidationError("Data under evaluation is not of type TabularData.")
+
+        if self.data_to_eval.sensitive_features is None:
+            raise ValidationError(
+                f"Step: {self.name} ->  No sensitive feature were found in the dataset"
             )
 
         return self

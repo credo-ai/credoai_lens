@@ -20,7 +20,7 @@ class Evaluator(ABC):
         pass
 
     @abstractmethod
-    def __call__(self):
+    def __call__(self, model, assessment, training):
         """
         This method is used to pass the model, assessment_dataset and training_dataset
         to  instantiated evaluator.
