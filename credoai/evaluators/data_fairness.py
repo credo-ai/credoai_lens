@@ -19,7 +19,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
-class DatasetFairness(Evaluator):
+class DataFairness(Evaluator):
     """Dataset module for Credo AI.
 
     This module takes in features and labels and provides functionality to perform dataset assessment
@@ -41,7 +41,7 @@ class DatasetFairness(Evaluator):
 
     def __init__(
         self,
-        dataset_name,
+        dataset_name=None,
         categorical_features_keys: Optional[List[str]] = None,
         categorical_threshold: float = 0.05,
     ):
@@ -49,12 +49,16 @@ class DatasetFairness(Evaluator):
         self.categorical_features_keys = categorical_features_keys
         self.categorical_threshold = categorical_threshold
 
+    name = "DataFairness"
+
     def _validate_arguments(self):
         if not isinstance(self.data_to_eval, TabularData):
             raise ValidationError("Data under evaluation is not of type TabularData.")
 
         if self.data_to_eval.sensitive_features is None:
-            raise ValidationError("No sensitive feature were found in the dataset")
+            raise ValidationError(
+                f"Step: {DataFairness.__name__} ->  No sensitive feature were found in the dataset"
+            )
 
         return self
 
@@ -76,7 +80,10 @@ class DatasetFairness(Evaluator):
             self.data_to_eval = self.data_to_eval[0]  # Pick the only member
 
         self._validate_arguments()
-        self.sensitive_features = self.data_to_eval.sensitive_features
+        self.sensitive_features = self.data_to_eval.sensitive_features[0]
+        self.data = pd.concat([self.data_to_eval.X, self.data_to_eval.y], axis=1)
+        self.X = self.data_to_eval.X
+        self.y = self.data_to_eval.y
 
         # set up categorical features
         if self.categorical_features_keys:
@@ -92,11 +99,6 @@ class DatasetFairness(Evaluator):
             self.categorical_features_keys = self._find_categorical_features(
                 self.categorical_threshold
             )
-
-        self.data = pd.concat([self.data_to_eval.X, self.data_to_eval.y], axis=1)
-        self.sensitive_features = self.data_to_eval.sensitive_features
-        self.X = self.data_to_eval.X
-        self.y = self.data_to_eval.y
 
     def evaluate(self):
         """Runs the assessment process
