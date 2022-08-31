@@ -100,6 +100,8 @@ class DataFairness(Evaluator):
                 self.categorical_threshold
             )
 
+        return self
+
     def evaluate(self):
         """Runs the assessment process
 
