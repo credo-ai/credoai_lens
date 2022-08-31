@@ -44,7 +44,10 @@ class TabularData(Data):
         )
 
     def _process_X(self, X):
-        return pd.DataFrame(X)
+        temp = pd.DataFrame(X)
+        # Column names are converted to strings, to avoid mixed types
+        temp.columns = temp.columns.astype("str")
+        return temp
 
     def _process_y(self, y):
         if y is None:
