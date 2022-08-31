@@ -1,4 +1,55 @@
+import inspect
 from credoai.utils.common import dict_hash
+
+import functools
+
+command_list = []
+
+
+def log_command(fun):
+    @functools.wraps(fun)
+    def wrapper(*args, **kwargs):
+        tmp = fun(*args, **kwargs)
+        name = fun.__name__
+        wrapper.command_list.append(get_command_string(name, args, kwargs))
+        return tmp
+
+    wrapper.command_list = []
+    return wrapper
+
+
+def get_command_string(name, arg, kwarg):
+    arg_parse = [get_arg_info(arg) for arg in arg]
+    kwarg_parse = [f"{k}={get_arg_info(v)}" for k, v in kwarg.items()]
+    return (
+        f"{name}({','.join([x for x in arg_parse[1:] + kwarg_parse if x is not None])})"
+    )
+
+
+def get_arg_info(arg):
+    if callable(arg):
+        # Get only initialization arguments
+        init_args = {
+            k: v
+            for k, v in arg.__dict__.items()
+            if k in list(inspect.signature(arg.__init__).parameters.keys())
+        }
+        return f"{type(arg).__name__}({get_string_of_arguments_from_kwargs(init_args)})"
+    elif isinstance(arg, int):
+        return arg
+    elif isinstance(arg, str):
+        return f'"{arg}"'
+
+
+def get_string_of_arguments_from_kwargs(keyarg):
+    return ",".join([f"{x[0]}={check_int_str(x[1])}" for x in keyarg.items()])
+
+
+def check_int_str(x):
+    if isinstance(x, (int, float)):
+        return x
+    elif isinstance(x, str):
+        return f'"{x}"'
 
 
 def add_metric_keys(prepared_results):

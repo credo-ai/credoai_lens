@@ -6,6 +6,7 @@ from credoai.artifacts import Data
 from credoai.artifacts import Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.utils.common import ValidationError
+from credoai.lens.utils import log_command
 
 ## TODO: Define what format is the assessment plan coming from
 ## the platform.
@@ -18,6 +19,7 @@ def set_logging_level(logging_level):
     logging.set_verbosity(logging_level)
 
 
+@log_command
 class Lens:
     def __init__(
         self,
@@ -43,6 +45,7 @@ class Lens:
         self._create_pipeline()
         self.run()
 
+    @log_command
     def add(self, evaluator, id: str = None, metadata: dict = None):
         ## Validate same identifier doesn't exist already
         if id in self.pipeline:
@@ -68,11 +71,13 @@ class Lens:
         }
         return self
 
+    @log_command
     def remove(self, id: str):
         # Find position
         del self.pipeline[id]
         return self
 
+    @log_command
     def run(self, pipeline=None):
         """
         Run the main loop across all the pipeline steps
@@ -93,6 +98,9 @@ class Lens:
         Collect all the results as they are coming directly from the individual evaluations.
         """
         return self.pipeline_results
+
+    def get_command_list(self):
+        return self.add.command_list + self.remove.command_list + self.run.command_list
 
     def push(self):
         """
