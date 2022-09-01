@@ -1,3 +1,4 @@
+from inspect import isclass
 from typing import List, Type, Union
 import uuid
 
@@ -13,6 +14,8 @@ from credoai.lens.utils import log_command
 
 ## TODO: Format the list of commands nicely
 
+## TODO: Decide Metadata policy, connected to governance and evidence creation!
+
 
 def set_logging_level(logging_level):
     """Alias for absl.logging.set_verbosity"""
@@ -27,6 +30,7 @@ class Lens:
         model: Model = (None,),
         data: Data = (None,),
         training_data: Data = (None,),
+        pipeline: list = None,
     ) -> None:
         self.model = model
         self.assessment_dataset = data
@@ -35,13 +39,16 @@ class Lens:
         self.run_time = False
         self.gov = None
         self.pipeline = {}
+        if pipeline:
+            self._generate_pipeline(pipeline)
+
         self.pipeline_results = []
         self._validate()
         ## TODO: evaluate what library to use for logging
         set_logging_level(logging_level)
 
     def __call__(self):
-        self._create_pipeline()
+        self._generate_pipeline()
         self.run()
 
     @log_command
@@ -77,7 +84,7 @@ class Lens:
         return self
 
     @log_command
-    def run(self, pipeline=None):
+    def run(self, pipeline=None):  # TODO: remove pipeline from here!
         """
         Run the main loop across all the pipeline steps
         """
@@ -108,9 +115,34 @@ class Lens:
         """
         pass
 
-    def _create_pipeline(self):
+    def _generate_pipeline(self, pipeline=None):
         """Automatically generate pipeline"""
-        pass
+        # Create pipeline from list of steps
+        if pipeline:
+            for step in pipeline:
+                if step is not tuple:
+                    step = (step,)
+                evaltr = self._get_step_param(step, 0)
+                id = self._get_step_param(step, 1)
+                meta = self._get_step_param(step, 2)
+                if isclass(evaltr):
+                    raise ValidationError(
+                        f"Evaluator in step {step} needs to be instantiated"
+                    )
+                if not (isinstance(id, str) or id is None):
+                    raise ValidationError(
+                        f"Id in step {step} must be a string, received {id}"
+                    )
+                self.add(evaltr, id, meta)
+
+        return self
+
+    @staticmethod
+    def _get_step_param(step, pos):
+        try:
+            return step[pos]
+        except IndexError:
+            return None
 
     def _validate(self):
         """
@@ -123,5 +155,5 @@ class Lens:
         if self.assessment_dataset and self.training_dataset:
             if self.assessment_dataset == self.training_dataset:
                 raise ValidationError(
-                    "Assessment dataset and training dataset should not be the same!"
+                    "Assessment dataset and training dataset should not be the same"
                 )
