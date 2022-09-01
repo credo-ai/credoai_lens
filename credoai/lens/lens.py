@@ -120,7 +120,7 @@ class Lens:
         # Create pipeline from list of steps
         if pipeline:
             for step in pipeline:
-                if step is not tuple:
+                if not isinstance(step, tuple):
                     step = (step,)
                 evaltr = self._get_step_param(step, 0)
                 id = self._get_step_param(step, 1)
