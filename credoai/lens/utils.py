@@ -1,9 +1,12 @@
 import inspect
 from credoai.utils.common import dict_hash
+from credoai.evaluators import *
+import credoai.evaluators
+
 
 import functools
 
-command_list = []
+command_list = []  # BUG :this doesn't look right, revisit
 
 
 def log_command(fun):
@@ -76,3 +79,18 @@ def add_metric_keys(prepared_results):
         for metric_dict in prepared_results.reset_index().to_dict("records")
     ]
     prepared_results["metric_key"] = keys
+
+
+def build_list_of_evaluators():
+    all_evaluators = []
+    for x in dir(credoai.evaluators):
+        try:
+            if (
+                inspect.isclass(eval(x))
+                and issubclass(eval(x), Evaluator)
+                and not inspect.isabstract(eval(x))
+            ):
+                all_evaluators.append(eval(x))
+        except NameError:
+            pass
+    return [x() for x in all_evaluators]

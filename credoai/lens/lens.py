@@ -7,7 +7,7 @@ from credoai.artifacts import Data
 from credoai.artifacts import Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.utils.common import ValidationError
-from credoai.lens.utils import log_command
+from credoai.lens.utils import log_command, build_list_of_evaluators
 
 
 ## TODO: Display policy checklists -> decide if necessary
@@ -39,6 +39,7 @@ class Lens:
         self.run_time = False
         self.gov = None
         self.pipeline = {}
+        # If a list of steps is passed create the pipeline
         if pipeline:
             self._generate_pipeline(pipeline)
 
@@ -46,10 +47,6 @@ class Lens:
         self._validate()
         ## TODO: evaluate what library to use for logging
         set_logging_level(logging_level)
-
-    def __call__(self):
-        self._generate_pipeline()
-        self.run()
 
     @log_command
     def add(self, evaluator, id: str = None, metadata: dict = None):
@@ -67,14 +64,17 @@ class Lens:
         if id is None:
             id = f"{evaluator.name}_{str(uuid.uuid4())}"
 
-        self.pipeline[id] = {
-            "evaluator": evaluator(
-                model=self.model,
-                assessment=self.assessment_dataset,
-                training=self.training_dataset,
-            ),
-            "meta": metadata,
-        }
+        try:  # TODO: Add proper info collection system
+            self.pipeline[id] = {
+                "evaluator": evaluator(
+                    model=self.model,
+                    assessment=self.assessment_dataset,
+                    training=self.training_dataset,
+                ),
+                "meta": metadata,
+            }
+        except Exception as e:
+            print(e)
         return self
 
     @log_command
@@ -84,13 +84,14 @@ class Lens:
         return self
 
     @log_command
-    def run(self, pipeline=None):  # TODO: remove pipeline from here!
+    def run(self):
         """
         Run the main loop across all the pipeline steps
         """
+        if len(self.pipeline) == 0:
+            print("Empty pipeline: proceeding with defaults...")
+            self._generate_pipeline(build_list_of_evaluators())
         # Can  pass pipeline directly
-        if pipeline:
-            self.pipeline = pipeline
         for step, details in self.pipeline.items():
             details["evaluator"].evaluate()
             # Populate pipeline results
@@ -137,13 +138,6 @@ class Lens:
 
         return self
 
-    @staticmethod
-    def _get_step_param(step, pos):
-        try:
-            return step[pos]
-        except IndexError:
-            return None
-
     def _validate(self):
         """
         Validate arguments passed to Lens. All checks should be here
@@ -157,3 +151,10 @@ class Lens:
                 raise ValidationError(
                     "Assessment dataset and training dataset should not be the same"
                 )
+
+    @staticmethod
+    def _get_step_param(step, pos):
+        try:
+            return step[pos]
+        except IndexError:
+            return None
