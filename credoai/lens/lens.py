@@ -1,6 +1,7 @@
-import functools
 from inspect import isclass
-from typing import List, Type, Union
+import inspect
+import re
+from typing import Union
 import uuid
 
 from absl import logging
@@ -10,8 +11,6 @@ from credoai.evaluators.evaluator import Evaluator
 from credoai.utils.common import ValidationError
 from credoai.lens.utils import log_command, build_list_of_evaluators
 
-
-## TODO: Display policy checklists -> decide if necessary
 
 ## TODO: Format the list of commands nicely
 
@@ -34,8 +33,8 @@ class Lens:
         pipeline: list = None,
     ) -> None:
         self.model = model
-        self.assessment_dataset = data
-        self.training_dataset = training_data
+        self.assessment = data
+        self.training = training_data
         self.assessment_plan = {}
         self.run_time = False
         self.gov = None
@@ -59,20 +58,25 @@ class Lens:
             )
 
         if not isinstance(evaluator, Evaluator):
-            ## TODO: Make sure instance is correct after evaluator type is defined
             raise TypeError(
-                f"Evaluator has to be of type evaluator... not {type(evaluator)}"
+                f"Evaluator has to be of type evaluator, received {type(evaluator)}"
             )
         if id is None:
             id = f"{evaluator.name}_{str(uuid.uuid4())}"
 
-        try:  # TODO: Add proper info collection system
+        try:  # TODO: Create proper logging to capture validation issues
+            evaluator_required_parameters = re.sub(
+                "[\(\) ]", "", str(inspect.signature(evaluator))
+            ).split(",")
+
+            evaluator_arguments = {
+                k: v
+                for k, v in vars(self).items()
+                if k in evaluator_required_parameters
+            }
+
             self.pipeline[id] = {
-                "evaluator": evaluator(
-                    model=self.model,
-                    assessment=self.assessment_dataset,
-                    training=self.training_dataset,
-                ),
+                "evaluator": evaluator(**evaluator_arguments),
                 "meta": metadata,
             }
         except Exception as e:
@@ -148,8 +152,8 @@ class Lens:
         ------
         ValidationError
         """
-        if self.assessment_dataset and self.training_dataset:
-            if self.assessment_dataset == self.training_dataset:
+        if self.assessment and self.training:
+            if self.assessment == self.training:
                 raise ValidationError(
                     "Assessment dataset and training dataset should not be the same"
                 )
