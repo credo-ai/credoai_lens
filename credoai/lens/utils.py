@@ -1,4 +1,5 @@
 import inspect
+from typing import Callable, List, Union
 from credoai.utils.common import dict_hash
 from credoai.evaluators import *
 import credoai.evaluators
@@ -7,7 +8,17 @@ import credoai.evaluators
 import functools
 
 
-def log_command(fun):
+def log_command(fun: Callable):
+    """
+    Decorator loggin the full isgnature of a function call.
+
+    Parameters
+    ----------
+    fun : Callable
+        A generic function, specifically used for Lens.add, Lens.delete, Lens.run
+
+    """
+
     @functools.wraps(fun)
     def wrapper(self, *args, **kwargs):
         tmp = fun(self, *args, **kwargs)
@@ -18,13 +29,46 @@ def log_command(fun):
     return wrapper
 
 
-def get_command_string(name, arg, kwarg):
+def get_command_string(name: str, arg: dict, kwarg: dict) -> str:
+    """
+    Combines name and function arguments into a signature string.
+
+    Parameters
+    ----------
+    name : str
+        Function's name.
+    arg : dict
+        Function's positional arguments.
+    kwarg : dict
+        Function's keyword argumwents
+
+    Returns
+    -------
+    str
+        Full function signature,e.g., fun_name(fun_arg1, fun_arg1..., fun_kwarg1...)
+    """
+
     arg_parse = [get_arg_info(arg) for arg in arg]
     kwarg_parse = [f"{k}={get_arg_info(v)}" for k, v in kwarg.items()]
     return f"{name}({','.join([x for x in arg_parse + kwarg_parse if x is not None])})"
 
 
-def get_arg_info(arg):
+def get_arg_info(arg: Union[Callable, str, int]) -> Union[str, int]:
+    """
+    Takes a function's arguments and converts them into strings.
+
+    Parameters
+    ----------
+    arg : Union[Callable, str, int]
+        This is quite custom made for usage in Lens(). The positional arguments
+        can be a call to a class, or int/str. This handles all cases.
+
+    Returns
+    -------
+    Union[str,int]
+        Either a string representing the function signature, or str/int
+        depending on the argument.
+    """
     if callable(arg):
         # Get only initialization arguments
         init_args = {
@@ -39,11 +83,27 @@ def get_arg_info(arg):
         return f'"{arg}"'
 
 
-def get_string_of_arguments_from_kwargs(keyarg):
+def get_string_of_arguments_from_kwargs(keyarg: dict) -> str:
+    """
+    Transform positional arguments in string.
+
+    Parameters
+    ----------
+    keyarg : dict
+        Function's positional arguments.
+
+    Returns
+    -------
+    str
+        String representing the positional arguments
+    """
     return ",".join([f"{x[0]}={check_int_str(x[1])}" for x in keyarg.items()])
 
 
-def check_int_str(x):
+def check_int_str(x: Union[int, float, str]) -> Union[int, str]:
+    """
+    Check what type is the argument and reformats in case it is a string.
+    """
     if isinstance(x, (int, float)):
         return x
     elif isinstance(x, str):
@@ -77,15 +137,26 @@ def add_metric_keys(prepared_results):
 
 
 def build_list_of_evaluators():
+    """
+    Takes all the evaluator type objects available in Lens package
+    and converts them to a list of instantiated objects. Only
+    uses default values.
+
+    Returns
+    -------
+    List(Evaluator types)
+        List of instantiated evaluators
+    """
     all_evaluators = []
     for x in dir(credoai.evaluators):
         try:
+            evaluated = eval(x)
             if (
-                inspect.isclass(eval(x))
-                and issubclass(eval(x), Evaluator)
-                and not inspect.isabstract(eval(x))
+                inspect.isclass(evaluated)
+                and issubclass(evaluated, Evaluator)
+                and not inspect.isabstract(evaluated)
             ):
-                all_evaluators.append(eval(x))
+                all_evaluators.append(evaluated)
         except NameError:
             pass
     return [x() for x in all_evaluators]
