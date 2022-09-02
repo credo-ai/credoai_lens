@@ -1,3 +1,4 @@
+import functools
 from inspect import isclass
 from typing import List, Type, Union
 import uuid
@@ -47,6 +48,7 @@ class Lens:
         self._validate()
         ## TODO: evaluate what library to use for logging
         set_logging_level(logging_level)
+        self.command_list = []
 
     @log_command
     def add(self, evaluator, id: str = None, metadata: dict = None):
@@ -107,7 +109,7 @@ class Lens:
         return self.pipeline_results
 
     def get_command_list(self):
-        return self.add.command_list + self.remove.command_list + self.run.command_list
+        return self.command_list
 
     def push(self):
         """

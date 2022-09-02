@@ -6,27 +6,22 @@ import credoai.evaluators
 
 import functools
 
-command_list = []  # BUG :this doesn't look right, revisit
-
 
 def log_command(fun):
     @functools.wraps(fun)
-    def wrapper(*args, **kwargs):
-        tmp = fun(*args, **kwargs)
+    def wrapper(self, *args, **kwargs):
+        tmp = fun(self, *args, **kwargs)
         name = fun.__name__
-        wrapper.command_list.append(get_command_string(name, args, kwargs))
+        self.command_list.append(get_command_string(name, args, kwargs))
         return tmp
 
-    wrapper.command_list = []
     return wrapper
 
 
 def get_command_string(name, arg, kwarg):
     arg_parse = [get_arg_info(arg) for arg in arg]
     kwarg_parse = [f"{k}={get_arg_info(v)}" for k, v in kwarg.items()]
-    return (
-        f"{name}({','.join([x for x in arg_parse[1:] + kwarg_parse if x is not None])})"
-    )
+    return f"{name}({','.join([x for x in arg_parse + kwarg_parse if x is not None])})"
 
 
 def get_arg_info(arg):
