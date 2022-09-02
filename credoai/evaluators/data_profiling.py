@@ -34,8 +34,7 @@ class DataProfiling(Evaluator):
         self.dataset_name = dataset_name
         self.results = {}
 
-    def __call__(self, model, assessment, training):
-        self.model = model
+    def __call__(self, assessment, training):
         self.test = assessment
         self.train = training
 

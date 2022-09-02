@@ -52,7 +52,6 @@ class DataFairness(Evaluator):
     name = "DataFairness"
 
     def __call__(self, model, assessment, training):
-        self.model = model
         self.test = assessment
         self.train = training
 
