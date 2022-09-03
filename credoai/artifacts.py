@@ -276,13 +276,33 @@ class CredoGovernance:
         If an AI solution has been set, the model will be registered to that
         solution.
         """
-        self.model_id = self._api.register_model(name=model_name)["id"]
+        try:
+            model = self._api.register_model(name=model_name)
+            if model is None:
+                return "registration_failed"
 
-        if self.use_case_id:
+            self.model_id = model["id"]
+
+            if self.use_case_id is None:
+                return "use_case_id_not_exist"
+
+            # Get use_case
+            use_case = self._api.get_use_case(self.use_case_id)
+
+            # Check use case includes model
+            for mc in use_case["model_configs"]:
+                if mc["model_id"] == model["id"]:
+                    return "already_registered"
+
             logging.info(
                 f"Registering model ({model_name}) to Use Case ({self.use_case_id})"
             )
             self._api.register_model_to_usecase(self.use_case_id, self.model_id)
+
+            return "registered"
+
+        except Exception as e:
+            return "registration_failed"
 
 
 class CredoModel:

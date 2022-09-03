@@ -108,6 +108,13 @@ class CredoApi:
             )
         return assessment_spec
 
+    def get_use_case(self, use_case_id: str):
+        """
+        Get use_case by id
+        """
+        endpoint = f"use_cases/{use_case_id}?include=model_configs"
+        return self._client.get(endpoint)
+
     def get_dataset_by_name(self, name: str):
         """
         Get dataset by name
