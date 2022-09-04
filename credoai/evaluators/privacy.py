@@ -115,11 +115,6 @@ class Privacy(Evaluator):
             Key: metric name
             Value: metric value
         """
-        ## TODO: Decide on re-evaluation
-        # if self.results:
-        #     raise ValueError(
-        #         "Evaluation was already run, change override flag to overried"
-        #     )
 
         attacks_to_run = SUPPORTED_MEMBERSHIP_ATTACKS
         if self.attack_feature:

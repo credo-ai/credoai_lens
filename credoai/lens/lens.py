@@ -64,24 +64,18 @@ class Lens:
         if id is None:
             id = f"{evaluator.name}_{str(uuid.uuid4())}"
 
-        try:  # TODO: Create proper logging to capture validation issues
-            evaluator_required_parameters = re.sub(
-                "[\(\) ]", "", str(inspect.signature(evaluator))
-            ).split(",")
+        evaluator_required_parameters = re.sub(
+            "[\(\) ]", "", str(inspect.signature(evaluator))
+        ).split(",")
 
-            evaluator_arguments = {
-                k: v
-                for k, v in vars(self).items()
-                if k in evaluator_required_parameters
-            }
+        evaluator_arguments = {
+            k: v for k, v in vars(self).items() if k in evaluator_required_parameters
+        }
 
-            self.pipeline[id] = {
-                "evaluator": evaluator(**evaluator_arguments),
-                "meta": metadata,
-            }
-        except Exception as e:
-            print(e)
-        return self
+        self.pipeline[id] = {
+            "evaluator": evaluator(**evaluator_arguments),
+            "meta": metadata,
+        }
 
     @log_command
     def remove(self, id: str):
