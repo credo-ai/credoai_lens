@@ -13,7 +13,6 @@ from credoai.lens.utils import log_command, build_list_of_evaluators
 
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 
-## TODO: Format the list of commands nicely
 
 ## TODO: Decide Metadata policy, connected to governance and evidence creation!
 
