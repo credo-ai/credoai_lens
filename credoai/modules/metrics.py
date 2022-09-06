@@ -1,229 +1,169 @@
-import numpy as np
-import scipy.stats as st
-from fairlearn.metrics import make_derived_metric, true_positive_rate
-from sklearn import metrics as sk_metrics
-from sklearn.metrics import accuracy_score, confusion_matrix
-from sklearn.utils import check_consistent_length
+import re
+from dataclasses import dataclass
+from typing import Any, Callable, List, Optional
+
+from absl import logging
+from credoai.modules.metric_constants import *
+from credoai.utils.common import ValidationError, humanize_label, remove_suffix
 
 
-def general_wilson(p, n, z=1.96):
-    """Return lower and upper bound using Wilson Interval.
+@dataclass
+class Metric:
+    """Class to define metrics
+
+    Metric categories determine what kind of use the metric is designed for. Credo AI assumes
+    that metric signatures either correspond with scikit-learn or fairlearn method signatures,
+    in the case of binary/multiclass classification, regression, clustering and fairness metrics.
+
+    Dataset metrics are used as documentation placeholders and define no function.
+    See DATASET_METRICS for examples. CUSTOM metrics have no expectations and will
+    not be automatically used by Lens modules.
+
+    Metric Categories:
+
+    * {BINARY|MULTICLASS}_CLASSIFICATION: metrics like `scikit-learn's classification metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
+    * REGRESSION: metrics like `scikit-learn's regression metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
+    * CLUSTERING: metrics like `scikit-learn's clustering metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
+    #fairlearn.metrics.equalized_odds_ratio>`_
+    * FAIRNESS: metrics like `fairlearn's equalized odds metric <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html
+    * DATASET: metrics intended
+    * CUSTOM: No expectations for fun
+
     Parameters
     ----------
-    p : float
-        Proportion of successes.
-    n : int
-        Total number of trials.
-    digits : int
-        Digits of precisions to which the returned bound will be rounded
-    z : float
-        Z-score, which indicates the number of standard deviations of confidence
-    Returns
-    -------
-        np.ndarray
-        Array of length 2 of form: [lower_bound, upper_bound]
+    name : str
+        The primary name of the metric
+    metric_category : str
+        defined to be one of the METRIC_CATEGORIES, above
+    fun : callable, optional
+        The function definition of the metric. If none, the metric cannot be used and is only
+        defined for documentation purposes
+    takes_prob : bool, optional
+        Whether the function takes the decision probabilities
+        instead of the predicted class, as for ROC AUC. Similar to `needs_proba` used by
+        `sklearn <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.make_scorer.html>`_
+        by default False
+    equivalent_names : list
+        list of other names for metric
     """
-    denominator = 1 + z**2 / n
-    centre_adjusted_probability = p + z * z / (2 * n)
-    adjusted_standard_deviation = np.sqrt((p * (1 - p) + z * z / (4 * n))) / np.sqrt(n)
-    lower_bound = (
-        centre_adjusted_probability - z * adjusted_standard_deviation
-    ) / denominator
-    upper_bound = (
-        centre_adjusted_probability + z * adjusted_standard_deviation
-    ) / denominator
-    return np.array([lower_bound, upper_bound])
+
+    name: str
+    metric_category: str
+    fun: Optional[Callable[[Any], Any]] = None
+    takes_prob: Optional[bool] = False
+    equivalent_names: Optional[list[str]] = None
+
+    def __post_init__(self):
+        if self.equivalent_names is None:
+            self.equivalent_names = {self.name}
+        else:
+            self.equivalent_names = set(self.equivalent_names + [self.name])
+        self.metric_category = self.metric_category.upper()
+        if self.metric_category not in METRIC_CATEGORIES:
+            raise ValidationError(f"metric type ({self.metric_category}) isn't valid")
+        self.humanized_type = humanize_label(self.name)
+
+    def __call__(self, **kwargs):
+        self.fun(**kwargs)
+
+    def get_fun_doc(self):
+        if self.fun:
+            return self.fun.__doc__
+
+    def print_fun_doc(self):
+        print(self.get_fun_doc())
+
+    def is_metric(
+        self, metric_name: str, metric_categories: Optional[List[str]] = None
+    ):
+        metric_name = self.standardize_metric_name(metric_name)
+        if self.equivalent_names:
+            name_match = metric_name in self.equivalent_names
+        if metric_categories is not None:
+            return name_match and self.metric_category in metric_categories
+        return name_match
+
+    def standardize_metric_name(self, metric):
+        # standardize
+        # lower, remove spaces, replace delimiters with underscores
+        standard = "_".join(re.split("[- \s _]", re.sub("\s\s+", " ", metric.lower())))
+        return standard
 
 
-def wilson_ci(num_hits, num_total, confidence=0.95):
-    """Convenience wrapper for general_wilson"""
-    z = st.norm.ppf((1 + confidence) / 2)
-    p = num_hits / num_total
-    return general_wilson(p, num_total, z=z)
+def metrics_from_dict(dict, metric_category, probability_functions, metric_equivalents):
+    # Convert to metric objects
+    metrics = {}
+    for metric_name, fun in dict.items():
+        equivalents = metric_equivalents.get(metric_name, [])  # get equivalent names
+        # whether the metric takes probabities instead of predictions
+        takes_prob = metric_name in probability_functions
+        metric = Metric(metric_name, metric_category, fun, takes_prob, equivalents)
+        metrics[metric_name] = metric
+    return metrics
 
 
-def confusion_wilson(y_true, y_pred, metric="tpr", confidence=0.95):
-    """Return Wilson Interval bounds for performance metrics
-
-    Metrics derived from confusion matrix
-
-    Parameters
-    ----------
-    y_true : array-like of shape (n_samples,)
-        Ground truth labels
-    y_pred : array-like of shape (n_samples,)
-        Predicted labels
-    metric : string
-        indicates kind of performance metric. Must be
-        tpr, tnr, fpr, or fnr. "tpr" is true-positive-rate,
-        "fnr" is false negative rate, etc.
-    Returns
-    -------
-        np.ndarray
-        Array of length 2 of form: [lower_bound, upper_bound]
-    """
-    check_consistent_length(y_true, y_pred)
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-    negatives = tn + fp
-    positives = tp + fn
-    if metric == "true_positive_rate":
-        numer = tp
-        denom = positives
-    elif metric == "true_negative_rate":
-        numer = tn
-        denom = negatives
-    elif metric == "false_positive_rate":
-        numer = fp
-        denom = negatives
-    elif metric == "false_negative_rate":
-        numer = fn
-        denom = positives
-    else:
-        raise ValueError(
-            """
-        Metric must be one of the following:
-            -true_positive_rate
-            -true_negative_rate
-            -false_positive_rate
-            -false_negative_rate
-        """
-        )
-
-    bounds = wilson_ci(numer, denom, confidence)
-    return bounds
-
-
-def accuracy_wilson(y_true, y_pred, confidence=0.95):
-    """Return Wilson Interval bounds for accuracy metric.
-    Parameters
-    ----------
-    y_true : array-like of shape (n_samples,)
-        Ground truth labels
-    y_pred : array-like of shape (n_samples,)
-        Predicted labels
-    Returns
-    -------
-        np.ndarray
-        Array of length 2 of form: [lower_bound, upper_bound]
-    """
-    check_consistent_length(y_true, y_pred)
-    score = accuracy_score(y_true, y_pred)
-    bounds = general_wilson(score, len(y_true), confidence)
-    return bounds
-
-
-# metric definitions
-
-
-def false_discovery_rate(y_true, y_pred, **kwargs):
-    """Compute the false discovery rate.
-
-    False discovery rate is 1-precision, or ``fp / (tp + fp)`` where ``tp`` is the number of
-    true positives and ``fp`` the number of false positives. The false discovery rate is
-    intuitively the rate at which the classifier will be wrong when
-    labeling an example as positive.
-
-    The best value is 0 and the worst value is 1.
+def find_metrics(metric_name, metric_category=None):
+    """Find metric by name and metric category
 
     Parameters
     ----------
-    y_true : 1d array-like, or label indicator array / sparse matrix
-        Ground truth (correct) target values.
-
-    y_pred : 1d array-like, or label indicator array / sparse matrix
-        Estimated targets as returned by a classifier.
-    kwargs :  key, value mappings
-        Other keyword arguments are passed through
-        to scikit-learn.metrics.precision
-    """
-    return 1.0 - sk_metrics.precision_score(y_true, y_pred, **kwargs)
-
-
-def false_omission_rate(y_true, y_pred, **kwargs):
-    """Compute the false omission rate.
-
-    False omission rate is ``fn / (tn + fn)`` where ``fn`` is the number of
-    false negatives and ``tn`` the number of true negatives. The false omission rate is
-    intuitively the rate at which the classifier will be wrong when
-    labeling an example as negative.
-
-    The best value is 0 and the worst value is 1.
-
-    Parameters
-    ----------
-    y_true : 1d array-like, or label indicator array / sparse matrix
-        Ground truth (correct) target values.
-
-    y_pred : 1d array-like, or label indicator array / sparse matrix
-        Estimated targets as returned by a classifier.
-    kwargs :  key, value mappings
-        Other keyword arguments are passed through
-        to scikit-learn.metrics.precision
-    """
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-    return fn / (fn + tn)
-
-
-def equal_opportunity_difference(
-    y_true, y_pred, *, sensitive_features, method="between_groups", sample_weight=None
-) -> float:
-    """Calculate the equal opportunity difference.
-
-    Equivalent to the `true_positive_rate_difference` defined as the difference between the
-    largest and smallest of :math:`P[h(X)=1 | A=a, Y=1]`, across all values :math:`a`
-    of the sensitive feature(s).
-
-    Parameters
-    ----------
-    y_true : array-like
-        Ground truth (correct) labels.
-    y_pred : array-like
-        Predicted labels :math:`h(X)` returned by the classifier.
-    sensitive_features :
-        The sensitive features over which demographic parity should be assessed
-    method : str
-        How to compute the differences. See :func:`fairlearn.metrics.MetricFrame.ratio`
-        for details.
-    sample_weight : array-like
-        The sample weights
-    Returns
-    -------
-    float
-        The average odds difference
-    """
-    fun = make_derived_metric(metric=true_positive_rate, transform="difference")
-    return fun(
-        y_true,
-        y_pred,
-        sensitive_features=sensitive_features,
-        method=method,
-        sample_weight=sample_weight,
-    )
-
-
-def ks_statistic(y_true, y_pred) -> float:
-    """Performs the two-sample Kolmogorov-Smirnov test (two-sided)
-
-    The test compares the underlying continuous distributions F(x) and G(x) of two independent samples.
-    The null hypothesis is that the two distributions are identical, F(x)=G(x)
-    If the KS statistic is small or the p-value is high,
-    then we cannot reject the null hypothesis in favor of the alternative.
-
-    For practical purposes, if the statistic value is higher than the critical value, the two distributions are different.
-
-    Parameters
-    ----------
-    y_true : array-like
-        Ground truth (correct) labels.
-    y_pred : array-like
-        Predicted labels :math:`h(X)` returned by the classifier.
+    metric_name : str
+        metric name to search for
+    metric_category : str or list, optional
+        category or list of categories to constrain search to, by default None
 
     Returns
     -------
-    float
-        KS statistic value
+    list
+        list of Metrics
     """
+    if isinstance(metric_category, str):
+        metric_category = [metric_category]
+    matched_metrics = [
+        i for i in ALL_METRICS if i.is_metric(metric_name, metric_category)
+    ]
+    return matched_metrics
 
-    ks_stat = st.ks_2samp(y_true, y_pred).statistic
 
-    return ks_stat
+# Convert To List of Metrics
+BINARY_CLASSIFICATION_METRICS = metrics_from_dict(
+    BINARY_CLASSIFICATION_FUNCTIONS,
+    "BINARY_CLASSIFICATION",
+    PROBABILITY_FUNCTIONS,
+    METRIC_EQUIVALENTS,
+)
+
+REGRESSION_METRICS = metrics_from_dict(
+    REGRESSION_FUNCTIONS, "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS
+)
+
+FAIRNESS_METRICS = metrics_from_dict(
+    FAIRNESS_FUNCTIONS, "FAIRNESS", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS
+)
+
+DATASET_METRICS = {m: Metric(m, "DATASET", None, False) for m in DATASET_METRIC_TYPES}
+
+PRIVACY_METRICS = {m: Metric(m, "PRIVACY", None, False) for m in PRIVACY_METRIC_TYPES}
+
+SECURITY_METRICS = {
+    m: Metric(m, "SECURITY", None, False) for m in SECURITY_METRIC_TYPES
+}
+
+
+METRIC_NAMES = (
+    list(BINARY_CLASSIFICATION_METRICS.keys())
+    + list(FAIRNESS_METRICS.keys())
+    + list(DATASET_METRICS.keys())
+    + list(PRIVACY_METRICS.keys())
+    + list(SECURITY_METRICS.keys())
+    + list(REGRESSION_METRICS.keys())
+)
+
+ALL_METRICS = (
+    list(BINARY_CLASSIFICATION_METRICS.values())
+    + list(FAIRNESS_METRICS.values())
+    + list(DATASET_METRICS.values())
+    + list(PRIVACY_METRICS.values())
+    + list(SECURITY_METRICS.values())
+    + list(REGRESSION_METRICS.values())
+)

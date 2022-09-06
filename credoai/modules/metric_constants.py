@@ -1,6 +1,6 @@
 from functools import partial
 
-from credoai.modules.metrics import (
+from credoai.modules.credoai_metrics import (
     equal_opportunity_difference,
     false_discovery_rate,
     false_omission_rate,
