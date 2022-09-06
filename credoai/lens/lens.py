@@ -13,7 +13,7 @@ from credoai.lens.utils import log_command, build_list_of_evaluators
 
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 # Custom type
-Pipeline_type = List[Union[Evaluator, tuple[Evaluator, str, dict]]]
+Pipeline = List[Union[Evaluator, tuple[Evaluator, str, dict]]]
 
 
 ## TODO: Decide Metadata policy, connected to governance and evidence creation!
@@ -26,7 +26,7 @@ class Lens:
         model: Model = None,
         data: Data = None,
         training_data: Data = None,
-        pipeline: Pipeline_type = None,
+        pipeline: Pipeline = None,
     ) -> None:
         """
         Initializer for the Lens class.
@@ -51,7 +51,6 @@ class Lens:
         self.assessment = data
         self.training = training_data
         self.assessment_plan: dict = {}
-        self.run_time = False
         self.gov = None
         self.pipeline: dict = {}
         self.command_list: list = []

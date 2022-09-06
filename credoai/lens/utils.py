@@ -50,10 +50,11 @@ def get_command_string(name: str, arg: dict, kwarg: dict) -> str:
 
     arg_parse = [get_arg_info(arg) for arg in arg]
     kwarg_parse = [f"{k}={get_arg_info(v)}" for k, v in kwarg.items()]
-    return f"{name}({','.join([x for x in arg_parse + kwarg_parse if x is not None])})"
+    all_arguments = arg_parse + kwarg_parse
+    return f"{name}({','.join([x for x in all_arguments if x is not None])})"
 
 
-def get_arg_info(arg: Union[Callable, str, int]) -> Union[str, int]:
+def get_arg_info(arg: Union[Callable, str, int]) -> str:
     """
     Takes a function's arguments and converts them into strings.
 
@@ -78,7 +79,7 @@ def get_arg_info(arg: Union[Callable, str, int]) -> Union[str, int]:
         }
         return f"{type(arg).__name__}({get_string_of_arguments_from_kwargs(init_args)})"
     elif isinstance(arg, int):
-        return arg
+        return str(arg)
     elif isinstance(arg, str):
         return f'"{arg}"'
 
@@ -100,7 +101,7 @@ def get_string_of_arguments_from_kwargs(keyarg: dict) -> str:
     return ",".join([f"{x[0]}={check_int_str(x[1])}" for x in keyarg.items()])
 
 
-def check_int_str(x: Union[int, float, str]) -> Union[int, str]:
+def check_int_str(x: Union[int, float, str]) -> Union[int, str, float]:
     """
     Check what type is the argument and reformats in case it is a string.
     """
