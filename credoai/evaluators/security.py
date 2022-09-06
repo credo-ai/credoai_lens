@@ -45,9 +45,6 @@ class Security(Evaluator):
 
     name = "Security"
 
-    def __init__(self):
-        pass
-
     def __call__(self, model, assessment, training):
         self.model = model
         self.assessment = assessment

@@ -50,8 +50,8 @@ class DummyClassifier:
         self.predict_output = predict_output
         self.predict_proba_output = predict_proba_output
 
-    def predict(self, X):
+    def predict(self, X=None):
         return self.predict_output
 
-    def predict_proba(self, X):
+    def predict_proba(self, X=None):
         return self.predict_proba_output
