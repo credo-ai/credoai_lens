@@ -79,7 +79,7 @@ class Privacy(Evaluator):
         # Validates and assigns attack feature/s
         self._validate_attack_feature(attack_feature, attack_feature_name)
 
-    name = "privacy"
+    name = "Privacy"
 
     def __call__(self, model, assessment, training):
         self.model = model
@@ -141,11 +141,11 @@ class Privacy(Evaluator):
     def _validate_arguments(self):
         # Check types, all three are needed -> None is not allowed in this case
         if not isinstance(self.train, TabularData):
-            raise ValidationError("""Training data is not of type TabularData.""")
+            raise ValidationError("Training data is not of type TabularData.")
         if not isinstance(self.test, TabularData):
-            raise ValidationError("""Test data is not of type TabularData""")
+            raise ValidationError("Test data is not of type TabularData")
         if not isinstance(self.model, ClassificationModel):
-            raise ValidationError("""Model is not of type ClassificationModel.""")
+            raise ValidationError("Model is not of type ClassificationModel.")
         # Check attack feature in dataset
         if self.attack_feature:
             if not self.attack_feature in self.train.X.columns:

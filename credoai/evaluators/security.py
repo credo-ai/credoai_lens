@@ -1,7 +1,5 @@
-import copy
 import os
-import warnings
-from xml.dom import ValidationErr
+
 
 import numpy as np
 import pandas as pd
@@ -48,7 +46,7 @@ class Security(Evaluator):
     name = "Security"
 
     def __init__(self):
-        super().__init__()
+        pass
 
     def __call__(self, model, assessment, training):
         self.model = model
@@ -72,9 +70,9 @@ class Security(Evaluator):
         if self.model is None:
             raise ValidationError("Missing model")
         if self.assessment is None:
-            raise ValidationErr("Missing assessment/test dataset")
+            raise ValidationError("Missing assessment/test dataset")
         if self.training is None:
-            raise ValidationErr("Missing training dataset")
+            raise ValidationError("Missing training dataset")
         return self
 
     def evaluate(self):

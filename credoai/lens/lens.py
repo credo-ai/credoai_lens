@@ -4,32 +4,27 @@ import re
 from typing import Union
 import uuid
 
-from absl import logging
+import logging
 from credoai.artifacts import Data
 from credoai.artifacts import Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.utils.common import ValidationError
 from credoai.lens.utils import log_command, build_list_of_evaluators
 
+logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 
 ## TODO: Format the list of commands nicely
 
 ## TODO: Decide Metadata policy, connected to governance and evidence creation!
 
 
-def set_logging_level(logging_level):
-    """Alias for absl.logging.set_verbosity"""
-    logging.set_verbosity(logging_level)
-
-
 class Lens:
     def __init__(
         self,
-        logging_level: Union[str, int] = "info",
         *,
-        model: Model = (None,),
-        data: Data = (None,),
-        training_data: Data = (None,),
+        model: Model = None,
+        data: Data = None,
+        training_data: Data = None,
         pipeline: list = None,
     ) -> None:
         self.model = model
@@ -39,15 +34,13 @@ class Lens:
         self.run_time = False
         self.gov = None
         self.pipeline = {}
+        self.command_list = []
         # If a list of steps is passed create the pipeline
         if pipeline:
             self._generate_pipeline(pipeline)
 
         self.pipeline_results = []
         self._validate()
-        ## TODO: evaluate what library to use for logging
-        set_logging_level(logging_level)
-        self.command_list = []
 
     @log_command
     def add(self, evaluator, id: str = None, metadata: dict = None):
@@ -62,8 +55,10 @@ class Lens:
                 f"Evaluator has to be of type evaluator, received {type(evaluator)}"
             )
         if id is None:
+            ## TODO: Check if it makes sense to hash arguments to ensure uniqueness
             id = f"{evaluator.name}_{str(uuid.uuid4())}"
 
+        ## Define necessary arguments for evaluator
         evaluator_required_parameters = re.sub(
             "[\(\) ]", "", str(inspect.signature(evaluator))
         ).split(",")
@@ -71,11 +66,16 @@ class Lens:
         evaluator_arguments = {
             k: v for k, v in vars(self).items() if k in evaluator_required_parameters
         }
+        ## Attampt pipe addition
+        try:
+            self.pipeline[id] = {
+                "evaluator": evaluator(**evaluator_arguments),
+                "meta": metadata,
+            }
+            logging.info(f"Evaluator {evaluator.name} addedd to pipeline.")
 
-        self.pipeline[id] = {
-            "evaluator": evaluator(**evaluator_arguments),
-            "meta": metadata,
-        }
+        except ValidationError as e:
+            logging.info(f"Evaluator {evaluator.name} NOT added to the pipeline: {e}")
 
     @log_command
     def remove(self, id: str):
@@ -89,8 +89,9 @@ class Lens:
         Run the main loop across all the pipeline steps
         """
         if len(self.pipeline) == 0:
-            print("Empty pipeline: proceeding with defaults...")
-            self._generate_pipeline(build_list_of_evaluators())
+            logging.info("Empty pipeline: proceeding with defaults...")
+            all_evaluators = build_list_of_evaluators()
+            self._generate_pipeline(all_evaluators)
         # Can  pass pipeline directly
         for step, details in self.pipeline.items():
             details["evaluator"].evaluate()
@@ -107,7 +108,7 @@ class Lens:
         return self.pipeline_results
 
     def get_command_list(self):
-        return self.command_list
+        return print("\n".join(self.command_list))
 
     def push(self):
         """
