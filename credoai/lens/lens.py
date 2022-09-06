@@ -1,7 +1,7 @@
 from inspect import isclass
 import inspect
 import re
-from typing import Union
+from typing import List, Union
 import uuid
 
 import logging
@@ -12,6 +12,8 @@ from credoai.utils.common import ValidationError
 from credoai.lens.utils import log_command, build_list_of_evaluators
 
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
+# Custom type
+Pipeline_type = List[Union[Evaluator, tuple[Evaluator, str, dict]]]
 
 
 ## TODO: Decide Metadata policy, connected to governance and evidence creation!
@@ -24,25 +26,68 @@ class Lens:
         model: Model = None,
         data: Data = None,
         training_data: Data = None,
-        pipeline: list = None,
+        pipeline: Pipeline_type = None,
     ) -> None:
+        """
+        Initializer for the Lens class.
+
+        Parameters
+        ----------
+        model : Model, optional
+            Credo Model, by default None
+        data : Data, optional
+            Assessment/test data, by default None
+        training_data : Data, optional
+            Training data, extra dataset used by some of the evaluators, by default None
+        pipeline : Pipeline_type, optional, default None
+            User can add a pipeline using a list of steps. Steps can be in 2 formats:
+            - tuple: max length = 3. First element is the instantiated evaluator,
+            second element is the step id (optional), third elemnt(optional) is metadata (dict)
+            associated to the step.
+            - Evaluator. If the user does not intend to specify id or metadata, instantiated
+            evaluators can be put directly in the list.
+        """
         self.model = model
         self.assessment = data
         self.training = training_data
-        self.assessment_plan = {}
+        self.assessment_plan: dict = {}
         self.run_time = False
         self.gov = None
-        self.pipeline = {}
-        self.command_list = []
+        self.pipeline: dict = {}
+        self.command_list: list = []
         # If a list of steps is passed create the pipeline
         if pipeline:
             self._generate_pipeline(pipeline)
 
-        self.pipeline_results = []
+        self.pipeline_results: list = []
         self._validate()
 
     @log_command
-    def add(self, evaluator, id: str = None, metadata: dict = None):
+    def add(self, evaluator: Evaluator, id: str = None, metadata: dict = None):
+        """
+        Add a single step to the pipeline.
+
+        The function also passess extra arguments to the instantiated evaluator via
+        a call to the __call__ method of the evaluator. Only the arguments required
+        by the evaluator are provided.
+
+        Parameters
+        ----------
+        evaluator : Evaluator
+            Instantiated Credo Evaluator.
+        id : str, optional
+            A string to identify the step. If not provided one is randomly
+            generated, by default None
+        metadata : dict, optional
+            Any metadata associated to the step the user wants to add, by default None
+
+        Raises
+        ------
+        ValueError
+            Ids cannot be duplicated in the pipeline.
+        TypeError
+            The first object passed to the add method needs to be a Credo Evaluator.
+        """
         ## Validate same identifier doesn't exist already
         if id in self.pipeline:
             raise ValueError(
@@ -72,12 +117,19 @@ class Lens:
                 "meta": metadata,
             }
             logging.info(f"Evaluator {evaluator.name} addedd to pipeline.")
-
         except ValidationError as e:
             logging.info(f"Evaluator {evaluator.name} NOT added to the pipeline: {e}")
 
     @log_command
     def remove(self, id: str):
+        """
+        Remove a step from the pipeline based on the id.
+
+        Parameters
+        ----------
+        id : str
+            Id of the step to remove
+        """
         # Find position
         del self.pipeline[id]
         return self
@@ -85,7 +137,7 @@ class Lens:
     @log_command
     def run(self):
         """
-        Run the main loop across all the pipeline steps
+        Run the main loop across all the pipeline steps.
         """
         if len(self.pipeline) == 0:
             logging.info("Empty pipeline: proceeding with defaults...")
@@ -111,30 +163,50 @@ class Lens:
 
     def push(self):
         """
-        1. Convert internal evidence to platform evidence
+        Placeholder!
+        1. Convert internal evidence to platform evidence (unless this is already part of
+        each specific evaluator)
         2. Push to platform, main code to do that should be in the governance folder
         """
         pass
 
-    def _generate_pipeline(self, pipeline=None):
-        """Automatically generate pipeline"""
+    def pull(self):
+        """
+        Placeholder!
+        1. Gets the assessment plan from the platform.
+        """
+        pass
+
+    def _generate_pipeline(self, pipeline):
+        """
+        Populates the pipeline starting from a list of steps.
+
+        Parameters
+        ----------
+        pipeline : Pipeline_type, optional
+            List of steps, by default None
+
+        Raises
+        ------
+        ValidationError
+            Each evaluator in a step needs to be already instantiated by the user.
+        ValueError
+            Id needs to be a string.
+        """
         # Create pipeline from list of steps
-        if pipeline:
-            for step in pipeline:
-                if not isinstance(step, tuple):
-                    step = (step,)
-                evaltr = self._get_step_param(step, 0)
-                id = self._get_step_param(step, 1)
-                meta = self._get_step_param(step, 2)
-                if isclass(evaltr):
-                    raise ValidationError(
-                        f"Evaluator in step {step} needs to be instantiated"
-                    )
-                if not (isinstance(id, str) or id is None):
-                    raise ValidationError(
-                        f"Id in step {step} must be a string, received {id}"
-                    )
-                self.add(evaltr, id, meta)
+        for step in pipeline:
+            if not isinstance(step, tuple):
+                step = (step,)
+            evaltr = self._get_step_param(step, 0)
+            id = self._get_step_param(step, 1)
+            meta = self._get_step_param(step, 2)
+            if isclass(evaltr):
+                raise ValidationError(
+                    f"Evaluator in step {step} needs to be instantiated"
+                )
+            if not (isinstance(id, str) or id is None):
+                raise ValueError(f"Id in step {step} must be a string, received {id}")
+            self.add(evaltr, id, meta)
 
         return self
 
