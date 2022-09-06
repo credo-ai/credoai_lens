@@ -54,10 +54,10 @@ class Lens:
         self.gov = None
         self.pipeline: dict = {}
         self.command_list: list = []
+        self.logger = logging.getLogger(self.__class__.__name__)
         # If a list of steps is passed create the pipeline
         if pipeline:
             self._generate_pipeline(pipeline)
-
         self.pipeline_results: list = []
         self._validate()
 
@@ -115,9 +115,11 @@ class Lens:
                 "evaluator": evaluator(**evaluator_arguments),
                 "meta": metadata,
             }
-            logging.info(f"Evaluator {evaluator.name} addedd to pipeline.")
+            self.logger.info(f"Evaluator {evaluator.name} addedd to pipeline.")
         except ValidationError as e:
-            logging.info(f"Evaluator {evaluator.name} NOT added to the pipeline: {e}")
+            self.logger.info(
+                f"Evaluator {evaluator.name} NOT added to the pipeline: {e}"
+            )
 
     @log_command
     def remove(self, id: str):
