@@ -162,8 +162,10 @@ class CredoGovernance:
             which will be applied to the model
 
         """
+        registration_logs = {}
         if model_name:
-            self._register_model(model_name)
+            model_reg_logs = self._register_model(model_name)
+            registration_logs['model_reg_logs'] = model_reg_logs
         if dataset_name:
             self._register_dataset(dataset_name)
         if training_dataset_name:
@@ -180,6 +182,8 @@ class CredoGovernance:
             )
             if self.assessment_spec.get("assessment_plan", {}):
                 logging.info("Assessment plan downloaded after artifact registration")
+
+        return registration_logs
 
     def export_assessment_results(
         self,
@@ -279,7 +283,7 @@ class CredoGovernance:
         try:
             model = self._api.register_model(name=model_name)
             if model is None:
-                return "registration_failed"
+                return "model_registration_failed"
 
             self.model_id = model["id"]
 
@@ -292,17 +296,17 @@ class CredoGovernance:
             # Check use case includes model
             for mc in use_case["model_configs"]:
                 if mc["model_id"] == model["id"]:
-                    return "already_registered"
+                    return "model_already_registered"
 
             logging.info(
                 f"Registering model ({model_name}) to Use Case ({self.use_case_id})"
             )
             self._api.register_model_to_usecase(self.use_case_id, self.model_id)
 
-            return "registered"
+            return "model_registered"
 
         except Exception as e:
-            return "registration_failed"
+            return "model_registration_failed"
 
 
 class CredoModel:
