@@ -1,22 +1,21 @@
 from warnings import filterwarnings
 
 import numpy as np
-from art.attacks.inference.membership_inference import (
-    MembershipInferenceBlackBox,
-    MembershipInferenceBlackBoxRuleBased,
-)
 from art.attacks.inference.attribute_inference import (
     AttributeInferenceBaseline,
     AttributeInferenceBlackBox,
 )
+from art.attacks.inference.membership_inference import (
+    MembershipInferenceBlackBox,
+    MembershipInferenceBlackBoxRuleBased,
+)
 from art.estimators.classification import BlackBoxClassifier
-from credoai.artifacts import TabularData, ClassificationModel
+from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import Evaluator
+from credoai.utils.common import ValidationError
 from pandas import Series
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-
-from credoai.utils.common import ValidationError
 
 filterwarnings("ignore")
 
@@ -81,22 +80,19 @@ class Privacy(Evaluator):
 
     name = "Privacy"
 
-    def __call__(self, model, assessment, training):
-        self.model = model
-        self.test = assessment
-        self.train = training
-        # Run validation
-        self._validate_arguments()
+    def _setup(self, model, assessment_data, training_data):
         # Data prep
-        self.x_train = self.train.X.to_numpy()
-        self.y_train = self.train.y.to_numpy()
-        self.x_test = self.test.X.to_numpy()
-        self.y_test = self.test.y.to_numpy()
+        self.x_train = self.training_data.X.to_numpy()
+        self.y_train = self.training_data.y.to_numpy()
+        self.x_test = self.assessment_data.X.to_numpy()
+        self.y_test = self.assessment_data.y.to_numpy()
         if isinstance(self.attack_feature, str):
             (
                 self.attack_feature_name,
                 self.attack_feature,
-            ) = self.attack_feature, self.train.X.columns.get_loc(self.attack_feature)
+            ) = self.attack_feature, self.training_data.X.columns.get_loc(
+                self.attack_feature
+            )
         self.nb_classes = len(np.unique(self.y_train))
         self.attacked_model = BlackBoxClassifier(
             predict_fn=self._predict_binary_class_matrix,
@@ -140,19 +136,19 @@ class Privacy(Evaluator):
 
     def _validate_arguments(self):
         # Check types, all three are needed -> None is not allowed in this case
-        if not isinstance(self.train, TabularData):
+        if not isinstance(self.training_data, TabularData):
             raise ValidationError("Training data is not of type TabularData.")
-        if not isinstance(self.test, TabularData):
+        if not isinstance(self.assessment_data, TabularData):
             raise ValidationError("Test data is not of type TabularData")
         if not isinstance(self.model, ClassificationModel):
             raise ValidationError("Model is not of type ClassificationModel.")
         # Check attack feature in dataset
         if self.attack_feature:
-            if not self.attack_feature in self.train.X.columns:
+            if not self.attack_feature in self.training_data.X.columns:
                 raise ValidationError(
                     f"Feature {self.attack_feature} not in training data."
                 )
-            if not self.attack_feature in self.test.X.columns:
+            if not self.attack_feature in self.assessment_data.X.columns:
                 raise ValidationError(
                     f"Feature {self.attack_feature} not in test data."
                 )

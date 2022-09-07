@@ -5,12 +5,12 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.utils.common import NotRunError, ValidationError, is_categorical
 from credoai.utils.constants import MULTICLASS_THRESH
 from credoai.utils.dataset_utils import ColumnTransformerUtil
 from credoai.utils.model_utils import get_generic_classifier
-from credoai.artifacts import TabularData
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 from sklearn.metrics import make_scorer, roc_auc_score
@@ -51,15 +51,14 @@ class DataFairness(Evaluator):
 
     name = "DataFairness"
 
-    def __call__(self, model, assessment, training):
-        self.test = assessment
-        self.train = training
-
+    def _setup(self, model, assessment_data, training_data):
         if self.dataset_name is None:
-            self.data_to_eval = self.test
+            self.data_to_eval = self.assessment_data
         else:
             self.data_to_eval = [
-                x for x in [self.test, self.train] if x and x.name == self.dataset_name
+                x
+                for x in [self.assessment_data, self.training_data]
+                if x and x.name == self.dataset_name
             ]
             if len(self.data_to_eval) > 1:
                 raise ValidationError(

@@ -1,4 +1,5 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
+
 from credoai.utils.common import NotRunError
 
 
@@ -10,8 +11,13 @@ class Evaluator(ABC):
 
     """
 
-    def __init__(self):
-        self.results = None
+    @property
+    def results(self):
+        return None
+
+    @property
+    def artifacts(self):
+        return []
 
     @property
     @abstractmethod
@@ -19,13 +25,12 @@ class Evaluator(ABC):
         """Used to define a unique identifier for the specific evaluator"""
         pass
 
-    @abstractmethod
-    def __call__(self, model, assessment, training):
+    def __call__(self, **kwargs):
         """
         This method is used to pass the model, assessment_dataset and training_dataset
-        to  instantiated evaluator.
+        to instantiated evaluator.
 
-        After objects are passed, it performs arguments validation.
+        After objects are passed, it performs arguments validation and calls _setup
 
         >>> pipeline = Lens(model = model, assessment_data = dataset1)
 
@@ -33,7 +38,7 @@ class Evaluator(ABC):
         This method inside a specific evaluator takes the required arguments and
         makes them available to the evaluator instance.
 
-        Reaquirements
+        Requirements
         -------------
         _shared_arg_assignment requires explicitly named arguments.
 
@@ -52,9 +57,15 @@ class Evaluator(ABC):
         where model and assessment_dataset are Lens() arguments.
 
         """
-
+        # add arguments to properties of class
+        self.__dict__.update(kwargs)
         self._validate_arguments()
+        self._setup(**kwargs)
         return self
+
+    @abstractmethod
+    def _setup(self):
+        pass
 
     @abstractmethod
     def evaluate(self):
