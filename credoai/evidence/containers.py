@@ -62,13 +62,8 @@ class TableContainer(EvidenceContainer):
     def __init__(self, df):
         super().__init__(Table, df)
 
-    def to_evidence(self, model_name: str = None, data_name: str = None, **metadata):
-        return self.evidence_class(
-            list(set(self._df.name))[0], self._df, model_name, data_name, **metadata
-        )
+    def to_evidence(self, id, **metadata):
+        return self.evidence_class(id, self._df, **metadata)
 
     def _validate(self, df):
-        try:
-            df.name
-        except AttributeError:
-            raise ValidationError("DataFrame must have a 'name' attribute")
+        pass

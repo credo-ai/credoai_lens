@@ -96,19 +96,18 @@ class Table(Evidence):
         displayed in the governance app
     """
 
-    def __init__(
-        self,
-        label: str,
-        data: DataFrame,
-        model_name: str = None,
-        data_name: str = None,
-        **metadata
-    ):
+    def __init__(self, id: str, data: DataFrame, **metadata):
         self.data = data
-        self.label = label
+        self.metadata = metadata
 
-        super().__init__("table", label, metadata)
-        self.metadata.update({"model": model_name, "dataset": data_name})
+        super().__init__(id, "table", self.metadata)
 
-    def _struct(self):
-        return {"data": self.data}
+    def _add_data(self):
+        value_type = [x for x in self.data.columns if x not in ["subtype"]]
+        return {
+            "value": self.data[value_type].to_dict(orient="split"),
+        }
+
+    def _add_label(self):
+        label = {"data_type": list(set(self.data.subtype))}
+        return label
