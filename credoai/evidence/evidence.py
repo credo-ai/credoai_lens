@@ -8,7 +8,7 @@ from credoai.utils.common import ValidationError
 
 
 class Evidence(ABC):
-    def __init__(self, type, label, metadata=None):
+    def __init__(self, type: str, label: dict, metadata: dict = None):
         self.type = type
         self.label = label
         self.metadata = metadata | {}
@@ -45,8 +45,8 @@ class Metric(Evidence):
 
     Parameters
     ----------
-    label : string
-        short identifier for metric.
+    label : dict
+        key-value pairs, used as identifier for metric.
     value : float
         metric value
     confidence_interval : [float, float]
@@ -64,7 +64,7 @@ class Metric(Evidence):
 
     def __init__(
         self,
-        label: str,
+        label: dict,
         value: float,
         confidence_interval: Tuple[float, float] = None,
         confidence_level: int = None,
@@ -98,8 +98,8 @@ class Table(Evidence):
 
     Parameters
     ----------
-    label : string
-        short identifier for metric.
+    label : dict
+        key-value pairs, used as identifier for table.
     data : pd.DataFrame
         a pandas DataFrame to use as evidence
     model_name : str, optional
@@ -113,7 +113,7 @@ class Table(Evidence):
 
     def __init__(
         self,
-        label: str,
+        label: dict,
         data: pd.DataFrame,
         model_name: str = None,
         data_name: str = None,

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
-from credoai.utils.common import NotRunError
+from credoai.evidence.containers import EvidenceContainer
+from credoai.utils.common import NotRunError, ValidationError
 
 
 class Evaluator(ABC):
@@ -11,13 +12,24 @@ class Evaluator(ABC):
 
     """
 
-    @property
-    def results(self):
-        return None
+    def __init__(self):
+        self._results = None
+        self.artifacts = None
 
     @property
-    def artifacts(self):
-        return []
+    def results(self):
+        return self._results
+
+    @results.setter
+    def results(self, results):
+        # TODO: validation to add after evaluators are refactored
+
+        # if not isinstance(results, list):
+        #     raise ValidationError("Results must be a list")
+        # for result in results:
+        #     if not isinstance(result, EvidenceContainer):
+        #         raise ValidationError("All results must be EvidenceContainers")
+        self._results = results
 
     @property
     @abstractmethod
@@ -59,8 +71,8 @@ class Evaluator(ABC):
         """
         # add arguments to properties of class
         self.__dict__.update(kwargs)
-        self._validate_arguments()
         self._setup(**kwargs)
+        self._validate_arguments()
         return self
 
     @abstractmethod

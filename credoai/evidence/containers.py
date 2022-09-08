@@ -63,7 +63,7 @@ class TableContainer(EvidenceContainer):
         super().__init__(Table, df)
 
     def to_evidence(self):
-        return self.evidence_class(self._df.name, self._df)
+        return self.evidence_class(self._df.name, self._df.to_csv())
 
     def _validate(self, df):
         try:

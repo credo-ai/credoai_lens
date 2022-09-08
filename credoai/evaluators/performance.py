@@ -43,7 +43,7 @@ class Performance(Evaluator):
     name = "Performance"
 
     def __init__(self, metrics=None):
-
+        super().__init__()
         # assign variables
         self.metrics = metrics
         self.metric_frames = {}
