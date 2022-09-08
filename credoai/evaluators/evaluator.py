@@ -37,6 +37,12 @@ class Evaluator(ABC):
         """Used to define a unique identifier for the specific evaluator"""
         pass
 
+    @property
+    @abstractmethod
+    def required_artifacts(self):
+        """Used to define a unique identifier for the specific evaluator"""
+        pass
+
     def __call__(self, **kwargs):
         """
         This method is used to pass the model, assessment_dataset and training_dataset
@@ -71,8 +77,9 @@ class Evaluator(ABC):
         """
         # add arguments to properties of class
         self.__dict__.update(kwargs)
-        self._setup(**kwargs)
+        # self._init_artifacts(**kwargs)
         self._validate_arguments()
+        self._setup()
         return self
 
     @abstractmethod

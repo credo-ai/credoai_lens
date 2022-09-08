@@ -101,9 +101,7 @@ class Lens:
             id = f"{evaluator.name}_{str(uuid.uuid4())}"
 
         ## Define necessary arguments for evaluator
-        evaluator_required_parameters = re.sub(
-            "[\(\) ]", "", str(inspect.signature(evaluator._setup))
-        ).split(",")
+        evaluator_required_parameters = evaluator.required_artifacts
 
         evaluator_arguments = {
             k: v for k, v in vars(self).items() if k in evaluator_required_parameters
