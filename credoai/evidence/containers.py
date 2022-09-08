@@ -45,14 +45,14 @@ class MetricContainer(EvidenceContainer):
     def __init__(self, df):
         super().__init__(Metric, df)
 
-    def to_evidence(self):
+    def to_evidence(self, id, **metadata):
         evidence = []
-        for i, row in self._df.iterrows():
-            evidence.append(self.evidence_class(**row))
+        for _, data in self._df.iterrows():
+            evidence.append(self.evidence_class(id, data, **metadata))
         return evidence
 
     def _validate(self, df):
-        required_columns = {"label", "value"}
+        required_columns = {"type", "value", "subtype"}
         column_overlap = df.columns.intersection(required_columns)
         if len(column_overlap) != len(required_columns):
             raise ValidationError(f"Must have columns: {required_columns}")
@@ -62,11 +62,8 @@ class TableContainer(EvidenceContainer):
     def __init__(self, df):
         super().__init__(Table, df)
 
-    def to_evidence(self):
-        return self.evidence_class(self._df.name, self._df.to_csv())
+    def to_evidence(self, id, **metadata):
+        return self.evidence_class(id, self._df, **metadata)
 
     def _validate(self, df):
-        try:
-            df.name
-        except AttributeError:
-            raise ValidationError("DataFrame must have a 'name' attribute")
+        pass

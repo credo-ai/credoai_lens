@@ -115,8 +115,9 @@ class Performance(Evaluator):
                     )
                     .set_index("metric_type")
                 )
-                disaggregated_df["sensitive_feature"] = self.sensitive_features.name
-                results = pd.concat([results, disaggregated_df])
+                # disaggregated_df["sensitive_feature"] = self.sensitive_features.name
+                results = pd.concat([disaggregated_df])
+                results = results.reset_index().rename({"metric_type": "type"}, axis=1)
             return results
         else:
             raise NotRunError(

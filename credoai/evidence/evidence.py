@@ -1,35 +1,51 @@
 import pprint
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Tuple
+from typing import Optional
 
-import pandas as pd
+from pandas import Series, DataFrame
 from credoai.utils.common import ValidationError
 
 
 class Evidence(ABC):
-    def __init__(self, type: str, label: dict, metadata: dict = None):
+    def __init__(
+        self,
+        id: str,
+        type: str,
+        metadata: Optional[dict] = None,
+    ):
+        self.id = id
         self.type = type
-        self.label = label
-        self.metadata = metadata | {}
-        self.creation_time = datetime.utcnow().isoformat()
+        self.metadata = metadata if metadata else {}
+        self.creation_time: str = datetime.utcnow().isoformat()
         self._validate()
 
     def struct(self):
         structure = {
+            "id": self.id,
             "type": self.type,
-            "label": self.label,
+            "label": self._add_label(),
             "metadata": self.metadata,
+            "data": self._add_data(),
             "creation_time": self.creation_time,
         }
-        additional = self._struct()
-        if additional:
-            structure.update(additional)
         return structure
 
     @abstractmethod
-    def _struct(self):
-        pass
+    def _add_data(self):
+        """
+        Adds evidence type specific data
+        """
+        data = {}
+        return data
+
+    @abstractmethod
+    def _add_label(self):
+        """
+        Adds evidence type specific label
+        """
+        label = {}
+        return label
 
     def _validate(self):
         pass
@@ -41,54 +57,23 @@ class Evidence(ABC):
 class Metric(Evidence):
     """
     Metric Evidence
-
-
-    Parameters
-    ----------
-    label : dict
-        key-value pairs, used as identifier for metric.
-    value : float
-        metric value
-    confidence_interval : [float, float]
-        [lower, upper] confidence interval
-    confidence_level : int
-        Level of confidence for the confidence interval (e.g., 95%)
-    model_name : str, optional
-        Name of Model, default None
-    data_name : str, optional
-        Name of Data, default None
-    metadata : dict, optional
-        Arbitrary keyword arguments to append to metric as metadata. These will be
-        displayed in the governance app
     """
 
-    def __init__(
-        self,
-        label: dict,
-        value: float,
-        confidence_interval: Tuple[float, float] = None,
-        confidence_level: int = None,
-        model_name: str = None,
-        data_name: str = None,
-        **metadata
-    ):
-        self.value = value
-        self.confidence_interval = confidence_interval or []
-        self.confidence_level = confidence_level
+    def __init__(self, id: str, data: Series, **metadata):
+        self.data = data
+        self.metadata = metadata
 
-        super().__init__("metric", label, metadata)
-        self.metadata.update({"model": model_name, "dataset": data_name})
+        super().__init__(id, "metric", self.metadata)
 
-    def _struct(self):
+    def _add_data(self):
+        value_type = [x for x in self.data.index if x not in ["type", "subtype"]]
         return {
-            "value": self.value,
-            "confidence_interval": self.confidence_interval,
-            "confidence_level": self.confidence_level,
+            "value": self.data[value_type].to_dict(),
         }
 
-    def _validate(self):
-        if self.confidence_interval and not self.confidence_level:
-            raise ValidationError
+    def _add_label(self):
+        label = {"metric_type": self.data.type, "subtype": self.data.subtype}
+        return label
 
 
 class Table(Evidence):
@@ -98,8 +83,8 @@ class Table(Evidence):
 
     Parameters
     ----------
-    label : dict
-        key-value pairs, used as identifier for table.
+    label : string
+        short identifier for metric.
     data : pd.DataFrame
         a pandas DataFrame to use as evidence
     model_name : str, optional
@@ -111,18 +96,18 @@ class Table(Evidence):
         displayed in the governance app
     """
 
-    def __init__(
-        self,
-        label: dict,
-        data: pd.DataFrame,
-        model_name: str = None,
-        data_name: str = None,
-        **metadata
-    ):
+    def __init__(self, id: str, data: DataFrame, **metadata):
         self.data = data
+        self.metadata = metadata
 
-        super().__init__("table", label, metadata)
-        self.metadata.update({"model": model_name, "dataset": data_name})
+        super().__init__(id, "table", self.metadata)
 
-    def _struct(self):
-        return {"data": self.data}
+    def _add_data(self):
+        value_type = [x for x in self.data.columns if x not in ["subtype"]]
+        return {
+            "value": self.data[value_type].to_dict(orient="split"),
+        }
+
+    def _add_label(self):
+        label = {"data_type": list(set(self.data.subtype))}
+        return label
