@@ -10,6 +10,7 @@ from credoai.utils.common import NotRunError, ValidationError, to_array
 from fairlearn.metrics import MetricFrame
 from scipy.stats import norm
 from sklearn.utils import check_consistent_length
+from credoai.evidence.containers import TableContainer
 
 
 class Performance(Evaluator):
@@ -101,24 +102,18 @@ class Performance(Evaluator):
         """
         if self.results is not None:
             if "overall_performance" in self.results:
-                results = self.results["overall_performance"]
-            else:
-                results = pd.DataFrame()
+                overall = self.results["overall_performance"]
+                overall = overall.reset_index().rename({"index": "type"}, axis=1)
 
             if self.perform_disaggregation:
                 disaggregated_df = self.results[f"disaggregated_performance"].copy()
-                disaggregated_df = (
-                    disaggregated_df.reset_index()
-                    .melt(
-                        id_vars=[disaggregated_df.index.name, "subtype"],
-                        var_name="metric_type",
-                    )
-                    .set_index("metric_type")
+                disaggregated_df = disaggregated_df.reset_index().melt(
+                    id_vars=[disaggregated_df.index.name, "subtype"],
+                    var_name="type",
                 )
                 # disaggregated_df["sensitive_feature"] = self.sensitive_features.name
-                results = pd.concat([disaggregated_df])
-                results = results.reset_index().rename({"metric_type": "type"}, axis=1)
-            return results
+
+            return [TableContainer(overall), TableContainer(disaggregated_df)]
         else:
             raise NotRunError(
                 "Results not created yet. Call 'run' with appropriate arguments before preparing results"

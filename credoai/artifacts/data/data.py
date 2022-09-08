@@ -117,6 +117,12 @@ class Data(ABC):
                     "X and sensitive features must have the same index"
                 )
 
+        if self.sensitive_features is not None and isinstance(
+            self.sensitive_features, pd.Series
+        ):
+            if not hasattr(self.sensitive_features, "name"):
+                raise ValidationError("Feature Series should have a name attribute")
+
     @abstractmethod
     def _validate_X(self):
         pass

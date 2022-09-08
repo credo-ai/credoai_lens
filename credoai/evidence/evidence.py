@@ -1,10 +1,10 @@
 import pprint
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Optional
+from turtle import update
+from typing import Optional, Tuple
 
 from pandas import Series, DataFrame
-from credoai.utils.common import ValidationError
 
 
 class Evidence(ABC):
@@ -25,11 +25,14 @@ class Evidence(ABC):
             "id": self.id,
             "type": self.type,
             "label": self._add_label(),
-            "metadata": self.metadata,
+            # "metadata": self.metadata,
             "data": self._add_data(),
             "creation_time": self.creation_time,
-        }
+        } | self._update_struct()
         return structure
+
+    def _update_struct(self):
+        return {}
 
     @abstractmethod
     def _add_data(self):
@@ -59,7 +62,16 @@ class Metric(Evidence):
     Metric Evidence
     """
 
-    def __init__(self, id: str, data: Series, **metadata):
+    def __init__(
+        self,
+        id: str,
+        data: Series,
+        confidence_interval: Tuple[float, float] = None,
+        confidence_level: int = None,
+        **metadata
+    ):
+        self.confidence_interval = confidence_interval
+        self.confidence_level = confidence_level
         self.data = data
         self.metadata = metadata
 
@@ -74,6 +86,12 @@ class Metric(Evidence):
     def _add_label(self):
         label = {"metric_type": self.data.type, "subtype": self.data.subtype}
         return label
+
+    def _update_struct(self):
+        return {
+            "confidence_interval": self.confidence_interval,
+            "confidence_level": self.confidence_level,
+        }
 
 
 class Table(Evidence):
@@ -109,5 +127,6 @@ class Table(Evidence):
         }
 
     def _add_label(self):
-        label = {"data_type": list(set(self.data.subtype))}
+        label = list(set(self.data.subtype)) + list(self.metadata.values())
+        label = "~".join(label)
         return label
