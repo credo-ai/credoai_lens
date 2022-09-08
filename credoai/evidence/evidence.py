@@ -24,9 +24,9 @@ class Evidence(ABC):
         structure = {
             "id": self.id,
             "type": self.type,
-            "label": self._add_label(),
+            "label": self._label(),
             # "metadata": self.metadata,
-            "data": self._add_data(),
+            "data": self._data(),
             "creation_time": self.creation_time,
         } | self._update_struct()
         return structure
@@ -34,16 +34,18 @@ class Evidence(ABC):
     def _update_struct(self):
         return {}
 
+    @property
     @abstractmethod
-    def _add_data(self):
+    def _data(self):
         """
         Adds evidence type specific data
         """
         data = {}
         return data
 
+    @property
     @abstractmethod
-    def _add_label(self):
+    def _label(self):
         """
         Adds evidence type specific label
         """
@@ -77,13 +79,13 @@ class Metric(Evidence):
 
         super().__init__(id, "metric", self.metadata)
 
-    def _add_data(self):
+    def _data(self):
         value_type = [x for x in self.data.index if x not in ["type", "subtype"]]
         return {
             "value": self.data[value_type].to_dict(),
         }
 
-    def _add_label(self):
+    def _label(self):
         label = {"metric_type": self.data.type, "subtype": self.data.subtype}
         return label
 
@@ -120,13 +122,13 @@ class Table(Evidence):
 
         super().__init__(id, "table", self.metadata)
 
-    def _add_data(self):
+    def _data(self):
         value_type = [x for x in self.data.columns if x not in ["subtype"]]
         return {
             "value": self.data[value_type].to_dict(orient="split"),
         }
 
-    def _add_label(self):
+    def _label(self):
         label = list(set(self.data.subtype)) + list(self.metadata.values())
         label = "~".join(label)
         return label
