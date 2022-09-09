@@ -10,7 +10,7 @@ from credoai.utils.common import NotRunError, ValidationError, to_array
 from fairlearn.metrics import MetricFrame
 from scipy.stats import norm
 from sklearn.utils import check_consistent_length
-from credoai.evidence.containers import TableContainer
+from credoai.evidence.containers import TableContainer, MetricContainer
 
 
 class Performance(Evaluator):
@@ -102,7 +102,7 @@ class Performance(Evaluator):
         """
         if self.results is not None:
             if "overall_performance" in self.results:
-                overall = self.results["overall_performance"]
+                overall = self.results["overall_performance"].copy()
                 overall = overall.reset_index().rename({"index": "type"}, axis=1)
 
             if self.perform_disaggregation:
@@ -113,7 +113,7 @@ class Performance(Evaluator):
                 )
                 # disaggregated_df["sensitive_feature"] = self.sensitive_features.name
 
-            return [TableContainer(overall), TableContainer(disaggregated_df)]
+            return [MetricContainer(overall), TableContainer(disaggregated_df)]
         else:
             raise NotRunError(
                 "Results not created yet. Call 'run' with appropriate arguments before preparing results"

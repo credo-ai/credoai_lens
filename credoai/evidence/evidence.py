@@ -86,7 +86,10 @@ class Metric(Evidence):
         }
 
     def _label(self):
-        label = {"metric_type": self.data.type, "subtype": self.data.subtype}
+        label = {
+            "metric_type": self.data.type,
+            "calculation": self.data.subtype,
+        } | self.metadata
         return label
 
     def _update_struct(self):
@@ -129,6 +132,6 @@ class Table(Evidence):
         }
 
     def _label(self):
-        label = list(set(self.data.subtype)) + list(self.metadata.values())
-        label = "~".join(label)
+        label = {"calculation": list(set(self.data.subtype))} | self.metadata
+
         return label
