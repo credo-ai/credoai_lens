@@ -8,7 +8,7 @@ import logging
 from credoai.artifacts import Data
 from credoai.artifacts import Model
 from credoai.evaluators.evaluator import Evaluator
-from credoai.utils.common import ValidationError
+from credoai.utils.common import ValidationError, flatten_list
 from credoai.lens.utils import log_command, build_list_of_evaluators
 
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
@@ -153,11 +153,26 @@ class Lens:
             )
         return self
 
-    def get_results(self):
+    def get_evidences(self):
         """
         Collect all the results as they are coming directly from the individual evaluations.
         """
-        return self.pipeline_results
+        labels = {
+            "model_id": self.model.name if self.model else None,
+            "dataset_name": self.assessment.name if self.assessment else None,
+            "sensitive_features": [
+                x for x in self.assessment.sensitive_features.columns
+            ],
+        }
+        all_evidences = []
+        for _, evaluator in self.pipeline.items():
+            all_evidences.append(evaluator["evaluator"]._prepare_results())
+
+        all_evidences = self.flatten_list(all_evidences)
+        all_evidences = [x.to_evidence("id", **labels) for x in all_evidences]
+        all_evidences = self.flatten_list(all_evidences)
+
+        return [x.struct() for x in all_evidences]
 
     def get_command_list(self):
         return print("\n".join(self.command_list))
@@ -231,3 +246,14 @@ class Lens:
             return step[pos]
         except IndexError:
             return None
+
+    @staticmethod
+    def flatten_list(mixl):
+        flattened = []
+        for i in mixl:
+            if hasattr(i, "__iter__"):
+                for j in i:
+                    flattened.append(j)
+            else:
+                flattened.append(i)
+        return flattened

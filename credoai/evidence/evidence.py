@@ -132,6 +132,6 @@ class Table(Evidence):
         }
 
     def _label(self):
-        label = {"calculation": list(set(self.data.subtype))} | self.metadata
+        label = {"calculation": "-".join(list(set(self.data.subtype)))} | self.metadata
 
         return label
