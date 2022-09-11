@@ -28,11 +28,11 @@ from typing import Callable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from absl import logging
 from sklearn.utils.multiclass import type_of_target
 
 import credoai.integration as ci
 from credoai.metrics.metrics import find_metrics
+from credoai.utils import global_logger
 from credoai.utils.common import (
     IntegrationError,
     ValidationError,
@@ -115,7 +115,7 @@ class CredoGovernance:
                 )
         # alert about missing metrics
         for m in missing_metrics:
-            logging.warning(
+            global_logger.warning(
                 f"Metric ({m}) is defined in the assessment plan but is not defined by Credo AI.\n"
                 "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
                 "assessment plan passed to lens"
@@ -162,10 +162,9 @@ class CredoGovernance:
             which will be applied to the model
 
         """
-        registration_logs = {}
+        global_logger.info("Attempting to register artifacts on platform")
         if model_name:
-            model_reg_logs = self._register_model(model_name)
-            registration_logs['model_reg_logs'] = model_reg_logs
+            self._register_model(model_name)
         if dataset_name:
             self._register_dataset(dataset_name)
         if training_dataset_name:
@@ -181,9 +180,9 @@ class CredoGovernance:
                 set_ids=False,
             )
             if self.assessment_spec.get("assessment_plan", {}):
-                logging.info("Assessment plan downloaded after artifact registration")
-
-        return registration_logs
+                global_logger.info(
+                    "Assessment plan downloaded after artifact registration"
+                )
 
     def export_assessment_results(
         self,
@@ -215,11 +214,11 @@ class CredoGovernance:
         if destination == "credoai":
             if self.use_case_id and self.model_id:
                 self._api.create_assessment(self.use_case_id, self.model_id, payload)
-                logging.info(
+                global_logger.info(
                     f"Successfully exported assessments to Credo AI's Governance App"
                 )
             else:
-                logging.error(
+                global_logger.error(
                     "Couldn't upload assessment to Credo AI's Governance App. "
                     "Ensure use_case_id is defined in CredoGovernance"
                 )
@@ -266,7 +265,7 @@ class CredoGovernance:
                 dataset_id=self.dataset_id,
             )
         if register_as_training and self.model_id and self.training_dataset_id:
-            logging.info(
+            global_logger.info(
                 f"Registering dataset ({dataset_name}) to model ({self.model_id})"
             )
             self._api.register_dataset_to_model(self.model_id, self.training_dataset_id)
@@ -283,12 +282,14 @@ class CredoGovernance:
         try:
             model = self._api.register_model(name=model_name)
             if model is None:
-                return "model_registration_failed"
+                global_logger.info("Model registration failed")
 
             self.model_id = model["id"]
 
             if self.use_case_id is None:
-                return "use_case_id_not_exist"
+                global_logger.info(
+                    "Use-case ID does not exist. Cannot register model to use-case."
+                )
 
             # Get use_case
             use_case = self._api.get_use_case(self.use_case_id)
@@ -296,14 +297,15 @@ class CredoGovernance:
             # Check use case includes model
             for mc in use_case["model_configs"]:
                 if mc["model_id"] == model["id"]:
-                    return "model_already_registered"
+                    global_logger.info(
+                        f"Model already registered to use-case (Use Case ID: {self.use_case_id})"
+                    )
+                    return
 
-            logging.info(
-                f"Registering model ({model_name}) to Use Case ({self.use_case_id})"
+            global_logger.info(
+                f"Registering model ({model_name}) to Use Case (Use Case ID: {self.use_case_id})"
             )
             self._api.register_model_to_usecase(self.use_case_id, self.model_id)
-
-            return "model_registered"
 
         except Exception as e:
             return "model_registration_failed"

@@ -13,3 +13,6 @@ pytest-cov>=3.0.0
 pytest-watch>=4.2
 responses>=0.21.0
 pytest-mock>=3.8
+
+# needed for testing error
+protobuf~=3.19.0
