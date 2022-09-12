@@ -34,15 +34,14 @@ class DataProfiling(Evaluator):
         self.dataset_name = dataset_name
         self.results = {}
 
-    def __call__(self, assessment, training):
-        self.test = assessment
-        self.train = training
-
+    def _setup(self, assessment_data, training_data):
         if self.dataset_name is None:
-            self.data_to_eval = self.test
+            self.data_to_eval = self.assessment_data
         else:
             self.data_to_eval = [
-                x for x in [self.test, self.train] if x and x.name == self.dataset_name
+                x
+                for x in [self.assessment_data, self.self.training_data]
+                if x and x.name == self.dataset_name
             ]
             if len(self.data_to_eval) > 1:
                 raise ValidationError(
@@ -50,7 +49,6 @@ class DataProfiling(Evaluator):
                 )
             self.data_to_eval = self.data_to_eval[0]  # Pick the only member
 
-        self._validate_arguments()
         self.data = pd.concat([self.data_to_eval.X, self.data_to_eval.y], axis=1)
         return self
 

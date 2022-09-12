@@ -55,12 +55,14 @@ class Data(ABC):
         )
         self._validate_data()
 
-    def get_data(self):
+    @property
+    def y_type(self):
+        return type_of_target(self.y) if self.y is not None else None
+
+    @property
+    def data(self):
         data = {"X": self.X, "y": self.y, "sensitive_features": self.sensitive_features}
         return data
-
-    def _determine_y_type(self):
-        return type_of_target(self.y) if self.y is not None else None
 
     def _process_sensitive(self, sensitive_features, sensitive_intersections):
         if sensitive_features is None:

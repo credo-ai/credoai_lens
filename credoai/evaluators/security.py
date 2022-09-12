@@ -1,6 +1,5 @@
 import os
 
-
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -45,16 +44,14 @@ class Security(Evaluator):
 
     name = "Security"
 
-    def __call__(self, model, assessment, training):
-        self.model = model
-        self.assessment = assessment
-        self.training = training
-        self._validate_arguments()
-        self.x_train = self.training.X.to_numpy()
-        self.y_train = self.training.y
+    def _setup(self, model, assessment_data, training_data):
+        self.x_train = self.training_data.X.to_numpy()
+        self.y_train = self.training_data.y
         self.nb_classes = len(np.unique(self.y_train))
-        self.x_test = self.assessment.X.to_numpy()
-        self.y_test = to_categorical(self.assessment.y, num_classes=self.nb_classes)
+        self.x_test = self.assessment_data.X.to_numpy()
+        self.y_test = to_categorical(
+            self.assessment_data.y, num_classes=self.nb_classes
+        )
         self.victim_model = BlackBoxClassifier(
             predict_fn=self._predict_binary_class_matrix,
             input_shape=self.x_train[0].shape,
@@ -66,9 +63,9 @@ class Security(Evaluator):
     def _validate_arguments(self):
         if self.model is None:
             raise ValidationError("Missing model")
-        if self.assessment is None:
+        if self.assessment_data is None:
             raise ValidationError("Missing assessment/test dataset")
-        if self.training is None:
+        if self.training_data is None:
             raise ValidationError("Missing training dataset")
         return self
 

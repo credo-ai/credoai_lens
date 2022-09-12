@@ -37,20 +37,18 @@ class Equity(Evaluator):
     def __init__(self, p_value=0.01):
         self.pvalue = p_value
 
-    def __call__(self, assessment):
-        self.assessment = assessment
-        self._validate_arguments()
-        self.sensitive_features = self.assessment.sensitive_features
-        self.y = self.assessment.y
-        self.type_of_target = type_of_target(self.y)
+    def _setup(self, assessment_data):
+        self.sensitive_features = assessment_data.sensitive_features
+        self.y = assessment_data.y
+        self.type_of_target = self.assessment_data.y_type
 
         self.df = pd.concat([self.sensitive_features, self.y], axis=1)
         return self
 
     def _validate_arguments(self):
-        if self.assessment.sensitive_features is None:
+        if self.assessment_data.sensitive_features is None:
             raise ValidationError("Sensitive features are required in assessment data")
-        if self.assessment is None:
+        if self.assessment_data is None:
             raise ValidationError("y array is required in assessment data")
         return self
 

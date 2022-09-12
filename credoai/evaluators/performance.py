@@ -3,9 +3,10 @@ from typing import List, Union
 
 import pandas as pd
 from absl import logging
-from credoai.modules.metrics import Metric, find_metrics
-from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
+from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
+from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
+from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils.common import NotRunError, ValidationError, to_array
 from fairlearn.metrics import MetricFrame
 from scipy.stats import norm
@@ -43,7 +44,7 @@ class Performance(Evaluator):
     name = "Performance"
 
     def __init__(self, metrics=None):
-
+        super().__init__()
         # assign variables
         self.metrics = metrics
         self.metric_frames = {}
@@ -52,20 +53,19 @@ class Performance(Evaluator):
         self.failed_metrics = None
         self.perform_disaggregation = True
 
-    def __call__(self, model, assessment):
+    def _setup(self, model, assessment_data):
         # data variables
-        self.y_true = to_array(assessment.y)
-        self.y_pred = to_array(model.predict(assessment.X))
+        self.y_true = assessment_data.y
+        self.y_pred = model.predict(assessment_data.X)
         try:
-            self.y_prob = to_array(model.predict_proba(assessment.X))
+            self.y_prob = model.predict_proba(assessment_data.X)
         except:
             self.y_prob = None
-        self.sensitive_features = assessment.sensitive_features
+        self.sensitive_features = assessment_data.sensitive_features
         if self.sensitive_features is None:
             self.perform_disaggregation = False
             # only set to use metric frame
             self.sensitive_features = pd.Series(["NA"] * len(self.y_true), name="NA")
-        self._validate_arguments()
         # TODO: What is this doing, really?
         self.update_metrics(self.metrics)
 
@@ -297,8 +297,8 @@ class Performance(Evaluator):
                 )
 
     def _validate_arguments(self):
-        check_consistent_length(
-            self.y_true, self.y_pred, self.y_prob, self.sensitive_features
-        )
         if self.metrics is None:
             raise ValidationError("Missing Metrics")
+
+        if not isinstance(self.assessment_data, TabularData):
+            raise ValidationError("Data under evaluation is not of type TabularData.")
