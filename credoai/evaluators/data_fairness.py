@@ -17,6 +17,7 @@ from sklearn.metrics import make_scorer, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from credoai.evidence.containers import MetricContainer
 
 
 class DataFairness(Evaluator):
@@ -125,6 +126,7 @@ class DataFairness(Evaluator):
                 f"standardized_group_diffs": group_differences,
             }
         )
+        self.results = self._prepare_results()
         return self
 
     def _prepare_results(self):
@@ -141,10 +143,10 @@ class DataFairness(Evaluator):
         """
         if self.results is not None:
             metric_types = [
-                "sensitive_feature_prediction_score",
-                "demographic_parity_difference",
-                "demographic_parity_ratio",
-                "max_proxy_mutual_information",
+                "sensitive_feature-prediction_score",
+                "demographic_parity-difference",
+                "demographic_parity-ratio",
+                "proxy_mutual_information-max",
             ]
             prepared_arr = []
             index = []
@@ -171,8 +173,10 @@ class DataFairness(Evaluator):
             res = pd.DataFrame(prepared_arr, index=index).rename_axis(
                 index="metric_type"
             )
-            res["sensitive_feature"] = self.sensitive_features.name
-            return res
+            res = res.reset_index()
+            res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
+            res.drop("metric_type", axis=1, inplace=True)
+            return MetricContainer(res)
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 
@@ -244,11 +248,11 @@ class DataFairness(Evaluator):
         feature_importances = pd.Series(
             model.feature_importances_, index=col_names
         ).sort_values(ascending=False)
-        results["sensitive_feature_prediction_score"] = max(
+        results["sensitive_feature-prediction_score"] = max(
             cv_results.mean() * 2 - 1, 0
         )  # move to 0-1 range
         results[
-            "sensitive_feature_prediction_feature_importances"
+            "sensitive_feature-prediction_feature_importances"
         ] = feature_importances.to_dict()
 
         return results
@@ -375,7 +379,7 @@ class DataFairness(Evaluator):
         max_proxy_value = max([i["value"] for i in mutual_information_results.values()])
         return {
             "proxy_mutual_information": mutual_information_results,
-            "max_proxy_mutual_information": max_proxy_value,
+            "proxy_mutual_information-max": max_proxy_value,
         }
 
     def _assess_balance_metrics(self):
@@ -439,10 +443,10 @@ class DataFairness(Evaluator):
                     .to_dict(orient="records")
                 )
 
-            balance_results["demographic_parity_difference"] = get_demo_parity(
+            balance_results["demographic_parity-difference"] = get_demo_parity(
                 lambda x: np.max(x) - np.min(x)
             )
-            balance_results["demographic_parity_ratio"] = get_demo_parity(
+            balance_results["demographic_parity-ratio"] = get_demo_parity(
                 lambda x: np.min(x) / np.max(x)
             )
 
