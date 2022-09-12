@@ -11,7 +11,6 @@ from datetime import datetime
 import matplotlib
 import numpy as np
 import pandas as pd
-from absl import logging
 from json_api_doc import deserialize
 
 import credoai
@@ -23,7 +22,6 @@ from credoai.utils.common import (
     wrap_list,
 )
 from credoai.utils.credo_api import CredoApi
-
 
 META = {"source": "credoai_ml_library", "version": credoai.__version__}
 
