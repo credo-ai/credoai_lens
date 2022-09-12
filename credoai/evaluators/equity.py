@@ -1,8 +1,10 @@
 from itertools import combinations
+from operator import pos
 
 import numpy as np
 import pandas as pd
 from credoai.evaluators import Evaluator
+from credoai.evidence.containers import MetricContainer, TableContainer
 from credoai.utils import NotRunError, ValidationError
 from scipy.stats import chi2_contingency, chisquare, f_oneway, tukey_hsd
 from sklearn.utils.multiclass import type_of_target
@@ -60,47 +62,50 @@ class Equity(Evaluator):
             self.results["statistics"] = self.discrete_stats()
         else:
             self.results["statistics"] = self.continuous_stats()
+
+        self.results = self._prepare_results()
         return self
 
     def _prepare_results(self):
         if self.results:
             desc = self.results["descriptive"]
+            summary = desc["summary"]
+            summary["subtype"] = "summary"
+            summary = TableContainer(summary)
+
             desc_metadata = {
-                "group_means": desc["summary"]["mean"].to_dict(),
                 "highest_group": desc["highest_group"],
                 "lowest_group": desc["lowest_group"],
             }
-            results = [
-                {"metric_type": k, "value": v, "metadata": desc_metadata}
-                for k, v in desc.items()
-                if "demographic_parity" in k
-            ]
+
+            results = pd.DataFrame(
+                [
+                    {"metric_type": k, "value": v}
+                    for k, v in desc.items()
+                    if "demographic_parity" in k
+                ]
+            )
+            results[["type", "subtype"]] = results.metric_type.str.split(
+                "-", expand=True
+            )
+            results = MetricContainer(results)
             # add statistics
             stats = self.results["statistics"]
             overall_equity = {
-                "metric_type": "equity_test",
-                "subtype": "overall_test",
-                "value": stats["equity_test"]["pvalue"],
-                "test_type": stats["equity_test"]["test_type"],
-                "metadata": stats["equity_test"],
+                "type": "overall",
+                "value": stats["equity_test"]["statistic"],
+                "subtype": stats["equity_test"]["test_type"],
+                "p_value": stats["equity_test"]["pvalue"],
             }
-            results.append(overall_equity)
+            overall_equity = MetricContainer(pd.DataFrame(overall_equity, index=[0]))
             # add posthoc tests if needed
+            equity_containers = [summary, results, overall_equity]
             if "significant_posthoc_tests" in stats:
-                for test in stats["significant_posthoc_tests"]:
-                    results.append(
-                        {
-                            "metric_type": "equity_test",
-                            "subtype": "posthoc_test",
-                            "value": test["pvalue"],
-                            "test_type": test["test_type"],
-                            "comparison_groups": list(test["comparison"]),
-                            "metadata": test,
-                        }
-                    )
-            results = pd.DataFrame(results).set_index("metric_type")
-            results["sensitive_feature"] = self.sensitive_features.columns.to_list()
-            return results
+                posthoc_tests = pd.DataFrame(stats["significant_posthoc_tests"])
+                posthoc_tests.rename({"test_type": "subtype"}, axis=1, inplace=True)
+                equity_containers.append(TableContainer(posthoc_tests))
+
+            return equity_containers
         else:
             raise NotRunError(
                 "Results not created yet. Call 'run' with appropriate arguments before preparing results"
@@ -117,8 +122,8 @@ class Equity(Evaluator):
         results["sensitive_feature"] = self.sensitive_features.columns
         results["highest_group"] = r["mean"].idxmax()
         results["lowest_group"] = r["mean"].idxmin()
-        results["demographic_parity_difference"] = r["mean"].max() - r["mean"].min()
-        results["demographic_parity_ratio"] = r["mean"].min() / r["mean"].max()
+        results["demographic_parity-difference"] = r["mean"].max() - r["mean"].min()
+        results["demographic_parity-ratio"] = r["mean"].min() / r["mean"].max()
         return results
 
     def discrete_stats(self):
