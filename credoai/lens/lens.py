@@ -1,7 +1,7 @@
 from inspect import isclass
 import inspect
 import re
-from typing import List, Union
+from typing import Dict, List, Union
 import uuid
 
 import logging
@@ -60,6 +60,9 @@ class Lens:
             self._generate_pipeline(pipeline)
         self.pipeline_results: list = []
         self._validate()
+
+    def __getitem__(self, stepname):
+        return self.pipeline[stepname]
 
     @log_command
     def add(self, evaluator: Evaluator, id: str = None, metadata: dict = None):
@@ -155,7 +158,7 @@ class Lens:
 
     def get_evidences(self):
         """
-        Collect all the results as they are coming directly from the individual evaluations.
+        Create evidences for the platform from the pipeline results.
         """
         labels = {
             "model_id": self.model.name if self.model else None,
@@ -164,15 +167,24 @@ class Lens:
                 x for x in self.assessment.sensitive_features.columns
             ],
         }
-        all_evidences = []
-        for _, evaluator in self.pipeline.items():
-            all_evidences.append(evaluator["evaluator"]._prepare_results())
+        all_evidences = [x["results"] for x in self.pipeline_results]
 
         all_evidences = self.flatten_list(all_evidences)
         all_evidences = [x.to_evidence("id", **labels) for x in all_evidences]
         all_evidences = self.flatten_list(all_evidences)
 
         return [x.struct() for x in all_evidences]
+
+    def get_results(self) -> Dict:
+        """
+        Extract results from the pipeline output.
+
+        Returns
+        -------
+        Dict
+            The format of the dictionaryu is Pipeline step id: results
+        """
+        return {x["id"]: [i.df for i in x["results"]] for x in self.pipeline_results}
 
     def get_command_list(self):
         return print("\n".join(self.command_list))

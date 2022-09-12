@@ -175,7 +175,9 @@ class Privacy(Evaluator):
         if self.results is not None:
             return Series(self.results, name="value")
         else:
-            raise ValueError("Results not created yet. Call 'run' to create results")
+            raise ValueError(
+                "Results not created yet. Call 'evaluate' to create results"
+            )
 
     def _general_attack_method(self, attack_details):
         """

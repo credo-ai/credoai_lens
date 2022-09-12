@@ -84,6 +84,7 @@ class Performance(Evaluator):
         self.results = {"overall_performance": self.get_overall_metrics()}
         if self.perform_disaggregation:
             self.results.update(self.get_disaggregated_performance())
+        self.results = self._prepare_results()
         return self
 
     def _prepare_results(self):
