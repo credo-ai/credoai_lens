@@ -63,7 +63,6 @@ nbsphinx_allow_errors = True  # Continue through Jupyter errors
 nbsphinx_execute = "never"  # do not execute jupyter notebooks
 
 autodoc_mock_imports = [
-    "absl",
     "art",
     "art.attacks.evasion",
     "art.attacks.extraction",
