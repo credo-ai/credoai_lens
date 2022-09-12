@@ -4,7 +4,7 @@ Credo API functions
 from collections import defaultdict
 
 import requests
-from absl import logging
+from credoai.utils import global_logger
 from credoai.utils.common import IntegrationError
 from credoai.utils.credo_api_client import CredoApiClient
 
@@ -108,6 +108,13 @@ class CredoApi:
             )
         return assessment_spec
 
+    def get_use_case(self, use_case_id: str):
+        """
+        Get use_case by id
+        """
+        endpoint = f"use_cases/{use_case_id}?include=model_configs"
+        return self._client.get(endpoint)
+
     def get_dataset_by_name(self, name: str):
         """
         Get dataset by name
@@ -147,10 +154,12 @@ class CredoApi:
         """
         dataset = self.get_dataset_by_name(name)
         if dataset:
-            logging.info(f"Found dataset ({name}) registered on platform")
+            global_logger.info(
+                f"Dataset ({name}) already registered on platform. Retrieving dataset ID."
+            )
             return dataset
 
-        logging.info(f"Registering dataset: ({name})")
+        global_logger.info(f"Registering dataset: ({name})")
         data = {"name": name, "$type": "datasets"}
         return self._client.post("datasets", data)
 
@@ -160,10 +169,12 @@ class CredoApi:
         """
         model = self.get_model_by_name(name)
         if model:
-            logging.info(f"Found model ({name}) registered on platform")
+            global_logger.info(
+                f"Model ({name}) already registered on platform. Retrieving model ID."
+            )
             return model
 
-        logging.info(f"Registering model: ({name})")
+        global_logger.info(f"Registering model: ({name})")
         data = {"name": name, "version": version, "$type": "models"}
         return self._client.post("models", data)
 

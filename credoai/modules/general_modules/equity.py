@@ -36,8 +36,6 @@ class EquityModule(CredoModule):
         super().__init__()
         self.sensitive_features = sensitive_features
         self.y = y
-        if type(self.y) is not pd.Series:
-            self.y = pd.Series(y, name="outcome")
         self.type_of_target = type_of_target(self.y)
         # create df
         self.df = pd.concat([self.sensitive_features, self.y], axis=1)

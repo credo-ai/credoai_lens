@@ -2,10 +2,10 @@ from collections import defaultdict
 from typing import List, Union
 
 import pandas as pd
-from absl import logging
 from credoai.metrics import Metric, find_metrics
 from credoai.metrics.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.credo_module import CredoModule
+from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError, to_array
 from fairlearn.metrics import MetricFrame
 from scipy.stats import norm
@@ -43,9 +43,9 @@ class PerformanceModule(CredoModule):
     def __init__(self, metrics, y_true, y_pred, y_prob=None, sensitive_features=None):
         super().__init__()
         # data variables
-        self.y_true = to_array(y_true)
-        self.y_pred = to_array(y_pred)
-        self.y_prob = to_array(y_prob) if y_prob is not None else None
+        self.y_true = y_true
+        self.y_pred = y_pred
+        self.y_prob = y_prob
         self.perform_disaggregation = True
         if sensitive_features is None:
             self.perform_disaggregation = False
@@ -176,7 +176,7 @@ class PerformanceModule(CredoModule):
             )
             return output_series
         else:
-            logging.warn("No overall metrics could be calculated.")
+            global_logger.warn("No overall metrics could be calculated.")
 
     def get_disaggregated_performance(self):
         """Return performance metrics for each group
@@ -200,7 +200,7 @@ class PerformanceModule(CredoModule):
             subtype="disaggregated_performance"
         )
         if not disaggregated_results:
-            logging.warn("No disaggregated metrics could be calculated.")
+            global_logger.warn("No disaggregated metrics could be calculated.")
         return disaggregated_results
 
     def get_sensitive_feature(self):
@@ -243,7 +243,7 @@ class PerformanceModule(CredoModule):
             if not isinstance(metric, Metric):
                 raise ValidationError("Metric is not of type credoai.metric.Metric")
             if metric.metric_category == "FAIRNESS":
-                logging.info(
+                global_logger.info(
                     f"fairness metric, {metric_name}, unused by PerformanceModule"
                 )
                 pass
@@ -253,7 +253,9 @@ class PerformanceModule(CredoModule):
                 else:
                     performance_metrics[metric_name] = metric
             else:
-                logging.warning(f"{metric_name} failed to be used by FairnessModule")
+                global_logger.warning(
+                    f"{metric_name} failed to be used by FairnessModule"
+                )
                 failed_metrics.append(metric_name)
 
         return (performance_metrics, prob_metrics, failed_metrics)

@@ -9,7 +9,6 @@ from itertools import combinations
 from os import listdir, makedirs, path
 from typing import List, Union
 
-from absl import logging
 from sklearn.utils import check_consistent_length
 
 import credoai.integration as ci
@@ -17,6 +16,7 @@ from credoai import __version__
 from credoai.artifacts import CredoData, CredoGovernance, CredoModel
 from credoai.assessment import AssessmentBunch
 from credoai.assessment.credo_assessment import CredoAssessment
+from credoai.utils import global_logger
 from credoai.utils.common import (
     NotRunError,
     ValidationError,
@@ -38,7 +38,7 @@ class Lens:
         training_data: CredoData = None,
         display_policy_checklist: bool = True,
         dev_mode: Union[bool, float] = False,
-        logging_level: Union[str, int] = "info",
+        logging_level: Union[str, int] = "INFO",
     ):
         """Lens runs a suite of assessments on AI Models and Data for AI Governance
 
@@ -93,20 +93,23 @@ class Lens:
             Default, False
         logging_level : int or str
             Sets logging and verbosity. Calls lens.set_logging_level. Options include:
-            * 'info'
-            * 'warning'
-            * 'error'
+            * 'INFO'
+            * 'WARNING'
+            * 'ERROR'
         """
         self.model = model
         self.assessment_dataset = data
         self.training_dataset = training_data
+        self.name = self.get_lens_name()
+        self.logger = global_logger
+        self.logger.setLevel(logging_level)
+        self.logger.info(f"**Lens Initialized** Name: {self.name}")
         if self.assessment_dataset and self.training_dataset:
             if self.assessment_dataset == self.training_dataset:
                 raise ValidationError(
                     "Assessment dataset and training dataset should not be the same!"
                 )
         self.assessment_plan = {}
-        set_logging_level(logging_level)
         self.dev_mode = dev_mode
         self.run_time = False
 
@@ -145,6 +148,16 @@ class Lens:
                 self.checklist = PolicyChecklist(checklist)
                 self.checklist.create_checklist()
 
+    def get_lens_name(self):
+        name = "lens"
+        if self.model:
+            name += f"_model-{self.model.name}"
+        if self.assessment_dataset:
+            name += f"_assessment_data-{self.assessment_dataset.name}"
+        if self.training_dataset:
+            name += f"_training_data-{self.training_dataset.name}"
+        return name
+
     def run_assessments(self):
         """Runs assessments on the associated model and/or data
 
@@ -153,7 +166,7 @@ class Lens:
         self
         """
         for assessment in self.get_assessments(flatten=True):
-            logging.info(f"Running assessment: {assessment.get_name()}")
+            self.logger.info(f"Running assessment: {assessment.get_name()}")
             assessment.run()
         self.run_time = datetime.utcnow().isoformat()
         return self
@@ -178,7 +191,9 @@ class Lens:
         reporter_assets = []
         for assessment in self.get_assessments(flatten=True):
             try:
-                logging.info(f"Preparing assessment-{assessment.get_name()} for export")
+                self.logger.info(
+                    f"Preparing assessment-{assessment.get_name()} for export"
+                )
                 prepared_assessment = self._prepare_results(assessment)
                 if prepared_assessment is not None:
                     prepared_results.append(prepared_assessment)
@@ -191,12 +206,12 @@ class Lens:
                 if reporters is not None:
                     for reporter in reporters:
                         reporter_assets += reporter.report(plot=False)
-                logging.info(f"** Reporting assets created")
+                self.logger.info(f"** Reporting assets created")
             except Exception as e:
                 raise Exception(
                     f"Reporter for assessment ({assessment.get_name()}) failed. The error is reproduced below:\n\nError: {e}"
                 )
-        logging.info("Exporting assessments...")
+        self.logger.info("Exporting assessments...")
         self.gov.export_assessment_results(
             prepared_results, reporter_assets, destination, self.run_time
         )
@@ -300,7 +315,7 @@ class Lens:
         self._register_artifacts()
         destination = self.gov.model_id if to_model else self.gov.dataset_id
         label = "model" if to_model else "dataset"
-        logging.info(f"**** Destination for export: {label} id-{destination}")
+        self.logger.info(f"**** Destination for export: {label} id-{destination}")
         return destination
 
     def _init_assessments(self):
@@ -318,13 +333,13 @@ class Lens:
                 try:
                     assessment.init_module(**kwargs)
                     if init_kwargs:
-                        logging.info(
+                        self.logger.info(
                             f"Initializing Assessment ({name}) with kwargs: {init_kwargs}"
                         )
                     else:
-                        logging.info(f"Initializing Assessment ({name})")
+                        self.logger.info(f"Initializing Assessment ({name})")
                 except Exception as e:
-                    logging.error(
+                    self.logger.error(
                         f"Model and/or data meets requirements for Assessment ({name})"
                         " but it could not be initialized due to an error, likely related"
                         " to the assessment plan. Ensure the assessment plan is passing "
@@ -342,9 +357,9 @@ class Lens:
             assessment.init_reporters()
             reporters = assessment.get_reporters()
             if reporters is None:
-                logging.info(f"No reporters found for assessment-{name}")
+                self.logger.info(f"No reporters found for assessment-{name}")
             else:
-                logging.info(f"Reporters initialized for assessment-{name}")
+                self.logger.info(f"Reporters initialized for assessment-{name}")
                 # if governance defined, set up reporter for key lookup
                 if self.gov is not None:
                     for reporter in reporters:
@@ -398,8 +413,3 @@ class Lens:
             if assessment_bunch.assessments:
                 assessment_bunches.append(assessment_bunch)
         return assessment_bunches
-
-
-def set_logging_level(logging_level):
-    """Alias for absl.logging.set_verbosity"""
-    logging.set_verbosity(logging_level)
