@@ -1,3 +1,4 @@
+import inspect
 from abc import ABC, abstractmethod
 
 from credoai.evidence.containers import EvidenceContainer
@@ -38,10 +39,9 @@ class Evaluator(ABC):
         pass
 
     @property
-    @abstractmethod
     def required_artifacts(self):
         """Used to define a unique identifier for the specific evaluator"""
-        pass
+        return inspect.getfullargspec(self._setup).args[1:]
 
     def __call__(self, **kwargs):
         """
@@ -75,16 +75,10 @@ class Evaluator(ABC):
         where model and assessment_dataset are Lens() arguments.
 
         """
-        # add arguments to properties of class
-        self.__dict__.update(kwargs)
-        # self._init_artifacts(**kwargs)
+        self._init_artifacts(kwargs)
         self._validate_arguments()
-        self._setup()
+        self._setup(**kwargs)
         return self
-
-    @abstractmethod
-    def _setup(self):
-        pass
 
     @abstractmethod
     def evaluate(self):
@@ -98,6 +92,16 @@ class Evaluator(ABC):
         self
         """
         return self
+
+    def _init_artifacts(self, artifacts):
+        """Adds artifacts to evaluator object
+
+        Parameters
+        ----------
+        artifacts : dict
+            Dictionary of artifacts, e.g. {'model': Model}
+        """
+        self.__dict__.update(artifacts)
 
     @abstractmethod
     def _prepare_results(self):
@@ -115,6 +119,10 @@ class Evaluator(ABC):
             raise NotRunError(
                 "Results not created yet. Call evaluate with the appropriate method"
             )
+
+    @abstractmethod
+    def _setup(self):
+        pass
 
     @abstractmethod
     def _validate_arguments(self):

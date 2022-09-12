@@ -40,7 +40,7 @@ class Equity(Evaluator):
     def _setup(self, assessment_data):
         self.sensitive_features = assessment_data.sensitive_features
         self.y = assessment_data.y
-        self.type_of_target = type_of_target(self.y)
+        self.type_of_target = self.assessment_data.y_type
 
         self.df = pd.concat([self.sensitive_features, self.y], axis=1)
         return self

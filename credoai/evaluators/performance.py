@@ -3,6 +3,7 @@ from typing import List, Union
 
 import pandas as pd
 from absl import logging
+from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
@@ -54,10 +55,10 @@ class Performance(Evaluator):
 
     def _setup(self, model, assessment_data):
         # data variables
-        self.y_true = to_array(assessment_data.y)
-        self.y_pred = to_array(model.predict(assessment_data.X))
+        self.y_true = assessment_data.y
+        self.y_pred = model.predict(assessment_data.X)
         try:
-            self.y_prob = to_array(model.predict_proba(assessment_data.X))
+            self.y_prob = model.predict_proba(assessment_data.X)
         except:
             self.y_prob = None
         self.sensitive_features = assessment_data.sensitive_features
@@ -296,8 +297,8 @@ class Performance(Evaluator):
                 )
 
     def _validate_arguments(self):
-        check_consistent_length(
-            self.y_true, self.y_pred, self.y_prob, self.sensitive_features
-        )
         if self.metrics is None:
             raise ValidationError("Missing Metrics")
+
+        if not isinstance(self.assessment_data, TabularData):
+            raise ValidationError("Data under evaluation is not of type TabularData.")
