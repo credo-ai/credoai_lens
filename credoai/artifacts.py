@@ -509,6 +509,9 @@ class CredoData:
                     pd_type = pd.DataFrame
                 else:
                     self.y = pd_type(self.y, index=self.X.index, name="target")
+        # if one dimension dataframe, convert to series
+        if isinstance(self.y, pd.DataFrame) and self.y.shape[1] == 1:
+            self.y = self.y.iloc[:, 0]
 
     def _process_sensitive(self, sensitive_intersections):
         if self.sensitive_features is None:

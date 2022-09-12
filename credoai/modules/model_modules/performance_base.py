@@ -43,9 +43,9 @@ class PerformanceModule(CredoModule):
     def __init__(self, metrics, y_true, y_pred, y_prob=None, sensitive_features=None):
         super().__init__()
         # data variables
-        self.y_true = to_array(y_true)
-        self.y_pred = to_array(y_pred)
-        self.y_prob = to_array(y_prob) if y_prob is not None else None
+        self.y_true = y_true
+        self.y_pred = y_pred
+        self.y_prob = y_prob
         self.perform_disaggregation = True
         if sensitive_features is None:
             self.perform_disaggregation = False
