@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import requests
 import sklearn.utils as skutils
-from absl import logging
 
 
 class NotRunError(Exception):

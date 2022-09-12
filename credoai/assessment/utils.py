@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from absl import logging
 from credoai.assessment import list_assessments
 
 ASSESSMENTS = list_assessments()

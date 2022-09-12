@@ -6,9 +6,9 @@ from time import sleep
 
 import pandas as pd
 import seaborn as sns
-from absl import logging
 from credoai.data.utils import get_data_path
 from credoai.modules.credo_module import CredoModule
+from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError, wrap_list
 from googleapiclient import discovery
 
@@ -114,17 +114,19 @@ class NLPGeneratorAnalyzer(CredoModule):
         self
         """
         df = self._get_prompts(self.prompts)
-        logging.info("Loaded the prompts dataset " + self.prompts)
+        global_logger.info("Loaded the prompts dataset " + self.prompts)
 
         # Perform prerun checks
         self._perform_prerun_checks()
-        logging.info("Performed prerun checks of generation and assessment functions")
+        global_logger.info(
+            "Performed prerun checks of generation and assessment functions"
+        )
 
         # Generate and record responses for the prompts with all the generation models n_iterations times
         dfruns_lst = []
         for gen_name, gen_fun in self.generation_functions.items():
             gen_fun = partial(gen_fun, num_sequences=n_iterations)
-            logging.info(
+            global_logger.info(
                 f"Generating {n_iterations} text responses per prompt with model: {gen_name}"
             )
             prompts = df["prompt"]
@@ -141,7 +143,7 @@ class NLPGeneratorAnalyzer(CredoModule):
         dfruns = pd.concat(dfruns_lst)
 
         # Assess the responses for the input assessment attributes
-        logging.info("Performing assessment of the generated responses")
+        global_logger.info("Performing assessment of the generated responses")
 
         dfrunst = dfruns[
             dfruns["response"] != "nlp generator error"
@@ -149,7 +151,7 @@ class NLPGeneratorAnalyzer(CredoModule):
 
         dfrunst_assess_lst = []
         for assessment_attribute, assessment_fun in self.assessment_functions.items():
-            logging.info(f"Performing {assessment_attribute} assessment")
+            global_logger.info(f"Performing {assessment_attribute} assessment")
             temp = dfrunst.copy()
             temp["assessment_attribute"] = assessment_attribute
             if assessment_fun in list(PERSPECTIVE_API_MODELS):
