@@ -12,16 +12,17 @@ from art.attacks.inference.attribute_inference import (
 from art.estimators.classification import BlackBoxClassifier
 from credoai.artifacts import TabularData, ClassificationModel
 from credoai.evaluators import Evaluator
-from pandas import Series
+from pandas import Series, DataFrame
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+from credoai.evidence.containers import MetricContainer
 
 from credoai.utils.common import ValidationError
 
 filterwarnings("ignore")
 
 SUPPORTED_MEMBERSHIP_ATTACKS = {
-    "MembershipInferenceBlackBoxRuleBased": {
+    "MembershipInference-BlackBoxRuleBased": {
         "attack": {
             "function": MembershipInferenceBlackBoxRuleBased,
             "kwargs": ["classifier"],
@@ -30,7 +31,7 @@ SUPPORTED_MEMBERSHIP_ATTACKS = {
         "fit": None,
         "assess": "membership",
     },
-    "MembershipInferenceBlackBox": {
+    "MembershipInference-BlackBox": {
         "attack": {
             "function": MembershipInferenceBlackBox,
             "kwargs": ["estimator"],
@@ -41,7 +42,7 @@ SUPPORTED_MEMBERSHIP_ATTACKS = {
     },
 }
 SUPPORTED_ATTRIBUTE_ATTACKS = {
-    "AttributeInferenceBaseline": {
+    "AttributeInference-Baseline": {
         "attack": {
             "function": AttributeInferenceBaseline,
             "kwargs": ["attack_feature"],
@@ -50,7 +51,7 @@ SUPPORTED_ATTRIBUTE_ATTACKS = {
         "fit": "train_only",
         "assess": "attribute",
     },
-    "AttributeInferenceBlackBox": {
+    "AttributeInference-BlackBox": {
         "attack": {
             "function": AttributeInferenceBlackBox,
             "kwargs": ["estimator", "attack_feature"],
@@ -125,16 +126,17 @@ class Privacy(Evaluator):
             attack_scores[attack_name] = self._general_attack_method(attack_info)
 
         # Best model = worst case
-        attack_scores["membership_inference_attack_score"] = max(
+        attack_scores["MembershipInference-attack_score"] = max(
             [v for k, v in attack_scores.items() if "Membership" in k]
         )
 
         if self.attack_feature:
-            attack_scores["attribute_inference_attack_score"] = max(
+            attack_scores["AttributeInference-attack_score"] = max(
                 [v for k, v in attack_scores.items() if "Attribute" in k]
             )
 
         self.results = attack_scores
+        self._prepare_results()
 
         return self
 
@@ -173,7 +175,10 @@ class Privacy(Evaluator):
             If results have not been run, raise
         """
         if self.results is not None:
-            return Series(self.results, name="value")
+            res = DataFrame(list(self.results.items()), columns=["type", "value"])
+            res[["type", "subtype"]] = res.type.str.split("-", expand=True)
+            self.results = MetricContainer(res)
+
         else:
             raise ValueError(
                 "Results not created yet. Call 'evaluate' to create results"
