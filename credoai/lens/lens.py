@@ -184,7 +184,15 @@ class Lens:
         Dict
             The format of the dictionaryu is Pipeline step id: results
         """
-        return {x["id"]: [i.df for i in x["results"]] for x in self.pipeline_results}
+
+        res = {}
+        for x in self.pipeline_results:
+            if isinstance(x["results"], list):
+                value = [i.df for i in x["results"]]
+            else:
+                value = x["results"].df
+            res[x["id"]] = value
+        return res
 
     def get_command_list(self):
         return print("\n".join(self.command_list))

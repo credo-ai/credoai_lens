@@ -8,6 +8,7 @@ from art.attacks.evasion import HopSkipJump
 from art.attacks.extraction import CopycatCNN
 from art.estimators.classification import BlackBoxClassifier, KerasClassifier
 from credoai.evaluators import Evaluator
+from credoai.evidence.containers import MetricContainer
 from credoai.utils.common import NotRunError, ValidationError
 from keras.layers import Dense
 from keras.models import Sequential
@@ -82,7 +83,7 @@ class Security(Evaluator):
             Value: metric value
         """
         self.results = {**self._extraction_attack(), **self._evasion_attack()}
-
+        self._prepare_results()
         return self
 
     def _prepare_results(self):
@@ -101,6 +102,9 @@ class Security(Evaluator):
             If results have not been run, raise
         """
         if self.results is not None:
+            res = pd.DataFrame(list(self.results.items()), columns=["type", "value"])
+            res[["type", "subtype"]] = res.type.str.split("-", expand=True)
+            self.results = MetricContainer(res)
             return pd.Series(self.results, name="value")
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
@@ -152,7 +156,7 @@ class Security(Evaluator):
         victim_classifier_acc = sk_metrics.accuracy_score(y_true, y_pred)
 
         metrics = {
-            "extraction_attack_score": max(
+            "extraction-attack_score": max(
                 (thieved_classifier_acc - 0.5) / (victim_classifier_acc - 0.5), 0
             )
         }
@@ -230,7 +234,7 @@ class Security(Evaluator):
         adver_sample_scaled = scaler.transform(adver_sample)
 
         metrics = {
-            "evasion_attack_score": self._evasion_success_rate(
+            "evasion-attack_score": self._evasion_success_rate(
                 origl_pred,
                 adver_pred,
                 origl_sample_scaled,
