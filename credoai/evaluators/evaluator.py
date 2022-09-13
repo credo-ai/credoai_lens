@@ -77,7 +77,7 @@ class Evaluator(ABC):
         """
         self._init_artifacts(kwargs)
         self._validate_arguments()
-        self._setup(**kwargs)
+        self._setup()
         return self
 
     @abstractmethod

@@ -42,32 +42,19 @@ class DataFairness(Evaluator):
 
     def __init__(
         self,
-        dataset_name=None,
         categorical_features_keys: Optional[List[str]] = None,
         categorical_threshold: float = 0.05,
     ):
-        self.dataset_name = dataset_name
+
         self.categorical_features_keys = categorical_features_keys
         self.categorical_threshold = categorical_threshold
 
     name = "DataFairness"
+    required_artifacts = ["model", "assessment_data", "training_data"]
 
-    def _setup(self, model, assessment_data, training_data):
-        if self.dataset_name is None:
-            self.data_to_eval = self.assessment_data
-        else:
-            self.data_to_eval = [
-                x
-                for x in [self.assessment_data, self.training_data]
-                if x and x.name == self.dataset_name
-            ]
-            if len(self.data_to_eval) > 1:
-                raise ValidationError(
-                    f"More then 1 dataset named {self.dataset_name} were found."
-                )
-            self.data_to_eval = self.data_to_eval[0]  # Pick the only member
+    def _setup(self):
+        self.data_to_eval = self.assessment_data  # Pick the only member
 
-        self._validate_arguments()
         # TODO: Takes first columns, clarify behaviour for multiple features
         self.sensitive_features = self.data_to_eval.sensitive_features.iloc[:, 0]
         self.data = pd.concat([self.data_to_eval.X, self.data_to_eval.y], axis=1)
@@ -92,10 +79,10 @@ class DataFairness(Evaluator):
         return self
 
     def _validate_arguments(self):
-        if not isinstance(self.data_to_eval, TabularData):
+        if not isinstance(self.assessment_data, TabularData):
             raise ValidationError("Data under evaluation is not of type TabularData.")
 
-        if self.data_to_eval.sensitive_features is None:
+        if self.assessment_data.sensitive_features is None:
             raise ValidationError(
                 f"Step: {self.name} ->  No sensitive feature were found in the dataset"
             )

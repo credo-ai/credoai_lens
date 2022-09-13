@@ -2,6 +2,7 @@ import logging
 import re
 from typing import Dict, List, Union
 import uuid
+from inspect import isclass
 
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
