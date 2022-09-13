@@ -152,7 +152,7 @@ class Lens:
         Create evidences for the platform from the pipeline results.
         """
         labels = {
-            "model_id": self.model.name if self.model else None,
+            "model_name": self.model.name if self.model else None,
             "dataset_name": self.assessment_data.name if self.assessment_data else None,
             "sensitive_features": [
                 x for x in self.assessment_data.sensitive_features.columns
@@ -161,7 +161,7 @@ class Lens:
         all_results = flatten_list([x["results"] for x in self.pipeline_results])
         evidences = []
         for result in all_results:
-            evidences += result.to_evidence("id", **labels)
+            evidences += result.to_evidence(**labels)
         return evidences
 
     def get_results(self) -> Dict:

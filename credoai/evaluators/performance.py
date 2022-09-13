@@ -193,6 +193,7 @@ class Performance(Evaluator):
                 var_name="type",
             )
         )
+        disaggregated_results.name = "disaggregated_performance"
 
         if disaggregated_results.empty:
             global_logger.warn("No disaggregated metrics could be calculated.")
