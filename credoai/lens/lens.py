@@ -1,3 +1,4 @@
+from curses import meta
 import logging
 import re
 from typing import Dict, List, Optional, Union
@@ -94,24 +95,27 @@ class Lens:
                 f"An evaluator with id: {id} is already in the pipeline. Id has to be unique"
             )
 
-        if id is None:
-            ## TODO: Check if it makes sense to hash arguments to ensure uniqueness
-            id = f"{evaluator.name}_{str(uuid.uuid4())[0:6]}"
-
         ## Define necessary arguments for evaluator
         evaluator_required_parameters = evaluator.required_artifacts
 
         evaluator_arguments = {
             k: v for k, v in vars(self).items() if k in evaluator_required_parameters
         }
-        self._add(evaluator, id, metadata, evaluator_arguments)
+        available_datasets = [x for x in vars(self) if "data" in x]
+
+        if "data" in evaluator_required_parameters:
+            for dataset in available_datasets:
+                evaluator_arguments["data"] = vars(self)[dataset]
+                self._add(evaluator, id, {"dataset": dataset}, evaluator_arguments)
+        else:
+            self._add(evaluator, id, metadata, evaluator_arguments)
 
         return self
 
     def _add(
         self,
         evaluator: Evaluator,
-        id: str,
+        id: Optional[str],
         metadata: Optional[dict],
         evaluator_arguments: dict,
     ):
@@ -129,6 +133,9 @@ class Lens:
         metadata : dict, optional
             Any Metadata to associate to the evaluator, by default None
         """
+        if id is None:
+            ## TODO: Check if it makes sense to hash arguments to ensure uniqueness
+            id = f"{evaluator.name}_{str(uuid.uuid4())[0:6]}"
 
         ## Attempt pipe addition
         try:
@@ -136,7 +143,14 @@ class Lens:
                 "evaluator": evaluator(**evaluator_arguments),
                 "meta": metadata,
             }
-            self.logger.info(f"Evaluator {evaluator.name} added to pipeline.")
+
+            # Create logging message
+            logger_message = f"Evaluator {evaluator.name} added to pipeline. "
+            if metadata is not None:
+                if "dataset" in metadata:
+                    logger_message += f"Dataset used: {metadata['dataset']}"
+            self.logger.info(logger_message)
+
         except ValidationError as e:
             self.logger.info(
                 f"Evaluator {evaluator.name} NOT added to the pipeline: {e}"
