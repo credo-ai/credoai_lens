@@ -94,10 +94,6 @@ class Lens:
                 f"An evaluator with id: {id} is already in the pipeline. Id has to be unique"
             )
 
-        if not isinstance(evaluator, Evaluator):
-            raise TypeError(
-                f"Evaluator has to be of type evaluator, received {type(evaluator)}"
-            )
         if id is None:
             ## TODO: Check if it makes sense to hash arguments to ensure uniqueness
             id = f"{evaluator.name}_{str(uuid.uuid4())}"

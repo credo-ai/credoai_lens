@@ -35,13 +35,14 @@ class Equity(Evaluator):
     """
 
     name = "Equity"
+    required_artifacts = ["assessment_data"]
 
     def __init__(self, p_value=0.01):
         self.pvalue = p_value
 
-    def _setup(self, assessment_data):
-        self.sensitive_features = assessment_data.sensitive_features
-        self.y = assessment_data.y
+    def _setup(self):
+        self.sensitive_features = self.assessment_data.sensitive_features
+        self.y = self.assessment_data.y
         self.type_of_target = self.assessment_data.y_type
 
         self.df = pd.concat([self.sensitive_features, self.y], axis=1)

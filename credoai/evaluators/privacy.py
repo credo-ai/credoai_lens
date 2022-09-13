@@ -12,8 +12,9 @@ from art.attacks.inference.membership_inference import (
 from art.estimators.classification import BlackBoxClassifier
 from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import Evaluator
+from credoai.evidence.containers import MetricContainer
 from credoai.utils.common import ValidationError
-from pandas import Series
+from pandas import DataFrame
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
