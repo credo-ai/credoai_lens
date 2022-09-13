@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 import uuid
 from inspect import isclass
 
@@ -96,7 +96,7 @@ class Lens:
 
         if id is None:
             ## TODO: Check if it makes sense to hash arguments to ensure uniqueness
-            id = f"{evaluator.name}_{str(uuid.uuid4())}"
+            id = f"{evaluator.name}_{str(uuid.uuid4())[0:6]}"
 
         ## Define necessary arguments for evaluator
         evaluator_required_parameters = evaluator.required_artifacts
@@ -104,6 +104,32 @@ class Lens:
         evaluator_arguments = {
             k: v for k, v in vars(self).items() if k in evaluator_required_parameters
         }
+        self._add(evaluator, id, metadata, evaluator_arguments)
+
+        return self
+
+    def _add(
+        self,
+        evaluator: Evaluator,
+        id: str,
+        metadata: Optional[dict],
+        evaluator_arguments: dict,
+    ):
+        """
+        Add a specific step while handling errors.
+
+        Parameters
+        ----------
+        evaluator : Evaluator
+            Instantiated evaluator
+        id : str
+            Step identifier
+        evaluator_arguments : dict
+            Arguments needed for the specific evaluator
+        metadata : dict, optional
+            Any Metadata to associate to the evaluator, by default None
+        """
+
         ## Attempt pipe addition
         try:
             self.pipeline[id] = {
