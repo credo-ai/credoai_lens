@@ -62,9 +62,9 @@ class Lens:
         self.pipeline_results: list = []
         self._validate()
         if self.assessment_data and self.assessment_data.sensitive_features is not None:
-            n_sensitive_features = self.assessment_data.sensitive_features.shape[1]
-        if n_sensitive_features > 1:
-            split_artifacts = self._split_artifact_on_sens_feat(n_sensitive_features)
+            self.n_sensitive_features = self.assessment_data.sensitive_features.shape[1]
+        if self.n_sensitive_features > 1:
+            split_artifacts = self._split_artifact_on_sens_feat()
             self.__dict__.update(split_artifacts)
 
     def __getitem__(self, stepname):
@@ -103,32 +103,35 @@ class Lens:
             )
 
         ## Define necessary arguments for evaluator
-        evaluator_required_parameters = evaluator.required_artifacts
+        eval_reqrd_params = evaluator.required_artifacts
 
         evaluator_arguments = {
-            k: v for k, v in vars(self).items() if k in evaluator_required_parameters
+            k: v for k, v in vars(self).items() if k in eval_reqrd_params
         }
 
         available_datasets = [x for x in vars(self) if "data" in x]
-        if "sensitive_feature" in evaluator_required_parameters:
+        if "sensitive_feature" in eval_reqrd_params and self.n_sensitive_features > 1:
             available_datasets = [x for x in available_datasets if "sens_feat" in x]
         else:
             available_datasets = [x for x in available_datasets if "sens_feat" not in x]
 
-        if "data" in evaluator_required_parameters:
+        ## If eval requires generic data, loop through all that's available
+        if "data" in eval_reqrd_params:
             for dataset in available_datasets:
                 evaluator_arguments["data"] = vars(self)[dataset]
+                ## Create labels/metadata
                 data_labels = dataset.split("-")
                 labels = {"dataset": data_labels[0]}
                 if len(data_labels) > 1:
                     labels["sensitive_feature"] = data_labels[-1]
+                ## Add to pipeline
                 self._add(evaluator, id, labels, evaluator_arguments)
         else:
             self._add(evaluator, id, metadata, evaluator_arguments)
 
         return self
 
-    def _split_artifact_on_sens_feat(self, n_sensitive_features: int):
+    def _split_artifact_on_sens_feat(self):
         """
         Creates copies of the orginal data artifacts, each containing a single
         sensitive feature.
@@ -148,7 +151,7 @@ class Lens:
             x: v for x, v in vars(self).items() if "data" in x and v is not None
         }
         for name, d_set in available_datasets.items():
-            for i in range(n_sensitive_features):
+            for i in range(self.n_sensitive_features):
                 d_set_copy = d_set.copy()
                 feat = d_set_copy.sensitive_features.iloc[:, [i]]
                 feat_name = feat.columns[0]
