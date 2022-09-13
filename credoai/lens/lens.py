@@ -1,15 +1,12 @@
-from inspect import isclass
-import inspect
+import logging
 import re
 from typing import Dict, List, Union
 import uuid
 
-import logging
-from credoai.artifacts import Data
-from credoai.artifacts import Model
+from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
-from credoai.utils.common import ValidationError, flatten_list
-from credoai.lens.utils import log_command, build_list_of_evaluators
+from credoai.lens.utils import build_list_of_evaluators, log_command
+from credoai.utils.common import ValidationError
 
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 # Custom type
@@ -24,7 +21,7 @@ class Lens:
         self,
         *,
         model: Model = None,
-        data: Data = None,
+        assessment_data: Data = None,
         training_data: Data = None,
         pipeline: Pipeline = None,
     ) -> None:
@@ -35,7 +32,7 @@ class Lens:
         ----------
         model : Model, optional
             Credo Model, by default None
-        data : Data, optional
+        assessment_data : Data, optional
             Assessment/test data, by default None
         training_data : Data, optional
             Training data, extra dataset used by some of the evaluators, by default None
@@ -48,8 +45,8 @@ class Lens:
             evaluators can be put directly in the list.
         """
         self.model = model
-        self.assessment = data
-        self.training = training_data
+        self.assessment_data = assessment_data
+        self.training_data = training_data
         self.assessment_plan: dict = {}
         self.gov = None
         self.pipeline: dict = {}
@@ -105,20 +102,18 @@ class Lens:
             id = f"{evaluator.name}_{str(uuid.uuid4())}"
 
         ## Define necessary arguments for evaluator
-        evaluator_required_parameters = re.sub(
-            "[\(\) ]", "", str(inspect.signature(evaluator))
-        ).split(",")
+        evaluator_required_parameters = evaluator.required_artifacts
 
         evaluator_arguments = {
             k: v for k, v in vars(self).items() if k in evaluator_required_parameters
         }
-        ## Attampt pipe addition
+        ## Attempt pipe addition
         try:
             self.pipeline[id] = {
                 "evaluator": evaluator(**evaluator_arguments),
                 "meta": metadata,
             }
-            self.logger.info(f"Evaluator {evaluator.name} addedd to pipeline.")
+            self.logger.info(f"Evaluator {evaluator.name} added to pipeline.")
         except ValidationError as e:
             self.logger.info(
                 f"Evaluator {evaluator.name} NOT added to the pipeline: {e}"
@@ -254,8 +249,8 @@ class Lens:
         ------
         ValidationError
         """
-        if self.assessment and self.training:
-            if self.assessment == self.training:
+        if self.assessment_data and self.training_data:
+            if self.assessment_data == self.training_data:
                 raise ValidationError(
                     "Assessment dataset and training dataset should not be the same"
                 )

@@ -2,11 +2,11 @@ from dis import dis
 from typing import List, Union
 
 import pandas as pd
-from absl import logging
 from credoai.metrics import Metric, find_metrics
 from credoai.metrics.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.credo_module import CredoModule
 from credoai.modules.model_modules.performance_base import PerformanceModule
+from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError, to_array
 from fairlearn.metrics import MetricFrame
 from scipy.stats import norm
@@ -162,7 +162,7 @@ class FairnessModule(PerformanceModule):
                     method=self.fairness_method,
                 )
             except Exception as e:
-                logging.error(
+                global_logger.error(
                     f"A metric ({metric_name}) failed to run. "
                     "Are you sure it works with this kind of model and target?\n"
                 )
@@ -184,7 +184,7 @@ class FairnessModule(PerformanceModule):
                     method=self.fairness_method,
                 )
             except Exception as e:
-                logging.error(
+                global_logger.error(
                     f"A metric ({metric_name}) failed to run. Are you sure it works with this kind of model and target?"
                 )
                 raise e
@@ -261,7 +261,9 @@ class FairnessModule(PerformanceModule):
                 else:
                     performance_metrics[metric_name] = metric
             else:
-                logging.warning(f"{metric_name} failed to be used by FairnessModule")
+                global_logger.warning(
+                    f"{metric_name} failed to be used by FairnessModule"
+                )
                 failed_metrics.append(metric_name)
 
         return (
