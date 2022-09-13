@@ -154,9 +154,9 @@ class Lens:
         """
         labels = {
             "model_id": self.model.name if self.model else None,
-            "dataset_name": self.assessment.name if self.assessment else None,
+            "dataset_name": self.assessment_data.name if self.assessment_data else None,
             "sensitive_features": [
-                x for x in self.assessment.sensitive_features.columns
+                x for x in self.assessment_data.sensitive_features.columns
             ],
         }
         all_evidences = [x["results"] for x in self.pipeline_results]
