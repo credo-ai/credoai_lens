@@ -112,6 +112,8 @@ class Lens:
         available_datasets = [x for x in vars(self) if "data" in x]
         if "sensitive_feature" in evaluator_required_parameters:
             available_datasets = [x for x in available_datasets if "sens_feat" in x]
+        else:
+            available_datasets = [x for x in available_datasets if "sens_feat" not in x]
 
         if "data" in evaluator_required_parameters:
             for dataset in available_datasets:
