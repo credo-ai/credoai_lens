@@ -63,7 +63,7 @@ class TableContainer(EvidenceContainer):
         super().__init__(Table, df)
 
     def to_evidence(self, id, **metadata):
-        return self.evidence_class(id, self._df, **metadata)
+        return [self.evidence_class(id, self._df, **metadata)]
 
     def _validate(self, df):
         pass

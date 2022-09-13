@@ -137,25 +137,6 @@ class Privacy(Evaluator):
 
         return self
 
-    def _validate_arguments(self):
-        # Check types, all three are needed -> None is not allowed in this case
-        if not isinstance(self.training_data, TabularData):
-            raise ValidationError("Training data is not of type TabularData.")
-        if not isinstance(self.assessment_data, TabularData):
-            raise ValidationError("Test data is not of type TabularData")
-        if not isinstance(self.model, ClassificationModel):
-            raise ValidationError("Model is not of type ClassificationModel.")
-        # Check attack feature in dataset
-        if self.attack_feature:
-            if not self.attack_feature in self.training_data.X.columns:
-                raise ValidationError(
-                    f"Feature {self.attack_feature} not in training data."
-                )
-            if not self.attack_feature in self.assessment_data.X.columns:
-                raise ValidationError(
-                    f"Feature {self.attack_feature} not in test data."
-                )
-
     def _prepare_results(self):
         """Prepares results for export to Credo AI's Governance App
 
@@ -180,6 +161,25 @@ class Privacy(Evaluator):
             raise ValueError(
                 "Results not created yet. Call 'evaluate' to create results"
             )
+
+    def _validate_arguments(self):
+        # Check types, all three are needed -> None is not allowed in this case
+        if not isinstance(self.training_data, TabularData):
+            raise ValidationError("Training data is not of type TabularData.")
+        if not isinstance(self.assessment_data, TabularData):
+            raise ValidationError("Test data is not of type TabularData")
+        if not isinstance(self.model, ClassificationModel):
+            raise ValidationError("Model is not of type ClassificationModel.")
+        # Check attack feature in dataset
+        if self.attack_feature:
+            if not self.attack_feature in self.training_data.X.columns:
+                raise ValidationError(
+                    f"Feature {self.attack_feature} not in training data."
+                )
+            if not self.attack_feature in self.assessment_data.X.columns:
+                raise ValidationError(
+                    f"Feature {self.attack_feature} not in test data."
+                )
 
     def _general_attack_method(self, attack_details):
         """
