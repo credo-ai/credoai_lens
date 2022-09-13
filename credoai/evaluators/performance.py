@@ -43,6 +43,7 @@ class Performance(Evaluator):
     """
 
     name = "Performance"
+    required_artifacts = ["model", "assessment_data"]
 
     def __init__(self, metrics=None):
         super().__init__()
@@ -54,15 +55,15 @@ class Performance(Evaluator):
         self.failed_metrics = None
         self.perform_disaggregation = True
 
-    def _setup(self, model, assessment_data):
+    def _setup(self):
         # data variables
-        self.y_true = assessment_data.y
-        self.y_pred = model.predict(assessment_data.X)
+        self.y_true = self.assessment_data.y
+        self.y_pred = self.model.predict(self.assessment_data.X)
         try:
-            self.y_prob = model.predict_proba(assessment_data.X)
+            self.y_prob = self.model.predict_proba(self.assessment_data.X)
         except:
             self.y_prob = None
-        self.sensitive_features = assessment_data.sensitive_features
+        self.sensitive_features = self.assessment_data.sensitive_features
         if self.sensitive_features is None:
             self.perform_disaggregation = False
             # only set to use metric frame

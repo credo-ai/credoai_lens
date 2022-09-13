@@ -44,8 +44,9 @@ class Security(Evaluator):
     """
 
     name = "Security"
+    required_artifacts = ["model", "assessment_data", "training_data"]
 
-    def _setup(self, model, assessment_data, training_data):
+    def _setup(self):
         self.x_train = self.training_data.X.to_numpy()
         self.y_train = self.training_data.y
         self.nb_classes = len(np.unique(self.y_train))

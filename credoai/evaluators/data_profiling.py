@@ -28,35 +28,24 @@ class DataProfiling(Evaluator):
     """
 
     name = "DataProfiler"
+    required_artifacts = ["assessment_data"]
 
     def __init__(self, dataset_name=None, **profile_kwargs):
         self.profile_kwargs = profile_kwargs
         self.dataset_name = dataset_name
         self.results = {}
 
-    def _setup(self, assessment_data, training_data):
-        if self.dataset_name is None:
-            self.data_to_eval = self.assessment_data
-        else:
-            self.data_to_eval = [
-                x
-                for x in [self.assessment_data, self.self.training_data]
-                if x and x.name == self.dataset_name
-            ]
-            if len(self.data_to_eval) > 1:
-                raise ValidationError(
-                    f"More then 1 dataset named {self.dataset_name} were found."
-                )
-            self.data_to_eval = self.data_to_eval[0]  # Pick the only member
+    def _setup(self):
+        self.data_to_eval = self.assessment_data
 
         self.data = pd.concat([self.data_to_eval.X, self.data_to_eval.y], axis=1)
         return self
 
     def _validate_arguments(self):
-        if not isinstance(self.data_to_eval, TabularData):
+        if not isinstance(self.assessment_data, TabularData):
             raise ValidationError("Data under evaluation is not of type TabularData.")
 
-        if self.data_to_eval.sensitive_features is None:
+        if self.assessment_data.sensitive_features is None:
             raise ValidationError(
                 f"Step: {self.name} ->  No sensitive feature were found in the dataset"
             )
