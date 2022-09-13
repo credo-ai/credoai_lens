@@ -1,5 +1,5 @@
 from typing import Union
-
+from copy import deepcopy
 import numpy as np
 import pandas as pd
 from credoai.utils.common import ValidationError
@@ -42,6 +42,9 @@ class TabularData(Data):
         super().__init__(
             "Tabular", name, X, y, sensitive_features, sensitive_intersections
         )
+
+    def copy(self):
+        return deepcopy(self)
 
     def _process_X(self, X):
         temp = pd.DataFrame(X)

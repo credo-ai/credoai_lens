@@ -1,9 +1,11 @@
+from cProfile import label
 from curses import meta
 import logging
 import re
 from typing import Dict, List, Optional, Union
 import uuid
 from inspect import isclass
+from zoneinfo import available_timezones
 
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
@@ -59,6 +61,11 @@ class Lens:
             self._generate_pipeline(pipeline)
         self.pipeline_results: list = []
         self._validate()
+        if self.assessment_data and self.assessment_data.sensitive_features is not None:
+            n_sensitive_features = self.assessment_data.sensitive_features.shape[1]
+        if n_sensitive_features > 1:
+            split_artifacts = self._split_artifact_on_sens_feat(n_sensitive_features)
+            self.__dict__.update(split_artifacts)
 
     def __getitem__(self, stepname):
         return self.pipeline[stepname]
@@ -101,16 +108,51 @@ class Lens:
         evaluator_arguments = {
             k: v for k, v in vars(self).items() if k in evaluator_required_parameters
         }
+
         available_datasets = [x for x in vars(self) if "data" in x]
+        if "sensitive_feature" in evaluator_required_parameters:
+            available_datasets = [x for x in available_datasets if "sens_feat" in x]
 
         if "data" in evaluator_required_parameters:
             for dataset in available_datasets:
                 evaluator_arguments["data"] = vars(self)[dataset]
-                self._add(evaluator, id, {"dataset": dataset}, evaluator_arguments)
+                data_labels = dataset.split("-")
+                labels = {"dataset": data_labels[0]}
+                if len(data_labels) > 1:
+                    labels["sensitive_feature"] = data_labels[-1]
+                self._add(evaluator, id, labels, evaluator_arguments)
         else:
             self._add(evaluator, id, metadata, evaluator_arguments)
 
         return self
+
+    def _split_artifact_on_sens_feat(self, n_sensitive_features: int):
+        """
+        Creates copies of the orginal data artifacts, each containing a single
+        sensitive feature.
+
+        Parameters
+        ----------
+        n_sensitive_features : int
+            Number of existing sensitive features
+
+        Returns
+        -------
+        Dict[Data]
+            A dictionary of data artifacts.
+        """
+        split_sets = dict()
+        available_datasets = {
+            x: v for x, v in vars(self).items() if "data" in x and v is not None
+        }
+        for name, d_set in available_datasets.items():
+            for i in range(n_sensitive_features):
+                d_set_copy = d_set.copy()
+                feat = d_set_copy.sensitive_features.iloc[:, [i]]
+                feat_name = feat.columns[0]
+                d_set_copy.sensitive_features = feat
+                split_sets[f"{name}-sens_feat-{feat_name}"] = d_set_copy
+        return split_sets
 
     def _add(
         self,
@@ -134,7 +176,6 @@ class Lens:
             Any Metadata to associate to the evaluator, by default None
         """
         if id is None:
-            ## TODO: Check if it makes sense to hash arguments to ensure uniqueness
             id = f"{evaluator.name}_{str(uuid.uuid4())[0:6]}"
 
         ## Attempt pipe addition
@@ -148,7 +189,11 @@ class Lens:
             logger_message = f"Evaluator {evaluator.name} added to pipeline. "
             if metadata is not None:
                 if "dataset" in metadata:
-                    logger_message += f"Dataset used: {metadata['dataset']}"
+                    logger_message += f"Dataset used: {metadata['dataset']}. "
+                if "sensitive_feature" in metadata:
+                    logger_message += (
+                        f"Sensitive feature: {metadata['sensitive_feature']}"
+                    )
             self.logger.info(logger_message)
 
         except ValidationError as e:
@@ -286,11 +331,26 @@ class Lens:
         ------
         ValidationError
         """
-        if self.assessment_data and self.training_data:
-            if self.assessment_data == self.training_data:
-                raise ValidationError(
-                    "Assessment dataset and training dataset should not be the same"
-                )
+        if not isinstance(self.assessment_data, Data):
+            raise ValidationError(
+                "Assessment data should inherit from credoai.artifacts.Data"
+            )
+        if not isinstance(self.training_data, Data):
+            raise ValidationError(
+                "Assessment data should inherit from credoai.artifacts.Data"
+            )
+
+        if self.assessment_data is not None and self.training_data is not None:
+            if (
+                self.assessment_data.sensitive_features is not None
+                and self.training_data.sensitive_features is not None
+            ):
+                if len(self.assessment_data.sensitive_features.shape) != len(
+                    self.training_data.sensitive_features.shape
+                ):
+                    raise ValidationError(
+                        "Sensitive features should have the same shape across assessment and training data"
+                    )
 
     @staticmethod
     def _get_step_param(step, pos):
