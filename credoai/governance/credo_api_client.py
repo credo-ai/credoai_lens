@@ -129,8 +129,13 @@ class CredoApiClient:
         }
         self._session.headers.update(headers)
 
-    def __make_request(self, method, path, **kwargs):
-        endpoint = self.__build_endpoint(path)
+    def __make_request(self, method: str, path: str, **kwargs):
+
+        if path.startswith("http"):
+            endpoint = path
+        else:
+            endpoint = self.__build_endpoint(path)
+
         response = self._session.request(method, endpoint, **kwargs)
         if response.status_code == 401:
             self.refresh_token()

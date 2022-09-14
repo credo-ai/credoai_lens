@@ -32,7 +32,6 @@ class TestCredoApiConfig:
         config = CredoApiConfig()
         config.load_config(config_path)
 
-        print(config.api_key)
         assert "AbcdeF" == config.api_key
         assert "credoai" == config.tenant
         assert "http://localhost:4000" == config.api_server

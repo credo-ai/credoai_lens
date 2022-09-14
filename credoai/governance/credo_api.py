@@ -1,30 +1,10 @@
 """
 Credo API functions
 """
-from collections import defaultdict
-
-import requests
+from requests.exceptions import HTTPError
 from credoai.utils import global_logger
-from credoai.utils.common import IntegrationError
-from credoai.utils.credo_api_client import CredoApiClient
-
-
-def _process_policies(policies):
-    """Returns list of binary questions"""
-    policies = sorted(policies, key=lambda x: x["stage_key"])
-    question_list = defaultdict(list)
-    for policy in policies:
-        for control in policy["controls"]:
-            label = policy["stage_key"]
-            questions = control["questions"]
-            filtered_questions = [
-                f"{control['key']}: {q['question']}"
-                for q in questions
-                if q.get("options") == ["Yes", "No"]
-            ]
-            if filtered_questions:
-                question_list[label] += filtered_questions
-    return question_list
+from credoai.governance.credo_api_client import CredoApiClient
+from credoai.evidence.evidence import Evidence
 
 
 class CredoApi:
@@ -37,173 +17,101 @@ class CredoApi:
 
     def set_client(self, client: CredoApiClient):
         """
-        sets Credo Api Client
-        """
-        self._client = client
-
-    # Not used
-    def get_assessment(self, assessment_id: str):
-        """
-        get assessment
-        """
-        return self._client.get(f"use_case_assessments/{assessment_id}")
-
-    def apply_assessment_template(self, template_name, use_case_id, model_id):
-        """Applies an assessment template to a model under a use case
-
-        The assessment templates are drawn from the list of assessment templates saved
-        in the Governance Platform
+        Sets Credo Api Client
 
         Parameters
         ----------
-        template_name : str
-            The name of an assessment template.
-        use_case_id : string
-            Identifier for Use Case on Credo AI Governance App
-        model_id : string
-            Identifier for Model on Credo AI Governance App
+        client : CredoApiClient
+            Credo API client
         """
-        # get template
-        templates = self._client.get("assessment_plan_templates")
-        filtered = [t for t in templates if t["name"] == template_name]
-        if len(filtered) > 1:
-            raise IntegrationError(
-                f"More than one template found with the name: {template_name}"
-            )
-        elif not filtered:
-            raise IntegrationError(f"No template found with the name: {template_name}")
-        template = filtered[0]
+        self._client = client
 
-        # get assessment plan
-        plan = self._client.get(
-            f"use_cases/{use_case_id}/models/{model_id}/assessment_plans/draft"
-        )
+    def get_assessment_plan_url(self, use_case_name: str, policy_pack_key: str):
+        """
+        Convert use_case_name and policy_pack_key to assessment_plan_url
 
-        # apply template
-        data = {"assessment_plan_id": plan["id"], "$type": "string"}
-        self._client.post(f"assessment_plan_templates/{template['id']}/apply", data)
-        self._client.post(f"assessment_plans/{plan['id']}/publish", data)
+        Parameters
+        ----------
+        use_case_name : str
+            name of a use case
+        policy_pack_key : str
+            policy pack key, ie: FAIR
 
-    def create_assessment(self, use_case_id: str, model_id, data: str):
-        """
-        create assessment
-        """
-        endpoint = f"use_cases/{use_case_id}/models/{model_id}/assessments"
-        return self._client.post(endpoint, data)
+        Returns
+        -------
+        None
+            When use_case_name does not exist or policy_pack_key is not registered to the use_case
+        str
+            assessment_plan_url
 
-    def get_assessment_spec(self, spec_url: str):
+        Raises
+        ------
+        HTTPError
+            When API request returns error other than 404
         """
-        Get assessment spec
-        """
+
         try:
-            downloaded_spec = self._client.get(spec_url)
-            assessment_spec = {k: v for k, v in downloaded_spec.items() if "_id" in k}
-            assessment_spec["assessment_plan"] = downloaded_spec["assessment_plan"]
-            assessment_spec["policy_questions"] = _process_policies(
-                downloaded_spec["policies"]
-            )
-        except requests.exceptions.HTTPError:
-            raise IntegrationError(
-                "Failed to retrieve assessment spec. Check that the url is correct"
-            )
-        return assessment_spec
+            path = f"assessment_plan_url?use_case_name={use_case_name}&policy_pack_key={policy_pack_key}"
+            response = self._client.get(path)
+            return response["url"]
+        except HTTPError as error:
+            if error.response.status_code == 404:
+                global_logger.info(
+                    f"Use case ({use_case_name}) with policy pack({policy_pack_key}) does not exist"
+                )
+                return None
+            raise error
 
-    def get_use_case(self, use_case_id: str):
+    def get_assessment_plan(self, url: str):
         """
-        Get use_case by id
-        """
-        endpoint = f"use_cases/{use_case_id}?include=model_configs"
-        return self._client.get(endpoint)
+        Get assessment plan from API server and returns it.
 
-    def get_dataset_by_name(self, name: str):
-        """
-        Get dataset by name
-        """
-        params = {"filter[name]": name}
-        datasets = self._client.get("datasets", params=params)
-        if len(datasets) > 0:
-            return datasets[0]
+        Parameters
+        ----------
+        url : str
+            assessment plan URL
 
-        return None
+        Returns
+        -------
+        dict
+            evidence_requirements(list): list of evidence requirements
+            policy_pack_id(str): policy pack id(key+version), ie: FAIR+1
+            use_case_id(str): use case id
 
-    def get_model_by_name(self, name):
+        Raises
+        ------
+        HTTPError
+            When API request returns error
         """
-        Get model by name
-        """
-        params = {"filter[name]": name}
-        models = self._client.get("models", params=params)
-        if len(models) > 0:
-            return models[0]
 
-        return None
+        return self._client.get(url)
 
-    def get_use_case_by_name(self, name: str):
-        """
-        Get use_case by name
-        """
-        params = {"filter[name]": name}
-        use_cases = self._client.get("use_cases", params=params)
-        if len(use_cases) > 0:
-            return use_cases[0]
-
-        return None
-
-    def register_dataset(self, name: str):
-        """
-        Find a dataset by name, if it does not exist create one.
-        """
-        dataset = self.get_dataset_by_name(name)
-        if dataset:
-            global_logger.info(
-                f"Dataset ({name}) already registered on platform. Retrieving dataset ID."
-            )
-            return dataset
-
-        global_logger.info(f"Registering dataset: ({name})")
-        data = {"name": name, "$type": "datasets"}
-        return self._client.post("datasets", data)
-
-    def register_model(self, name: str, version: str = "1.0"):
-        """
-        Find a model by name, if it does not exist create one.
-        """
-        model = self.get_model_by_name(name)
-        if model:
-            global_logger.info(
-                f"Model ({name}) already registered on platform. Retrieving model ID."
-            )
-            return model
-
-        global_logger.info(f"Registering model: ({name})")
-        data = {"name": name, "version": version, "$type": "models"}
-        return self._client.post("models", data)
-
-    def register_model_to_usecase(self, use_case_id: str, model_id: str):
-        """
-        Register a model to use_case.
-        """
-        endpoint = f"use_cases/{use_case_id}/relationships/models"
-        data = [{"id": model_id, "$type": "models"}]
-        self._client.post(endpoint, data)
-
-    def register_dataset_to_model(self, model_id: str, dataset_id: str):
-        """
-        Register a dataset to model.
-        """
-        endpoint = f"models/{model_id}/relationships/dataset"
-        data = {"id": dataset_id, "$type": "datasets"}
-        self._client.patch(endpoint, data)
-
-    def register_dataset_to_model_usecase(
-        self, use_case_id: str, model_id: str, dataset_id: str
+    def create_assessment(
+        self, use_case_id: str, policy_pack_id: str, evidences: list[dict]
     ):
         """
-        Register a dataset to use_case model.
+        Upload evidences to API server.
+
+        Parameters
+        ----------
+        use_case_id : str
+            use case id
+        policy_pack_id : str
+            policy pack id, ie: FAIR+1
+        evidences: list[dict]
+            list of evidences
+
+        Raises
+        ------
+        HTTPError
+            When API request returns error
         """
-        endpoint = f"use_cases/{use_case_id}/models/{model_id}/config"
+
+        path = f"use_cases/{use_case_id}/assessments"
+
+        # list(map(lambda e: e.struct(), evidences))
         data = {
-            "dataset_id": dataset_id,
-            "$type": "use_case_model_configs",
-            "id": "unknown",
+            "policy_pack_id": policy_pack_id,
+            "evidences": evidences,
         }
-        self._client.patch(endpoint, data)
+        return self._client.post(path, data)
