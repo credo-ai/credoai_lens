@@ -48,12 +48,27 @@ class Data(ABC):
         sensitive_intersections: Union[bool, list] = False,
     ):
         self.name = name
-        self.X = X
-        self.y = y
-        self.sensitive_features = sensitive_features
-        self._validate_inputs()
-        self._process_inputs(sensitive_intersections)
-        self._validate_processing()
+        self.X = self._process_X(X)
+        self.y = self._process_y(y)
+        self.sensitive_features = self._process_sensitive(
+            sensitive_features, sensitive_intersections
+        )
+        self._validate_data()
+        self._active_sensitive_feature = None
+
+    @property
+    def active_sens_feat(self):
+        if self._active_sensitive_feature is None:
+            self._active_sensitive_feature = self.sensitive_features.columns[0]
+        return self._active_sensitive_feature
+
+    @active_sens_feat.setter
+    def active_sens_feat(self, value):
+        self._active_sensitive_feature = value
+
+    @property
+    def sensitive_feature(self):
+        return self.sensitive_features[[self.active_sens_feat]]
 
     @property
     def y_type(self):

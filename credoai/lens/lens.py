@@ -1,7 +1,7 @@
 import re
+from typing import Dict, List, Optional, Union
 import uuid
 from inspect import isclass
-from typing import Dict, List, Union
 
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
@@ -57,6 +57,10 @@ class Lens:
             self._generate_pipeline(pipeline)
         self.pipeline_results: list = []
         self._validate()
+        if self.assessment_data and self.assessment_data.sensitive_features is not None:
+            self.sens_feat_names = list(self.assessment_data.sensitive_features)
+        else:
+            self.sens_feat_names = []
 
     def __getitem__(self, stepname):
         return self.pipeline[stepname]
@@ -93,23 +97,91 @@ class Lens:
                 f"An evaluator with id: {id} is already in the pipeline. Id has to be unique"
             )
 
-        if id is None:
-            ## TODO: Check if it makes sense to hash arguments to ensure uniqueness
-            id = f"{evaluator.name}_{str(uuid.uuid4())}"
-
         ## Define necessary arguments for evaluator
-        evaluator_required_parameters = evaluator.required_artifacts
-
+        eval_reqrd_params = evaluator.required_artifacts
         evaluator_arguments = {
-            k: v for k, v in vars(self).items() if k in evaluator_required_parameters
+            k: v for k, v in vars(self).items() if k in eval_reqrd_params
         }
+
+        ## Basic case: eval depends on specific datasets and not on sens feat
+        if (
+            "data" not in eval_reqrd_params
+            and "sensitive_feature" not in eval_reqrd_params
+        ):
+            self._add(evaluator, id, metadata, evaluator_arguments)
+            return self
+
+        if "sensitive_feature" in eval_reqrd_params:
+            if self.sens_feat_names:
+                features_to_eval = self.sens_feat_names
+            else:
+                raise ValidationError(
+                    f"Evaluator {evaluator.name} requires sensitive features"
+                )
+        else:
+            features_to_eval = self.sens_feat_names[0]  # Cycle only once
+
+        for feat in features_to_eval:
+            if "data" in eval_reqrd_params:
+                available_datasets = [x for x in vars(self) if "data" in x]
+                for dataset in available_datasets:
+                    data_to_assign = vars(self)[dataset]
+                    data_to_assign.active_sens_feat = feat
+                    evaluator_arguments["data"] = vars(self)[dataset]
+                    ## Create labels/metadata
+                    labels = {"dataset": dataset}
+                    labels["sensitive_feature"] = feat
+                    ## Add to pipeline
+                    self._add(evaluator, id, labels, evaluator_arguments)
+            else:
+                # TODO: place holder for cases in which data is specific, but there
+                # is still dependency to sensitive features. Not existin atm, in case
+                # Just tune any dataset to the right "feat"
+                pass
+        return self
+
+    def _add(
+        self,
+        evaluator: Evaluator,
+        id: Optional[str],
+        metadata: Optional[dict],
+        evaluator_arguments: dict,
+    ):
+        """
+        Add a specific step while handling errors.
+
+        Parameters
+        ----------
+        evaluator : Evaluator
+            Instantiated evaluator
+        id : str
+            Step identifier
+        evaluator_arguments : dict
+            Arguments needed for the specific evaluator
+        metadata : dict, optional
+            Any Metadata to associate to the evaluator, by default None
+        """
+        if id is None:
+            id = f"{evaluator.name}_{str(uuid.uuid4())[0:6]}"
+
         ## Attempt pipe addition
         try:
             self.pipeline[id] = {
                 "evaluator": evaluator(**evaluator_arguments),
                 "meta": metadata,
             }
-            self.logger.info(f"Evaluator {evaluator.name} added to pipeline.")
+
+            # Create logging message
+            logger_message = f"Evaluator {evaluator.name} added to pipeline. "
+            if metadata is not None:
+                if "dataset" in metadata:
+                    logger_message += f"Dataset used: {metadata['dataset']}. "
+                if "sensitive_feature" in metadata:
+                    logger_message += (
+                        f"Sensitive feature: {metadata['sensitive_feature']}"
+                    )
+            self.logger.info(logger_message)
+
         except ValidationError as e:
             self.logger.info(
                 f"Evaluator {evaluator.name} NOT added to the pipeline: {e}"
@@ -239,11 +311,26 @@ class Lens:
         ------
         ValidationError
         """
-        if self.assessment_data and self.training_data:
-            if self.assessment_data == self.training_data:
-                raise ValidationError(
-                    "Assessment dataset and training dataset should not be the same"
-                )
+        if not isinstance(self.assessment_data, Data):
+            raise ValidationError(
+                "Assessment data should inherit from credoai.artifacts.Data"
+            )
+        if not isinstance(self.training_data, Data):
+            raise ValidationError(
+                "Assessment data should inherit from credoai.artifacts.Data"
+            )
+
+        if self.assessment_data is not None and self.training_data is not None:
+            if (
+                self.assessment_data.sensitive_features is not None
+                and self.training_data.sensitive_features is not None
+            ):
+                if len(self.assessment_data.sensitive_features.shape) != len(
+                    self.training_data.sensitive_features.shape
+                ):
+                    raise ValidationError(
+                        "Sensitive features should have the same shape across assessment and training data"
+                    )
 
     @staticmethod
     def _get_step_param(step, pos):

@@ -50,13 +50,12 @@ class DataFairness(Evaluator):
         self.categorical_threshold = categorical_threshold
 
     name = "DataFairness"
-    required_artifacts = ["model", "assessment_data", "training_data"]
+    required_artifacts = ["data", "sensitive_feature"]
 
     def _setup(self):
-        self.data_to_eval = self.assessment_data  # Pick the only member
+        self.data_to_eval = self.data  # Pick the only member
 
-        # TODO: Takes first columns, clarify behaviour for multiple features
-        self.sensitive_features = self.data_to_eval.sensitive_features.iloc[:, 0]
+        self.sensitive_features = self.data_to_eval.sensitive_feature.iloc[:, 0]
         self.data = pd.concat([self.data_to_eval.X, self.data_to_eval.y], axis=1)
         self.X = self.data_to_eval.X
         self.y = self.data_to_eval.y
@@ -79,10 +78,10 @@ class DataFairness(Evaluator):
         return self
 
     def _validate_arguments(self):
-        if not isinstance(self.assessment_data, TabularData):
+        if not isinstance(self.data, TabularData):
             raise ValidationError("Data under evaluation is not of type TabularData.")
 
-        if self.assessment_data.sensitive_features is None:
+        if self.data.sensitive_features is None:
             raise ValidationError(
                 f"Step: {self.name} ->  No sensitive feature were found in the dataset"
             )
