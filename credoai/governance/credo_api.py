@@ -1,10 +1,10 @@
 """
 Credo API functions
 """
+
 from requests.exceptions import HTTPError
 from credoai.utils import global_logger
-from credoai.governance.credo_api_client import CredoApiClient
-from credoai.evidence.evidence import Evidence
+from .credo_api_client import CredoApiClient
 
 
 class CredoApi:
@@ -109,7 +109,6 @@ class CredoApi:
 
         path = f"use_cases/{use_case_id}/assessments"
 
-        # list(map(lambda e: e.struct(), evidences))
         data = {
             "policy_pack_id": policy_pack_id,
             "evidences": evidences,

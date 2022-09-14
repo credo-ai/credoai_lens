@@ -1,10 +1,6 @@
-from unittest.mock import ANY
-
 import pytest
 from credoai.governance.credo_api import CredoApi
 from credoai.governance.credo_api_client import CredoApiClient
-from credoai.evidence.evidence import Metric, Table
-from pandas import Series
 
 
 class TestCredoApi:
@@ -24,17 +20,17 @@ class TestCredoApi:
     def api(self, client):
         return CredoApi(client=client)
 
-    def test_real(self):
-        client = CredoApiClient()
-        api = CredoApi(client=client)
+    # def test_real(self):
+    #     client = CredoApiClient()
+    #     api = CredoApi(client=client)
 
-        # response = api.get_assessment_plan(
-        #     "http://localhost:4000/api/v2/credoai/use_cases/64YUaLWSviHgibJaRWr3ZE/assessment_plans/NYCE+1"
-        # )
-        # print(response)
+    #     response = api.get_assessment_plan(
+    #         "http://localhost:4000/api/v2/credoai/use_cases/64YUaLWSviHgibJaRWr3ZE/assessment_plans/NYCE+1"
+    #     )
+    #     print(response)
 
-        # response = api.get_assessment_plan_url("Keyboard Sensitivity", "NYCE")
-        # print(response)
+    #     response = api.get_assessment_plan_url("Keyboard Sensitivity", "NYCE")
+    #     print(response)
 
     def test_get_assessment_plan_url(self, api, client):
         api.get_assessment_plan_url("Fraud Detection", "FAIR")

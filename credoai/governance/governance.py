@@ -1,267 +1,199 @@
-"""Artifacts used by Lens to structure governance, models and data"""
-# CredoLens relies on four classes
-# - CredoGovernance
-# - CredoModel
-# - CredoData
-# - CredoAssessment
+"""
+Credo Governance
+"""
 
-# CredoGovernance contains the information needed
-# to connect CredoLens with the Credo AI Governance App
-
-# CredoModel follows an `adapter pattern` to convert
-# any model into an interface CredoLens can work with.
-# The functionality contained in CredoModel determines
-# what assessments can be run.
-
-# CredoData is a lightweight wrapper that stores data
-
-# CredoAssessment is the interface between a CredoModel,
-# CredoData and a module, which performs some assessment.
-
-import os
-from collections import defaultdict
-from datetime import datetime
-
-from absl import logging
-from credoai.metrics.metrics import find_metrics
-from credoai.utils.common import json_dumps, update_dictionary
-from credoai.utils.constants import RISK_ISSUE_MAPPING
-
+import json
+from json_api_doc import deserialize
+from credoai.utils import global_logger
+from credoai.evidence.evidence import Evidence
+from credoai.evidence.evidence_requirement import EvidenceRequirement
 from .credo_api import CredoApi
 from .credo_api_client import CredoApiClient
-from .utils import prepare_assessment_payload, process_assessment_spec
 
 
 class CredoGovernance:
     """Class to store governance data.
 
-    This information is used to interact with the CredoAI
-    Governance App.
-
-    At least one of the credo_url or spec_path must be provided! If both
-    are provided, the spec_path takes precedence.
-
-    To make use of Governance App a .credo_config file must
-    also be set up (see README)
+    CredoGovernance is used to interact with the CredoAI Governance(Report) App.
+    It has two main jobs.
+    1. Get evidence_requirements of use_case and policy pack.
+    2. Upload evidences gathered with evidence_requirements
 
     Parameters
     ----------
-    spec_destination: str
-        Where to find the assessment spec. Two possibilities. Either:
-        * end point to retrieve assessment spec from credo AI's governance platform
-        * The file location for the assessment spec json downloaded from
-        the assessment requirements of an Use Case on Credo AI's
-        Governance App
+    credo_api_client: CredoApiClient, optional
+        Credo API client. Uses default Credo API client if it is None
+        Default Credo API client uses `~/.credo_config` to read API server configuration. 
+        Please prepare `~/.credo_config` file by downloading it from CredoAI Governance App.(My Settings > Tokens)
+
+        If you want to use your own configuration, 
+
+        ```python
+        from credoai.governance.credo_api_client import CredoApiClient, CredoApiConfig
+        from credoai.governance.goverance import CredoGovernance
+
+        config = CredoApiConfig(
+            api_key="API_KEY", tenant="credo", api_server="https://api.credo.ai"
+        )
+        # or using credo_config file
+        config = CredoApiConfig()
+        config.load_config("CREDO_CONFIG_FILE_PATH")
+
+        client = CredoApiClient(config=config)
+        governace = CredoGovernance(credo_api_client=client)
+        ```
+    
     """
 
-    def __init__(self, spec_destination: str = None):
-        self.assessment_spec = {}
-        self.use_case_id = None
-        self.model_id = None
-        self.dataset_id = None
-        self.training_dataset_id = None
+    def __init__(self, credo_api_client: CredoApiClient = None):
+        self._use_case_id: str = None
+        self._policy_pack_id: str = None
+        self._evidence_requirements: list[EvidenceRequirement] = []
+        self._evidences: list[Evidence] = []
+        self._plan: dict = None
 
-        client = CredoApiClient()
+        if credo_api_client:
+            client = credo_api_client
+        else:
+            client = CredoApiClient()
+
         self._api = CredoApi(client=client)
-
-        # set up assessment spec
-        if spec_destination:
-            self._process_spec(spec_destination)
-
-    def get_assessment_plan(self):
-        """Get assessment plan
-
-        Return the assessment plan for the model defined
-        by model_id.
-
-        If not retrieved yet, attempt to retrieve the plan first
-        from the AI Governance app.
-        """
-        assessment_plan = defaultdict(dict)
-        missing_metrics = []
-        for risk_issue, risk_plan in self.assessment_spec.get(
-            "assessment_plan", {}
-        ).items():
-            metrics = [m["type"] for m in risk_plan]
-            passed_metrics = []
-            for m in metrics:
-                found = bool(find_metrics(m))
-                if not found:
-                    missing_metrics.append(m)
-                else:
-                    passed_metrics.append(m)
-            if risk_issue in RISK_ISSUE_MAPPING:
-                update_dictionary(
-                    assessment_plan[RISK_ISSUE_MAPPING[risk_issue]],
-                    {"metrics": passed_metrics},
-                )
-        # alert about missing metrics
-        for m in missing_metrics:
-            logging.warning(
-                f"Metric ({m}) is defined in the assessment plan but is not defined by Credo AI.\n"
-                "Ensure you create a custom Metric (credoai.metrics.Metric) and add it to the\n"
-                "assessment plan passed to lens"
-            )
-        # remove repeated metrics
-        for plan in assessment_plan.values():
-            plan["metrics"] = list(set(plan["metrics"]))
-        return assessment_plan
-
-    def get_policy_checklist(self):
-        return self.assessment_spec.get("policy_questions")
-
-    def get_info(self):
-        """Return Credo AI Governance IDs"""
-        to_return = self.__dict__.copy()
-        del to_return["assessment_spec"]
-        return to_return
-
-    def get_defined_ids(self):
-        """Return IDS that have been defined"""
-        return [k for k, v in self.get_info().items() if v]
 
     def register(
         self,
-        model_name=None,
-        dataset_name=None,
-        training_dataset_name=None,
-        assessment_template=None,
+        assessment_plan_url: str = None,
+        use_case_name: str = None,
+        policy_pack_key: str = None,
+        assessment_plan: str = None,
+        assessment_plan_file: str = None,
     ):
-        """Registers artifacts to Credo AI Governance App
+        """
+        Get assessment plan and register it.
+        There are three ways to do it
+        1. With assessment_plan_url.
+        ```
+        gov.register(assessment_plan_url="https://api.credo.ai/api/v2/tenant/use_cases/{id}/assessment_plans/{pp_id}")
+        ```
+        2. With use case name and policy pack key.
+        ```
+        gov.register(use_case_name="Fraud Detection", policy_pack_key="FAIR")
+        ```
+        3. With assessment_plan json string or filename. It is used in the air-gap condition.
+        ```
+        gov.register(assessment_plan="JSON_STRING")
+        gov.register(assessment_plan_file="FILENAME")
+        ```
 
-        Convenience function to register multiple artifacts at once
+        Afeter successful registration, `gov.registered` returns True and able to get evidence_requirements
+        ```
+        gov.registered    # returns True
+        gov.get_evidence_requirements()
+        ```
 
         Parameters
         ----------
-        model_name : str
-            name of a model
-        dataset_name : str
-            name of a dataset used to assess the model
-        training_dataset_name : str
-            name of a dataset used to train the model
-        assessment_template : str
-            name of an assessment template that already exists on the governance platform,
-            which will be applied to the model
-
+        assessment_plan_url : str
+            assessment plan URL
+        use_case_name : str
+            use case name
+        policy_pack_key : str
+            policy pack key
+        assessment_plan : str
+            assessment plan JSON string
+        assessment_plan_file : str
+            assessment plan file name that holds assessment plan JSON string
         """
-        if model_name:
-            self._register_model(model_name)
-        if dataset_name:
-            self._register_dataset(dataset_name)
-        if training_dataset_name:
-            self._register_dataset(training_dataset_name, register_as_training=True)
-        if assessment_template and self.model_id:
-            self._api.apply_assessment_template(
-                assessment_template, self.use_case_id, self.model_id
-            )
-        # reset assessment spec if assessment_plan not defined yet
-        if not self.assessment_spec.get("assessment_plan", {}):
-            self._process_spec(
-                f"use_cases/{self.use_case_id}/models/{self.model_id}/assessment_spec",
-                set_ids=False,
-            )
-            if self.assessment_spec.get("assessment_plan", {}):
-                logging.info("Assessment plan downloaded after artifact registration")
+        self._plan = None
 
-    def export_assessment_results(
-        self,
-        assessment_results,
-        reporter_assets=None,
-        destination="credoai",
-        assessed_at=None,
-    ):
-        """Export assessment json to file or credo
+        plan = None
+        if use_case_name and policy_pack_key:
+            assessment_plan_url = self._api.get_assessment_plan_url(
+                use_case_name, policy_pack_key
+            )
 
-        Parameters
-        ----------
-        assessment_results : dict or list
-            dictionary of metrics or
-            list of prepared_results from credo_assessments. See lens.export for example
-        reporter_assets : list, optional
-            list of assets from a CredoReporter, by default None
-        destination : str
-            Where to send the report
-            -- "credoai", a special string to send to Credo AI Governance App.
-            -- Any other string, save assessment json to the output_directory indicated by the string.
-        assessed_at : str, optional
-            date when assessments were created, by default None
+        if assessment_plan_url:
+            plan = self._api.get_assessment_plan(assessment_plan_url)
+
+        if assessment_plan:
+            plan = self.__parse_json_api(assessment_plan)
+
+        if assessment_plan_file:
+            with open(assessment_plan_file, "r") as f:
+                json_str = f.read()
+                plan = self.__parse_json_api(json_str)
+
+        if plan:
+            self._plan = plan
+            self._use_case_id = plan.get("use_case_id")
+            self._policy_pack_id = plan.get("policy_pack_id")
+            self._evidence_requirements = list(
+                map(
+                    lambda d: EvidenceRequirement(d),
+                    plan.get("evidence_requirements", []),
+                )
+            )
+
+            global_logger.info(
+                f"Successfully registered with {len(self._evidence_requirements)} evidence requirements"
+            )
+
+            self.set_evidences([])
+
+    def __parse_json_api(self, json_str):
+        return deserialize(json.loads(json_str))
+
+    @property
+    def registered(self):
+        return bool(self._plan)
+
+    def get_evidence_requirements(self):
         """
-        assessed_at = assessed_at or datetime.utcnow().isoformat()
-        payload = ci.prepare_assessment_payload(
-            assessment_results, reporter_assets=reporter_assets, assessed_at=assessed_at
+        Returns evidence requirements
+        
+
+        Returns
+        -------
+        list[EvidenceRequirement]
+        """
+        return self._evidence_requirements
+
+    def set_evidences(self, evidences: list[Evidence]):
+        """
+        Update evidences
+        """
+        self._evidences = evidences
+
+    def add_evidences(self, evidences: list[Evidence]):
+        """
+        Add evidences
+        """
+        self._evidences = self._evidences + evidences
+
+    def export(self):
+        """
+        Upload evidences to CredoAI Governance(Report) App
+
+        Returns
+        -------
+        True
+            When uploading is successful
+        False
+            When it is not registered yet, or there is no evidence    
+        """
+
+        if not self.registered:
+            global_logger.info("It is not registered, please register first")
+            return False
+
+        if 0 == len(self._evidences):
+            global_logger.info("No evidences found, please add evidences first")
+            return False
+
+        evidences = list(map(lambda e: e.struct(), self._evidences))
+
+        global_logger.info(
+            f"Uploading {len(evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
         )
-        if destination == "credoai":
-            if self.use_case_id and self.model_id:
-                self._api.create_assessment(self.use_case_id, self.model_id, payload)
-                logging.info(
-                    f"Successfully exported assessments to Credo AI's Governance App"
-                )
-            else:
-                logging.error(
-                    "Couldn't upload assessment to Credo AI's Governance App. "
-                    "Ensure use_case_id is defined in CredoGovernance"
-                )
-        else:
-            if not os.path.exists(destination):
-                os.makedirs(destination, exist_ok=False)
-            name_for_save = f"assessment_run-{assessed_at}.json"
-            # change name in case of windows
-            if os.name == "nt":
-                name_for_save = name_for_save.replace(":", "-")
-            output_file = os.path.join(destination, name_for_save)
-            with open(output_file, "w") as f:
-                f.write(json_dumps(payload))
+        self._api.create_assessment(self._use_case_id, self._policy_pack_id, evidences)
 
-    def _process_spec(self, spec_destination, set_ids=True):
-        self.assessment_spec = ci.process_assessment_spec(spec_destination, self._api)
-        if set_ids:
-            self.use_case_id = self.assessment_spec["use_case_id"]
-            self.model_id = self.assessment_spec["model_id"]
-            self.dataset_id = self.assessment_spec["validation_dataset_id"]
-            self.training_dataset_id = self.assessment_spec["training_dataset_id"]
-
-    def _register_dataset(self, dataset_name, register_as_training=False):
-        """Registers a dataset
-
-        Parameters
-        ----------
-        dataset_name : str
-            name of a dataset
-        register_as_training : bool
-            If True and model_id is defined, register dataset to model as training data,
-            default False
-        """
-        prefix = ""
-        if register_as_training:
-            prefix = "training_"
-        dataset_id = self._api.register_dataset(name=dataset_name)["id"]
-        setattr(self, f"{prefix}dataset_id", dataset_id)
-
-        if not register_as_training and self.model_id and self.use_case_id:
-            self._api.register_dataset_to_model_usecase(
-                use_case_id=self.use_case_id,
-                model_id=self.model_id,
-                dataset_id=self.dataset_id,
-            )
-        if register_as_training and self.model_id and self.training_dataset_id:
-            logging.info(
-                f"Registering dataset ({dataset_name}) to model ({self.model_id})"
-            )
-            self._api.register_dataset_to_model(self.model_id, self.training_dataset_id)
-
-    def _register_model(self, model_name):
-        """Registers a model
-
-        If a project has not been registered, a new project will be created to
-        register the model under.
-
-        If an AI solution has been set, the model will be registered to that
-        solution.
-        """
-        self.model_id = self._api.register_model(name=model_name)["id"]
-
-        if self.use_case_id:
-            logging.info(
-                f"Registering model ({model_name}) to Use Case ({self.use_case_id})"
-            )
-            self._api.register_model_to_usecase(self.use_case_id, self.model_id)
+        return True
