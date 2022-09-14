@@ -1,18 +1,14 @@
-from cProfile import label
-from curses import meta
-import logging
 import re
 from typing import Dict, List, Optional, Union
 import uuid
 from inspect import isclass
-from zoneinfo import available_timezones
 
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.lens.utils import build_list_of_evaluators, log_command
-from credoai.utils.common import ValidationError
+from credoai.utils import global_logger
+from credoai.utils.common import ValidationError, flatten_list
 
-logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 # Custom type
 Pipeline = List[Union[Evaluator, tuple[Evaluator, str, dict]]]
 
@@ -55,7 +51,7 @@ class Lens:
         self.gov = None
         self.pipeline: dict = {}
         self.command_list: list = []
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = global_logger
         # If a list of steps is passed create the pipeline
         if pipeline:
             self._generate_pipeline(pipeline)
@@ -144,34 +140,6 @@ class Lens:
                 pass
         return self
 
-    def _split_artifact_on_sens_feat(self):
-        """
-        Creates copies of the orginal data artifacts, each containing a single
-        sensitive feature.
-
-        Parameters
-        ----------
-        n_sensitive_features : int
-            Number of existing sensitive features
-
-        Returns
-        -------
-        Dict[Data]
-            A dictionary of data artifacts.
-        """
-        split_sets = dict()
-        available_datasets = {
-            x: v for x, v in vars(self).items() if "data" in x and v is not None
-        }
-        for name, d_set in available_datasets.items():
-            for i in range(self.n_sensitive_features):
-                d_set_copy = d_set.copy()
-                feat = d_set_copy.sensitive_features.iloc[:, [i]]
-                feat_name = feat.columns[0]
-                d_set_copy.sensitive_features = feat
-                split_sets[f"{name}-sens_feat-{feat_name}"] = d_set_copy
-        return split_sets
-
     def _add(
         self,
         evaluator: Evaluator,
@@ -239,7 +207,7 @@ class Lens:
         Run the main loop across all the pipeline steps.
         """
         if len(self.pipeline) == 0:
-            logging.info("Empty pipeline: proceeding with defaults...")
+            self.logger.info("Empty pipeline: proceeding with defaults...")
             all_evaluators = build_list_of_evaluators()
             self._generate_pipeline(all_evaluators)
         # Can  pass pipeline directly
@@ -251,24 +219,22 @@ class Lens:
             )
         return self
 
-    def get_evidences(self):
+    def get_evidence(self):
         """
         Create evidences for the platform from the pipeline results.
         """
         labels = {
-            "model_id": self.model.name if self.model else None,
+            "model_name": self.model.name if self.model else None,
             "dataset_name": self.assessment_data.name if self.assessment_data else None,
             "sensitive_features": [
                 x for x in self.assessment_data.sensitive_features.columns
             ],
         }
-        all_evidences = [x["results"] for x in self.pipeline_results]
-
-        all_evidences = self.flatten_list(all_evidences)
-        all_evidences = [x.to_evidence("id", **labels) for x in all_evidences]
-        all_evidences = self.flatten_list(all_evidences)
-
-        return [x.struct() for x in all_evidences]
+        all_results = flatten_list([x["results"] for x in self.pipeline_results])
+        evidences = []
+        for result in all_results:
+            evidences += result.to_evidence(**labels)
+        return evidences
 
     def get_results(self) -> Dict:
         """
@@ -277,20 +243,16 @@ class Lens:
         Returns
         -------
         Dict
-            The format of the dictionaryu is Pipeline step id: results
+            The format of the dictionary is Pipeline step id: results
         """
-
-        res = {}
-        for x in self.pipeline_results:
-            if isinstance(x["results"], list):
-                value = [i.df for i in x["results"]]
-            else:
-                value = x["results"].df
-            res[x["id"]] = value
+        res = {x["id"]: [i.df for i in x["results"]] for x in self.pipeline_results}
         return res
 
     def get_command_list(self):
         return print("\n".join(self.command_list))
+
+    def get_evaluators(self):
+        return [i["evaluator"] for i in self.pipeline.values()]
 
     def push(self):
         """
@@ -376,14 +338,3 @@ class Lens:
             return step[pos]
         except IndexError:
             return None
-
-    @staticmethod
-    def flatten_list(mixl):
-        flattened = []
-        for i in mixl:
-            if hasattr(i, "__iter__"):
-                for j in i:
-                    flattened.append(j)
-            else:
-                flattened.append(i)
-        return flattened

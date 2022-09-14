@@ -53,8 +53,6 @@ class TabularData(Data):
         return temp
 
     def _process_y(self, y):
-        if y is None:
-            return
         # if X is pandas object, and y is convertable, convert y to
         # pandas object with X's index
         if isinstance(y, (np.ndarray, list)):
@@ -65,16 +63,15 @@ class TabularData(Data):
         return y
 
     def _validate_y(self):
-        if self.y is not None:
-            if len(self.X) != len(self.y):
-                raise ValidationError(
-                    "X and y are not the same length. "
-                    + f"X Length: {len(self.X)}, y Length: {len(self.y)}"
-                )
-            if isinstance(
-                self.X, (pd.Series, pd.DataFrame)
-            ) and not self.X.index.equals(self.y.index):
-                raise ValidationError("X and y must have the same index")
+        if len(self.X) != len(self.y):
+            raise ValidationError(
+                "X and y are not the same length. "
+                + f"X Length: {len(self.X)}, y Length: {len(self.y)}"
+            )
+        if isinstance(self.X, (pd.Series, pd.DataFrame)) and not self.X.index.equals(
+            self.y.index
+        ):
+            raise ValidationError("X and y must have the same index")
 
     def _validate_X(self):
         # Validate that the data column names are unique

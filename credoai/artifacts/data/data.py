@@ -79,9 +79,16 @@ class Data(ABC):
         data = {"X": self.X, "y": self.y, "sensitive_features": self.sensitive_features}
         return data
 
+    def _process_inputs(self, sensitive_intersections):
+        self.X = self._process_X(self.X)
+        if self.y is not None:
+            self.y = self._process_y(self.y)
+        if self.sensitive_features is not None:
+            self.sensitive_features = self._process_sensitive(
+                self.sensitive_features, sensitive_intersections
+            )
+
     def _process_sensitive(self, sensitive_features, sensitive_intersections):
-        if sensitive_features is None:
-            return
         df = pd.DataFrame(sensitive_features)
         # add intersections if asked for
         features = df.columns
@@ -106,37 +113,32 @@ class Data(ABC):
     def _process_y(self, y):
         return y
 
-    def _validate_data(self):
-        self._validate_sensitive()
+    def _validate_inputs(self):
         self._validate_X()
-        self._validate_y()
+        if self.y is not None:
+            self._validate_y()
+        if self.sensitive_features is not None:
+            self._validate_sensitive()
 
     def _validate_sensitive(self):
         # Validate the types
-        if self.sensitive_features is not None and not isinstance(
-            self.sensitive_features, (pd.DataFrame, pd.Series)
-        ):
+        if not isinstance(self.sensitive_features, (pd.Series, pd.DataFrame)):
             raise ValidationError(
                 "Sensitive_feature type is '"
                 + type(self.sensitive_features).__name__
                 + "' but the required type is either pd.DataFrame or pd.Series"
             )
-        if self.sensitive_features is not None:
-            if len(self.X) != len(self.sensitive_features):
-                raise ValidationError(
-                    "X and sensitive_features are not the same length. "
-                    + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
-                )
-            if isinstance(
-                self.X, (pd.Series, pd.DataFrame)
-            ) and not self.X.index.equals(self.sensitive_features.index):
-                raise ValidationError(
-                    "X and sensitive features must have the same index"
-                )
-
-        if self.sensitive_features is not None and isinstance(
-            self.sensitive_features, pd.Series
+        if len(self.X) != len(self.sensitive_features):
+            raise ValidationError(
+                "X and sensitive_features are not the same length. "
+                + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
+            )
+        if isinstance(self.X, (pd.Series, pd.DataFrame)) and not self.X.index.equals(
+            self.sensitive_features.index
         ):
+            raise ValidationError("X and sensitive features must have the same index")
+
+        if isinstance(self.sensitive_features, pd.Series):
             if not hasattr(self.sensitive_features, "name"):
                 raise ValidationError("Feature Series should have a name attribute")
 
@@ -147,3 +149,25 @@ class Data(ABC):
     @abstractmethod
     def _validate_y(self):
         pass
+
+    def _validate_processing(self):
+        self._validate_processed_X()
+        if self.y is not None:
+            self._validate_processed_y()
+        if self.sensitive_features is not None:
+            self._validate_processed_sensitive()
+
+    def _validate_processed_X(self):
+        pass
+
+    def _validate_processed_y(self):
+        pass
+
+    def _validate_processed_sensitive(self):
+        for col_name, col in self.sensitive_features.iteritems():
+            unique_values = col.unique()
+            if len(unique_values) == 1:
+                raise ValidationError(
+                    f"Sensitive Feature column {col_name} must have more "
+                    f"than one unique value. Only found one value: {unique_values[0]}"
+                )
