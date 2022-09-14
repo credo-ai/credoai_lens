@@ -81,13 +81,13 @@ class CredoApiConfig:
 
     def __build_api_server(self, config):
         if config.get("API_URL"):
-            return config["API_URL"].replace("/api/v1", "")
+            return config["API_URL"].replace("/api/v2", "")
 
         return os.path.join(config.get("CREDO_URL", CREDO_URL))
 
     def __build_api_base(self):
         if self._api_server:
-            return os.path.join(self._api_server, "api/v1", self._tenant)
+            return os.path.join(self._api_server, "api/v2", self._tenant)
         return None
 
 
