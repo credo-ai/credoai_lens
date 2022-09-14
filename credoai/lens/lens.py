@@ -63,6 +63,8 @@ class Lens:
         self._validate()
         if self.assessment_data and self.assessment_data.sensitive_features is not None:
             self.sens_feat_names = list(self.assessment_data.sensitive_features)
+        else:
+            self.sens_feat_names = []
 
     def __getitem__(self, stepname):
         return self.pipeline[stepname]
@@ -114,7 +116,12 @@ class Lens:
             return self
 
         if "sensitive_feature" in eval_reqrd_params:
-            features_to_eval = self.sens_feat_names
+            if self.sens_feat_names:
+                features_to_eval = self.sens_feat_names
+            else:
+                raise ValidationError(
+                    f"Evaluator {evaluator.name} requires sensitive features"
+                )
         else:
             features_to_eval = self.sens_feat_names[0]  # Cycle only once
 
@@ -130,6 +137,11 @@ class Lens:
                     labels["sensitive_feature"] = feat
                     ## Add to pipeline
                     self._add(evaluator, id, labels, evaluator_arguments)
+            else:
+                # TODO: place holder for cases in which data is specific, but there
+                # is still dependency to sensitive features. Not existin atm, in case
+                # Just tune any dataset to the right "feat"
+                pass
         return self
 
     def _split_artifact_on_sens_feat(self):
