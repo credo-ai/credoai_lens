@@ -8,17 +8,23 @@ from pandas import DataFrame, Series
 
 
 class Evidence(ABC):
-    def __init__(self, type: str, **metadata):
+    def __init__(self, type: str, additional_labels: dict = None, **metadata):
         self.type = type
+        self.additional_labels = additional_labels or {}
         self.metadata = metadata
         self.creation_time: str = datetime.utcnow().isoformat()
         self._validate()
 
+    def __str__(self):
+        return pprint.pformat(self.struct())
+
     def struct(self):
         """Structure of evidence"""
+        # set labels, additional_labels prioritized
+        labels = self.label() | self.additional_labels
         structure = {
             "type": self.type,
-            "label": self.label(),
+            "label": labels,
             "data": self.data(),
             "creation_time": self.creation_time,
             "metadata": self.metadata,
@@ -43,9 +49,6 @@ class Evidence(ABC):
 
     def _validate(self):
         pass
-
-    def __str__(self):
-        return pprint.pformat(self.struct())
 
 
 class Metric(Evidence):
@@ -73,13 +76,14 @@ class Metric(Evidence):
         value: float,
         confidence_interval: Tuple[float, float] = None,
         confidence_level: int = None,
+        additional_labels=None,
         **metadata
     ):
         self.type = type
         self.value = value
         self.confidence_interval = confidence_interval
         self.confidence_level = confidence_level
-        super().__init__("metric", **metadata)
+        super().__init__("metric", additional_labels, **metadata)
 
     def label(self):
         label = {"metric_type": self.type}
@@ -111,10 +115,10 @@ class Table(Evidence):
         displayed in the governance app
     """
 
-    def __init__(self, name: str, data: DataFrame, **metadata):
+    def __init__(self, name: str, data: DataFrame, additional_labels=None, **metadata):
         self.name = name
         self.data = data
-        super().__init__("table", **metadata)
+        super().__init__("table", additional_labels, **metadata)
 
     def data(self):
         return {"csv": self.data.to_csv(index=False)}

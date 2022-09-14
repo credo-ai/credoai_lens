@@ -7,7 +7,7 @@ from .evidence import Metric, Table
 
 
 class EvidenceContainer(ABC):
-    def __init__(self, evidence_class, df):
+    def __init__(self, evidence_class, df, labels=None):
         """Abstract Class defining Evidence Containers
 
         Evidence Containers are light wrappers around dataframes that
@@ -21,12 +21,15 @@ class EvidenceContainer(ABC):
             An Evidence class
         df : pd.DataFrame
             The dataframe, formatted appropriately for the evidence type
+        labels : dict
+            Additional labels to pass to underlying evidence
         """
         self.evidence_class = evidence_class
         if not isinstance(df, pd.DataFrame):
             raise ValidationError("'df' must be a dataframe")
         self._validate(df)
         self._df = df
+        self.labels = labels
 
     @property
     def df(self):
@@ -42,13 +45,15 @@ class EvidenceContainer(ABC):
 
 
 class MetricContainer(EvidenceContainer):
-    def __init__(self, df):
-        super().__init__(Metric, df)
+    def __init__(self, df: pd.DataFrame, labels: dict = None):
+        super().__init__(Metric, df, labels)
 
     def to_evidence(self, **metadata):
         evidence = []
         for _, data in self._df.iterrows():
-            evidence.append(self.evidence_class(**data, **metadata))
+            evidence.append(
+                self.evidence_class(additional_labels=self.labels, **data, **metadata)
+            )
         return evidence
 
     def _validate(self, df):
@@ -59,11 +64,11 @@ class MetricContainer(EvidenceContainer):
 
 
 class TableContainer(EvidenceContainer):
-    def __init__(self, df):
-        super().__init__(Table, df)
+    def __init__(self, df: pd.DataFrame, labels: dict = None):
+        super().__init__(Table, df, labels)
 
     def to_evidence(self, **metadata):
-        return [self.evidence_class(self._df.name, self._df, **metadata)]
+        return [self.evidence_class(self._df.name, self._df, self.labels, **metadata)]
 
     def _validate(self, df):
         try:
