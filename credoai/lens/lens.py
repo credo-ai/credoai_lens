@@ -62,10 +62,7 @@ class Lens:
         self.pipeline_results: list = []
         self._validate()
         if self.assessment_data and self.assessment_data.sensitive_features is not None:
-            self.n_sensitive_features = self.assessment_data.sensitive_features.shape[1]
-        if self.n_sensitive_features > 1:
-            split_artifacts = self._split_artifact_on_sens_feat()
-            self.__dict__.update(split_artifacts)
+            self.sens_feat_names = list(self.assessment_data.sensitive_features)
 
     def __getitem__(self, stepname):
         return self.pipeline[stepname]
@@ -104,31 +101,35 @@ class Lens:
 
         ## Define necessary arguments for evaluator
         eval_reqrd_params = evaluator.required_artifacts
-
         evaluator_arguments = {
             k: v for k, v in vars(self).items() if k in eval_reqrd_params
         }
 
-        available_datasets = [x for x in vars(self) if "data" in x]
-        if "sensitive_feature" in eval_reqrd_params and self.n_sensitive_features > 1:
-            available_datasets = [x for x in available_datasets if "sens_feat" in x]
-        else:
-            available_datasets = [x for x in available_datasets if "sens_feat" not in x]
-
-        ## If eval requires generic data, loop through all that's available
-        if "data" in eval_reqrd_params:
-            for dataset in available_datasets:
-                evaluator_arguments["data"] = vars(self)[dataset]
-                ## Create labels/metadata
-                data_labels = dataset.split("-")
-                labels = {"dataset": data_labels[0]}
-                if len(data_labels) > 1:
-                    labels["sensitive_feature"] = data_labels[-1]
-                ## Add to pipeline
-                self._add(evaluator, id, labels, evaluator_arguments)
-        else:
+        ## Basic case: eval depends on specific datasets and not on sens feat
+        if (
+            "data" not in eval_reqrd_params
+            and "sensitive_feature" not in eval_reqrd_params
+        ):
             self._add(evaluator, id, metadata, evaluator_arguments)
+            return self
 
+        if "sensitive_feature" in eval_reqrd_params:
+            features_to_eval = self.sens_feat_names
+        else:
+            features_to_eval = self.sens_feat_names[0]  # Cycle only once
+
+        for feat in features_to_eval:
+            if "data" in eval_reqrd_params:
+                available_datasets = [x for x in vars(self) if "data" in x]
+                for dataset in available_datasets:
+                    data_to_assign = vars(self)[dataset]
+                    data_to_assign.active_sens_feat = feat
+                    evaluator_arguments["data"] = vars(self)[dataset]
+                    ## Create labels/metadata
+                    labels = {"dataset": dataset}
+                    labels["sensitive_feature"] = feat
+                    ## Add to pipeline
+                    self._add(evaluator, id, labels, evaluator_arguments)
         return self
 
     def _split_artifact_on_sens_feat(self):

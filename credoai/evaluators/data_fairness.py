@@ -55,7 +55,7 @@ class DataFairness(Evaluator):
     def _setup(self):
         self.data_to_eval = self.data  # Pick the only member
 
-        self.sensitive_features = self.data_to_eval.sensitive_features.iloc[:, 0]
+        self.sensitive_features = self.data_to_eval.sensitive_feature.iloc[:, 0]
         self.data = pd.concat([self.data_to_eval.X, self.data_to_eval.y], axis=1)
         self.X = self.data_to_eval.X
         self.y = self.data_to_eval.y
