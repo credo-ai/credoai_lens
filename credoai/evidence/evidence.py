@@ -8,13 +8,9 @@ from pandas import DataFrame, Series
 
 
 class Evidence(ABC):
-    def __init__(
-        self,
-        type: str,
-        metadata: Optional[dict] = None,
-    ):
+    def __init__(self, type: str, **metadata):
         self.type = type
-        self.metadata = metadata if metadata else {}
+        self.metadata = metadata
         self.creation_time: str = datetime.utcnow().isoformat()
         self._validate()
 
@@ -23,14 +19,11 @@ class Evidence(ABC):
         structure = {
             "type": self.type,
             "label": self.label(),
+            "data": self.data(),
             "creation_time": self.creation_time,
-            # "metadata": self.metadata,
-        } | self._struct()
+            "metadata": self.metadata,
+        }
         return structure
-
-    def _struct(self):
-        """Function to reflect additional structure of child classes"""
-        return {}
 
     @property
     @abstractmethod
@@ -38,8 +31,15 @@ class Evidence(ABC):
         """
         Adds evidence type specific label
         """
-        label = {}
-        return label
+        return {}
+
+    @property
+    @abstractmethod
+    def data(self):
+        """
+        Adds data reflecting additional structure of child classes
+        """
+        return {}
 
     def _validate(self):
         pass
@@ -62,10 +62,6 @@ class Metric(Evidence):
         [lower, upper] confidence interval
     confidence_level : int
         Level of confidence for the confidence interval (e.g., 95%)
-    model_name : str, optional
-        Name of Model, default None
-    data_name : str, optional
-        Name of Data, default None
     metadata : dict, optional
         Arbitrary keyword arguments to append to metric as metadata. These will be
         displayed in the governance app
@@ -83,16 +79,13 @@ class Metric(Evidence):
         self.value = value
         self.confidence_interval = confidence_interval
         self.confidence_level = confidence_level
-        self.metadata = metadata
-        super().__init__("metric", self.metadata)
+        super().__init__("metric", **metadata)
 
     def label(self):
-        label = {
-            "metric_type": self.type,
-        } | self.metadata
+        label = {"metric_type": self.type}
         return label
 
-    def _struct(self):
+    def data(self):
         return {
             "value": self.value,
             "confidence_interval": self.confidence_interval,
@@ -121,13 +114,11 @@ class Table(Evidence):
     def __init__(self, name: str, data: DataFrame, **metadata):
         self.name = name
         self.data = data
-        self.metadata = metadata
+        super().__init__("table", **metadata)
 
-        super().__init__("table", self.metadata)
-
-    def _struct(self):
-        return {"data": self.data.to_csv()}
+    def data(self):
+        return {"csv": self.data.to_csv(index=False)}
 
     def label(self):
-        label = {"table_name": self.name} | self.metadata
+        label = {"table_name": self.name}
         return label

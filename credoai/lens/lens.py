@@ -147,7 +147,7 @@ class Lens:
             )
         return self
 
-    def get_evidences(self):
+    def get_evidence(self):
         """
         Create evidences for the platform from the pipeline results.
         """
