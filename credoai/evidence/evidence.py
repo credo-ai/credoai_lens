@@ -9,7 +9,10 @@ from pandas import Series, DataFrame
 
 class Evidence(ABC):
     def __init__(
-        self, id: str, type: str, metadata: Optional[dict] = None,
+        self,
+        id: str,
+        type: str,
+        metadata: Optional[dict] = None,
     ):
         self.id = id
         self.type = type
@@ -22,9 +25,9 @@ class Evidence(ABC):
             "id": self.id,
             "type": self.type,
             "label": self._label(),
-            "metadata": self.metadata,
+            # "metadata": self.metadata,
             "data": self._data(),
-            "generated_at": self.creation_time,
+            "creation_time": self.creation_time,
         } | self._update_struct()
         return structure
 
@@ -67,7 +70,7 @@ class Metric(Evidence):
         data: Series,
         confidence_interval: Tuple[float, float] = None,
         confidence_level: int = None,
-        metadata: Optional[dict] = None,
+        **metadata
     ):
         self.confidence_interval = confidence_interval
         self.confidence_level = confidence_level
@@ -77,18 +80,23 @@ class Metric(Evidence):
         super().__init__(id, "metric", self.metadata)
 
     def _data(self):
+        value_type = [x for x in self.data.index if x not in ["type", "subtype"]]
         return {
-            "value": self.data["value"],
-            "confidence_interval": self.confidence_interval,
-            "confidence_level": self.confidence_level,
+            "value": self.data[value_type].to_dict(),
         }
 
     def _label(self):
-        label = {"metric_type": self.data.type}
+        label = {
+            "metric_type": self.data.type,
+            "calculation": self.data.subtype,
+        } | self.metadata
         return label
 
     def _update_struct(self):
-        return {}
+        return {
+            "confidence_interval": self.confidence_interval,
+            "confidence_level": self.confidence_level,
+        }
 
 
 class Table(Evidence):
