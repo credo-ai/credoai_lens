@@ -1,4 +1,5 @@
 import re
+from tabnanny import check
 from typing import Dict, List, Optional, Union
 import uuid
 from inspect import isclass
@@ -103,15 +104,15 @@ class Lens:
             k: v for k, v in vars(self).items() if k in eval_reqrd_params
         }
 
+        check_sens_feat = "sensitive_feature" in eval_reqrd_params
+        check_data = "data" in eval_reqrd_params
+
         ## Basic case: eval depends on specific datasets and not on sens feat
-        if (
-            "data" not in eval_reqrd_params
-            and "sensitive_feature" not in eval_reqrd_params
-        ):
+        if not check_data and not check_sens_feat:
             self._add(evaluator, id, metadata, evaluator_arguments)
             return self
 
-        if "sensitive_feature" in eval_reqrd_params:
+        if check_sens_feat:
             if self.sens_feat_names:
                 features_to_eval = self.sens_feat_names
             else:
@@ -122,25 +123,17 @@ class Lens:
             features_to_eval = [self.sens_feat_names[0]]  # Cycle only once
 
         for feat in features_to_eval:
-            if "data" in eval_reqrd_params:
+            labels = {"sensitive_feature": feat} if check_sens_feat else {}
+            if check_data:
                 available_datasets = [x for x in vars(self) if "data" in x]
                 for dataset in available_datasets:
-                    data_to_assign = vars(self)[dataset]
-                    data_to_assign.active_sens_feat = feat
+                    labels["dataset"] = dataset
                     evaluator_arguments["data"] = vars(self)[dataset]
-                    ## Create labels/metadata
-                    labels = {"dataset": dataset}
-                    labels["sensitive_feature"] = feat
-                    ## Add to pipeline
+                    self.change_sens_feat_view(evaluator_arguments, feat)
                     self._add(evaluator, id, labels, evaluator_arguments)
             else:
-                for artifact in evaluator_arguments.values():
-                    if getattr(artifact, "active_sens_feat", False):
-                        artifact.active_sens_feat = feat
-                labels = {}
-                labels["sensitive_feature"] = feat
+                self.change_sens_feat_view(evaluator_arguments, feat)
                 self._add(evaluator, id, labels, evaluator_arguments)
-                pass
         return self
 
     def _add(
@@ -341,3 +334,10 @@ class Lens:
             return step[pos]
         except IndexError:
             return None
+
+    @staticmethod
+    def change_sens_feat_view(evaluator_arguments: Dict[str, Data], feat: str):
+        for artifact in evaluator_arguments.values():
+            if getattr(artifact, "active_sens_feat", False):
+                artifact.active_sens_feat = feat
+        return evaluator_arguments
