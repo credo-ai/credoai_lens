@@ -26,7 +26,7 @@ class Evidence(ABC):
             "type": self.type,
             "label": labels,
             "data": self.data(),
-            "creation_time": self.creation_time,
+            "generated_at": self.creation_time,
             "metadata": self.metadata,
         }
         return structure

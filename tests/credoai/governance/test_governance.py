@@ -32,10 +32,10 @@ ASSESSMENT_PLAN_JSON_STR = json.dumps(
 
 def build_metric_evidence(type):
     return Metric(
-        id="1",
-        data=Series(
-            data={"type": type, "subtype": "sub"}, index=["type", "subtype", "value"],
-        ),
+        type=type,
+        value=0.2,
+        model_name="superich detector",
+        dataset_name="account data",
     )
 
 
