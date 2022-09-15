@@ -79,14 +79,14 @@ class Metric(Evidence):
         additional_labels=None,
         **metadata
     ):
-        self.type = type
+        self.metric_type = type
         self.value = value
         self.confidence_interval = confidence_interval
         self.confidence_level = confidence_level
         super().__init__("metric", additional_labels, **metadata)
 
     def label(self):
-        label = {"metric_type": self.type}
+        label = {"metric_type": self.metric_type}
         return label
 
     def data(self):
