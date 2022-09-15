@@ -33,7 +33,7 @@ class DataProfiling(Evaluator):
     def __init__(self, dataset_name=None, **profile_kwargs):
         self.profile_kwargs = profile_kwargs
         self.dataset_name = dataset_name
-        self.results = {}
+        self.results = []
 
     def _setup(self):
         self.data_to_eval = self.data

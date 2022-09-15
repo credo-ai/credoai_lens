@@ -53,7 +53,7 @@ class Data(ABC):
         self.sensitive_features = self._process_sensitive(
             sensitive_features, sensitive_intersections
         )
-        self._validate_data()
+        self._validate_processing()
         self._active_sensitive_feature = None
 
     @property
