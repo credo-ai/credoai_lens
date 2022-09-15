@@ -97,7 +97,7 @@ class DataFairness(Evaluator):
             Key: assessment category
             Values: detailed results associated with each category
         """
-        self.results = {}
+        self._results = {}
         sensitive_feature_prediction_results = self._run_cv()
         group_differences = self._group_differences()
         mi_results = self._calculate_mutual_information()
@@ -126,7 +126,7 @@ class DataFairness(Evaluator):
         NotRunError
             If results have not been run, raise
         """
-        if self.results is not None:
+        if self._results is not None:
             metric_types = [
                 "sensitive_feature-prediction_score",
                 "demographic_parity-difference",
@@ -161,7 +161,7 @@ class DataFairness(Evaluator):
             res = res.reset_index()
             res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
             res.drop("metric_type", axis=1, inplace=True)
-            return MetricContainer(res)
+            return [MetricContainer(res)]
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 

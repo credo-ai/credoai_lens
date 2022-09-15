@@ -117,11 +117,11 @@ class Table(Evidence):
 
     def __init__(self, name: str, data: DataFrame, additional_labels=None, **metadata):
         self.name = name
-        self.data = data
+        self._data = data
         super().__init__("table", additional_labels, **metadata)
 
     def data(self):
-        return {"csv": self.data.to_csv(index=False)}
+        return {"csv": self._data.to_csv(index=False)}
 
     def label(self):
         label = {"table_name": self.name}

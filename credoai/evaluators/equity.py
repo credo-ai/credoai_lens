@@ -56,7 +56,7 @@ class Equity(Evaluator):
         return self
 
     def evaluate(self):
-        self.results = {"descriptive": self.describe()}
+        self._results = {"descriptive": self.describe()}
         if self.type_of_target in ("binary", "multiclass"):
             self.results["statistics"] = self.discrete_stats()
         else:
@@ -66,10 +66,11 @@ class Equity(Evaluator):
         return self
 
     def _prepare_results(self):
-        if self.results:
-            desc = self.results["descriptive"]
+        if self._results:
+            desc = self._results["descriptive"]
             summary = desc["summary"]
             summary["subtype"] = "summary"
+            summary.name = "summary"
             summary = TableContainer(summary)
 
             desc_metadata = {
@@ -102,6 +103,7 @@ class Equity(Evaluator):
             if "significant_posthoc_tests" in stats:
                 posthoc_tests = pd.DataFrame(stats["significant_posthoc_tests"])
                 posthoc_tests.rename({"test_type": "subtype"}, axis=1, inplace=True)
+                posthoc_tests.name = "posthoc"
                 equity_containers.append(TableContainer(posthoc_tests))
 
             return equity_containers
