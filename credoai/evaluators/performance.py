@@ -2,16 +2,16 @@ from collections import defaultdict
 from typing import List, Union
 
 import pandas as pd
-from absl import logging
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
+from credoai.evidence.containers import MetricContainer, TableContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
+from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError, to_array
 from fairlearn.metrics import MetricFrame
 from scipy.stats import norm
 from sklearn.utils import check_consistent_length
-from credoai.evidence.containers import TableContainer, MetricContainer
 
 
 class Performance(Evaluator):
@@ -82,10 +82,7 @@ class Performance(Evaluator):
         -------
         self
         """
-        self.results = {"overall_performance": self.get_overall_metrics()}
-        if self.perform_disaggregation:
-            self.results.update(self.get_disaggregated_performance())
-        self.results = self._prepare_results()
+        self._prepare_results()
         return self
 
     def _prepare_results(self):
@@ -102,24 +99,10 @@ class Performance(Evaluator):
         NotRunError
             Occurs if self.run is not called yet to generate the raw assessment results
         """
-        if self.results is not None:
-            if "overall_performance" in self.results:
-                overall = self.results["overall_performance"].copy()
-                overall = overall.reset_index().rename({"index": "type"}, axis=1)
-
-            if self.perform_disaggregation:
-                disaggregated_df = self.results[f"disaggregated_performance"].copy()
-                disaggregated_df = disaggregated_df.reset_index().melt(
-                    id_vars=[disaggregated_df.index.name, "subtype"],
-                    var_name="type",
-                )
-                # disaggregated_df["sensitive_feature"] = self.sensitive_features.name
-
-            return [MetricContainer(overall), TableContainer(disaggregated_df)]
-        else:
-            raise NotRunError(
-                "Results not created yet. Call 'run' with appropriate arguments before preparing results"
-            )
+        self.results = [
+            MetricContainer(self.get_overall_metrics()),
+            TableContainer(self.get_disaggregated_performance()),
+        ]
 
     def update_metrics(self, metrics, replace=True):
         """replace metrics
@@ -181,9 +164,9 @@ class Performance(Evaluator):
                 .to_frame()
                 .assign(subtype="overall_performance")
             )
-            return output_series
+            return output_series.reset_index().rename({"index": "type"}, axis=1)
         else:
-            logging.warn("No overall metrics could be calculated.")
+            global_logger.warn("No overall metrics could be calculated.")
 
     def get_disaggregated_performance(self):
         """Return performance metrics for each group
@@ -198,16 +181,22 @@ class Performance(Evaluator):
         pandas.DataFrame
             The disaggregated performance metrics
         """
-        disaggregated_results = {}
         disaggregated_df = pd.DataFrame()
         for metric_frame in self.metric_frames.values():
             df = metric_frame.by_group.copy().convert_dtypes()
             disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
-        disaggregated_results["disaggregated_performance"] = disaggregated_df.assign(
-            subtype="disaggregated_performance"
+        disaggregated_results = (
+            disaggregated_df.assign(subtype="disaggregated_performance")
+            .reset_index()
+            .melt(
+                id_vars=[disaggregated_df.index.name, "subtype"],
+                var_name="type",
+            )
         )
-        if not disaggregated_results:
-            logging.warn("No disaggregated metrics could be calculated.")
+        disaggregated_results.name = "disaggregated_performance"
+
+        if disaggregated_results.empty:
+            global_logger.warn("No disaggregated metrics could be calculated.")
         return disaggregated_results
 
     def get_sensitive_feature(self):
@@ -251,7 +240,7 @@ class Performance(Evaluator):
             if not isinstance(metric, Metric):
                 raise ValidationError("Metric is not of type credoai.metric.Metric")
             if metric.metric_category == "FAIRNESS":
-                logging.info(
+                global_logger.info(
                     f"fairness metric, {metric_name}, unused by PerformanceModule"
                 )
                 pass
@@ -261,7 +250,9 @@ class Performance(Evaluator):
                 else:
                     performance_metrics[metric_name] = metric
             else:
-                logging.warning(f"{metric_name} failed to be used by FairnessModule")
+                global_logger.warning(
+                    f"{metric_name} failed to be used by FairnessModule"
+                )
                 failed_metrics.append(metric_name)
 
         return (performance_metrics, prob_metrics, failed_metrics)

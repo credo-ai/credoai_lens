@@ -23,13 +23,11 @@ class Evaluator(ABC):
 
     @results.setter
     def results(self, results):
-        # TODO: validation to add after evaluators are refactored
-
-        # if not isinstance(results, list):
-        #     raise ValidationError("Results must be a list")
-        # for result in results:
-        #     if not isinstance(result, EvidenceContainer):
-        #         raise ValidationError("All results must be EvidenceContainers")
+        if not isinstance(results, list):
+            raise ValidationError("Results must be a list")
+        for result in results:
+            if not isinstance(result, EvidenceContainer):
+                raise ValidationError("All results must be EvidenceContainers")
         self._results = results
 
     @property
@@ -39,9 +37,9 @@ class Evaluator(ABC):
         pass
 
     @property
+    @abstractmethod
     def required_artifacts(self):
-        """Used to define a unique identifier for the specific evaluator"""
-        return inspect.getfullargspec(self._setup).args[1:]
+        pass
 
     def __call__(self, **kwargs):
         """

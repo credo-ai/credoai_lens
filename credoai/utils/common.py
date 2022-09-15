@@ -53,6 +53,7 @@ def update_dictionary(d, u):
 
 
 def wrap_list(obj):
+    """Ensures object is an iterable"""
     if type(obj) == str:
         obj = [obj]
     elif obj is None:
