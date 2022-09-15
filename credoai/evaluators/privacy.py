@@ -132,7 +132,7 @@ class Privacy(Evaluator):
                 [v for k, v in attack_scores.items() if "Attribute" in k]
             )
 
-        self.results = attack_scores
+        self._results = attack_scores
         self._prepare_results()
 
         return self
@@ -152,10 +152,10 @@ class Privacy(Evaluator):
         NotRunError
             If results have not been run, raise
         """
-        if self.results is not None:
-            res = DataFrame(list(self.results.items()), columns=["type", "value"])
+        if self._results is not None:
+            res = DataFrame(list(self._results.items()), columns=["type", "value"])
             res[["type", "subtype"]] = res.type.str.split("-", expand=True)
-            self.results = MetricContainer(res)
+            self.results = [MetricContainer(res)]
 
         else:
             raise ValueError(

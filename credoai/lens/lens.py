@@ -134,9 +134,12 @@ class Lens:
                     ## Add to pipeline
                     self._add(evaluator, id, labels, evaluator_arguments)
             else:
-                # TODO: place holder for cases in which data is specific, but there
-                # is still dependency to sensitive features. Not existin atm, in case
-                # Just tune any dataset to the right "feat"
+                for artifact in evaluator_arguments.values():
+                    if getattr(artifact, "active_sens_feat", False):
+                        artifact.active_sens_feat = feat
+                labels = {}
+                labels["sensitive_feature"] = feat
+                self._add(evaluator, id, labels, evaluator_arguments)
                 pass
         return self
 

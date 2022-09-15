@@ -43,7 +43,7 @@ class Performance(Evaluator):
     """
 
     name = "Performance"
-    required_artifacts = ["model", "assessment_data"]
+    required_artifacts = ["model", "assessment_data", "sensitive_feature"]
 
     def __init__(self, metrics=None):
         super().__init__()
@@ -63,7 +63,7 @@ class Performance(Evaluator):
             self.y_prob = self.model.predict_proba(self.assessment_data.X)
         except:
             self.y_prob = None
-        self.sensitive_features = self.assessment_data.sensitive_features
+        self.sensitive_features = self.assessment_data.sensitive_feature
         if self.sensitive_features is None:
             self.perform_disaggregation = False
             # only set to use metric frame
