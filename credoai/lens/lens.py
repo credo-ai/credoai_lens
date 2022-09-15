@@ -119,7 +119,7 @@ class Lens:
                     f"Evaluator {evaluator.name} requires sensitive features"
                 )
         else:
-            features_to_eval = self.sens_feat_names[0]  # Cycle only once
+            features_to_eval = [self.sens_feat_names[0]]  # Cycle only once
 
         for feat in features_to_eval:
             if "data" in eval_reqrd_params:

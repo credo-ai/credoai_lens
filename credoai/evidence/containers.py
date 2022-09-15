@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from credoai.utils import ValidationError
 
-from .evidence import Metric, Table
+from .evidence import Metric, Table, Profiler
 
 
 class EvidenceContainer(ABC):
@@ -75,3 +75,14 @@ class TableContainer(EvidenceContainer):
             df.name
         except AttributeError:
             raise ValidationError("DataFrame must have a 'name' attribute")
+
+
+class ProfilerContainer(EvidenceContainer):
+    def __init__(self, data, labels: dict = None):
+        super().__init__(Profiler, data, labels)
+
+    def to_evidence(self, **metadata):
+        return [self.evidence_class(self._df, self.labels, **metadata)]
+
+    def _validate(self, df):
+        return super()._validate(df)

@@ -1,13 +1,16 @@
 # reset style after pandas profiler
+from unittest import result
 import matplotlib
 import pandas as pd
 from credoai.artifacts.data.tabular_data import TabularData
 from credoai.evaluators import Evaluator
+from credoai.evidence.containers import ProfilerContainer
 from credoai.utils.common import ValidationError
 
 backend = matplotlib.get_backend()
 # load pands profiler, which sets backend to Agg
 from pandas_profiling import ProfileReport
+
 
 matplotlib.use(backend)
 
@@ -45,7 +48,7 @@ class DataProfiling(Evaluator):
         if not isinstance(self.data, TabularData):
             raise ValidationError("Data under evaluation is not of type TabularData.")
 
-        if self.data.sensitive_features is None:
+        if self.data.sensitive_feature is None:
             raise ValidationError(
                 f"Step: {self.name} ->  No sensitive feature were found in the dataset"
             )
@@ -60,7 +63,10 @@ class DataProfiling(Evaluator):
 
     def evaluate(self):
         """Generates data profile reports"""
-        self.results = self._create_reporter().get_description()
+        results = self._create_reporter().get_description()
+        results = pd.DataFrame({"results": results})
+        results = ProfilerContainer(results)
+        self.results = [results]
         return self
 
     def _prepare_results(self):
