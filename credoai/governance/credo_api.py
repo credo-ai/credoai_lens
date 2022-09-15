@@ -112,5 +112,6 @@ class CredoApi:
         data = {
             "policy_pack_id": policy_pack_id,
             "evidences": evidences,
+            "$type": "assessments",
         }
         return self._client.post(path, data)

@@ -68,6 +68,7 @@ class TestCredoApi:
         body = {
             "policy_pack_id": policy_pack_id,
             "evidences": evidences,
+            "$type": "assessments",
         }
         api.create_assessment(use_case_id, policy_pack_id, evidences)
 
