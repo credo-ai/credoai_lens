@@ -5,3 +5,4 @@ from .privacy import Privacy
 from .security import Security
 from .equity import Equity
 from .performance import Performance
+from .fairness import ModelFairness
