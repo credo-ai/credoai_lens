@@ -9,6 +9,7 @@ from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
 from credoai.utils.common import json_dumps
 from credoai.utils.constants import CREDO_URL
+from credoai import __version__
 
 
 class CredoApiConfig:
@@ -126,6 +127,8 @@ class CredoApiClient:
             "Authorization": f"Bearer {access_token}",
             "accept": "application/vnd.api+json",
             "content-type": "application/vnd.api+json",
+            "X-Client-Name": "Credo AI Lens",
+            "X-Client-Version": __version__,
         }
         self._session.headers.update(headers)
 

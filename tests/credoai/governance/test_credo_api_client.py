@@ -6,6 +6,7 @@ import os
 import pathlib
 import pytest
 import responses
+from credoai import __version__
 from credoai.governance.credo_api_client import CredoApiClient, CredoApiConfig
 
 
@@ -80,6 +81,8 @@ class TestCredoApiClient:
         headers = client._session.headers
         assert "Bearer REFRESHED_VALID_TOKEN" == headers.get("Authorization")
         assert "application/vnd.api+json" == headers.get("content-type")
+        assert "Credo AI Lens" == headers.get("X-Client-Name")
+        assert __version__ == headers.get("X-Client-Version")
 
     @responses.activate
     def test_refresh_token_with_invalid_config(self):
