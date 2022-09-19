@@ -41,7 +41,19 @@ def build_metric_evidence(type):
 
 class TestGovernance:
     @pytest.fixture()
+    def client(self, mocker):
+        # Mocking client to not send actual request to the server
+        mocker.patch.object(CredoApiClient, "get")
+        mocker.patch.object(CredoApiClient, "post")
+        mocker.patch.object(CredoApiClient, "patch")
+        mocker.patch.object(CredoApiClient, "delete")
+        mocker.patch.object(CredoApiClient, "refresh_token")
+
+        return CredoApiClient()
+
+    @pytest.fixture()
     def api(self, mocker):
+        # Mocking api to simulate result
         mocker.patch.object(CredoApi, "get_assessment_plan")
         mocker.patch.object(CredoApi, "get_assessment_plan_url")
         mocker.patch.object(CredoApi, "create_assessment")
@@ -49,8 +61,8 @@ class TestGovernance:
         return CredoApi()
 
     @pytest.fixture()
-    def gov(self):
-        return CredoGovernance()
+    def gov(self, client):
+        return CredoGovernance(client)
 
     @pytest.fixture
     def plan_file_mock(self, mocker):
