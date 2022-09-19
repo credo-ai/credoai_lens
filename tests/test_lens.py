@@ -6,29 +6,37 @@ Testing protocols for the Lens package. Tested functionalities:
 
 from credoai.lens import Lens
 import pytest
-from credoai.evaluators import ModelFairness
+from credoai.evaluators import ModelFairness, Privacy
 
 
-@pytest.fixture(scope="module")
-def lens(credo_model, assessment_data, train_data):
+@pytest.fixture(scope="class")
+def init_lens(credo_model, assessment_data, train_data, request):
     my_pipeline = Lens(
         model=credo_model, assessment_data=assessment_data, training_data=train_data
     )
-    return my_pipeline
+    request.cls.pipeline = my_pipeline
 
 
-def test_lens_init(lens):
-    assert not lens.pipeline  # Pipeline holder is there
+@pytest.mark.usefixtures("init_lens")
+class Base_Evaluator_Test:
+    pass
 
 
-@pytest.fixture(scope="module")
-def model_fairness_pipeline(lens):
-    pipeline = lens
-    pipeline.add(ModelFairness(metrics=["false positive rate"]))
-    return pipeline
+class TestModelFairness(Base_Evaluator_Test):
+    def test_add(self):
+        self.pipeline.add(ModelFairness(metrics=["false positive rate"]))
+        assert len(self.pipeline.pipeline) == 2
+
+    def test_run(self):
+        self.pipeline.run()
+        assert True
 
 
-def test_run(model_fairness_pipeline):
-    model_fairness_pipeline.run()
-    # self.pipeline = pipeline
-    assert True
+class TestPrivacy(Base_Evaluator_Test):
+    def test_add(self):
+        self.pipeline.add(Privacy(attack_feature="MARRIAGE"))
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert True
