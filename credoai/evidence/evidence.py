@@ -117,7 +117,7 @@ class Table(Evidence):
 
     def __init__(self, name: str, data: DataFrame, additional_labels=None, **metadata):
         self.name = name
-        self.data = data
+        self._data = data
         super().__init__("table", additional_labels, **metadata)
 
     def data(self):
@@ -129,3 +129,19 @@ class Table(Evidence):
     def label(self):
         label = {"data_type": self.name}
         return label
+
+
+class Profiler(Evidence):
+    """
+    Place holder for Profiler Evidence
+    """
+
+    def __init__(self, data: dict, additional_labels: dict = None, **metadata):
+        self._data = data
+        super().__init__("profiler", additional_labels, **metadata)
+
+    def data(self):
+        return self._data.to_csv(index=False)
+
+    def label(self):
+        return {"profiler_info": "placeholder"}

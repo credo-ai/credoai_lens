@@ -1,6 +1,3 @@
-from collections import defaultdict
-from typing import List, Union
-
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
@@ -8,10 +5,8 @@ from credoai.evidence.containers import MetricContainer, TableContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
-from credoai.utils.common import NotRunError, ValidationError, to_array
-from fairlearn.metrics import MetricFrame
-from scipy.stats import norm
-from sklearn.utils import check_consistent_length
+from credoai.utils.common import ValidationError
+from credoai.evaluators.utils.shared import _setup_metric_frames
 
 
 class Performance(Evaluator):
@@ -43,7 +38,7 @@ class Performance(Evaluator):
     """
 
     name = "Performance"
-    required_artifacts = ["model", "assessment_data"]
+    required_artifacts = ["model", "assessment_data", "sensitive_feature"]
 
     def __init__(self, metrics=None):
         super().__init__()
@@ -63,7 +58,7 @@ class Performance(Evaluator):
             self.y_prob = self.model.predict_proba(self.assessment_data.X)
         except:
             self.y_prob = None
-        self.sensitive_features = self.assessment_data.sensitive_features
+        self.sensitive_features = self.assessment_data.sensitive_feature
         if self.sensitive_features is None:
             self.perform_disaggregation = False
             # only set to use metric frame
@@ -125,7 +120,7 @@ class Performance(Evaluator):
             self.prob_metrics,
             self.failed_metrics,
         ) = self._process_metrics(self.metrics)
-        self._setup_metric_frames()
+        _setup_metric_frames(self)
 
     def get_df(self):
         """Return dataframe of input arrays
@@ -256,34 +251,6 @@ class Performance(Evaluator):
                 failed_metrics.append(metric_name)
 
         return (performance_metrics, prob_metrics, failed_metrics)
-
-    def _create_metric_frame(self, metrics, y_pred, sensitive_features):
-        """Creates metric frame from dictionary of key:Metric"""
-        metrics = {name: metric.fun for name, metric in metrics.items()}
-        return MetricFrame(
-            metrics=metrics,
-            y_true=self.y_true,
-            y_pred=y_pred,
-            sensitive_features=sensitive_features,
-        )
-
-    def _setup_metric_frames(self):
-        self.metric_frames = {}
-        if self.y_pred is not None and self.performance_metrics:
-            self.metric_frames["pred"] = self._create_metric_frame(
-                self.performance_metrics,
-                self.y_pred,
-                sensitive_features=self.sensitive_features,
-            )
-
-            # for metrics that require the probabilities
-            self.prob_metric_frame = None
-            if self.y_prob is not None and self.prob_metrics:
-                self.metric_frames["prob"] = self._create_metric_frame(
-                    self.prob_metrics,
-                    self.y_prob,
-                    sensitive_features=self.sensitive_features,
-                )
 
     def _validate_arguments(self):
         if self.metrics is None:
