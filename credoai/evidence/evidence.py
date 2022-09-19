@@ -121,8 +121,11 @@ class Table(Evidence):
         super().__init__("table", additional_labels, **metadata)
 
     def data(self):
-        return {"csv": self.data.to_csv(index=False)}
+        return {
+            "column": self.data.columns.tolist(),
+            "value": self.data.values.tolist(),
+        }
 
     def label(self):
-        label = {"table_name": self.name}
+        label = {"data_type": self.name}
         return label
