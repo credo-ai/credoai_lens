@@ -80,7 +80,7 @@ class Security(Evaluator):
             Key: metric name
             Value: metric value
         """
-        self.results = {**self._extraction_attack(), **self._evasion_attack()}
+        self._results = {**self._extraction_attack(), **self._evasion_attack()}
         self._prepare_results()
         return self
 
@@ -99,11 +99,10 @@ class Security(Evaluator):
         NotRunError
             If results have not been run, raise
         """
-        if self.results is not None:
-            res = pd.DataFrame(list(self.results.items()), columns=["type", "value"])
+        if self._results is not None:
+            res = pd.DataFrame(list(self._results.items()), columns=["type", "value"])
             res[["type", "subtype"]] = res.type.str.split("-", expand=True)
-            self.results = MetricContainer(res)
-            return pd.Series(self.results, name="value")
+            self.results = [MetricContainer(res)]
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 
