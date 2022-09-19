@@ -9,6 +9,7 @@ from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
 from credoai.utils.common import json_dumps
 from credoai.utils.constants import CREDO_URL
+from credoai import __version__
 
 
 class CredoApiConfig:
@@ -81,13 +82,13 @@ class CredoApiConfig:
 
     def __build_api_server(self, config):
         if config.get("API_URL"):
-            return config["API_URL"].replace("/api/v1", "")
+            return config["API_URL"].replace("/api/v2", "")
 
         return os.path.join(config.get("CREDO_URL", CREDO_URL))
 
     def __build_api_base(self):
         if self._api_server:
-            return os.path.join(self._api_server, "api/v1", self._tenant)
+            return os.path.join(self._api_server, "api/v2", self._tenant)
         return None
 
 
@@ -126,11 +127,18 @@ class CredoApiClient:
             "Authorization": f"Bearer {access_token}",
             "accept": "application/vnd.api+json",
             "content-type": "application/vnd.api+json",
+            "X-Client-Name": "Credo AI Lens",
+            "X-Client-Version": __version__,
         }
         self._session.headers.update(headers)
 
-    def __make_request(self, method, path, **kwargs):
-        endpoint = self.__build_endpoint(path)
+    def __make_request(self, method: str, path: str, **kwargs):
+
+        if path.startswith("http"):
+            endpoint = path
+        else:
+            endpoint = self.__build_endpoint(path)
+
         response = self._session.request(method, endpoint, **kwargs)
         if response.status_code == 401:
             self.refresh_token()
