@@ -113,15 +113,39 @@ class Lens:
         }
 
         ## Basic case: eval depends on specific datasets and not on sens feat
-        if not check_data and not check_sens_feat:
-            self._add(evaluator, id, metadata, evaluator_arguments)
-            return self
+        try:
+            if not check_data and not check_sens_feat:
+                self._add(evaluator, id, metadata, evaluator_arguments)
+                return self
 
-        if check_sens_feat:
-            features_to_eval = self.sens_feat_names
-        else:
-            features_to_eval = [self.sens_feat_names[0]]  # Cycle only once
+            if check_sens_feat:
+                features_to_eval = self.sens_feat_names
+            else:
+                features_to_eval = [self.sens_feat_names[0]]  # Cycle only once
 
+            self._cycle_add_through_ds_feat(
+                evaluator,
+                id,
+                check_sens_feat,
+                check_data,
+                evaluator_arguments,
+                features_to_eval,
+            )
+        except ValidationError as e:
+            self.logger.info(
+                f"Evaluator {evaluator.name} NOT added to the pipeline: {e}"
+            )
+        return self
+
+    def _cycle_add_through_ds_feat(
+        self,
+        evaluator,
+        id,
+        check_sens_feat,
+        check_data,
+        evaluator_arguments,
+        features_to_eval,
+    ):
         for feat in features_to_eval:
             labels = {"sensitive_feature": feat} if check_sens_feat else {}
             if check_data:
@@ -163,27 +187,20 @@ class Lens:
             id = f"{evaluator.name}_{str(uuid.uuid4())[0:6]}"
 
         ## Attempt pipe addition
-        try:
-            self.pipeline[id] = {
-                "evaluator": evaluator(**evaluator_arguments),
-                "meta": metadata,
-            }
 
-            # Create logging message
-            logger_message = f"Evaluator {evaluator.name} added to pipeline. "
-            if metadata is not None:
-                if "dataset" in metadata:
-                    logger_message += f"Dataset used: {metadata['dataset']}. "
-                if "sensitive_feature" in metadata:
-                    logger_message += (
-                        f"Sensitive feature: {metadata['sensitive_feature']}"
-                    )
-            self.logger.info(logger_message)
+        self.pipeline[id] = {
+            "evaluator": evaluator(**evaluator_arguments),
+            "meta": metadata,
+        }
 
-        except ValidationError as e:
-            self.logger.info(
-                f"Evaluator {evaluator.name} NOT added to the pipeline: {e}"
-            )
+        # Create logging message
+        logger_message = f"Evaluator {evaluator.name} added to pipeline. "
+        if metadata is not None:
+            if "dataset" in metadata:
+                logger_message += f"Dataset used: {metadata['dataset']}. "
+            if "sensitive_feature" in metadata:
+                logger_message += f"Sensitive feature: {metadata['sensitive_feature']}"
+        self.logger.info(logger_message)
 
     @log_command
     def remove(self, id: str):
