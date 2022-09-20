@@ -26,7 +26,7 @@ class Evidence(ABC):
             "type": self.type,
             "label": labels,
             "data": self.data(),
-            "creation_time": self.creation_time,
+            "generated_at": self.creation_time,
             "metadata": self.metadata,
         }
         return structure
@@ -79,14 +79,14 @@ class Metric(Evidence):
         additional_labels=None,
         **metadata
     ):
-        self.type = type
+        self.metric_type = type
         self.value = value
         self.confidence_interval = confidence_interval
         self.confidence_level = confidence_level
         super().__init__("metric", additional_labels, **metadata)
 
     def label(self):
-        label = {"metric_type": self.type}
+        label = {"metric_type": self.metric_type}
         return label
 
     def data(self):
@@ -121,10 +121,13 @@ class Table(Evidence):
         super().__init__("table", additional_labels, **metadata)
 
     def data(self):
-        return {"csv": self._data.to_csv(index=False)}
+        return {
+            "column": self.data.columns.tolist(),
+            "value": self.data.values.tolist(),
+        }
 
     def label(self):
-        label = {"table_name": self.name}
+        label = {"data_type": self.name}
         return label
 
 
