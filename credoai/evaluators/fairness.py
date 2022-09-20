@@ -1,16 +1,12 @@
-from dis import dis
-from typing import List, Union
-
 import pandas as pd
-from credoai.modules.metrics import Metric, find_metrics, metrics_from_dict
+from credoai.modules.metrics import Metric, find_metrics
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.evaluators import Evaluator
 from credoai.utils import global_logger
-from credoai.utils.common import NotRunError, ValidationError, to_array
+from credoai.utils.common import NotRunError, ValidationError
 from credoai.evaluators.utils.shared import _setup_metric_frames
 from credoai.evidence.containers import MetricContainer
-from scipy.stats import norm
-from sklearn.utils import check_consistent_length
+from credoai.artifacts import TabularData
 
 
 class ModelFairness(Evaluator):
@@ -47,7 +43,7 @@ class ModelFairness(Evaluator):
 
     def __init__(
         self,
-        metrics,
+        metrics=None,
         method="between_groups",
     ):
         self.metrics = metrics
@@ -278,4 +274,8 @@ class ModelFairness(Evaluator):
         )
 
     def _validate_arguments(self):
-        return super()._validate_arguments()
+        if self.metrics is None:
+            raise ValidationError("Missing Metrics")
+
+        if not isinstance(self.data, TabularData):
+            raise ValidationError("Data under evaluation is not of type TabularData.")
