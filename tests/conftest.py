@@ -50,7 +50,7 @@ def split_data(df: DataFrame, sensitive_features: Union[DataFrame, Series]) -> d
     return output
 
 
-@fixture(scope="module")
+@fixture(scope="session")
 def data(n=DATASET_SIZE):
     data = fetch_creditdefault()
     df = data["data"].copy().iloc[0:n]
@@ -58,17 +58,17 @@ def data(n=DATASET_SIZE):
     return df
 
 
-@fixture(scope="module")
+@fixture(scope="session")
 def single_sens_feat(data):
     return data["SEX"]
 
 
-@fixture(scope="module")
+@fixture(scope="session")
 def data_for_modeling(data, single_sens_feat):
     return split_data(data, single_sens_feat)
 
 
-@fixture(scope="module")
+@fixture(scope="session")
 def credo_model(data_for_modeling):
     model = RandomForestClassifier()
     model.fit(data_for_modeling["X_train"], data_for_modeling["y_train"])
@@ -76,7 +76,7 @@ def credo_model(data_for_modeling):
     return credo_model
 
 
-@fixture(scope="module")
+@fixture(scope="session")
 def assessment_data(data_for_modeling):
     return TabularData(
         name="UCI-credit-default-test",
@@ -86,7 +86,7 @@ def assessment_data(data_for_modeling):
     )
 
 
-@fixture(scope="module")
+@fixture(scope="session")
 def train_data(data_for_modeling):
     return TabularData(
         name="UCI-credit-default-train",
