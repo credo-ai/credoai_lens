@@ -1,16 +1,34 @@
+from typing import Union
 from pytest import fixture
 from credoai.data import fetch_creditdefault
 from sklearn.model_selection import train_test_split
 from credoai.artifacts import TabularData, ClassificationModel
 from sklearn.ensemble import RandomForestClassifier
-from pandas import Series
+from pandas import Series, DataFrame
+
+DATASET_SIZE = 100
 
 
-def split_data(df, sensitive_features):
+def split_data(df: DataFrame, sensitive_features: Union[DataFrame, Series]) -> dict:
+    """
+    Split dataset in test and train.
+
+    Parameters
+    ----------
+    df : DataFrame
+        Data set containing both X and target
+    sensitive_features : Union[DataFrame, Series]
+        Can be 1 or more sensitive features
+
+    Returns
+    -------
+    dict
+        Dictionary of all datasets, targets and sensitive features
+    """
     if isinstance(sensitive_features, Series):
         sens_feat_names = [sensitive_features.name]
     else:
-        sens_feat_names = list(sens_feat_names.columns)
+        sens_feat_names = list(sensitive_features.columns)
     X = df.drop(columns=sens_feat_names + ["target"])
     y = df["target"]
     (
@@ -33,7 +51,7 @@ def split_data(df, sensitive_features):
 
 
 @fixture(scope="module")
-def data(n=100):
+def data(n=DATASET_SIZE):
     data = fetch_creditdefault()
     df = data["data"].copy().iloc[0:n]
     df["target"] = data["target"].copy().iloc[0:n].astype(int)

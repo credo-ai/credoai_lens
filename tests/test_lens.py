@@ -21,6 +21,13 @@ def init_lens(credo_model, assessment_data, train_data, request):
 
 @pytest.mark.usefixtures("init_lens")
 class Base_Evaluator_Test(ABC):
+    """
+    Base evaluator class
+
+    This takes in the initialized lens fixture and defines standardized tests
+    for each evaluator.
+    """
+
     @abstractmethod
     def test_add(self):
         ...
@@ -112,3 +119,33 @@ class TestPerformance(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+
+def test_bulk_pipeline_run(credo_model, assessment_data, train_data):
+    """
+    Testing the passing of the list of evaluator works
+    and the pipeline is running.
+    """
+    pipe_structure = [
+        (Security(), "Security assessment"),
+        (DataProfiling(), "Profiling test data"),
+        (DataFairness(), "Test data Fairness"),
+    ]
+    my_pipeline = Lens(
+        model=credo_model,
+        assessment_data=assessment_data,
+        training_data=train_data,
+        pipeline=pipe_structure,
+    )
+    my_pipeline.run()
+    assert my_pipeline.get_results()
+
+
+def test_automatic_run(credo_model, assessment_data, train_data):
+    my_pipeline = Lens(
+        model=credo_model,
+        assessment_data=assessment_data,
+        training_data=train_data,
+    )
+    my_pipeline.run()
+    assert my_pipeline.get_results()
