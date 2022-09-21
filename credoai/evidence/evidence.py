@@ -127,7 +127,7 @@ class Table(Evidence):
         }
 
     def label(self):
-        label = {"data_type": self.name}
+        label = {"table_name": self.name}
         return label
 
 

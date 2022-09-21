@@ -176,17 +176,35 @@ class Lens:
             )
         return self
 
-    def to_evidence(self, overwrite_governance=False, update_governance=True):
+    def send_to_governance(self, overwrite_governance=False):
         """
-        Converts evaluator results to evidence for the platform from the pipeline results.
-
-        Paramters
+        Parameters
         ---------
         overwrite_governance : bool
             When adding evidence to a Governance object, whether to overwrite existing
             evidence or not, default False.
-        update_governance : bool
-            Whether to update the evidence in the associated Governance object or not.
+        """
+        evidence = self.get_evidence()
+        if self.gov:
+            if overwrite_governance:
+                self.gov.set_evidence(evidence)
+            else:
+                self.gov.add_evidence(evidence)
+        else:
+            raise ValidationError(
+                "No governance object exists to update. Either set"
+                " update_governance to False or call lens.set_governance"
+                " to add a governance object."
+            )
+        return self
+
+    def get_evidence(self):
+        """
+        Converts evaluator results to evidence for the platform from the pipeline results.
+
+        Return
+        ------
+        List of Evidence
         """
         labels = {
             "model_name": self.model.name if self.model else None,
@@ -199,18 +217,6 @@ class Lens:
         evidences = []
         for result in all_results:
             evidences += result.to_evidence(**labels)
-        if update_governance:
-            if self.gov:
-                if overwrite_governance:
-                    self.gov.set_evidence(evidences)
-                else:
-                    self.gov.add_evidence(evidences)
-            else:
-                raise ValidationError(
-                    "No governance object exists to update. Either set"
-                    " update_governance to False or call lens.set_governance"
-                    " to add a governance object."
-                )
         return evidences
 
     def get_results(self) -> Dict:

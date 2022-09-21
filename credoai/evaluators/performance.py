@@ -1,6 +1,7 @@
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.shared import _setup_metric_frames
 from credoai.evaluators.utils.validation import (
     check_artifact_for_nulls,
     check_data_instance,
@@ -11,7 +12,6 @@ from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
-from credoai.evaluators.utils.shared import _setup_metric_frames
 
 
 class Performance(Evaluator):
