@@ -43,7 +43,7 @@ class Performance(Evaluator):
     """
 
     name = "Performance"
-    required_artifacts = ["model", "assessment_data", "sensitive_feature"]
+    required_artifacts = {"model", "assessment_data", "sensitive_feature"}
 
     def __init__(self, metrics=None):
         super().__init__()

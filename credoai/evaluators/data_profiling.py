@@ -1,5 +1,6 @@
 # reset style after pandas profiler
 from unittest import result
+
 import matplotlib
 import pandas as pd
 from credoai.artifacts.data.tabular_data import TabularData
@@ -11,7 +12,6 @@ from credoai.utils.common import ValidationError
 backend = matplotlib.get_backend()
 # load pands profiler, which sets backend to Agg
 from pandas_profiling import ProfileReport
-
 
 matplotlib.use(backend)
 
@@ -32,7 +32,7 @@ class DataProfiling(Evaluator):
     """
 
     name = "DataProfiler"
-    required_artifacts = ["data"]
+    required_artifacts = {"data"}
 
     def __init__(self, dataset_name=None, **profile_kwargs):
         self.profile_kwargs = profile_kwargs

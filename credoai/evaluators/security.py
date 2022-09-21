@@ -52,7 +52,7 @@ class Security(Evaluator):
     """
 
     name = "Security"
-    required_artifacts = ["model", "assessment_data", "training_data"]
+    required_artifacts = {"model", "assessment_data", "training_data"}
 
     def _setup(self):
         self.x_train = self.training_data.X.to_numpy()

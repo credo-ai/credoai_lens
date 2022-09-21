@@ -2,6 +2,7 @@ from itertools import combinations
 
 import numpy as np
 import pandas as pd
+from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
     check_artifact_for_nulls,
@@ -11,7 +12,6 @@ from credoai.evaluators.utils.validation import (
 from credoai.evidence import MetricContainer, TableContainer
 from credoai.utils import NotRunError
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
-from credoai.artifacts import TabularData
 
 
 class Equity(Evaluator):
@@ -39,7 +39,7 @@ class Equity(Evaluator):
     """
 
     name = "Equity"
-    required_artifacts = ["data"]
+    required_artifacts = {"data"}
 
     def __init__(self, p_value=0.01):
         self.pvalue = p_value

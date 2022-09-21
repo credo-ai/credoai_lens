@@ -99,6 +99,13 @@ class Evaluator(ABC):
         artifacts : dict
             Dictionary of artifacts, e.g. {'model': Model}
         """
+        passed_artifacts = set(artifacts.keys())
+        if passed_artifacts != self.required_artifacts:
+            raise ValidationError(
+                f"Artifacts passed to evaluator ({self.name}) don't match required artifacts."
+                f"\nRequired artifacts: {self.required_artifacts}"
+                f"\nPassed Artifacts: {passed_artifacts}"
+            )
         self.__dict__.update(artifacts)
 
     @abstractmethod

@@ -87,7 +87,7 @@ class Privacy(Evaluator):
         self._validate_attack_feature(attack_feature, attack_feature_name)
 
     name = "Privacy"
-    required_artifacts = ["model", "assessment_data", "training_data"]
+    required_artifacts = {"model", "assessment_data", "training_data"}
 
     def _setup(self):
         # Data prep

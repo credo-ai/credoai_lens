@@ -206,17 +206,10 @@ class Lens:
         ------
         List of Evidence
         """
-        labels = {
-            "model_name": self.model.name if self.model else None,
-            "dataset_name": self.assessment_data.name if self.assessment_data else None,
-            "sensitive_features": [
-                x for x in self.assessment_data.sensitive_features.columns
-            ],
-        }
         all_results = flatten_list([x["results"] for x in self.pipeline_results])
         evidences = []
         for result in all_results:
-            evidences += result.to_evidence(**labels)
+            evidences += result.to_evidence()
         return evidences
 
     def get_results(self) -> Dict:

@@ -55,7 +55,7 @@ class DataFairness(Evaluator):
         self.categorical_threshold = categorical_threshold
 
     name = "DataFairness"
-    required_artifacts = ["data", "sensitive_feature"]
+    required_artifacts = {"data", "sensitive_feature"}
 
     def _setup(self):
         self.data_to_eval = self.data  # Pick the only member
