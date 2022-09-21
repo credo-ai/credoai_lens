@@ -1,6 +1,9 @@
 ############# Validation related functionality ##################
 
+from distutils.log import error
+from email import message
 from credoai.utils.common import ValidationError
+from pandas import Series, DataFrame
 
 
 def check_instance(obj, inst_type, message=None):
@@ -35,3 +38,27 @@ def check_existence(obj, name=None):
 def check_requirements_existence(self):
     for required_name in self.required_artifacts:
         check_existence(vars(self)[required_name], required_name)
+
+
+def check_for_nulls(obj, name):
+    message = f"Detected nulls in {name}"
+    if obj is not None:
+        if obj.isnull().values.any():
+            raise ValidationError(message)
+
+
+def check_artifact_for_nulls(obj, name):
+    errors = []
+    if obj.X is not None:
+        if obj.X.isnull().values.any():
+            errors.append("X")
+    if obj.y is not None:
+        if obj.y.isnull().values.any():
+            errors.append("y")
+    if obj.sensitive_features is not None:
+        if obj.sensitive_features.isnull().values.any():
+            errors.append("sensitive_features")
+
+    if len(errors) > 0:
+        message = f"Detected null values in {name}, in attributes: {','.join(errors)}"
+        raise ValidationError(message)
