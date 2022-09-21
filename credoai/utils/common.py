@@ -88,7 +88,7 @@ class NumpyEncoder(json.JSONEncoder):
 
 def json_dumps(obj):
     """Custom json dumps with encoder"""
-    return json.dumps(obj, cls=NumpyEncoder)
+    return json.dumps(obj, cls=NumpyEncoder, indent=2)
 
 
 def dict_hash(dictionary: Dict[str, Any]) -> str:
