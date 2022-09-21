@@ -142,7 +142,7 @@ class Governance:
             self.set_evidences([])
 
     def __parse_json_api(self, json_str):
-        return json.loads(json_str)
+        return deserialize(json.loads(json_str))
 
     @property
     def registered(self):
