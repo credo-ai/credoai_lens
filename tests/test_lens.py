@@ -30,22 +30,35 @@ class Base_Evaluator_Test(ABC):
 
     @abstractmethod
     def test_add(self):
+        """
+        Tests that the step was effectively added to the pipeline.
+
+        Depending on evaluator requirements (data/sensitive feature) the
+        assert statement on the length of the pipeline changes.
+        """
         ...
 
     @abstractmethod
     def test_run(self):
+        """
+        Tests that the pipeline run, checking for results presence.
+        """
         ...
 
 
 class TestModelFairness(Base_Evaluator_Test):
-    evaluator = ModelFairness(metrics=["false positive rate"])
+    evaluator = ModelFairness(metrics=["precision_score"])
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
         assert len(self.pipeline.pipeline) == 2
 
     def test_run(self):
-        self.pipeline.get_results()
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+    def test_something_else(self):
+        print("nenno")
         assert True
 
 
@@ -90,7 +103,7 @@ class TestEquity(Base_Evaluator_Test):
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
-        assert len(self.pipeline.pipeline) == 1
+        assert len(self.pipeline.pipeline) == 2
 
     def test_run(self):
         self.pipeline.run()

@@ -6,7 +6,7 @@ from credoai.artifacts import TabularData, ClassificationModel
 from sklearn.ensemble import RandomForestClassifier
 from pandas import Series, DataFrame
 
-DATASET_SIZE = 100
+DATASET_SIZE = 1000
 
 
 def split_data(df: DataFrame, sensitive_features: Union[DataFrame, Series]) -> dict:
