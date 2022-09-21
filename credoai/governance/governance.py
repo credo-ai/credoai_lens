@@ -3,18 +3,20 @@ Credo Governance
 """
 
 import json
-from json_api_doc import deserialize
-from credoai.utils import global_logger
+
 from credoai.evidence.evidence import Evidence
 from credoai.evidence.evidence_requirement import EvidenceRequirement
+from credoai.utils import global_logger
+from json_api_doc import deserialize
+
 from .credo_api import CredoApi
 from .credo_api_client import CredoApiClient
 
 
-class CredoGovernance:
+class Governance:
     """Class to store governance data.
 
-    CredoGovernance is used to interact with the CredoAI Governance(Report) App.
+    Governance is used to interact with the CredoAI Governance(Report) App.
     It has two main jobs.
     1. Get evidence_requirements of use_case and policy pack.
     2. Upload evidences gathered with evidence_requirements
@@ -23,14 +25,14 @@ class CredoGovernance:
     ----------
     credo_api_client: CredoApiClient, optional
         Credo API client. Uses default Credo API client if it is None
-        Default Credo API client uses `~/.credo_config` to read API server configuration. 
+        Default Credo API client uses `~/.credo_config` to read API server configuration.
         Please prepare `~/.credo_config` file by downloading it from CredoAI Governance App.(My Settings > Tokens)
 
-        If you want to use your own configuration, 
+        If you want to use your own configuration,
 
         ```python
         from credoai.governance.credo_api_client import CredoApiClient, CredoApiConfig
-        from credoai.governance.goverance import CredoGovernance
+        from credoai.governance.goverance import Governance
 
         config = CredoApiConfig(
             api_key="API_KEY", tenant="credo", api_server="https://api.credo.ai"
@@ -40,9 +42,9 @@ class CredoGovernance:
         config.load_config("CREDO_CONFIG_FILE_PATH")
 
         client = CredoApiClient(config=config)
-        governace = CredoGovernance(credo_api_client=client)
+        governace = Governance(credo_api_client=client)
         ```
-    
+
     """
 
     def __init__(self, credo_api_client: CredoApiClient = None):
@@ -140,7 +142,7 @@ class CredoGovernance:
             self.set_evidences([])
 
     def __parse_json_api(self, json_str):
-        return deserialize(json.loads(json_str))
+        return json.loads(json_str)
 
     @property
     def registered(self):
@@ -149,7 +151,7 @@ class CredoGovernance:
     def get_evidence_requirements(self):
         """
         Returns evidence requirements
-        
+
 
         Returns
         -------
@@ -178,7 +180,7 @@ class CredoGovernance:
         True
             When uploading is successful
         False
-            When it is not registered yet, or there is no evidence    
+            When it is not registered yet, or there is no evidence
         """
 
         if not self.registered:

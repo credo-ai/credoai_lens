@@ -2,8 +2,9 @@
 Credo API functions
 """
 
-from requests.exceptions import HTTPError
 from credoai.utils import global_logger
+from requests.exceptions import HTTPError
+
 from .credo_api_client import CredoApiClient
 
 
@@ -57,7 +58,7 @@ class CredoApi:
         except HTTPError as error:
             if error.response.status_code == 404:
                 global_logger.info(
-                    f"Use case ({use_case_name}) with policy pack({policy_pack_key}) does not exist"
+                    f"Use case ({use_case_name}) with policy pack ({policy_pack_key}) does not exist"
                 )
                 return None
             raise error

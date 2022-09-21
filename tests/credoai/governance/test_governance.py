@@ -1,17 +1,20 @@
-import pytest
 import json
-from credoai.governance.credo_api_client import CredoApiClient
-from credoai.governance.credo_api import CredoApi
-from credoai.governance.governance import CredoGovernance
-from credoai.evidence.evidence import Metric
-from pandas import Series
 
+import pytest
+from credoai.evidence.evidence import Metric
+from credoai.governance import Governance
+from credoai.governance.credo_api import CredoApi
+from credoai.governance.credo_api_client import CredoApiClient
+from pandas import Series
 
 USE_CASE_ID = "64YUaLWSviHgibJaRWr3ZE"
 POLICY_PACK_ID = "NYCE+1"
 EVIDENCE_REQUIREMENTS = [
     {"evidence_type": "metric", "label": {"metric_type": "accuracy_score"}},
-    {"evidence_type": "statistical_test", "label": {"metric_type": "p_value"},},
+    {
+        "evidence_type": "statistical_test",
+        "label": {"metric_type": "p_value"},
+    },
     {
         "evidence_type": "table",
         "label": {"data_type": "disaggregated_performance"},
@@ -26,7 +29,11 @@ ASSESSMENT_PLAN = {
 }
 
 ASSESSMENT_PLAN_JSON_STR = json.dumps(
-    {"data": {"attributes": ASSESSMENT_PLAN}, "id": "id", "type": "assessment_plan",}
+    {
+        "data": {"attributes": ASSESSMENT_PLAN},
+        "id": "id",
+        "type": "assessment_plan",
+    }
 )
 
 
@@ -62,7 +69,7 @@ class TestGovernance:
 
     @pytest.fixture()
     def gov(self, client):
-        return CredoGovernance(client)
+        return Governance(client)
 
     @pytest.fixture
     def plan_file_mock(self, mocker):
@@ -71,7 +78,7 @@ class TestGovernance:
 
     # def test_real(self):
     #     client = CredoApiClient()
-    #     gov = CredoGovernance(credo_api_client=client)
+    #     gov = Governance(credo_api_client=client)
 
     #     gov.register(
     #         assessment_plan_url="http://localhost:4000/api/v2/credoai/use_cases/64YUaLWSviHgibJaRWr3ZE/assessment_plans/NYCE+1"
@@ -163,4 +170,3 @@ class TestGovernance:
         api.create_assessment.assert_called_with(
             USE_CASE_ID, POLICY_PACK_ID, [evidence.struct()]
         )
-
