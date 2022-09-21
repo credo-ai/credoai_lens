@@ -1,6 +1,11 @@
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_existence,
+)
 from credoai.evidence.containers import MetricContainer, TableContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
@@ -253,8 +258,7 @@ class Performance(Evaluator):
         return (performance_metrics, prob_metrics, failed_metrics)
 
     def _validate_arguments(self):
-        if self.metrics is None:
-            raise ValidationError("Missing Metrics")
-
-        if not isinstance(self.assessment_data, TabularData):
-            raise ValidationError("Data under evaluation is not of type TabularData.")
+        check_existence(self.metrics, "metrics")
+        check_data_instance(self.assessment_data, TabularData)
+        check_existence(self.assessment_data.sensitive_features, "sensitive_features")
+        check_artifact_for_nulls(self.assessment_data, "Data")

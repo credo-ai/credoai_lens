@@ -6,7 +6,15 @@ import tensorflow as tf
 from art.attacks.evasion import HopSkipJump
 from art.attacks.extraction import CopycatCNN
 from art.estimators.classification import BlackBoxClassifier, KerasClassifier
+from credoai.artifacts.data.tabular_data import TabularData
+from credoai.artifacts.model.classification_model import ClassificationModel
 from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_model_instance,
+    check_requirements_existence,
+)
 from credoai.evidence.containers import MetricContainer
 from credoai.utils.common import NotRunError, ValidationError
 from keras.layers import Dense
@@ -63,13 +71,12 @@ class Security(Evaluator):
         return self
 
     def _validate_arguments(self):
-        if self.model is None:
-            raise ValidationError("Missing model")
-        if self.assessment_data is None:
-            raise ValidationError("Missing assessment/test dataset")
-        if self.training_data is None:
-            raise ValidationError("Missing training dataset")
-        return self
+        check_requirements_existence(self)
+        check_model_instance(self.model, ClassificationModel)
+        for ds in ["assessment_data", "training_data"]:
+            artifact = vars(self)[ds]
+            check_data_instance(artifact, TabularData, ds)
+            check_artifact_for_nulls(artifact, ds)
 
     def evaluate(self):
         """Runs the assessment process
