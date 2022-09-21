@@ -1,7 +1,7 @@
 import inspect
 from abc import ABC, abstractmethod
 
-from credoai.evidence.containers import EvidenceContainer
+from credoai.evidence import EvidenceContainer
 from credoai.utils.common import NotRunError, ValidationError
 
 

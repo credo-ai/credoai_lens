@@ -19,7 +19,7 @@ from credoai.evaluators.utils.validation import (
     check_model_instance,
     check_requirements_existence,
 )
-from credoai.evidence.containers import MetricContainer
+from credoai.evidence import MetricContainer
 from credoai.utils.common import ValidationError
 from pandas import DataFrame
 from sklearn.metrics import accuracy_score

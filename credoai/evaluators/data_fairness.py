@@ -12,6 +12,7 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
+from credoai.evidence import MetricContainer
 from credoai.utils.common import NotRunError, ValidationError, is_categorical
 from credoai.utils.constants import MULTICLASS_THRESH
 from credoai.utils.dataset_utils import ColumnTransformerUtil
@@ -22,7 +23,6 @@ from sklearn.metrics import make_scorer, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from credoai.evidence.containers import MetricContainer
 
 
 class DataFairness(Evaluator):

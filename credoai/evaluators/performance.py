@@ -6,7 +6,7 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from credoai.evidence.containers import MetricContainer, TableContainer
+from credoai.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger

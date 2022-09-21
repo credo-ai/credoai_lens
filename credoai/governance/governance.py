@@ -3,12 +3,13 @@ Credo Governance
 """
 
 import json
+from typing import Union
 
 from credoai import __version__
 from credoai.evidence.evidence import Evidence
 from credoai.evidence.evidence_requirement import EvidenceRequirement
 from credoai.utils import global_logger
-from credoai.utils.common import json_dumps
+from credoai.utils.common import json_dumps, wrap_list
 from json_api_doc import deserialize, serialize
 
 from .credo_api import CredoApi
@@ -141,7 +142,7 @@ class Governance:
                 f"Successfully registered with {len(self._evidence_requirements)} evidence requirements"
             )
 
-            self.set_evidences([])
+            self.clear_evidence()
 
     def __parse_json_api(self, json_str):
         return deserialize(json.loads(json_str))
@@ -161,17 +162,20 @@ class Governance:
         """
         return self._evidence_requirements
 
-    def set_evidences(self, evidences: list[Evidence]):
+    def clear_evidence(self):
+        self.set_evidence([])
+
+    def set_evidence(self, evidences: list[Evidence]):
         """
         Update evidences
         """
         self._evidences = evidences
 
-    def add_evidences(self, evidences: list[Evidence]):
+    def add_evidence(self, evidences: Union[Evidence, list[Evidence]]):
         """
         Add evidences
         """
-        self._evidences = self._evidences + evidences
+        self._evidences += wrap_list(evidences)
 
     def export(self, filename=None):
         """

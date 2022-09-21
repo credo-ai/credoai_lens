@@ -122,8 +122,8 @@ class Table(Evidence):
 
     def data(self):
         return {
-            "column": self.data.columns.tolist(),
-            "value": self.data.values.tolist(),
+            "column": self._data.columns.tolist(),
+            "value": self._data.values.tolist(),
         }
 
     def label(self):
@@ -141,7 +141,7 @@ class Profiler(Evidence):
         super().__init__("profiler", additional_labels, **metadata)
 
     def data(self):
-        return self._data.to_csv(index=False)
+        return self._data.to_json(index=False)
 
     def label(self):
         return {"profiler_info": "placeholder"}

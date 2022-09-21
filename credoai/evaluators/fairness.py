@@ -10,7 +10,7 @@ from credoai.evaluators import Evaluator
 from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError
 from credoai.evaluators.utils.shared import _setup_metric_frames
-from credoai.evidence.containers import MetricContainer
+from credoai.evidence import MetricContainer
 from credoai.artifacts import TabularData
 
 
