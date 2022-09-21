@@ -51,19 +51,15 @@ class TestModelFairness(Base_Evaluator_Test):
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
-        assert len(self.pipeline.pipeline) == 2
+        assert len(self.pipeline.pipeline) == 4
 
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
 
-    def test_something_else(self):
-        print("nenno")
-        assert True
-
 
 class TestPrivacy(Base_Evaluator_Test):
-    evaluator = Privacy(attack_feature="MARRIAGE")
+    evaluator = Privacy(attack_feature="experience")
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
@@ -79,7 +75,7 @@ class TestDataFairness(Base_Evaluator_Test):
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
-        assert len(self.pipeline.pipeline) == 2
+        assert len(self.pipeline.pipeline) == 4
 
     def test_run(self):
         self.pipeline.get_results()
@@ -127,7 +123,7 @@ class TestPerformance(Base_Evaluator_Test):
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
-        assert len(self.pipeline.pipeline) == 1
+        assert len(self.pipeline.pipeline) == 2
 
     def test_run(self):
         self.pipeline.run()
