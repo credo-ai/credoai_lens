@@ -1,13 +1,17 @@
 from itertools import combinations
-from operator import pos
 
 import numpy as np
 import pandas as pd
 from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_existence,
+)
 from credoai.evidence.containers import MetricContainer, TableContainer
-from credoai.utils import NotRunError, ValidationError
-from scipy.stats import chi2_contingency, chisquare, f_oneway, tukey_hsd
-from sklearn.utils.multiclass import type_of_target
+from credoai.utils import NotRunError
+from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
+from credoai.artifacts import TabularData
 
 
 class Equity(Evaluator):
@@ -35,25 +39,23 @@ class Equity(Evaluator):
     """
 
     name = "Equity"
-    required_artifacts = ["assessment_data"]
+    required_artifacts = ["data"]
 
     def __init__(self, p_value=0.01):
         self.pvalue = p_value
 
     def _setup(self):
-        self.sensitive_features = self.assessment_data.sensitive_features
-        self.y = self.assessment_data.y
-        self.type_of_target = self.assessment_data.y_type
+        self.sensitive_features = self.data.sensitive_features
+        self.y = self.data.y
+        self.type_of_target = self.data.y_type
 
         self.df = pd.concat([self.sensitive_features, self.y], axis=1)
         return self
 
     def _validate_arguments(self):
-        if self.assessment_data.sensitive_features is None:
-            raise ValidationError("Sensitive features are required in assessment data")
-        if self.assessment_data is None:
-            raise ValidationError("y array is required in assessment data")
-        return self
+        check_data_instance(self.data, TabularData)
+        check_existence(self.data.sensitive_features, "sensitive_features")
+        check_artifact_for_nulls(self.data, "Data")
 
     def evaluate(self):
         self._results = {"descriptive": self.describe()}
