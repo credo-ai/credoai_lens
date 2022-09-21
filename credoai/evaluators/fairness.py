@@ -1,4 +1,9 @@
 import pandas as pd
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_existence,
+)
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.evaluators import Evaluator
@@ -274,8 +279,7 @@ class ModelFairness(Evaluator):
         )
 
     def _validate_arguments(self):
-        if self.metrics is None:
-            raise ValidationError("Missing Metrics")
-
-        if not isinstance(self.data, TabularData):
-            raise ValidationError("Data under evaluation is not of type TabularData.")
+        check_existence(self.metrics, "metrics")
+        check_data_instance(self.data, TabularData)
+        check_existence(self.data.sensitive_features, "sensitive_features")
+        check_artifact_for_nulls(self.data, "Data")

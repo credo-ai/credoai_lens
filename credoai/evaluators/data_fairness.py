@@ -7,6 +7,11 @@ import numpy as np
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_existence,
+)
 from credoai.utils.common import NotRunError, ValidationError, is_categorical
 from credoai.utils.constants import MULTICLASS_THRESH
 from credoai.utils.dataset_utils import ColumnTransformerUtil
@@ -78,13 +83,9 @@ class DataFairness(Evaluator):
         return self
 
     def _validate_arguments(self):
-        if not isinstance(self.data, TabularData):
-            raise ValidationError("Data under evaluation is not of type TabularData.")
-
-        if self.data.sensitive_features is None:
-            raise ValidationError(
-                f"Step: {self.name} ->  No sensitive feature were found in the dataset"
-            )
+        check_data_instance(self.data, TabularData)
+        check_existence(self.data.sensitive_features, "sensitive_features")
+        check_artifact_for_nulls(self.data, "Data")
 
         return self
 

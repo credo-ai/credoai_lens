@@ -12,6 +12,13 @@ from art.attacks.inference.membership_inference import (
 from art.estimators.classification import BlackBoxClassifier
 from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_feature_presence,
+    check_model_instance,
+    check_requirements_existence,
+)
 from credoai.evidence.containers import MetricContainer
 from credoai.utils.common import ValidationError
 from pandas import DataFrame
@@ -163,22 +170,16 @@ class Privacy(Evaluator):
             )
 
     def _validate_arguments(self):
-        # Check types, all three are needed -> None is not allowed in this case
-        if not isinstance(self.training_data, TabularData):
-            raise ValidationError("Training data is not of type TabularData.")
-        if not isinstance(self.assessment_data, TabularData):
-            raise ValidationError("Test data is not of type TabularData")
-        if not isinstance(self.model, ClassificationModel):
-            raise ValidationError("Model is not of type ClassificationModel.")
-        # Check attack feature in dataset
-        if self.attack_feature:
-            if not self.attack_feature in self.training_data.X.columns:
-                raise ValidationError(
-                    f"Feature {self.attack_feature} not in training data."
-                )
-            if not self.attack_feature in self.assessment_data.X.columns:
-                raise ValidationError(
-                    f"Feature {self.attack_feature} not in test data."
+
+        check_requirements_existence(self)
+        check_model_instance(self.model, ClassificationModel)
+        for ds in ["assessment_data", "training_data"]:
+            artifact = vars(self)[ds]
+            check_data_instance(artifact, TabularData, ds)
+            check_artifact_for_nulls(artifact, ds)
+            if self.attack_feature:
+                check_feature_presence(
+                    self.attack_feature, artifact.X, "assessment_data"
                 )
 
     def _general_attack_method(self, attack_details):

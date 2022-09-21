@@ -1,11 +1,11 @@
 import json
+import tempfile
 
 import pytest
 from credoai.evidence.evidence import Metric
-from credoai.governance import Governance
 from credoai.governance.credo_api import CredoApi
 from credoai.governance.credo_api_client import CredoApiClient
-from pandas import Series
+from credoai.governance.governance import CredoGovernance
 
 USE_CASE_ID = "64YUaLWSviHgibJaRWr3ZE"
 POLICY_PACK_ID = "NYCE+1"
@@ -170,3 +170,11 @@ class TestGovernance:
         api.create_assessment.assert_called_with(
             USE_CASE_ID, POLICY_PACK_ID, [evidence.struct()]
         )
+
+    def test_export_to_file(self, gov):
+        gov.register(assessment_plan=ASSESSMENT_PLAN_JSON_STR)
+        evidence = build_metric_evidence("precision")
+        gov.add_evidences([evidence])
+        with tempfile.TemporaryDirectory() as tempDir:
+            filename = f"{tempDir}/assessment.json"
+            assert True == gov.export(filename)

@@ -4,10 +4,12 @@ Credo Governance
 
 import json
 
+from credoai import __version__
 from credoai.evidence.evidence import Evidence
 from credoai.evidence.evidence_requirement import EvidenceRequirement
 from credoai.utils import global_logger
-from json_api_doc import deserialize
+from credoai.utils.common import json_dumps
+from json_api_doc import deserialize, serialize
 
 from .credo_api import CredoApi
 from .credo_api_client import CredoApiClient
@@ -171,7 +173,7 @@ class Governance:
         """
         self._evidences = self._evidences + evidences
 
-    def export(self):
+    def export(self, filename=None):
         """
         Upload evidences to CredoAI Governance(Report) App
 
@@ -193,9 +195,27 @@ class Governance:
 
         evidences = list(map(lambda e: e.struct(), self._evidences))
 
-        global_logger.info(
-            f"Uploading {len(evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
-        )
-        self._api.create_assessment(self._use_case_id, self._policy_pack_id, evidences)
+        if filename is None:
+            global_logger.info(
+                f"Uploading {len(evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
+            )
+            self._api.create_assessment(
+                self._use_case_id, self._policy_pack_id, evidences
+            )
 
-        return True
+            return True
+        else:
+            global_logger.info(
+                f"Saving {len(evidences)} evidences to {filename}.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id} "
+            )
+            data = {
+                "policy_pack_id": self._policy_pack_id,
+                "evidences": evidences,
+                "$type": "assessments",
+            }
+            meta = {"client": "Credo AI Lens", "version": __version__}
+            data = json_dumps(serialize(data=data, meta=meta))
+            with open(filename, "w") as f:
+                f.write(data)
+
+            return True

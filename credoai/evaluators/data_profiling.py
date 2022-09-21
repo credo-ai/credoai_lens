@@ -4,6 +4,7 @@ import matplotlib
 import pandas as pd
 from credoai.artifacts.data.tabular_data import TabularData
 from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.validation import check_data_instance
 from credoai.evidence.containers import ProfilerContainer
 from credoai.utils.common import ValidationError
 
@@ -45,13 +46,7 @@ class DataProfiling(Evaluator):
         return self
 
     def _validate_arguments(self):
-        if not isinstance(self.data, TabularData):
-            raise ValidationError("Data under evaluation is not of type TabularData.")
-
-        if self.data.sensitive_feature is None:
-            raise ValidationError(
-                f"Step: {self.name} ->  No sensitive feature were found in the dataset"
-            )
+        check_data_instance(self.data, TabularData)
 
         return self
 

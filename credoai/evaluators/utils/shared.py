@@ -1,6 +1,9 @@
 from fairlearn.metrics import MetricFrame
 
 
+########### General functions shared across evaluators ###########
+
+
 def _create_metric_frame(metrics, y_pred, y_true, sensitive_features):
     """Creates metric frame from dictionary of key:Metric"""
     metrics = {name: metric.fun for name, metric in metrics.items()}
