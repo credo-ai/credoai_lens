@@ -1,9 +1,7 @@
-import re
-from tabnanny import check
 from typing import Dict, List, Optional, Union
 import uuid
 from inspect import isclass
-
+from copy import deepcopy
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.lens.utils import build_list_of_evaluators, log_command
@@ -147,19 +145,21 @@ class Lens:
         features_to_eval,
     ):
         for feat in features_to_eval:
-            labels = {"sensitive_feature": feat} if check_sens_feat else {}
             if check_data:
                 available_datasets = [
                     n for n, a in vars(self).items() if "data" in n if a
                 ]
                 for dataset in available_datasets:
+                    labels = {"sensitive_feature": feat} if check_sens_feat else {}
                     labels["dataset"] = dataset
                     evaluator_arguments["data"] = vars(self)[dataset]
                     self.change_sens_feat_view(evaluator_arguments, feat)
-                    self._add(evaluator, id, labels, evaluator_arguments)
+                    self._add(deepcopy(evaluator), id, labels, evaluator_arguments)
             else:
                 self.change_sens_feat_view(evaluator_arguments, feat)
-                self._add(evaluator, id, labels, evaluator_arguments)
+                self._add(
+                    evaluator, id, {"sensitive_feature": feat}, evaluator_arguments
+                )
         return self
 
     def _add(
