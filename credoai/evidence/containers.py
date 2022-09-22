@@ -94,4 +94,5 @@ class ProfilerContainer(EvidenceContainer):
         return [self.evidence_class(self._df, self.labels, **self.metadata, **metadata)]
 
     def _validate(self, df):
-        return super()._validate(df)
+        if list(df.columns) != ["results"]:
+            raise ValidationError("Profiler data must only have one column: 'results'")

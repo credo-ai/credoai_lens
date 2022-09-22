@@ -169,6 +169,7 @@ class Lens:
             self._generate_pipeline(all_evaluators)
         # Can  pass pipeline directly
         for step, details in self.pipeline.items():
+            self.logger.info(f"Running evaluation for step: {step}")
             details["evaluator"].evaluate()
             # Populate pipeline results
             self.pipeline_results.append(

@@ -73,10 +73,11 @@ def humanize_label(s):
     return " ".join(s.split("_")).title()
 
 
-class NumpyEncoder(json.JSONEncoder):
+class CredoEncoder(json.JSONEncoder):
     """Special json encoder for numpy types"""
 
     def default(self, obj):
+        # numpy encoders
         if isinstance(obj, np.integer):
             return int(obj)
         elif isinstance(obj, np.floating):
@@ -88,7 +89,7 @@ class NumpyEncoder(json.JSONEncoder):
 
 def json_dumps(obj):
     """Custom json dumps with encoder"""
-    return json.dumps(obj, cls=NumpyEncoder, indent=2)
+    return json.dumps(obj, cls=CredoEncoder, indent=2)
 
 
 def dict_hash(dictionary: Dict[str, Any]) -> str:

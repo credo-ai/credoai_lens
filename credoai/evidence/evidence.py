@@ -115,9 +115,11 @@ class Table(Evidence):
         displayed in the governance app
     """
 
-    def __init__(self, name: str, data: DataFrame, additional_labels=None, **metadata):
+    def __init__(
+        self, name: str, table_data: DataFrame, additional_labels=None, **metadata
+    ):
         self.name = name
-        self._data = data
+        self._data = table_data
         super().__init__("table", additional_labels, **metadata)
 
     def data(self):
@@ -141,7 +143,7 @@ class Profiler(Evidence):
         super().__init__("profiler", additional_labels, **metadata)
 
     def data(self):
-        return self._data.to_json(index=False)
+        return self._data["results"].to_json()
 
     def label(self):
         return {"profiler_info": "placeholder"}

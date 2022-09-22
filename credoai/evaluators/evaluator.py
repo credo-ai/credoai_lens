@@ -15,7 +15,7 @@ class Evaluator(ABC):
 
     def __init__(self):
         self._results = None
-        self.artifacts = None
+        self.artifact_keys = []
 
     @property
     def results(self):
@@ -103,11 +103,13 @@ class Evaluator(ABC):
         return {"labels": {"evaluator": self.name}, "metadata": self._get_artifacts()}
 
     def _get_artifacts(self):
-        return {
-            k: self.__dict__[k].name
-            for k in self.required_artifacts
-            if k in self.__dict__
-        }
+        artifacts = {}
+        for k in self.artifact_keys:
+            try:
+                artifacts[k] = self.__dict__[k].name
+            except AttributeError:
+                pass
+        return artifacts
 
     def _init_artifacts(self, artifacts):
         """Adds artifacts to evaluator object
@@ -117,6 +119,7 @@ class Evaluator(ABC):
         artifacts : dict
             Dictionary of artifacts, e.g. {'model': Model}
         """
+        self.artifact_keys = list(artifacts.keys())
         self.__dict__.update(artifacts)
 
     @abstractmethod

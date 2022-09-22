@@ -6,10 +6,8 @@ import json
 from typing import Union
 
 from credoai import __version__
-from credoai.evidence.evidence import Evidence
-from credoai.evidence.evidence_requirement import EvidenceRequirement
-from credoai.utils import global_logger
-from credoai.utils.common import json_dumps, wrap_list
+from credoai.evidence import Evidence, EvidenceRequirement
+from credoai.utils import global_logger, json_dumps, wrap_list
 from json_api_doc import deserialize, serialize
 
 from .credo_api import CredoApi
