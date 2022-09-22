@@ -1,9 +1,7 @@
-import re
-from tabnanny import check
 from typing import Dict, List, Optional, Union
 import uuid
 from inspect import isclass
-
+from copy import deepcopy
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.lens.utils import build_list_of_evaluators, log_command
@@ -156,7 +154,7 @@ class Lens:
                     labels["dataset"] = dataset
                     evaluator_arguments["data"] = vars(self)[dataset]
                     self.change_sens_feat_view(evaluator_arguments, feat)
-                    self._add(evaluator, id, labels, evaluator_arguments)
+                    self._add(deepcopy(evaluator), id, labels, evaluator_arguments)
             else:
                 self.change_sens_feat_view(evaluator_arguments, feat)
                 self._add(
