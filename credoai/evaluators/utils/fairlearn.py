@@ -14,7 +14,9 @@ def create_metric_frame(metrics, y_pred, y_true, sensitive_features):
     )
 
 
-def setup_metric_frames(performance_metrics, y_pred, y_true, sensitive_features):
+def setup_metric_frames(
+    performance_metrics, prob_metrics, y_pred, y_prob, y_true, sensitive_features
+):
     metric_frames = {}
     if y_pred is not None and performance_metrics:
         metric_frames["pred"] = create_metric_frame(
@@ -23,13 +25,13 @@ def setup_metric_frames(performance_metrics, y_pred, y_true, sensitive_features)
             y_true,
             sensitive_features=sensitive_features,
         )
-    return metric_frames
 
         # for metrics that require the probabilities
-        self.prob_metric_frame = None
-        if self.y_prob is not None and self.prob_metrics:
-            self.metric_frames["prob"] = self._create_metric_frame(
-                self.prob_metrics,
-                self.y_prob,
-                sensitive_features=self.sensitive_features,
+        prob_metric_frame = None
+        if y_prob is not None and prob_metrics:
+            metric_frames["prob"] = create_metric_frame(
+                prob_metrics,
+                y_prob,
+                sensitive_features=sensitive_features,
             )
+    return metric_frames
