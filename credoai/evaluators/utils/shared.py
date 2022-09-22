@@ -1,10 +1,9 @@
 from fairlearn.metrics import MetricFrame
 
-
 ########### General functions shared across evaluators ###########
 
 
-def _create_metric_frame(metrics, y_pred, y_true, sensitive_features):
+def create_metric_frame(metrics, y_pred, y_true, sensitive_features):
     """Creates metric frame from dictionary of key:Metric"""
     metrics = {name: metric.fun for name, metric in metrics.items()}
     return MetricFrame(
@@ -15,15 +14,16 @@ def _create_metric_frame(metrics, y_pred, y_true, sensitive_features):
     )
 
 
-def _setup_metric_frames(self):
-    self.metric_frames = {}
-    if self.y_pred is not None and self.performance_metrics:
-        self.metric_frames["pred"] = _create_metric_frame(
-            self.performance_metrics,
-            self.y_pred,
-            self.y_true,
-            sensitive_features=self.sensitive_features,
+def setup_metric_frames(performance_metrics, y_pred, y_true, sensitive_features):
+    metric_frames = {}
+    if y_pred is not None and performance_metrics:
+        metric_frames["pred"] = create_metric_frame(
+            performance_metrics,
+            y_pred,
+            y_true,
+            sensitive_features=sensitive_features,
         )
+    return metric_frames
 
         # for metrics that require the probabilities
         self.prob_metric_frame = None

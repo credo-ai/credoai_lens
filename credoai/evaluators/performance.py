@@ -1,7 +1,7 @@
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.shared import _setup_metric_frames
+from credoai.evaluators.utils.shared import setup_metric_frames
 from credoai.evaluators.utils.validation import (
     check_artifact_for_nulls,
     check_data_instance,
@@ -127,7 +127,9 @@ class Performance(Evaluator):
             self.prob_metrics,
             self.failed_metrics,
         ) = self._process_metrics(self.metrics)
-        _setup_metric_frames(self)
+        self.metric_frames = setup_metric_frames(
+            self.performance_metrics, self.y_pred, self.y_true, self.sensitive_features
+        )
 
     def get_df(self):
         """Return dataframe of input arrays
