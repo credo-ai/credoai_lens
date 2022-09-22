@@ -1,11 +1,9 @@
+import functools
 import inspect
 from typing import Callable, List, Union
-from credoai.utils.common import dict_hash
-from credoai.evaluators import *
+
 import credoai.evaluators
-
-
-import functools
+from credoai.utils.common import dict_hash
 
 
 def log_command(fun: Callable):
@@ -135,29 +133,3 @@ def add_metric_keys(prepared_results):
         for metric_dict in prepared_results.reset_index().to_dict("records")
     ]
     prepared_results["metric_key"] = keys
-
-
-def build_list_of_evaluators():
-    """
-    Takes all the evaluator type objects available in Lens package
-    and converts them to a list of instantiated objects. Only
-    uses default values.
-
-    Returns
-    -------
-    List(Evaluator types)
-        List of instantiated evaluators
-    """
-    all_evaluators = []
-    for x in dir(credoai.evaluators):
-        try:
-            evaluated = eval(x)
-            if (
-                inspect.isclass(evaluated)
-                and issubclass(evaluated, Evaluator)
-                and not inspect.isabstract(evaluated)
-            ):
-                all_evaluators.append(evaluated)
-        except NameError:
-            pass
-    return [x() for x in all_evaluators]
