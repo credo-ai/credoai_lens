@@ -162,7 +162,7 @@ class DataFairness(Evaluator):
             res = res.reset_index()
             res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
             res.drop("metric_type", axis=1, inplace=True)
-            return [MetricContainer(res)]
+            return [MetricContainer(res, **self.get_container_info())]
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 

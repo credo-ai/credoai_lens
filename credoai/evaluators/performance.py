@@ -100,8 +100,10 @@ class Performance(Evaluator):
             Occurs if self.run is not called yet to generate the raw assessment results
         """
         self.results = [
-            MetricContainer(self.get_overall_metrics()),
-            TableContainer(self.get_disaggregated_performance()),
+            MetricContainer(self.get_overall_metrics(), **self.get_container_info()),
+            TableContainer(
+                self.get_disaggregated_performance(), **self.get_container_info()
+            ),
         ]
 
     def update_metrics(self, metrics, replace=True):

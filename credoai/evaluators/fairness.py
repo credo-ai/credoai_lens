@@ -87,32 +87,13 @@ class ModelFairness(Evaluator):
         fairness_results.rename({"metric_type": "type"}, axis=1, inplace=True)
         label = {"sensitive_feature": fairness_results.sensitive_feature.iloc[0]}
         self.results = [
-            MetricContainer(fairness_results.drop("sensitive_feature", axis=1), label)
+            MetricContainer(
+                fairness_results.drop("sensitive_feature", axis=1),
+                label,
+                **self.get_container_info(),
+            )
         ]
         return self
-
-    def _prepare_results(self):
-        """Prepares results for Credo AI's governance platform
-
-        Structures results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
-
-        Returns
-        -------
-        pd.DataFrame
-
-        Raises
-        ------
-        NotRunError
-            Occurs if self.run is not called yet to generate the raw assessment results
-        """
-        if self.results:
-            results = pd.concat([self.results["fairness"], results])
-            return results
-        else:
-            raise NotRunError(
-                "Results not created yet. Call 'run' with appropriate arguments before preparing results"
-            )
 
     def update_metrics(self, metrics, replace=True):
         """replace metrics

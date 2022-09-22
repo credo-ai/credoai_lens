@@ -60,7 +60,7 @@ class DataProfiling(Evaluator):
         """Generates data profile reports"""
         results = self._create_reporter().get_description()
         results = pd.DataFrame({"results": results})
-        results = ProfilerContainer(results)
+        results = ProfilerContainer(results, **self.get_container_info())
         self.results = [results]
         return self
 

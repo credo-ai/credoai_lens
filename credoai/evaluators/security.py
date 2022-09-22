@@ -109,7 +109,7 @@ class Security(Evaluator):
         if self._results is not None:
             res = pd.DataFrame(list(self._results.items()), columns=["type", "value"])
             res[["type", "subtype"]] = res.type.str.split("-", expand=True)
-            self.results = [MetricContainer(res)]
+            self.results = [MetricContainer(res, **self.get_container_info())]
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 

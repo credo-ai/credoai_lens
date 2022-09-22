@@ -91,6 +91,24 @@ class Evaluator(ABC):
         """
         return self
 
+    def get_container_info(self, labels: dict = None, metadata: dict = None):
+        info = self._base_container_info()
+        if labels:
+            info["labels"].update(labels)
+        if metadata:
+            info["metadata"].update(metadata)
+        return info
+
+    def _base_container_info(self):
+        return {"labels": {"evaluator": self.name}, "metadata": self._get_artifacts()}
+
+    def _get_artifacts(self):
+        return {
+            k: self.__dict__[k].name
+            for k in self.required_artifacts
+            if k in self.__dict__
+        }
+
     def _init_artifacts(self, artifacts):
         """Adds artifacts to evaluator object
 
@@ -99,13 +117,6 @@ class Evaluator(ABC):
         artifacts : dict
             Dictionary of artifacts, e.g. {'model': Model}
         """
-        passed_artifacts = set(artifacts.keys())
-        if passed_artifacts != self.required_artifacts:
-            raise ValidationError(
-                f"Artifacts passed to evaluator ({self.name}) don't match required artifacts."
-                f"\nRequired artifacts: {self.required_artifacts}"
-                f"\nPassed Artifacts: {passed_artifacts}"
-            )
         self.__dict__.update(artifacts)
 
     @abstractmethod

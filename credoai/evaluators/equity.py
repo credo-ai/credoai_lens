@@ -73,7 +73,7 @@ class Equity(Evaluator):
             summary = desc["summary"]
             summary["subtype"] = "summary"
             summary.name = "summary"
-            summary = TableContainer(summary)
+            summary = TableContainer(summary, **self.get_container_info())
 
             desc_metadata = {
                 "highest_group": desc["highest_group"],
@@ -90,7 +90,7 @@ class Equity(Evaluator):
             results[["type", "subtype"]] = results.metric_type.str.split(
                 "-", expand=True
             )
-            results = MetricContainer(results)
+            results = MetricContainer(results, **self.get_container_info())
             # add statistics
             stats = self.results["statistics"]
             overall_equity = {
@@ -99,14 +99,18 @@ class Equity(Evaluator):
                 "subtype": stats["equity_test"]["test_type"],
                 "p_value": stats["equity_test"]["pvalue"],
             }
-            overall_equity = MetricContainer(pd.DataFrame(overall_equity, index=[0]))
+            overall_equity = MetricContainer(
+                pd.DataFrame(overall_equity, index=[0]), **self.get_container_info()
+            )
             # add posthoc tests if needed
             equity_containers = [summary, results, overall_equity]
             if "significant_posthoc_tests" in stats:
                 posthoc_tests = pd.DataFrame(stats["significant_posthoc_tests"])
                 posthoc_tests.rename({"test_type": "subtype"}, axis=1, inplace=True)
                 posthoc_tests.name = "posthoc"
-                equity_containers.append(TableContainer(posthoc_tests))
+                equity_containers.append(
+                    TableContainer(posthoc_tests, **self.get_container_info())
+                )
 
             return equity_containers
         else:
