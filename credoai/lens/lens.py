@@ -192,9 +192,8 @@ class Lens:
                 self.gov.add_evidence(evidence)
         else:
             raise ValidationError(
-                "No governance object exists to update. Either set"
-                " update_governance to False or call lens.set_governance"
-                " to add a governance object."
+                "No governance object exists to update."
+                " Call lens.set_governance to add a governance object."
             )
         return self
 
