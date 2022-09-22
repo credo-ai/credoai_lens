@@ -26,7 +26,7 @@ class CredoApi:
         """
         self._client = client
 
-    def get_assessment_plan_url(self, use_case_name: str, policy_pack_key: str):
+    def get_assessment_plan_url(self, use_case_name: str, policy_pack_key: str = None):
         """
         Convert use_case_name and policy_pack_key to assessment_plan_url
 
@@ -36,6 +36,7 @@ class CredoApi:
             name of a use case
         policy_pack_key : str
             policy pack key, ie: FAIR
+            If it is None, it gets the first resgisterd policy pack in use case
 
         Returns
         -------
@@ -51,16 +52,27 @@ class CredoApi:
         """
 
         try:
-            path = f"assessment_plan_url?use_case_name={use_case_name}&policy_pack_key={policy_pack_key}"
+            path = f"assessment_plan_url?use_case_name={use_case_name}"
+            if policy_pack_key:
+                path += f"&policy_pack_key={policy_pack_key}"
             response = self._client.get(path)
             return response["url"]
         except HTTPError as error:
-            if error.response.status_code == 404:
-                global_logger.info(
-                    f"Use case ({use_case_name}) with policy pack({policy_pack_key}) does not exist"
-                )
+            global_logger.info(
+                f"Cannot find assessment plan URL of use case {use_case_name}"
+            )
+            data = error.response.json()
+            errors = data.get("errors", None)
+            if errors:
+                detail = errors[0]["detail"]
+                if error:
+                    global_logger.info(f"Error : {detail}")
+                else:
+                    raise error
+
                 return None
-            raise error
+            else:
+                raise error
 
     def get_assessment_plan(self, url: str):
         """
