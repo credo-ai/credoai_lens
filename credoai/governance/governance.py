@@ -109,7 +109,7 @@ class Governance:
         self._plan = None
 
         plan = None
-        if use_case_name and policy_pack_key:
+        if use_case_name:
             assessment_plan_url = self._api.get_assessment_plan_url(
                 use_case_name, policy_pack_key
             )
