@@ -14,9 +14,9 @@ from credoai.utils import NotRunError
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
 
 
-class Equity(Evaluator):
+class DataEquity(Evaluator):
     """
-    Equity module for Credo AI.
+    Dataset Equity module for Credo AI.
 
     This module assesses whether outcomes are distributed equally across a sensitive
     feature. Depending on the kind of outcome, different tests will be performed.
@@ -38,7 +38,7 @@ class Equity(Evaluator):
         The significance value to evaluate statistical tests
     """
 
-    name = "Equity"
+    name = "DataEquity"
     required_artifacts = {"data"}
 
     def __init__(self, p_value=0.01):
@@ -82,13 +82,10 @@ class Equity(Evaluator):
 
             results = pd.DataFrame(
                 [
-                    {"metric_type": k, "value": v}
+                    {"type": k, "value": v}
                     for k, v in desc.items()
                     if "demographic_parity" in k
                 ]
-            )
-            results[["type", "subtype"]] = results.metric_type.str.split(
-                "-", expand=True
             )
             results = MetricContainer(results, **self.get_container_info())
             # add statistics
@@ -129,8 +126,8 @@ class Equity(Evaluator):
         results["sensitive_feature"] = self.sensitive_features.columns
         results["highest_group"] = r["mean"].idxmax()
         results["lowest_group"] = r["mean"].idxmin()
-        results["demographic_parity-difference"] = r["mean"].max() - r["mean"].min()
-        results["demographic_parity-ratio"] = r["mean"].min() / r["mean"].max()
+        results["demographic_parity_difference"] = r["mean"].max() - r["mean"].min()
+        results["demographic_parity_ratio"] = r["mean"].min() / r["mean"].max()
         return results
 
     def discrete_stats(self):
@@ -251,3 +248,29 @@ class Equity(Evaluator):
             return np.log(x / (1 - x + eps) + eps)
 
         self.df[f"transformed_{self.y.name}"] = self.df[self.y.name].apply(logit)
+
+
+class ModelEquity(DataEquity):
+    name = "ModelEquity"
+    required_artifacts = {"model", "assessment_data"}
+
+    def _setup(self):
+        self.sensitive_features = self.assessment_data.sensitive_features
+        self.y = pd.Series(
+            self.model.predict(self.assessment_data.X),
+            index=self.sensitive_features.index,
+        )
+        try:
+            self.y.name = f"predicted {self.assessment_data.y.name}"
+        except:
+            self.y.name = "predicted outcome"
+
+        self.type_of_target = self.assessment_data.y_type
+
+        self.df = pd.concat([self.sensitive_features, self.y], axis=1)
+        return self
+
+    def _validate_arguments(self):
+        check_data_instance(self.assessment_data, TabularData)
+        check_existence(self.assessment_data.sensitive_features, "sensitive_features")
+        check_artifact_for_nulls(self.assessment_data, "Data")
