@@ -28,15 +28,15 @@ class RankingFairness(Evaluator):
         The computed ranks
     sensitive_features : pandas.Series
         A series of the sensitive feature labels (e.g., "male", "female") which should be used to create subgroups
+    desired_proportions : dict, Optional
+        The desired proportion for each subgroups (e.g., {"male":0.4, "female":0.6})
+        If not provided, equal proportions are used
+    skew_log : bool, Optional
+        If True, will return logarithm of skew values.
     """
 
-    def __init__(
-        self,
-        desired_proportions: dict = None, 
-        skew_log: bool = False
-    ):
-
-        self.desired_proportions = desired_proportions, 
+    def __init__(self, desired_proportions: dict = None, skew_log: bool = False):
+        self.desired_proportions = (desired_proportions,)
         self.skew_log = skew_log
 
     name = "RankingFairness"
@@ -44,7 +44,7 @@ class RankingFairness(Evaluator):
 
     def _setup(self):
         self.sensitive_features = np.array(self.data.sensitive_feature.iloc[:, 0])
-        self.rankings = np.array(self.data.rankings.iloc[:, 0])
+        self.rankings = np.array(self.data.y.iloc[:, 0])
         self.groups = list(set(self.sensitive_features))
 
         # Sort ascending in parallel in case not already sorted
@@ -52,12 +52,16 @@ class RankingFairness(Evaluator):
         self.rankings = self.rankings[p]
         self.sensitive_features = self.sensitive_features[p]
 
+        if not all(self.desired_proportions):
+            proportions = [1.0 / len(self.groups)] * len(self.groups)
+            self.desired_proportions = dict(zip(self.groups, proportions))
+
         return self
 
     def _validate_arguments(self):
         check_data_instance(self.data, TabularData)
         check_existence(self.data.sensitive_features, "sensitive_features")
-        check_existence(self.data.y_pred, "rankings")
+        check_existence(self.data.y, "rankings")
         check_artifact_for_nulls(self.data, "Data")
 
         return self
@@ -90,7 +94,7 @@ class RankingFairness(Evaluator):
 
         Structures a subset of results for export as a dataframe with appropriate structure
         for exporting. See credoai.modules.credo_module.
-        
+
         Returns
         -------
         pd.DataFrame
@@ -101,9 +105,9 @@ class RankingFairness(Evaluator):
         """
         if self._results is not None:
             metric_types = [
-                "minimum_skew",
-                "maximum_skew",
-                "normalized_discounted_cumulative_kl_divergence",
+                "minimum_skew-score",
+                "maximum_skew-score",
+                "NDKL-score",
             ]
             prepared_arr = []
             index = []
@@ -144,7 +148,7 @@ class RankingFairness(Evaluator):
             from that group over the desired proportion for that group.
             Skew is sensitive to the number of top candidates included (k).
             Ideal skew is 100%.
-        
+
         Returns
         -------
         dict
@@ -159,14 +163,16 @@ class RankingFairness(Evaluator):
         }
         skew = {}
         for g in self.groups:
-            sk = (actual_proportions[g] + EPSILON) / (self.desired_proportions[g] + EPSILON)
+            sk = (actual_proportions[g] + EPSILON) / (
+                self.desired_proportions[g] + EPSILON
+            )
             if self.skew_log:
                 sk = math.log(sk)
             skew[g] = sk
 
         skew_extrema = {
-            "minimum_skew": min(skew.values()),
-            "maximum_skew": max(skew.values()),
+            "minimum_skew-score": min(skew.values()),
+            "maximum_skew-score": max(skew.values()),
         }
 
         return skew_extrema
@@ -199,11 +205,11 @@ class RankingFairness(Evaluator):
             indicating a greater divergence between the desired and actual distributions of
             sensitive attribute labels. NDKL equals 0 in the ideal fairness case of the two
             distributions being identical.
-        
+
         Returns
         -------
         dict
-            normalized_discounted_cumulative_kl_divergence: normalized discounted cumulative KL-divergence. 
+            NDKL: normalized discounted cumulative KL-divergence.
                 Ideal value is 0.
         """
         n_items = len(self.sensitive_features)
@@ -220,6 +226,6 @@ class RankingFairness(Evaluator):
                 item_distr, list(self.desired_proportions.values())
             )
 
-        ndkl = {'normalized_discounted_cumulative_kl_divergence': (1 / Z) * total}
+        ndkl = {"NDKL-score": (1 / Z) * total}
 
         return ndkl
