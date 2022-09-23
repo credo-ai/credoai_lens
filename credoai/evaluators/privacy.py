@@ -19,7 +19,7 @@ from credoai.evaluators.utils.validation import (
     check_model_instance,
     check_requirements_existence,
 )
-from credoai.evidence.containers import MetricContainer
+from credoai.evidence import MetricContainer
 from credoai.utils.common import ValidationError
 from pandas import DataFrame
 from sklearn.metrics import accuracy_score
@@ -87,7 +87,7 @@ class Privacy(Evaluator):
         self._validate_attack_feature(attack_feature, attack_feature_name)
 
     name = "Privacy"
-    required_artifacts = ["model", "assessment_data", "training_data"]
+    required_artifacts = {"model", "assessment_data", "training_data"}
 
     def _setup(self):
         # Data prep
@@ -162,7 +162,7 @@ class Privacy(Evaluator):
         if self._results is not None:
             res = DataFrame(list(self._results.items()), columns=["type", "value"])
             res[["type", "subtype"]] = res.type.str.split("-", expand=True)
-            self.results = [MetricContainer(res)]
+            self.results = [MetricContainer(res, **self.get_container_info())]
 
         else:
             raise ValueError(

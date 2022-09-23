@@ -1,17 +1,17 @@
 import pandas as pd
+from credoai.artifacts import TabularData
+from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.shared import _setup_metric_frames
 from credoai.evaluators.utils.validation import (
     check_artifact_for_nulls,
     check_data_instance,
     check_existence,
 )
-from credoai.modules.metrics import Metric, find_metrics
+from credoai.evidence import MetricContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
-from credoai.evaluators import Evaluator
+from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError
-from credoai.evaluators.utils.shared import _setup_metric_frames
-from credoai.evidence.containers import MetricContainer
-from credoai.artifacts import TabularData
 
 
 class ModelFairness(Evaluator):
@@ -57,7 +57,7 @@ class ModelFairness(Evaluator):
         self.fairness_prob_metrics = None
 
     name = "Fairness"
-    required_artifacts = ["model", "data", "sensitive_feature"]
+    required_artifacts = {"model", "data", "sensitive_feature"}
 
     def _setup(self):
         self.sensitive_features = self.data.sensitive_feature.iloc[:, 0]
@@ -87,32 +87,13 @@ class ModelFairness(Evaluator):
         fairness_results.rename({"metric_type": "type"}, axis=1, inplace=True)
         label = {"sensitive_feature": fairness_results.sensitive_feature.iloc[0]}
         self.results = [
-            MetricContainer(fairness_results.drop("sensitive_feature", axis=1), label)
+            MetricContainer(
+                fairness_results.drop("sensitive_feature", axis=1),
+                label,
+                **self.get_container_info(),
+            )
         ]
         return self
-
-    def _prepare_results(self):
-        """Prepares results for Credo AI's governance platform
-
-        Structures results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
-
-        Returns
-        -------
-        pd.DataFrame
-
-        Raises
-        ------
-        NotRunError
-            Occurs if self.run is not called yet to generate the raw assessment results
-        """
-        if self.results:
-            results = pd.concat([self.results["fairness"], results])
-            return results
-        else:
-            raise NotRunError(
-                "Results not created yet. Call 'run' with appropriate arguments before preparing results"
-            )
 
     def update_metrics(self, metrics, replace=True):
         """replace metrics

@@ -1,17 +1,17 @@
 # reset style after pandas profiler
 from unittest import result
+
 import matplotlib
 import pandas as pd
 from credoai.artifacts.data.tabular_data import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_data_instance
-from credoai.evidence.containers import ProfilerContainer
+from credoai.evidence import ProfilerContainer
 from credoai.utils.common import ValidationError
 
 backend = matplotlib.get_backend()
 # load pands profiler, which sets backend to Agg
 from pandas_profiling import ProfileReport
-
 
 matplotlib.use(backend)
 
@@ -32,7 +32,7 @@ class DataProfiling(Evaluator):
     """
 
     name = "DataProfiler"
-    required_artifacts = ["data"]
+    required_artifacts = {"data"}
 
     def __init__(self, dataset_name=None, **profile_kwargs):
         self.profile_kwargs = profile_kwargs
@@ -60,7 +60,7 @@ class DataProfiling(Evaluator):
         """Generates data profile reports"""
         results = self._create_reporter().get_description()
         results = pd.DataFrame({"results": results})
-        results = ProfilerContainer(results)
+        results = ProfilerContainer(results, **self.get_container_info())
         self.results = [results]
         return self
 

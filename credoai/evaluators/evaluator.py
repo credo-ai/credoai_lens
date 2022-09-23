@@ -1,7 +1,7 @@
 import inspect
 from abc import ABC, abstractmethod
 
-from credoai.evidence.containers import EvidenceContainer
+from credoai.evidence import EvidenceContainer
 from credoai.utils.common import NotRunError, ValidationError
 
 
@@ -15,7 +15,7 @@ class Evaluator(ABC):
 
     def __init__(self):
         self._results = None
-        self.artifacts = None
+        self.artifact_keys = []
 
     @property
     def results(self):
@@ -91,6 +91,26 @@ class Evaluator(ABC):
         """
         return self
 
+    def get_container_info(self, labels: dict = None, metadata: dict = None):
+        info = self._base_container_info()
+        if labels:
+            info["labels"].update(labels)
+        if metadata:
+            info["metadata"].update(metadata)
+        return info
+
+    def _base_container_info(self):
+        return {"labels": {"evaluator": self.name}, "metadata": self._get_artifacts()}
+
+    def _get_artifacts(self):
+        artifacts = {}
+        for k in self.artifact_keys:
+            try:
+                artifacts[k] = self.__dict__[k].name
+            except AttributeError:
+                pass
+        return artifacts
+
     def _init_artifacts(self, artifacts):
         """Adds artifacts to evaluator object
 
@@ -99,6 +119,7 @@ class Evaluator(ABC):
         artifacts : dict
             Dictionary of artifacts, e.g. {'model': Model}
         """
+        self.artifact_keys = list(artifacts.keys())
         self.__dict__.update(artifacts)
 
     @abstractmethod

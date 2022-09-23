@@ -2,8 +2,9 @@
 Credo API functions
 """
 
-from requests.exceptions import HTTPError
 from credoai.utils import global_logger
+from requests.exceptions import HTTPError
+
 from .credo_api_client import CredoApiClient
 
 
@@ -58,9 +59,14 @@ class CredoApi:
             response = self._client.get(path)
             return response["url"]
         except HTTPError as error:
-            global_logger.info(
-                f"Cannot find assessment plan URL of use case {use_case_name}"
-            )
+            if policy_pack_key is not None:
+                global_logger.info(
+                    f"Use case ({use_case_name}) with policy pack ({policy_pack_key}) does not exist"
+                )
+            else:
+                global_logger.info(
+                    f"Cannot find assessment plan URL of use case {use_case_name}"
+                )
             data = error.response.json()
             errors = data.get("errors", None)
             if errors:
