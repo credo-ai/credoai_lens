@@ -33,7 +33,10 @@ def process_evidence_requirements(evidence_requirements: list[EvidenceRequiremen
         # should make that part of evaluator class, or some helper function
         if evaluator in ["Fairness", "Performance"]:
             metrics = kwargs[evaluator].get("metrics", set())
-            metrics.add(labels["metric_type"])
+            if "metric_type" in labels:
+                metrics.add(labels["metric_type"])
+            elif "metric_types" in labels:
+                metrics = metrics.union(labels["metric_types"])
             kwargs[evaluator]["metrics"] = metrics
 
     pipeline = []

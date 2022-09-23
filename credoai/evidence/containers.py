@@ -62,7 +62,7 @@ class MetricContainer(EvidenceContainer):
         return evidence
 
     def _validate(self, df):
-        required_columns = {"type", "value", "subtype"}
+        required_columns = {"type", "value"}
         column_overlap = df.columns.intersection(required_columns)
         if len(column_overlap) != len(required_columns):
             raise ValidationError(f"Must have columns: {required_columns}")
