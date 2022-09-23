@@ -128,7 +128,7 @@ class Table(Evidence):
     @property
     def data(self):
         return {
-            "column": self._data.columns.tolist(),
+            "columns": self._data.columns.tolist(),
             "value": self._data.values.tolist(),
         }
 
