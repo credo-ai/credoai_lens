@@ -183,6 +183,7 @@ class Governance:
             if label not in evidence_labels:
                 missing.append(label)
                 global_logger.info(f"Missing required evidence with label ({label}).")
+        return not bool(missing)
 
     def export(self, filename=None):
         """
@@ -191,43 +192,54 @@ class Governance:
         Returns
         -------
         True
-            When uploading is successful
+            When uploading is successful with all evidence
         False
-            When it is not registered yet, or there is no evidence
+            When it is not registered yet, or evidence is insufficient
         """
+        if not self._validate_export():
+            return False
+        to_return = self.check_requirements()
 
+        evidences = self._prepare_evidences()
+
+        if filename is None:
+            self._api_export(evidences)
+        else:
+            self._file_export(evidences, filename)
+        return to_return
+
+    def _api_export(self, evidences):
+        global_logger.info(
+            f"Uploading {len(evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
+        )
+        self._api.create_assessment(self._use_case_id, self._policy_pack_id, evidences)
+
+    def _file_export(self, evidences, filename):
+        global_logger.info(
+            f"Saving {len(evidences)} evidences to {filename}.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id} "
+        )
+        data = {
+            "policy_pack_id": self._policy_pack_id,
+            "evidences": evidences,
+            "$type": "assessments",
+        }
+        meta = {"client": "Credo AI Lens", "version": __version__}
+        data = json_dumps(serialize(data=data, meta=meta))
+        with open(filename, "w") as f:
+            f.write(data)
+
+    def _prepare_evidences(self):
+        evidences = list(map(lambda e: e.struct(), self._evidences))
+        return evidences
+
+    def _validate_export(self):
         if not self.registered:
-            global_logger.info("It is not registered, please register first")
+            global_logger.info("Governance is not registered, please register first")
             return False
 
         if 0 == len(self._evidences):
-            global_logger.info("No evidences found, please add evidences first")
+            global_logger.info(
+                "No evidences added to governance, please add evidences first"
+            )
             return False
-
-        self.check_requirements()
-        evidences = list(map(lambda e: e.struct(), self._evidences))
-
-        if filename is None:
-            global_logger.info(
-                f"Uploading {len(evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
-            )
-            self._api.create_assessment(
-                self._use_case_id, self._policy_pack_id, evidences
-            )
-
-            return True
-        else:
-            global_logger.info(
-                f"Saving {len(evidences)} evidences to {filename}.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id} "
-            )
-            data = {
-                "policy_pack_id": self._policy_pack_id,
-                "evidences": evidences,
-                "$type": "assessments",
-            }
-            meta = {"client": "Credo AI Lens", "version": __version__}
-            data = json_dumps(serialize(data=data, meta=meta))
-            with open(filename, "w") as f:
-                f.write(data)
-
-            return True
+        return True
