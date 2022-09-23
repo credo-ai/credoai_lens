@@ -73,15 +73,15 @@ class ModelFairness(Evaluator):
         """
         Run fairness base module
 
+
         Returns
         -------
-        dict
-            Dictionary containing two pandas Dataframes:
-                - "disaggregated results": The disaggregated performance metrics, along with acceptability and risk
-            as columns
-                - "fairness": Dataframe with fairness metrics, along with acceptability and risk
-            as columns
+        self
         """
+        self._prepare_results()
+        return self
+
+    def _prepare_results(self):
         fairness_results = self.get_fairness_results()
         fairness_results = pd.DataFrame(fairness_results).reset_index()
         fairness_results.rename({"metric_type": "type"}, axis=1, inplace=True)
@@ -89,8 +89,9 @@ class ModelFairness(Evaluator):
         self.results = [
             MetricContainer(
                 fairness_results.drop("sensitive_feature", axis=1),
-                label,
-                **self.get_container_info(),
+                **self.get_container_info(
+                    labels={"sensitive_feature": self.sensitive_features.name}
+                ),
             )
         ]
         return self

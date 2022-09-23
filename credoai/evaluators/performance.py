@@ -12,6 +12,7 @@ from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
+from this import d
 
 
 class Performance(Evaluator):
@@ -63,7 +64,7 @@ class Performance(Evaluator):
             self.y_prob = self.model.predict_proba(self.assessment_data.X)
         except:
             self.y_prob = None
-        self.sensitive_features = self.assessment_data.sensitive_feature
+        self.sensitive_features = self.assessment_data.sensitive_feature.iloc[:, 0]
         if self.sensitive_features is None:
             self.perform_disaggregation = False
             # only set to use metric frame
@@ -99,10 +100,17 @@ class Performance(Evaluator):
         NotRunError
             Occurs if self.run is not called yet to generate the raw assessment results
         """
+        disaggregated_df = self.get_disaggregated_performance()
         self.results = [
             MetricContainer(self.get_overall_metrics(), **self.get_container_info()),
             TableContainer(
-                self.get_disaggregated_performance(), **self.get_container_info()
+                disaggregated_df,
+                **self.get_container_info(
+                    labels={
+                        "sensitive_feature": self.sensitive_features.name,
+                        "metric_types": disaggregated_df.type.unique(),
+                    }
+                ),
             ),
         ]
 
@@ -168,10 +176,7 @@ class Performance(Evaluator):
         ]
         if overall_metrics:
             output_series = (
-                pd.concat(overall_metrics, axis=0)
-                .rename(index="value")
-                .to_frame()
-                .assign(subtype="overall_performance")
+                pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
             )
             return output_series.reset_index().rename({"index": "type"}, axis=1)
         else:
@@ -194,13 +199,9 @@ class Performance(Evaluator):
         for metric_frame in self.metric_frames.values():
             df = metric_frame.by_group.copy().convert_dtypes()
             disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
-        disaggregated_results = (
-            disaggregated_df.assign(subtype="disaggregated_performance")
-            .reset_index()
-            .melt(
-                id_vars=[disaggregated_df.index.name, "subtype"],
-                var_name="type",
-            )
+        disaggregated_results = disaggregated_df.reset_index().melt(
+            id_vars=[disaggregated_df.index.name],
+            var_name="type",
         )
         disaggregated_results.name = "disaggregated_performance"
 
