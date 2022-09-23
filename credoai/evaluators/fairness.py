@@ -89,8 +89,7 @@ class ModelFairness(Evaluator):
         self.results = [
             MetricContainer(
                 fairness_results.drop("sensitive_feature", axis=1),
-                label,
-                **self.get_container_info(),
+                **self.get_container_info(label),
             )
         ]
         return self
