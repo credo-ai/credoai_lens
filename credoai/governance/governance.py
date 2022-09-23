@@ -182,7 +182,7 @@ class Governance:
         for label in required_labels:
             if label not in evidence_labels:
                 missing.append(label)
-                global_logger.info(f"Required evidence with label ({label}) missing.")
+                global_logger.info(f"Missing required evidence with label ({label}).")
 
     def export(self, filename=None):
         """
