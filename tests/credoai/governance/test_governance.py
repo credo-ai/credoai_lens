@@ -5,7 +5,7 @@ import pytest
 from credoai.evidence.evidence import Metric
 from credoai.governance.credo_api import CredoApi
 from credoai.governance.credo_api_client import CredoApiClient
-from credoai.governance.governance import CredoGovernance
+from credoai.governance.governance import Governance
 
 USE_CASE_ID = "64YUaLWSviHgibJaRWr3ZE"
 POLICY_PACK_ID = "NYCE+1"
@@ -143,15 +143,14 @@ class TestGovernance:
         req = gov._evidence_requirements[2]
         assert "table" == req.evidence_type
         assert {"data_type": "disaggregated_performance"} == req.label
-        assert ["profession", "gender"] == req.sensitive_features
 
     def test_add_evidences(self, gov):
-        gov.set_evidences([build_metric_evidence("recall")])
-        gov.add_evidences([build_metric_evidence("precision")])
+        gov.set_evidence([build_metric_evidence("recall")])
+        gov.add_evidence([build_metric_evidence("precision")])
 
         assert 2 == len(gov._evidences)
 
-        gov.set_evidences([])
+        gov.set_evidence([])
         assert 0 == len(gov._evidences)
 
     def test_export_without_registeration(self, gov):
@@ -164,7 +163,7 @@ class TestGovernance:
     def test_export(self, gov, api):
         gov.register(assessment_plan=ASSESSMENT_PLAN_JSON_STR)
         evidence = build_metric_evidence("precision")
-        gov.add_evidences([evidence])
+        gov.add_evidence([evidence])
         assert True == gov.export()
 
         api.create_assessment.assert_called_with(
@@ -174,7 +173,7 @@ class TestGovernance:
     def test_export_to_file(self, gov):
         gov.register(assessment_plan=ASSESSMENT_PLAN_JSON_STR)
         evidence = build_metric_evidence("precision")
-        gov.add_evidences([evidence])
+        gov.add_evidence([evidence])
         with tempfile.TemporaryDirectory() as tempDir:
             filename = f"{tempDir}/assessment.json"
             assert True == gov.export(filename)

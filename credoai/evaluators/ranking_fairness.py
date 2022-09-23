@@ -9,6 +9,7 @@ from credoai.evaluators.utils.validation import (
     check_artifact_for_nulls,
     check_data_instance,
     check_existence,
+    check_feature_presence,
 )
 from credoai.utils.common import NotRunError
 from credoai.evidence.containers import MetricContainer
@@ -61,7 +62,7 @@ class RankingFairness(Evaluator):
     def _validate_arguments(self):
         check_data_instance(self.data, TabularData)
         check_existence(self.data.sensitive_features, "sensitive_features")
-        check_existence(self.data.y, "rankings")
+        check_feature_presence("rankings", self.data.y, "y")
         check_artifact_for_nulls(self.data, "Data")
 
         return self
