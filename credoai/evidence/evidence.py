@@ -1,5 +1,5 @@
 import pprint
-from abc import ABC, abstractmethod
+from abc import ABC, abstractproperty
 from datetime import datetime
 from typing import Optional, Tuple
 
@@ -20,27 +20,28 @@ class Evidence(ABC):
 
     def struct(self):
         """Structure of evidence"""
-        # set labels, additional_labels prioritized
-        labels = self.label() | self.additional_labels
         structure = {
             "type": self.type,
-            "label": labels,
-            "data": self.data(),
+            "label": self.label,
+            "data": self.data,
             "generated_at": self.creation_time,
             "metadata": self.metadata,
         }
         return structure
 
     @property
-    @abstractmethod
     def label(self):
         """
         Adds evidence type specific label
         """
-        return {}
+        # additional_labels prioritized
+        return self.base_label | self.additional_labels
 
-    @property
-    @abstractmethod
+    @abstractproperty
+    def base_label(self):
+        pass
+
+    @abstractproperty
     def data(self):
         """
         Adds data reflecting additional structure of child classes
@@ -85,16 +86,18 @@ class Metric(Evidence):
         self.confidence_level = confidence_level
         super().__init__("metric", additional_labels, **metadata)
 
-    def label(self):
-        label = {"metric_type": self.metric_type}
-        return label
-
+    @property
     def data(self):
         return {
             "value": self.value,
             "confidence_interval": self.confidence_interval,
             "confidence_level": self.confidence_level,
         }
+
+    @property
+    def base_label(self):
+        label = {"metric_type": self.metric_type}
+        return label
 
     def _validate(self):
         if self.confidence_interval and not self.confidence_level:
@@ -122,13 +125,15 @@ class Table(Evidence):
         self._data = table_data
         super().__init__("table", additional_labels, **metadata)
 
+    @property
     def data(self):
         return {
             "column": self._data.columns.tolist(),
             "value": self._data.values.tolist(),
         }
 
-    def label(self):
+    @property
+    def base_label(self):
         label = {"table_name": self.name}
         return label
 
@@ -142,8 +147,10 @@ class Profiler(Evidence):
         self._data = data
         super().__init__("profiler", additional_labels, **metadata)
 
+    @property
     def data(self):
         return self._data["results"].to_json()
 
-    def label(self):
+    @property
+    def base_label(self):
         return {"profiler_info": "placeholder"}

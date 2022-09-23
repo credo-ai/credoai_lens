@@ -182,8 +182,14 @@ class Lens:
         if self.gov:
             if overwrite_governance:
                 self.gov.set_evidence(evidence)
+                self.logger.info(
+                    "Sending evidence to governance. Overwriting existing evidence."
+                )
             else:
                 self.gov.add_evidence(evidence)
+                self.logger.info(
+                    "Sending evidence to governance. Adding to existing evidence."
+                )
         else:
             raise ValidationError(
                 "No governance object exists to update."

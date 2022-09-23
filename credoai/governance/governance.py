@@ -175,6 +175,15 @@ class Governance:
         """
         self._evidences += wrap_list(evidences)
 
+    def check_requirements(self):
+        missing = []
+        evidence_labels = [e.label for e in self._evidences]
+        required_labels = [e.label for e in self.get_evidence_requirements()]
+        for label in required_labels:
+            if label not in evidence_labels:
+                missing.append(label)
+                global_logger.info(f"Required evidence with label ({label}) missing.")
+
     def export(self, filename=None):
         """
         Upload evidences to CredoAI Governance(Report) App
@@ -195,6 +204,7 @@ class Governance:
             global_logger.info("No evidences found, please add evidences first")
             return False
 
+        self.check_requirements()
         evidences = list(map(lambda e: e.struct(), self._evidences))
 
         if filename is None:
