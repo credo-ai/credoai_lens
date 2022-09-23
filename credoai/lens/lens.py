@@ -311,7 +311,10 @@ class Lens:
             else:
                 self.change_sens_feat_view(evaluator_arguments, feat)
                 self._add(
-                    evaluator, id, {"sensitive_feature": feat}, evaluator_arguments
+                    deepcopy(evaluator),
+                    id,
+                    {"sensitive_feature": feat},
+                    evaluator_arguments,
                 )
         return self
 
