@@ -3,11 +3,11 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from credoai.utils import ValidationError
 
-from .evidence import Metric, Table, Profiler
+from .evidence import Metric, Profiler, Table
 
 
 class EvidenceContainer(ABC):
-    def __init__(self, evidence_class, df, labels=None):
+    def __init__(self, evidence_class, df, labels=None, metadata=None):
         """Abstract Class defining Evidence Containers
 
         Evidence Containers are light wrappers around dataframes that
@@ -23,6 +23,8 @@ class EvidenceContainer(ABC):
             The dataframe, formatted appropriately for the evidence type
         labels : dict
             Additional labels to pass to underlying evidence
+        metadata : dict
+            Metadata to pass to underlying evidence
         """
         self.evidence_class = evidence_class
         if not isinstance(df, pd.DataFrame):
@@ -30,6 +32,7 @@ class EvidenceContainer(ABC):
         self._validate(df)
         self._df = df
         self.labels = labels
+        self.metadata = metadata or {}
 
     @property
     def df(self):
@@ -45,14 +48,16 @@ class EvidenceContainer(ABC):
 
 
 class MetricContainer(EvidenceContainer):
-    def __init__(self, df: pd.DataFrame, labels: dict = None):
-        super().__init__(Metric, df, labels)
+    def __init__(self, df: pd.DataFrame, labels: dict = None, metadata: dict = None):
+        super().__init__(Metric, df, labels, metadata)
 
     def to_evidence(self, **metadata):
         evidence = []
         for _, data in self._df.iterrows():
             evidence.append(
-                self.evidence_class(additional_labels=self.labels, **data, **metadata)
+                self.evidence_class(
+                    additional_labels=self.labels, **data, **self.metadata, **metadata
+                )
             )
         return evidence
 
@@ -64,11 +69,15 @@ class MetricContainer(EvidenceContainer):
 
 
 class TableContainer(EvidenceContainer):
-    def __init__(self, df: pd.DataFrame, labels: dict = None):
-        super().__init__(Table, df, labels)
+    def __init__(self, df: pd.DataFrame, labels: dict = None, metadata: dict = None):
+        super().__init__(Table, df, labels, metadata)
 
     def to_evidence(self, **metadata):
-        return [self.evidence_class(self._df.name, self._df, self.labels, **metadata)]
+        return [
+            self.evidence_class(
+                self._df.name, self._df, self.labels, **self.metadata, **metadata
+            )
+        ]
 
     def _validate(self, df):
         try:
@@ -78,11 +87,12 @@ class TableContainer(EvidenceContainer):
 
 
 class ProfilerContainer(EvidenceContainer):
-    def __init__(self, data, labels: dict = None):
+    def __init__(self, data, labels: dict = None, metadata: dict = None):
         super().__init__(Profiler, data, labels)
 
     def to_evidence(self, **metadata):
-        return [self.evidence_class(self._df, self.labels, **metadata)]
+        return [self.evidence_class(self._df, self.labels, **self.metadata, **metadata)]
 
     def _validate(self, df):
-        return super()._validate(df)
+        if list(df.columns) != ["results"]:
+            raise ValidationError("Profiler data must only have one column: 'results'")

@@ -1,9 +1,11 @@
-from typing import Dict, List, Optional, Union
 import uuid
-from inspect import isclass
 from copy import deepcopy
+from inspect import isclass
+from typing import Dict, List, Optional, Union
+
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
+from credoai.governance import Governance
 from credoai.lens.utils import build_list_of_evaluators, log_command
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError, flatten_list
@@ -23,6 +25,7 @@ class Lens:
         assessment_data: Data = None,
         training_data: Data = None,
         pipeline: Pipeline = None,
+        governance: Governance = None,
     ) -> None:
         """
         Initializer for the Lens class.
@@ -42,12 +45,17 @@ class Lens:
             associated to the step.
             - Evaluator. If the user does not intend to specify id or metadata, instantiated
             evaluators can be put directly in the list.
+        governance : Governance, optional
+            An instance of Credo AI's governance class. Used to handle interaction between
+            Lens and the Credo AI Platform. Specifically, evidence requirements taken from
+            policy packs defined on the platform will configure Lens, and evidence created by
+            Lens can be exported to the platform.
         """
         self.model = model
         self.assessment_data = assessment_data
         self.training_data = training_data
         self.assessment_plan: dict = {}
-        self.gov = None
+        self.gov = governance
         self.pipeline: dict = {}
         self.command_list: list = []
         self.logger = global_logger
@@ -135,32 +143,110 @@ class Lens:
             )
         return self
 
-    def _cycle_add_through_ds_feat(
-        self,
-        evaluator,
-        id,
-        check_sens_feat,
-        check_data,
-        evaluator_arguments,
-        features_to_eval,
-    ):
-        for feat in features_to_eval:
-            if check_data:
-                available_datasets = [
-                    n for n, a in vars(self).items() if "data" in n if a
-                ]
-                for dataset in available_datasets:
-                    labels = {"sensitive_feature": feat} if check_sens_feat else {}
-                    labels["dataset"] = dataset
-                    evaluator_arguments["data"] = vars(self)[dataset]
-                    self.change_sens_feat_view(evaluator_arguments, feat)
-                    self._add(deepcopy(evaluator), id, labels, evaluator_arguments)
-            else:
-                self.change_sens_feat_view(evaluator_arguments, feat)
-                self._add(
-                    evaluator, id, {"sensitive_feature": feat}, evaluator_arguments
-                )
+    @log_command
+    def remove(self, id: str):
+        """
+        Remove a step from the pipeline based on the id.
+
+        Parameters
+        ----------
+        id : str
+            Id of the step to remove
+        """
+        # Find position
+        del self.pipeline[id]
         return self
+
+    @log_command
+    def run(self):
+        """
+        Run the main loop across all the pipeline steps.
+        """
+        if len(self.pipeline) == 0:
+            self.logger.info("Empty pipeline: proceeding with defaults:")
+            all_evaluators = build_list_of_evaluators()
+            self._generate_pipeline(all_evaluators)
+        # Can  pass pipeline directly
+        for step, details in self.pipeline.items():
+            self.logger.info(f"Running evaluation for step: {step}")
+            details["evaluator"].evaluate()
+            # Populate pipeline results
+            self.pipeline_results.append(
+                {"id": step, "results": details["evaluator"].results}
+            )
+        return self
+
+    def send_to_governance(self, overwrite_governance=False):
+        """
+        Parameters
+        ---------
+        overwrite_governance : bool
+            When adding evidence to a Governance object, whether to overwrite existing
+            evidence or not, default False.
+        """
+        evidence = self.get_evidence()
+        if self.gov:
+            if overwrite_governance:
+                self.gov.set_evidence(evidence)
+            else:
+                self.gov.add_evidence(evidence)
+        else:
+            raise ValidationError(
+                "No governance object exists to update."
+                " Call lens.set_governance to add a governance object."
+            )
+        return self
+
+    def get_evidence(self):
+        """
+        Converts evaluator results to evidence for the platform from the pipeline results.
+
+        Return
+        ------
+        List of Evidence
+        """
+        all_results = flatten_list([x["results"] for x in self.pipeline_results])
+        evidences = []
+        for result in all_results:
+            evidences += result.to_evidence()
+        return evidences
+
+    def get_results(self) -> Dict:
+        """
+        Extract results from the pipeline output.
+
+        Returns
+        -------
+        Dict
+            The format of the dictionary is Pipeline step id: results
+        """
+        res = {x["id"]: [i.df for i in x["results"]] for x in self.pipeline_results}
+        return res
+
+    def get_command_list(self):
+        return print("\n".join(self.command_list))
+
+    def get_evaluators(self):
+        return [i["evaluator"] for i in self.pipeline.values()]
+
+    def push(self):
+        """
+        Placeholder!
+        1. Convert internal evidence to platform evidence (unless this is already part of
+        each specific evaluator)
+        2. Push to platform, main code to do that should be in the governance folder
+        """
+        pass
+
+    def pull(self):
+        """
+        Placeholder!
+        1. Gets the assessment plan from the platform.
+        """
+        pass
+
+    def set_governance(self, governance: Governance):
+        self.gov = governance
 
     def _add(
         self,
@@ -202,88 +288,32 @@ class Lens:
                 logger_message += f"Sensitive feature: {metadata['sensitive_feature']}"
         self.logger.info(logger_message)
 
-    @log_command
-    def remove(self, id: str):
-        """
-        Remove a step from the pipeline based on the id.
-
-        Parameters
-        ----------
-        id : str
-            Id of the step to remove
-        """
-        # Find position
-        del self.pipeline[id]
+    def _cycle_add_through_ds_feat(
+        self,
+        evaluator,
+        id,
+        check_sens_feat,
+        check_data,
+        evaluator_arguments,
+        features_to_eval,
+    ):
+        for feat in features_to_eval:
+            if check_data:
+                available_datasets = [
+                    n for n, a in vars(self).items() if "data" in n if a
+                ]
+                for dataset in available_datasets:
+                    labels = {"sensitive_feature": feat} if check_sens_feat else {}
+                    labels["dataset"] = dataset
+                    evaluator_arguments["data"] = vars(self)[dataset]
+                    self.change_sens_feat_view(evaluator_arguments, feat)
+                    self._add(deepcopy(evaluator), id, labels, evaluator_arguments)
+            else:
+                self.change_sens_feat_view(evaluator_arguments, feat)
+                self._add(
+                    evaluator, id, {"sensitive_feature": feat}, evaluator_arguments
+                )
         return self
-
-    @log_command
-    def run(self):
-        """
-        Run the main loop across all the pipeline steps.
-        """
-        if len(self.pipeline) == 0:
-            self.logger.info("Empty pipeline: proceeding with defaults:")
-            all_evaluators = build_list_of_evaluators()
-            self._generate_pipeline(all_evaluators)
-        # Can  pass pipeline directly
-        for step, details in self.pipeline.items():
-            details["evaluator"].evaluate()
-            # Populate pipeline results
-            self.pipeline_results.append(
-                {"id": step, "results": details["evaluator"].results}
-            )
-        return self
-
-    def get_evidence(self):
-        """
-        Create evidences for the platform from the pipeline results.
-        """
-        labels = {
-            "model_name": self.model.name if self.model else None,
-            "dataset_name": self.assessment_data.name if self.assessment_data else None,
-            "sensitive_features": [
-                x for x in self.assessment_data.sensitive_features.columns
-            ],
-        }
-        all_results = flatten_list([x["results"] for x in self.pipeline_results])
-        evidences = []
-        for result in all_results:
-            evidences += result.to_evidence(**labels)
-        return evidences
-
-    def get_results(self) -> Dict:
-        """
-        Extract results from the pipeline output.
-
-        Returns
-        -------
-        Dict
-            The format of the dictionary is Pipeline step id: results
-        """
-        res = {x["id"]: [i.df for i in x["results"]] for x in self.pipeline_results}
-        return res
-
-    def get_command_list(self):
-        return print("\n".join(self.command_list))
-
-    def get_evaluators(self):
-        return [i["evaluator"] for i in self.pipeline.values()]
-
-    def push(self):
-        """
-        Placeholder!
-        1. Convert internal evidence to platform evidence (unless this is already part of
-        each specific evaluator)
-        2. Push to platform, main code to do that should be in the governance folder
-        """
-        pass
-
-    def pull(self):
-        """
-        Placeholder!
-        1. Gets the assessment plan from the platform.
-        """
-        pass
 
     def _generate_pipeline(self, pipeline):
         """

@@ -12,6 +12,7 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
+from credoai.evidence import MetricContainer
 from credoai.utils.common import NotRunError, ValidationError, is_categorical
 from credoai.utils.constants import MULTICLASS_THRESH
 from credoai.utils.dataset_utils import ColumnTransformerUtil
@@ -22,7 +23,6 @@ from sklearn.metrics import make_scorer, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from credoai.evidence.containers import MetricContainer
 
 
 class DataFairness(Evaluator):
@@ -55,7 +55,7 @@ class DataFairness(Evaluator):
         self.categorical_threshold = categorical_threshold
 
     name = "DataFairness"
-    required_artifacts = ["data", "sensitive_feature"]
+    required_artifacts = {"data", "sensitive_feature"}
 
     def _setup(self):
         self.data_to_eval = self.data  # Pick the only member
@@ -162,7 +162,7 @@ class DataFairness(Evaluator):
             res = res.reset_index()
             res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
             res.drop("metric_type", axis=1, inplace=True)
-            return [MetricContainer(res)]
+            return [MetricContainer(res, **self.get_container_info())]
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 

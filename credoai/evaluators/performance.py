@@ -1,17 +1,17 @@
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.shared import _setup_metric_frames
 from credoai.evaluators.utils.validation import (
     check_artifact_for_nulls,
     check_data_instance,
     check_existence,
 )
-from credoai.evidence.containers import MetricContainer, TableContainer
+from credoai.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
-from credoai.evaluators.utils.shared import _setup_metric_frames
 
 
 class Performance(Evaluator):
@@ -43,7 +43,7 @@ class Performance(Evaluator):
     """
 
     name = "Performance"
-    required_artifacts = ["model", "assessment_data", "sensitive_feature"]
+    required_artifacts = {"model", "assessment_data", "sensitive_feature"}
 
     def __init__(self, metrics=None):
         super().__init__()
@@ -100,8 +100,10 @@ class Performance(Evaluator):
             Occurs if self.run is not called yet to generate the raw assessment results
         """
         self.results = [
-            MetricContainer(self.get_overall_metrics()),
-            TableContainer(self.get_disaggregated_performance()),
+            MetricContainer(self.get_overall_metrics(), **self.get_container_info()),
+            TableContainer(
+                self.get_disaggregated_performance(), **self.get_container_info()
+            ),
         ]
 
     def update_metrics(self, metrics, replace=True):

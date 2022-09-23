@@ -15,7 +15,7 @@ from credoai.evaluators.utils.validation import (
     check_model_instance,
     check_requirements_existence,
 )
-from credoai.evidence.containers import MetricContainer
+from credoai.evidence import MetricContainer
 from credoai.utils.common import NotRunError, ValidationError
 from keras.layers import Dense
 from keras.models import Sequential
@@ -52,7 +52,7 @@ class Security(Evaluator):
     """
 
     name = "Security"
-    required_artifacts = ["model", "assessment_data", "training_data"]
+    required_artifacts = {"model", "assessment_data", "training_data"}
 
     def _setup(self):
         self.x_train = self.training_data.X.to_numpy()
@@ -109,7 +109,7 @@ class Security(Evaluator):
         if self._results is not None:
             res = pd.DataFrame(list(self._results.items()), columns=["type", "value"])
             res[["type", "subtype"]] = res.type.str.split("-", expand=True)
-            self.results = [MetricContainer(res)]
+            self.results = [MetricContainer(res, **self.get_container_info())]
         else:
             raise NotRunError("Results not created yet. Call 'run' to create results")
 
