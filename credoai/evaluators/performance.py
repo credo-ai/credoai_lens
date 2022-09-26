@@ -108,7 +108,7 @@ class Performance(Evaluator):
                 **self.get_container_info(
                     labels={
                         "sensitive_feature": self.sensitive_features.name,
-                        "metric_types": disaggregated_df.type.unique(),
+                        "metric_types": disaggregated_df.type.unique().tolist(),
                     }
                 ),
             ),

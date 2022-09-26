@@ -59,11 +59,12 @@ class DataEquity(Evaluator):
 
     def evaluate(self):
         self._results = {"descriptive": self.describe()}
+        """
         if self.type_of_target in ("binary", "multiclass"):
             self.results["statistics"] = self.discrete_stats()
         else:
             self.results["statistics"] = self.continuous_stats()
-
+        """
         self.results = self._prepare_results()
         return self
 
@@ -88,6 +89,9 @@ class DataEquity(Evaluator):
                 ]
             )
             results = MetricContainer(results, **self.get_container_info())
+            # TEMPORARY
+            equity_containers = [results]
+            return equity_containers
             # add statistics
             stats = self.results["statistics"]
             overall_equity = {

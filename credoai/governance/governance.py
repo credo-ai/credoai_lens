@@ -7,7 +7,7 @@ from typing import Union
 
 from credoai import __version__
 from credoai.evidence import Evidence, EvidenceRequirement
-from credoai.utils import global_logger, json_dumps, wrap_list
+from credoai.utils import check_subset, global_logger, json_dumps, wrap_list
 from json_api_doc import deserialize, serialize
 
 from .credo_api import CredoApi
@@ -180,7 +180,7 @@ class Governance:
         evidence_labels = [e.label for e in self._evidences]
         required_labels = [e.label for e in self.get_evidence_requirements()]
         for label in required_labels:
-            if label not in evidence_labels:
+            if not self._check_inclusion(label, evidence_labels):
                 missing.append(label)
                 global_logger.info(f"Missing required evidence with label ({label}).")
         return not bool(missing)
@@ -213,6 +213,12 @@ class Governance:
             f"Uploading {len(evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
         )
         self._api.create_assessment(self._use_case_id, self._policy_pack_id, evidences)
+
+    def _check_inclusion(self, label, evidence_labels):
+        for e in evidence_labels:
+            if check_subset(label, e):
+                return True
+        return False
 
     def _file_export(self, evidences, filename):
         global_logger.info(
