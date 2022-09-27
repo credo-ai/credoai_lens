@@ -31,7 +31,7 @@ def process_evidence_requirements(evidence_requirements: list[EvidenceRequiremen
         evaluators.add(evaluator)
         # Ugly, must change in the future! If it needs to be hardcoded per evaluator
         # should make that part of evaluator class, or some helper function
-        if evaluator in ["Fairness", "Performance"]:
+        if evaluator in ["ModelFairness", "Performance"]:
             metrics = kwargs[evaluator].get("metrics", set())
             if "metric_type" in labels:
                 metrics.add(labels["metric_type"])
