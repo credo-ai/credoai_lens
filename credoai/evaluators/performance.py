@@ -7,7 +7,7 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from credoai.evidence import MetricContainer, TableContainer
+from credoai.evidence import MetricContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
@@ -39,12 +39,10 @@ class Performance(Evaluator):
         The predicted labels for classification
     y_prob : (List, pandas.Series, numpy.ndarray), optional
         The unthresholded predictions, confidence values or probabilities.
-    sensitive_features :  pandas.Series
-        The segmentation feature which should be used to create subgroups to analyze.
     """
 
     name = "Performance"
-    required_artifacts = {"model", "assessment_data", "sensitive_feature"}
+    required_artifacts = {"model", "assessment_data"}
 
     def __init__(self, metrics=None):
         super().__init__()
@@ -64,12 +62,6 @@ class Performance(Evaluator):
             self.y_prob = self.model.predict_proba(self.assessment_data.X)
         except:
             self.y_prob = None
-        self.sensitive_features = self.assessment_data.sensitive_feature.name
-        if self.sensitive_features is None:
-            self.perform_disaggregation = False
-            # only set to use metric frame
-            self.sensitive_features = pd.Series(["NA"] * len(self.y_true), name="NA")
-        # TODO: What is this doing, really?
         self.update_metrics(self.metrics)
 
         return self
@@ -100,18 +92,8 @@ class Performance(Evaluator):
         NotRunError
             Occurs if self.run is not called yet to generate the raw assessment results
         """
-        disaggregated_df = self.get_disaggregated_performance()
         self.results = [
-            MetricContainer(self.get_overall_metrics(), **self.get_container_info()),
-            TableContainer(
-                disaggregated_df,
-                **self.get_container_info(
-                    labels={
-                        "sensitive_feature": self.sensitive_features.name,
-                        "metric_types": disaggregated_df.type.unique().tolist(),
-                    }
-                ),
-            ),
+            MetricContainer(self.get_overall_metrics(), **self.get_container_info())
         ]
 
     def update_metrics(self, metrics, replace=True):
@@ -135,13 +117,15 @@ class Performance(Evaluator):
             self.prob_metrics,
             self.failed_metrics,
         ) = self._process_metrics(self.metrics)
+
+        dummy_sensitive = pd.Series(["NA"] * len(self.y_true), name="NA")
         self.metric_frames = setup_metric_frames(
             self.performance_metrics,
             self.prob_metrics,
             self.y_pred,
             self.y_prob,
             self.y_true,
-            self.sensitive_features,
+            dummy_sensitive,
         )
 
     def get_df(self):
@@ -153,8 +137,6 @@ class Performance(Evaluator):
             Dataframe containing the input arrays
         """
         df = pd.DataFrame({"true": self.y_true, "pred": self.y_pred})
-        if self.sensitive_features.name != "NA":
-            df = df.join(self.sensitive_features.reset_index(drop=True))
         if self.y_prob is not None:
             y_prob_df = pd.DataFrame(self.y_prob)
             y_prob_df.columns = [f"y_prob_{i}" for i in range(y_prob_df.shape[1])]
@@ -181,37 +163,6 @@ class Performance(Evaluator):
             return output_series.reset_index().rename({"index": "type"}, axis=1)
         else:
             global_logger.warn("No overall metrics could be calculated.")
-
-    def get_disaggregated_performance(self):
-        """Return performance metrics for each group
-
-        Parameters
-        ----------
-        melt : bool, optional
-            If True, return a long-form dataframe, by default False
-
-        Returns
-        -------
-        pandas.DataFrame
-            The disaggregated performance metrics
-        """
-        disaggregated_df = pd.DataFrame()
-        for metric_frame in self.metric_frames.values():
-            df = metric_frame.by_group.copy().convert_dtypes()
-            disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
-        disaggregated_results = disaggregated_df.reset_index().melt(
-            id_vars=[disaggregated_df.index.name],
-            var_name="type",
-        )
-        disaggregated_results.name = "disaggregated_performance"
-
-        if disaggregated_results.empty:
-            global_logger.warn("No disaggregated metrics could be calculated.")
-        return disaggregated_results
-
-    def get_sensitive_feature(self):
-        if self.sensitive_features.name != "NA":
-            return self.sensitive_features
 
     @staticmethod
     def _process_metrics(metrics):
@@ -270,5 +221,4 @@ class Performance(Evaluator):
     def _validate_arguments(self):
         check_existence(self.metrics, "metrics")
         check_data_instance(self.assessment_data, TabularData)
-        check_existence(self.assessment_data.sensitive_features, "sensitive_features")
         check_artifact_for_nulls(self.assessment_data, "Data")
