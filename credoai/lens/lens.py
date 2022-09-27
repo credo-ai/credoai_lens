@@ -334,9 +334,12 @@ class Lens:
         ValueError
             Id needs to be a string.
         """
-        if pipeline is None and self.gov:
-            self.logger.info("Empty pipeline: generating from governance.")
-            pipeline = PipelineCreator.generate_from_governance(self.gov)
+        if pipeline is None:
+            if self.gov:
+                self.logger.info("Empty pipeline: generating from governance.")
+                pipeline = PipelineCreator.generate_from_governance(self.gov)
+            else:
+                return
         # Create pipeline from list of steps
         for step in pipeline:
             if not isinstance(step, tuple):
@@ -379,10 +382,6 @@ class Lens:
                     raise ValidationError(
                         "Sensitive features should have the same shape across assessment and training data"
                     )
-        if len(self.pipeline) == 0 and self.gov is None:
-            raise ValidationError(
-                "A pipeline object or governance object must be provided"
-            )
 
     @staticmethod
     def _consume_pipeline_step(step):
