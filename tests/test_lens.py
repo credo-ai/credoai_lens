@@ -5,10 +5,14 @@ Testing protocols for the Lens package. Tested functionalities:
 """
 
 from abc import ABC, abstractmethod
+from credoai import evaluators
+from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
 import pytest
 from credoai.evaluators import DataFairness, DataProfiling, Security, Privacy
 from credoai.evaluators import Performance, Equity, ModelFairness
+from credoai.artifacts import TabularData
+from pandas import DataFrame
 
 
 @pytest.fixture(scope="class")
@@ -128,6 +132,40 @@ class TestPerformance(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+
+class TestRankingFairnes:
+    evaluator = RankingFairness()
+
+    df = DataFrame(
+        {
+            "rankings": [1, 2, 3, 4, 5, 6, 7],
+            "sensitive_features": ["f", "f", "m", "m", "f", "m", "f"],
+        }
+    )
+    data = TabularData(
+        name="ranks", y=df[["rankings"]], sensitive_features=df[["sensitive_features"]]
+    )
+    expected_results = DataFrame(
+        {
+            "value": [0.86, 1.14, 0.32],
+            "type": ["minimum_skew", "maximum_skew", "NDKL"],
+            "subtype": ["score"] * 3,
+        }
+    )
+    pipeline = Lens(assessment_data=data)
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator, "dummy")
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+    def test_results(self):
+        results = self.pipeline.get_results()["dummy"][0].round(2)
+        assert results.equals(self.expected_results)
 
 
 def test_bulk_pipeline_run(credo_model, assessment_data, train_data):

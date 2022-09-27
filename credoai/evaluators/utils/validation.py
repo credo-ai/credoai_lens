@@ -1,7 +1,5 @@
 ############# Validation related functionality ##################
 
-from distutils.log import error
-from email import message
 from credoai.utils.common import ValidationError
 from pandas import Series, DataFrame
 
@@ -24,14 +22,19 @@ def check_model_instance(obj, inst_type, name="Model"):
 
 
 def check_feature_presence(feature_name, df, name):
-    message = f"Feature {feature_name} not found in dataframe {name}"
-    if not feature_name in df.columns:
-        raise ValidationError(message)
+    if isinstance(df, DataFrame):
+        if not feature_name in df.columns:
+            message = f"Feature {feature_name} not found in dataframe {name}"
+            raise ValidationError(message)
+    if isinstance(df, Series):
+        if not df.name == feature_name:
+            message = f"Feature {feature_name} not found in series {name}"
+            raise ValidationError(message)
 
 
 def check_existence(obj, name=None):
     message = f"Missing object {name}"
-    if isinstance(obj, DataFrame):
+    if isinstance(obj, (DataFrame, Series)):
         if obj is None:
             raise ValidationError(message)
         else:

@@ -6,3 +6,4 @@ from .security import Security
 from .equity import *
 from .performance import Performance
 from .fairness import ModelFairness
+from .ranking_fairness import RankingFairness

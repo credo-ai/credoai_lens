@@ -122,7 +122,6 @@ class Evaluator(ABC):
         self.artifact_keys = list(artifacts.keys())
         self.__dict__.update(artifacts)
 
-    @abstractmethod
     def _prepare_results(self):
         """
         Transforms the results of the evaluation in internal evidences.
