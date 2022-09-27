@@ -6,9 +6,9 @@ from typing import Dict, List, Optional, Union
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.governance import Governance
-from credoai.lens.utils import build_list_of_evaluators, log_command
-from credoai.utils import global_logger
-from credoai.utils.common import ValidationError, flatten_list
+from credoai.lens.pipeline_creator import PipelineCreator
+from credoai.lens.utils import log_command
+from credoai.utils import ValidationError, flatten_list, global_logger
 
 # Custom type
 Pipeline = List[Union[Evaluator, tuple[Evaluator, str, dict]]]
@@ -41,7 +41,7 @@ class Lens:
         pipeline : Pipeline_type, optional, default None
             User can add a pipeline using a list of steps. Steps can be in 2 formats:
             - tuple: max length = 3. First element is the instantiated evaluator,
-            second element is the step id (optional), third elemnt(optional) is metadata (dict)
+            second element is the step id (optional), third element (optional) is metadata (dict)
             associated to the step.
             - Evaluator. If the user does not intend to specify id or metadata, instantiated
             evaluators can be put directly in the list.
@@ -60,14 +60,13 @@ class Lens:
         self.command_list: list = []
         self.logger = global_logger
         self.pipeline_results: list = []
-        self._validate()
         if self.assessment_data and self.assessment_data.sensitive_features is not None:
             self.sens_feat_names = list(self.assessment_data.sensitive_features)
         else:
             self.sens_feat_names = []
-        # If a list of steps is passed create the pipeline
-        if pipeline:
-            self._generate_pipeline(pipeline)
+        self._generate_pipeline(pipeline)
+        # Can  pass pipeline directly
+        self._validate()
 
     def __getitem__(self, stepname):
         return self.pipeline[stepname]
@@ -162,11 +161,6 @@ class Lens:
         """
         Run the main loop across all the pipeline steps.
         """
-        if len(self.pipeline) == 0:
-            self.logger.info("Empty pipeline: proceeding with defaults:")
-            all_evaluators = build_list_of_evaluators()
-            self._generate_pipeline(all_evaluators)
-        # Can  pass pipeline directly
         for step, details in self.pipeline.items():
             self.logger.info(f"Running evaluation for step: {step}")
             details["evaluator"].evaluate()
@@ -188,8 +182,14 @@ class Lens:
         if self.gov:
             if overwrite_governance:
                 self.gov.set_evidence(evidence)
+                self.logger.info(
+                    "Sending evidence to governance. Overwriting existing evidence."
+                )
             else:
                 self.gov.add_evidence(evidence)
+                self.logger.info(
+                    "Sending evidence to governance. Adding to existing evidence."
+                )
         else:
             raise ValidationError(
                 "No governance object exists to update."
@@ -334,13 +334,17 @@ class Lens:
         ValueError
             Id needs to be a string.
         """
+        if pipeline is None:
+            if self.gov:
+                self.logger.info("Empty pipeline: generating from governance.")
+                pipeline = PipelineCreator.generate_from_governance(self.gov)
+            else:
+                return
         # Create pipeline from list of steps
         for step in pipeline:
             if not isinstance(step, tuple):
                 step = (step,)
-            evaltr = self._get_step_param(step, 0)
-            id = self._get_step_param(step, 1)
-            meta = self._get_step_param(step, 2)
+            evaltr, id, meta = self._consume_pipeline_step(step)
             if isclass(evaltr):
                 raise ValidationError(
                     f"Evaluator in step {step} needs to be instantiated"
@@ -348,7 +352,6 @@ class Lens:
             if not (isinstance(id, str) or id is None):
                 raise ValueError(f"Id in step {step} must be a string, received {id}")
             self.add(evaltr, id, meta)
-
         return self
 
     def _validate(self):
@@ -381,11 +384,14 @@ class Lens:
                     )
 
     @staticmethod
-    def _get_step_param(step, pos):
-        try:
-            return step[pos]
-        except IndexError:
-            return None
+    def _consume_pipeline_step(step):
+        def safe_get(step, index):
+            return (step[index : index + 1] or [None])[0]
+
+        evaltr = safe_get(step, 0)
+        id = safe_get(step, 1)
+        meta = safe_get(step, 2)
+        return evaltr, id, meta
 
     @staticmethod
     def change_sens_feat_view(evaluator_arguments: Dict[str, Data], feat: str):
