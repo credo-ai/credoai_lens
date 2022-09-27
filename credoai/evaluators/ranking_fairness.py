@@ -1,6 +1,6 @@
+import math
 from collections import Counter
 
-import math
 import numpy as np
 import pandas as pd
 from credoai.artifacts import TabularData
@@ -11,8 +11,8 @@ from credoai.evaluators.utils.validation import (
     check_existence,
     check_feature_presence,
 )
-from credoai.utils.common import NotRunError
 from credoai.evidence.containers import MetricContainer
+from credoai.utils.common import NotRunError
 
 EPSILON = 1e-12
 
@@ -44,7 +44,7 @@ class RankingFairness(Evaluator):
     required_artifacts = ["data", "sensitive_feature"]
 
     def _setup(self):
-        self.sensitive_features = np.array(self.data.sensitive_feature.name)
+        self.sensitive_features = np.array(self.data.sensitive_feature)
         self.rankings = np.array(self.data.y.iloc[:, 0])
         self.groups = list(set(self.sensitive_features))
 

@@ -1,3 +1,4 @@
+import traceback
 from itertools import combinations
 
 import numpy as np
@@ -10,7 +11,7 @@ from credoai.evaluators.utils.validation import (
     check_existence,
 )
 from credoai.evidence import MetricContainer, TableContainer
-from credoai.utils import NotRunError
+from credoai.utils import NotRunError, global_logger
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
 
 
@@ -39,13 +40,13 @@ class DataEquity(Evaluator):
     """
 
     name = "DataEquity"
-    required_artifacts = {"data"}
+    required_artifacts = {"data", "sensitive_feature"}
 
     def __init__(self, p_value=0.01):
         self.pvalue = p_value
 
     def _setup(self):
-        self.sensitive_features = self.data.sensitive_feature.name
+        self.sensitive_features = self.data.sensitive_feature
         self.y = self.data.y
         self.type_of_target = self.data.y_type
 
@@ -72,8 +73,12 @@ class DataEquity(Evaluator):
             summary = desc["summary"]
             summary["subtype"] = "summary"
             summary.name = "summary"
-            summary = TableContainer(summary, **self.get_container_info())
-
+            summary = TableContainer(
+                summary,
+                **self.get_container_info(
+                    labels={"sensitive_feature": self.sensitive_features.name}
+                ),
+            )
             desc_metadata = {
                 "highest_group": desc["highest_group"],
                 "lowest_group": desc["lowest_group"],
@@ -86,7 +91,12 @@ class DataEquity(Evaluator):
                     if "demographic_parity" in k
                 ]
             )
-            results = MetricContainer(results, **self.get_container_info())
+            results = MetricContainer(
+                results,
+                **self.get_container_info(
+                    labels={"sensitive_feature": self.sensitive_features.name}
+                ),
+            )
 
             # add statistics
             stats = self.results["statistics"]
@@ -97,7 +107,10 @@ class DataEquity(Evaluator):
                 "p_value": stats["equity_test"]["pvalue"],
             }
             overall_equity = MetricContainer(
-                pd.DataFrame(overall_equity, index=[0]), **self.get_container_info()
+                pd.DataFrame(overall_equity, index=[0]),
+                **self.get_container_info(
+                    labels={"sensitive_feature": self.sensitive_features.name}
+                ),
             )
             # add posthoc tests if needed
             equity_containers = [summary, results, overall_equity]
@@ -106,7 +119,12 @@ class DataEquity(Evaluator):
                 posthoc_tests.rename({"test_type": "subtype"}, axis=1, inplace=True)
                 posthoc_tests.name = "posthoc"
                 equity_containers.append(
-                    TableContainer(posthoc_tests, **self.get_container_info())
+                    TableContainer(
+                        posthoc_tests,
+                        **self.get_container_info(
+                            labels={"sensitive_feature": self.sensitive_features.name}
+                        ),
+                    )
                 )
 
             return equity_containers
@@ -123,7 +141,7 @@ class DataEquity(Evaluator):
             ].describe()
         }
         r = results["summary"]
-        results["sensitive_feature"] = self.sensitive_features.columns
+        results["sensitive_feature"] = self.sensitive_features.name
         results["highest_group"] = r["mean"].idxmax()
         results["lowest_group"] = r["mean"].idxmin()
         results["demographic_parity_difference"] = r["mean"].max() - r["mean"].min()
@@ -152,7 +170,7 @@ class DataEquity(Evaluator):
         Multiple comparisons are bonferronni corrected.
         """
         contingency_df = (
-            self.df.groupby(self.sensitive_features.name + [self.y.name])
+            self.df.groupby([self.sensitive_features.name, self.y.name])
             .size()
             .reset_index(name="counts")
             .pivot(self.sensitive_features.name, self.y.name)
@@ -177,7 +195,13 @@ class DataEquity(Evaluator):
                     | (contingency_df.index == comb[1])
                 ]
                 # running chi2 test
-                chi2, p, dof, ex = chi2_contingency(new_df, correction=False)
+                try:
+                    chi2, p, dof, ex = chi2_contingency(new_df, correction=False)
+                except ValueError as e:
+                    global_logger.error(
+                        "Chi2 test could not be run, likely due to insufficient"
+                        f" outcome frequencies. Error produced below:\n {traceback.print_exc()}"
+                    )
                 if p < bonferronni_p:
                     posthoc_tests.append(
                         {
@@ -252,7 +276,7 @@ class DataEquity(Evaluator):
 
 class ModelEquity(DataEquity):
     name = "ModelEquity"
-    required_artifacts = {"model", "assessment_data"}
+    required_artifacts = {"model", "assessment_data", "sensitive_feature"}
 
     def _setup(self):
         self.sensitive_features = self.assessment_data.sensitive_feature
