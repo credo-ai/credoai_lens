@@ -7,7 +7,13 @@ from typing import Union
 
 from credoai import __version__
 from credoai.evidence import Evidence, EvidenceRequirement
-from credoai.utils import check_subset, global_logger, json_dumps, wrap_list
+from credoai.utils import (
+    ValidationError,
+    check_subset,
+    global_logger,
+    json_dumps,
+    wrap_list,
+)
 from json_api_doc import deserialize, serialize
 
 from .credo_api import CredoApi
@@ -175,14 +181,16 @@ class Governance:
         """
         self._evidences += wrap_list(evidences)
 
-    def check_requirements(self):
+    def match_requirements(self):
         missing = []
-        evidence_labels = [e.label for e in self._evidences]
         required_labels = [e.label for e in self.get_evidence_requirements()]
         for label in required_labels:
-            if not self._check_inclusion(label, evidence_labels):
+            matching_evidence = self._check_inclusion(label, self._evidences)
+            if not matching_evidence:
                 missing.append(label)
                 global_logger.info(f"Missing required evidence with label ({label}).")
+            else:
+                matching_evidence[0].label = label
         return not bool(missing)
 
     def export(self, filename=None):
@@ -198,7 +206,7 @@ class Governance:
         """
         if not self._validate_export():
             return False
-        to_return = self.check_requirements()
+        to_return = self.match_requirements()
 
         evidences = self._prepare_evidences()
 
@@ -214,11 +222,18 @@ class Governance:
         )
         self._api.create_assessment(self._use_case_id, self._policy_pack_id, evidences)
 
-    def _check_inclusion(self, label, evidence_labels):
-        for e in evidence_labels:
-            if check_subset(label, e):
-                return True
-        return False
+    def _check_inclusion(self, label, evidence):
+        matching_evidence = []
+        for e in evidence:
+            if check_subset(label, e.label):
+                matching_evidence.append(e)
+        if not matching_evidence:
+            return False
+        if len(matching_evidence) > 1:
+            raise ValidationError(
+                "Multiple evidence labels were found matching one requirement"
+            )
+        return matching_evidence
 
     def _file_export(self, evidences, filename):
         global_logger.info(

@@ -13,6 +13,7 @@ class Evidence(ABC):
         self.additional_labels = additional_labels or {}
         self.metadata = metadata
         self.creation_time: str = datetime.utcnow().isoformat()
+        self._label = None
         self._validate()
 
     def __str__(self):
@@ -35,7 +36,13 @@ class Evidence(ABC):
         Adds evidence type specific label
         """
         # additional_labels prioritized
-        return self.base_label | self.additional_labels
+        if self._label is None:
+            self._label = self.base_label | self.additional_labels
+        return self._label
+
+    @label.setter
+    def label(self, value):
+        self._label = value
 
     @abstractproperty
     def base_label(self):
