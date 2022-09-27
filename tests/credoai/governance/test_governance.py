@@ -2,7 +2,7 @@ import json
 import tempfile
 
 import pytest
-from credoai.evidence.evidence import Metric
+from credoai.evidence.evidence import MetricEvidence
 from credoai.governance.credo_api import CredoApi
 from credoai.governance.credo_api_client import CredoApiClient
 from credoai.governance.governance import Governance
@@ -38,7 +38,7 @@ ASSESSMENT_PLAN_JSON_STR = json.dumps(
 
 
 def build_metric_evidence(type):
-    return Metric(
+    return MetricEvidence(
         type=type,
         value=0.2,
         model_name="superich detector",

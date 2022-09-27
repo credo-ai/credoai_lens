@@ -52,7 +52,7 @@ class Evidence(ABC):
         pass
 
 
-class Metric(Evidence):
+class MetricEvidence(Evidence):
     """
     Metric Evidence
 
@@ -104,7 +104,7 @@ class Metric(Evidence):
             raise ValidationError
 
 
-class Table(Evidence):
+class TableEvidence(Evidence):
     """
     Table Evidence
 
@@ -138,7 +138,7 @@ class Table(Evidence):
         return label
 
 
-class Profiler(Evidence):
+class ProfilerEvidence(Evidence):
     """
     Place holder for Profiler Evidence
     """
