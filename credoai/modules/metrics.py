@@ -1,10 +1,8 @@
 import re
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
-
-from absl import logging
 from credoai.modules.metric_constants import *
-from credoai.utils.common import ValidationError, humanize_label, remove_suffix
+from credoai.utils.common import ValidationError, humanize_label
 
 
 @dataclass

@@ -8,7 +8,6 @@ from credoai.modules.credoai_metrics import (
 )
 from fairlearn import metrics as fl_metrics
 from sklearn import metrics as sk_metrics
-from sklearn.metrics import SCORERS
 
 METRIC_CATEGORIES = [
     "BINARY_CLASSIFICATION",
