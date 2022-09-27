@@ -230,9 +230,10 @@ class Governance:
         if not matching_evidence:
             return False
         if len(matching_evidence) > 1:
-            raise ValidationError(
+            global_logger.error(
                 "Multiple evidence labels were found matching one requirement"
             )
+            return False
         return matching_evidence
 
     def _file_export(self, evidences, filename):
