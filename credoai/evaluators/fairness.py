@@ -2,9 +2,11 @@ import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
-from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
-                                                 check_data_instance,
-                                                 check_existence)
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_existence,
+)
 from credoai.evidence import MetricContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
@@ -58,7 +60,7 @@ class ModelFairness(Evaluator):
     required_artifacts = {"model", "data", "sensitive_feature"}
 
     def _setup(self):
-        self.sensitive_features = self.data.sensitive_feature.iloc[:, 0]
+        self.sensitive_features = self.data.sensitive_feature.name
         self.y_true = self.data.y
         self.y_pred = self.model.predict(self.data.X)
         if hasattr(self.model, "predict_proba"):

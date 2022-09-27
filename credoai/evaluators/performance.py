@@ -64,7 +64,7 @@ class Performance(Evaluator):
             self.y_prob = self.model.predict_proba(self.assessment_data.X)
         except:
             self.y_prob = None
-        self.sensitive_features = self.assessment_data.sensitive_feature.iloc[:, 0]
+        self.sensitive_features = self.assessment_data.sensitive_feature.name
         if self.sensitive_features is None:
             self.perform_disaggregation = False
             # only set to use metric frame

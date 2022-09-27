@@ -44,7 +44,7 @@ class RankingFairness(Evaluator):
     required_artifacts = ["data", "sensitive_feature"]
 
     def _setup(self):
-        self.sensitive_features = np.array(self.data.sensitive_feature.iloc[:, 0])
+        self.sensitive_features = np.array(self.data.sensitive_feature.name)
         self.rankings = np.array(self.data.y.iloc[:, 0])
         self.groups = list(set(self.sensitive_features))
 

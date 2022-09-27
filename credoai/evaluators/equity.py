@@ -45,7 +45,7 @@ class DataEquity(Evaluator):
         self.pvalue = p_value
 
     def _setup(self):
-        self.sensitive_features = self.data.sensitive_features
+        self.sensitive_features = self.data.sensitive_feature.name
         self.y = self.data.y
         self.type_of_target = self.data.y_type
 
@@ -118,7 +118,7 @@ class DataEquity(Evaluator):
     def describe(self):
         """Create descriptive output"""
         results = {
-            "summary": self.df.groupby(self.sensitive_features.columns.to_list())[
+            "summary": self.df.groupby(self.sensitive_features.name)[
                 self.y.name
             ].describe()
         }
@@ -152,10 +152,10 @@ class DataEquity(Evaluator):
         Multiple comparisons are bonferronni corrected.
         """
         contingency_df = (
-            self.df.groupby(self.sensitive_features.columns.to_list() + [self.y.name])
+            self.df.groupby(self.sensitive_features.name + [self.y.name])
             .size()
             .reset_index(name="counts")
-            .pivot(self.sensitive_features.columns.to_list(), self.y.name)
+            .pivot(self.sensitive_features.name, self.y.name)
         )
         chi2, p, dof, ex = chi2_contingency(contingency_df)
         results = {
@@ -199,7 +199,7 @@ class DataEquity(Evaluator):
         The Tukey HSD test is a posthoc test that is only performed if the
         anova is significant.
         """
-        groups = self.df.groupby(self.sensitive_features.columns.to_list())[outcome_col]
+        groups = self.df.groupby(self.sensitive_features.name)[outcome_col]
         group_lists = groups.apply(list)
         labels = np.array(group_lists.index)
         overall_test = f_oneway(*group_lists)
@@ -255,7 +255,7 @@ class ModelEquity(DataEquity):
     required_artifacts = {"model", "assessment_data"}
 
     def _setup(self):
-        self.sensitive_features = self.assessment_data.sensitive_features
+        self.sensitive_features = self.assessment_data.sensitive_feature
         self.y = pd.Series(
             self.model.predict(self.assessment_data.X),
             index=self.sensitive_features.index,

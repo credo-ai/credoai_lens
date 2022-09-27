@@ -68,7 +68,7 @@ class Data(ABC):
 
     @property
     def sensitive_feature(self):
-        return self.sensitive_features[[self.active_sens_feat]]
+        return self.sensitive_features[self.active_sens_feat]
 
     @property
     def y_type(self):
