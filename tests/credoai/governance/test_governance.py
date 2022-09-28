@@ -2,22 +2,20 @@ import json
 import tempfile
 
 import pytest
-from credoai.evidence.evidence import MetricEvidence
+from credoai.evidence.evidence import MetricEvidence, TableEvidence
 from credoai.governance.credo_api import CredoApi
 from credoai.governance.credo_api_client import CredoApiClient
 from credoai.governance.governance import Governance
+from pandas import DataFrame
 
 USE_CASE_ID = "64YUaLWSviHgibJaRWr3ZE"
 POLICY_PACK_ID = "NYCE+1"
 EVIDENCE_REQUIREMENTS = [
     {"evidence_type": "metric", "label": {"metric_type": "accuracy_score"}},
-    {
-        "evidence_type": "statistical_test",
-        "label": {"metric_type": "p_value"},
-    },
+    {"evidence_type": "metric", "label": {"metric_type": "p_value"}},
     {
         "evidence_type": "table",
-        "label": {"data_type": "disaggregated_performance"},
+        "label": {"table_name": "disaggregated_performance"},
         "sensitive_features": ["profession", "gender"],
     },
 ]
@@ -43,6 +41,12 @@ def build_metric_evidence(type):
         value=0.2,
         model_name="superich detector",
         dataset_name="account data",
+    )
+
+
+def build_table_evidence(table_name):
+    return TableEvidence(
+        name=table_name, table_data=DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     )
 
 
@@ -160,20 +164,42 @@ class TestGovernance:
         gov.register(assessment_plan=ASSESSMENT_PLAN_JSON_STR)
         assert False == gov.export()
 
-    def test_export(self, gov, api):
+    def test_export_all_requirements_fulfilled(self, gov):
         gov.register(assessment_plan=ASSESSMENT_PLAN_JSON_STR)
-        evidence = build_metric_evidence("precision")
-        gov.add_evidence([evidence])
+        evidences = [
+            build_metric_evidence("accuracy_score"),
+            build_metric_evidence("p_value"),
+            build_table_evidence("disaggregated_performance"),
+        ]
+        gov.add_evidence(evidences)
         assert True == gov.export()
 
-        api.create_assessment.assert_called_with(
-            USE_CASE_ID, POLICY_PACK_ID, [evidence.struct()]
-        )
-
-    def test_export_to_file(self, gov):
+    def test_export_partial_requirements_fulfilled(self, gov):
         gov.register(assessment_plan=ASSESSMENT_PLAN_JSON_STR)
-        evidence = build_metric_evidence("precision")
-        gov.add_evidence([evidence])
+        evidences = [
+            build_metric_evidence("accuracy_score"),
+        ]
+        gov.add_evidence(evidences)
+        assert False == gov.export()
+
+    def test_export_to_file_all_requirements_fulfilled(self, gov):
+        gov.register(assessment_plan=ASSESSMENT_PLAN_JSON_STR)
+        evidences = [
+            build_metric_evidence("accuracy_score"),
+            build_metric_evidence("p_value"),
+            build_table_evidence("disaggregated_performance"),
+        ]
+        gov.add_evidence(evidences)
         with tempfile.TemporaryDirectory() as tempDir:
             filename = f"{tempDir}/assessment.json"
             assert True == gov.export(filename)
+
+    def test_export_to_file_partial_requirements_fulfilled(self, gov):
+        gov.register(assessment_plan=ASSESSMENT_PLAN_JSON_STR)
+        evidences = [
+            build_metric_evidence("accuracy_score"),
+        ]
+        gov.add_evidence(evidences)
+        with tempfile.TemporaryDirectory() as tempDir:
+            filename = f"{tempDir}/assessment.json"
+            assert False == gov.export(filename)
