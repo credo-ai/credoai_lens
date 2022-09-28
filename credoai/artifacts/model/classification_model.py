@@ -1,4 +1,4 @@
-from .model import Model
+from .base_model import Model
 
 
 class ClassificationModel(Model):

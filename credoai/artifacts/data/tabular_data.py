@@ -1,10 +1,11 @@
-from typing import Union
 from copy import deepcopy
+from typing import Union
+
 import numpy as np
 import pandas as pd
 from credoai.utils.common import ValidationError
 
-from .data import Data
+from .base_data import Data
 
 
 class TabularData(Data):
