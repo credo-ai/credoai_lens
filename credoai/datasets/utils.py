@@ -1,6 +1,6 @@
 import os
 
-from credoai.data._constants import _DOWNLOAD_DIRECTORY_NAME
+from credoai.datasets._constants import _DOWNLOAD_DIRECTORY_NAME
 from credoai.utils.common import get_project_root
 
 
