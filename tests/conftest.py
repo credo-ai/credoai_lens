@@ -1,11 +1,12 @@
 from random import random
 from typing import Union
+
+from credoai.artifacts import ClassificationModel, TabularData
+from credoai.datasets import fetch_testdata
+from pandas import DataFrame, Series
 from pytest import fixture
-from credoai.data._fetch_testdata import fetch_testdata
-from sklearn.model_selection import train_test_split
-from credoai.artifacts import TabularData, ClassificationModel
 from sklearn.linear_model import LogisticRegression
-from pandas import Series, DataFrame
+from sklearn.model_selection import train_test_split
 
 
 @fixture(scope="session")
