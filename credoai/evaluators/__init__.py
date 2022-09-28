@@ -3,7 +3,7 @@ from .data_fairness import DataFairness
 from .data_profiling import DataProfiling
 from .privacy import Privacy
 from .security import Security
-from .equity import Equity
+from .equity import *
 from .performance import Performance
 from .fairness import ModelFairness
 from .ranking_fairness import RankingFairness

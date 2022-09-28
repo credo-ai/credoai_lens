@@ -1,13 +1,13 @@
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.shared import _setup_metric_frames
+from credoai.evaluators.utils.fairlearn import setup_metric_frames
 from credoai.evaluators.utils.validation import (
     check_artifact_for_nulls,
     check_data_instance,
     check_existence,
 )
-from credoai.evidence import MetricContainer
+from credoai.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
@@ -56,11 +56,11 @@ class ModelFairness(Evaluator):
         self.fairness_metrics = None
         self.fairness_prob_metrics = None
 
-    name = "Fairness"
+    name = "ModelFairness"
     required_artifacts = {"model", "data", "sensitive_feature"}
 
     def _setup(self):
-        self.sensitive_features = self.data.sensitive_feature.iloc[:, 0]
+        self.sensitive_features = self.data.sensitive_feature
         self.y_true = self.data.y
         self.y_pred = self.model.predict(self.data.X)
         if hasattr(self.model, "predict_proba"):
@@ -73,24 +73,36 @@ class ModelFairness(Evaluator):
         """
         Run fairness base module
 
+
         Returns
         -------
-        dict
-            Dictionary containing two pandas Dataframes:
-                - "disaggregated results": The disaggregated performance metrics, along with acceptability and risk
-            as columns
-                - "fairness": Dataframe with fairness metrics, along with acceptability and risk
-            as columns
+        self
         """
+        self._prepare_results()
+        return self
+
+    def _prepare_results(self):
         fairness_results = self.get_fairness_results()
         fairness_results = pd.DataFrame(fairness_results).reset_index()
         fairness_results.rename({"metric_type": "type"}, axis=1, inplace=True)
-        label = {"sensitive_feature": fairness_results.sensitive_feature.iloc[0]}
+        disaggregated_df = self.get_disaggregated_performance()
+
         self.results = [
             MetricContainer(
                 fairness_results.drop("sensitive_feature", axis=1),
-                **self.get_container_info(label),
-            )
+                **self.get_container_info(
+                    labels={"sensitive_feature": self.sensitive_features.name}
+                ),
+            ),
+            TableContainer(
+                disaggregated_df,
+                **self.get_container_info(
+                    labels={
+                        "sensitive_feature": self.sensitive_features.name,
+                        "metric_types": disaggregated_df.type.unique().tolist(),
+                    }
+                ),
+            ),
         ]
         return self
 
@@ -117,7 +129,41 @@ class ModelFairness(Evaluator):
             self.fairness_prob_metrics,
             self.failed_metrics,
         ) = self._process_metrics(self.metrics)
-        _setup_metric_frames(self)
+        self.metric_frames = setup_metric_frames(
+            self.performance_metrics,
+            self.prob_metrics,
+            self.y_pred,
+            self.y_prob,
+            self.y_true,
+            self.sensitive_features,
+        )
+
+    def get_disaggregated_performance(self):
+        """Return performance metrics for each group
+
+        Parameters
+        ----------
+        melt : bool, optional
+            If True, return a long-form dataframe, by default False
+
+        Returns
+        -------
+        pandas.DataFrame
+            The disaggregated performance metrics
+        """
+        disaggregated_df = pd.DataFrame()
+        for metric_frame in self.metric_frames.values():
+            df = metric_frame.by_group.copy().convert_dtypes()
+            disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
+        disaggregated_results = disaggregated_df.reset_index().melt(
+            id_vars=[disaggregated_df.index.name],
+            var_name="type",
+        )
+        disaggregated_results.name = "disaggregated_performance"
+
+        if disaggregated_results.empty:
+            global_logger.warn("No disaggregated metrics could be calculated.")
+        return disaggregated_results
 
     def get_fairness_results(self):
         """Return fairness and performance parity metrics

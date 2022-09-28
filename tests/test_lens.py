@@ -5,14 +5,24 @@ Testing protocols for the Lens package. Tested functionalities:
 """
 
 from abc import ABC, abstractmethod
-from credoai import evaluators
+
+import pytest
+from credoai.artifacts import TabularData
+from credoai.evaluators import (
+    DataEquity,
+    DataFairness,
+    DataProfiling,
+    ModelEquity,
+    ModelFairness,
+    Performance,
+    Privacy,
+    Security,
+)
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
-import pytest
-from credoai.evaluators import DataFairness, DataProfiling, Security, Privacy
-from credoai.evaluators import Performance, Equity, ModelFairness
-from credoai.artifacts import TabularData
 from pandas import DataFrame
+
+from credoai import evaluators
 
 
 @pytest.fixture(scope="class")
@@ -98,8 +108,20 @@ class TestDataProfiling(Base_Evaluator_Test):
         assert True
 
 
-class TestEquity(Base_Evaluator_Test):
-    evaluator = Equity()
+class TestModelEquity(Base_Evaluator_Test):
+    evaluator = ModelEquity()
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
+class TestDataEquity(Base_Evaluator_Test):
+    evaluator = DataEquity()
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
@@ -183,16 +205,6 @@ def test_bulk_pipeline_run(credo_model, assessment_data, train_data):
         assessment_data=assessment_data,
         training_data=train_data,
         pipeline=pipe_structure,
-    )
-    my_pipeline.run()
-    assert my_pipeline.get_results()
-
-
-def test_automatic_run(credo_model, assessment_data, train_data):
-    my_pipeline = Lens(
-        model=credo_model,
-        assessment_data=assessment_data,
-        training_data=train_data,
     )
     my_pipeline.run()
     assert my_pipeline.get_results()

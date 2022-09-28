@@ -10,6 +10,9 @@ class EvidenceRequirement(ABC):
         self._label: dict = data.get("label")
         self._sensitive_features: list[str] = data.get("sensitive_features", [])
 
+    def __str__(self) -> str:
+        return f"{self.evidence_type}-EvidenceRequirement.label-{self.label}"
+
     @property
     def evidence_type(self):
         return self._evidence_type

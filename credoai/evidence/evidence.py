@@ -1,5 +1,5 @@
 import pprint
-from abc import ABC, abstractmethod
+from abc import ABC, abstractproperty
 from datetime import datetime
 from typing import Optional, Tuple
 
@@ -13,6 +13,7 @@ class Evidence(ABC):
         self.additional_labels = additional_labels or {}
         self.metadata = metadata
         self.creation_time: str = datetime.utcnow().isoformat()
+        self._label = None
         self._validate()
 
     def __str__(self):
@@ -20,27 +21,34 @@ class Evidence(ABC):
 
     def struct(self):
         """Structure of evidence"""
-        # set labels, additional_labels prioritized
-        labels = self.label() | self.additional_labels
         structure = {
             "type": self.type,
-            "label": labels,
-            "data": self.data(),
+            "label": self.label,
+            "data": self.data,
             "generated_at": self.creation_time,
             "metadata": self.metadata,
         }
         return structure
 
     @property
-    @abstractmethod
     def label(self):
         """
         Adds evidence type specific label
         """
-        return {}
+        # additional_labels prioritized
+        if self._label is None:
+            self._label = self.base_label | self.additional_labels
+        return self._label
 
-    @property
-    @abstractmethod
+    @label.setter
+    def label(self, value):
+        self._label = value
+
+    @abstractproperty
+    def base_label(self):
+        pass
+
+    @abstractproperty
     def data(self):
         """
         Adds data reflecting additional structure of child classes
@@ -51,7 +59,7 @@ class Evidence(ABC):
         pass
 
 
-class Metric(Evidence):
+class MetricEvidence(Evidence):
     """
     Metric Evidence
 
@@ -85,10 +93,7 @@ class Metric(Evidence):
         self.confidence_level = confidence_level
         super().__init__("metric", additional_labels, **metadata)
 
-    def label(self):
-        label = {"metric_type": self.metric_type}
-        return label
-
+    @property
     def data(self):
         return {
             "value": self.value,
@@ -96,12 +101,17 @@ class Metric(Evidence):
             "confidence_level": self.confidence_level,
         }
 
+    @property
+    def base_label(self):
+        label = {"metric_type": self.metric_type}
+        return label
+
     def _validate(self):
         if self.confidence_interval and not self.confidence_level:
             raise ValidationError
 
 
-class Table(Evidence):
+class TableEvidence(Evidence):
     """
     Table Evidence
 
@@ -122,18 +132,20 @@ class Table(Evidence):
         self._data = table_data
         super().__init__("table", additional_labels, **metadata)
 
+    @property
     def data(self):
         return {
-            "column": self._data.columns.tolist(),
+            "columns": self._data.columns.tolist(),
             "value": self._data.values.tolist(),
         }
 
-    def label(self):
+    @property
+    def base_label(self):
         label = {"table_name": self.name}
         return label
 
 
-class Profiler(Evidence):
+class ProfilerEvidence(Evidence):
     """
     Place holder for Profiler Evidence
     """
@@ -142,8 +154,10 @@ class Profiler(Evidence):
         self._data = data
         super().__init__("profiler", additional_labels, **metadata)
 
+    @property
     def data(self):
         return self._data["results"].to_json()
 
-    def label(self):
+    @property
+    def base_label(self):
         return {"profiler_info": "placeholder"}

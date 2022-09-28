@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from credoai.utils import ValidationError
 
-from .evidence import Metric, Profiler, Table
+from .evidence import MetricEvidence, ProfilerEvidence, TableEvidence
 
 
 class EvidenceContainer(ABC):
@@ -49,7 +49,7 @@ class EvidenceContainer(ABC):
 
 class MetricContainer(EvidenceContainer):
     def __init__(self, df: pd.DataFrame, labels: dict = None, metadata: dict = None):
-        super().__init__(Metric, df, labels, metadata)
+        super().__init__(MetricEvidence, df, labels, metadata)
 
     def to_evidence(self, **metadata):
         evidence = []
@@ -62,7 +62,7 @@ class MetricContainer(EvidenceContainer):
         return evidence
 
     def _validate(self, df):
-        required_columns = {"type", "value", "subtype"}
+        required_columns = {"type", "value"}
         column_overlap = df.columns.intersection(required_columns)
         if len(column_overlap) != len(required_columns):
             raise ValidationError(f"Must have columns: {required_columns}")
@@ -70,7 +70,7 @@ class MetricContainer(EvidenceContainer):
 
 class TableContainer(EvidenceContainer):
     def __init__(self, df: pd.DataFrame, labels: dict = None, metadata: dict = None):
-        super().__init__(Table, df, labels, metadata)
+        super().__init__(TableEvidence, df, labels, metadata)
 
     def to_evidence(self, **metadata):
         return [
@@ -88,7 +88,7 @@ class TableContainer(EvidenceContainer):
 
 class ProfilerContainer(EvidenceContainer):
     def __init__(self, data, labels: dict = None, metadata: dict = None):
-        super().__init__(Profiler, data, labels)
+        super().__init__(ProfilerEvidence, data, labels)
 
     def to_evidence(self, **metadata):
         return [self.evidence_class(self._df, self.labels, **self.metadata, **metadata)]
