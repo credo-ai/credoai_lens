@@ -1,6 +1,6 @@
 import functools
 import inspect
-from typing import Callable, List, Union
+from typing import Callable, Union
 
 import credoai.evaluators
 from credoai.utils.common import dict_hash

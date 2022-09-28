@@ -1,5 +1,4 @@
 import warnings
-from dis import dis
 from itertools import combinations
 from typing import List, Optional
 

@@ -1,4 +1,3 @@
-import inspect
 from abc import ABC, abstractmethod
 
 from credoai.evidence import EvidenceContainer
