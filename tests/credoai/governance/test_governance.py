@@ -146,7 +146,7 @@ class TestGovernance:
 
         req = gov._evidence_requirements[2]
         assert "table" == req.evidence_type
-        assert {"data_type": "disaggregated_performance"} == req.label
+        assert {"table_name": "disaggregated_performance"} == req.label
 
     def test_add_evidences(self, gov):
         gov.set_evidence([build_metric_evidence("recall")])
