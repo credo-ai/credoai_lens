@@ -12,7 +12,6 @@ from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
-from this import d
 
 
 class Performance(Evaluator):
