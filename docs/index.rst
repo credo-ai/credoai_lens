@@ -132,7 +132,7 @@ for that use-case.
 
 
 The Assessment Plan
-------------------
+--------------------
 An "Assessment Plan" must be supplied to Lens. The plan configures
 how different assessments should be run.
 
