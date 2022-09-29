@@ -208,3 +208,11 @@ def test_bulk_pipeline_run(credo_model, assessment_data, train_data):
     )
     my_pipeline.run()
     assert my_pipeline.get_results()
+
+
+@pytest.mark.xfail(raises=RuntimeError)
+def test_empty_pipeline_run(credo_model, assessment_data, train_data):
+    my_pipeline = Lens(
+        model=credo_model, assessment_data=assessment_data, training_data=train_data
+    )
+    my_pipeline.run()
