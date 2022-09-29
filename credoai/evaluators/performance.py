@@ -213,7 +213,7 @@ class Performance(Evaluator):
                 metric_name = metric.name
             if not isinstance(metric, Metric):
                 raise ValidationError(
-                    "Specified metric is not of type credoai.metric.Metric no credoai.metric.ThresholdMetric"
+                    "Specified metric is not of type credoai.metric.Metric nor credoai.metric.ThresholdMetric"
                 )
             if metric.metric_category == "FAIRNESS":
                 global_logger.info(

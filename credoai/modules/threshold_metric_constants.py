@@ -8,7 +8,7 @@ BINARY_CLASSIFICATION_CURVE_FUNCTIONS = {
     "det_curve": sk_metrics.det_curve,
 }
 
-PROBABILITY_FUNCTIONS = {
+THRESHOLD_PROBABILITY_FUNCTIONS = {
     "roc_curve",
     "precision_recall_curve",
     "det_curve",
@@ -16,7 +16,7 @@ PROBABILITY_FUNCTIONS = {
 
 # Included for consistency relative to Metric and metric_constants.py
 # Empty because there are no supported equivalent names for threshold-varying metric functions
-METRIC_EQUIVALENTS = {
+THRESHOLD_METRIC_EQUIVALENTS = {
     "precision_recall_curve": ["pr_curve"],
     "det_curve": ["detection_error_tradeoff"],
 }
