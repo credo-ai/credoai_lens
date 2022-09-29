@@ -1,8 +1,8 @@
-"""Data used by Lens"""
+"""Abstract class for the data artifacts used by `Lens`"""
 # Data is a lightweight wrapper that stores data
 import itertools
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Optional, Union
 
 import pandas as pd
 from credoai.utils.common import ValidationError
@@ -53,20 +53,40 @@ class Data(ABC):
             sensitive_features, sensitive_intersections
         )
         self._validate_processing()
-        self._active_sensitive_feature = None
+        self._active_sensitive_feature: Optional[str] = None
 
     @property
     def active_sens_feat(self):
+        """
+        Defines which sensitive feature an evaluator will be working on.
+
+        In combination with the property sensitive_feature this effectively creates
+        a view of a specific artifact.
+        """
         if self._active_sensitive_feature is None:
             self._active_sensitive_feature = self.sensitive_features.columns[0]
         return self._active_sensitive_feature
 
     @active_sens_feat.setter
-    def active_sens_feat(self, value):
+    def active_sens_feat(self, value: str):
+        """
+        Sets the active_sens_feat value.
+
+        Parameters
+        ----------
+        value : str
+            Name of the sensitive feature column an evaluator has to operate on.
+        """
         self._active_sensitive_feature = value
 
     @property
     def sensitive_feature(self):
+        """
+        Reveals the sensitive feature defined by active_sens_feat.
+
+        This is generally called from within an evaluator, when it is working
+        on a single sensitive feature.
+        """
         return self.sensitive_features[self.active_sens_feat]
 
     @property
@@ -88,6 +108,22 @@ class Data(ABC):
             )
 
     def _process_sensitive(self, sensitive_features, sensitive_intersections):
+        """
+        Formats sensitive features
+
+        Parameters
+        ----------
+        sensitive_features :
+            Sensitive features as provided by a user. Any format that can be constrained
+            in a dataframe is accepted.
+        sensitive_intersections : Bool
+            Indicates whether to create intersections among sensitive features.
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         df = pd.DataFrame(sensitive_features)
         # add intersections if asked for
         features = df.columns
@@ -113,6 +149,7 @@ class Data(ABC):
         return y
 
     def _validate_inputs(self):
+        """Basic input validation"""
         self._validate_X()
         if self.y is not None:
             self._validate_y()
@@ -120,6 +157,7 @@ class Data(ABC):
             self._validate_sensitive()
 
     def _validate_sensitive(self):
+        """Sensitive features validation"""
         # Validate the types
         if not isinstance(self.sensitive_features, (pd.Series, pd.DataFrame)):
             raise ValidationError(
@@ -150,6 +188,7 @@ class Data(ABC):
         pass
 
     def _validate_processing(self):
+        """Validation of processed data"""
         self._validate_processed_X()
         if self.y is not None:
             self._validate_processed_y()
@@ -163,6 +202,7 @@ class Data(ABC):
         pass
 
     def _validate_processed_sensitive(self):
+        """VAlidation of processed sensitive features"""
         for col_name, col in self.sensitive_features.iteritems():
             unique_values = col.unique()
             if len(unique_values) == 1:

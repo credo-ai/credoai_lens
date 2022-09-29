@@ -22,8 +22,6 @@ from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
 from pandas import DataFrame
 
-from credoai import evaluators
-
 
 @pytest.fixture(scope="class")
 def init_lens(credo_model, assessment_data, train_data, request):
