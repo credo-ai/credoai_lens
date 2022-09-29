@@ -1,5 +1,3 @@
-from random import random
-from typing import Union
 
 from credoai.artifacts import ClassificationModel, TabularData
 from credoai.datasets import fetch_testdata

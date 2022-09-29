@@ -113,7 +113,7 @@ class TestModelEquity(Base_Evaluator_Test):
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
-        assert len(self.pipeline.pipeline) == 1
+        assert len(self.pipeline.pipeline) == 2
 
     def test_run(self):
         self.pipeline.run()
@@ -125,7 +125,7 @@ class TestDataEquity(Base_Evaluator_Test):
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
-        assert len(self.pipeline.pipeline) == 2
+        assert len(self.pipeline.pipeline) == 4
 
     def test_run(self):
         self.pipeline.run()
@@ -149,7 +149,7 @@ class TestPerformance(Base_Evaluator_Test):
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
-        assert len(self.pipeline.pipeline) == 2
+        assert len(self.pipeline.pipeline) == 1
 
     def test_run(self):
         self.pipeline.run()

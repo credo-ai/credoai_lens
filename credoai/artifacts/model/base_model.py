@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from credoai.utils import ValidationError
 from credoai.utils.model_utils import get_model_info

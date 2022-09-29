@@ -1,7 +1,7 @@
 import pprint
 from abc import ABC, abstractproperty
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Tuple
 
 from credoai.utils import ValidationError
 from pandas import DataFrame, Series

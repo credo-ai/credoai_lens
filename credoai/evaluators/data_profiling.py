@@ -1,5 +1,4 @@
 # reset style after pandas profiler
-from unittest import result
 
 import matplotlib
 import pandas as pd
