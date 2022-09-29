@@ -128,7 +128,7 @@ class ThresholdMetric(Metric):
         super().__init__(name, metric_category, fun, takes_prob, equivalent_names)
         if not self.takes_prob:
             raise ValidationError(
-                f"Threshold metrics require decision probabilities; takes_prob set to False"
+                f"Threshold metrics require decision probabilities; takes_prob set to False by user."
             )
 
 

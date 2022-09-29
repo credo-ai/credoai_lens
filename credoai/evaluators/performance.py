@@ -7,9 +7,12 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from credoai.evidence import MetricContainer
-from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
-from credoai.modules.metrics import Metric, find_metrics
+from credoai.evidence import MetricContainer, TableContainer
+from credoai.modules.metric_constants import (
+    MODEL_METRIC_CATEGORIES,
+    THRESHOLD_METRIC_CATEGORIES,
+)
+from credoai.modules.metrics import Metric, ThresholdMetric, find_metrics
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
 
@@ -27,7 +30,8 @@ class Performance(Evaluator):
     Parameters
     ----------
     metrics : List-like
-        list of metric names as string or list of Metrics (credoai.metrics.Metric).
+        list of metric names as strings or list of Metric or ThresholdMetric objects
+        (credoai.modules.metrics.Metric and credoai.modules.metrics.ThresholdMetric).
         Metric strings should in list returned by credoai.metrics.list_metrics.
         Note for performance parity metrics like
         "false negative rate parity" just list "false negative rate". Parity metrics
@@ -52,6 +56,9 @@ class Performance(Evaluator):
         self.prob_metrics = None
         self.failed_metrics = None
         self.perform_disaggregation = True
+        # I think perform_disaggregations is no longer needed
+        # Removing it might break some things, like the Quickstart.
+        # Keeping for now. ESS 9/29/22
 
     def _setup(self):
         # data variables
@@ -94,6 +101,8 @@ class Performance(Evaluator):
         self.results = [
             MetricContainer(self.get_overall_metrics(), **self.get_container_info())
         ]
+
+        # TODO do a thing for table container!!
 
     def update_metrics(self, metrics, replace=True):
         """replace metrics
@@ -170,8 +179,10 @@ class Performance(Evaluator):
         Parameters
         ----------
         metrics : Union[List[Metirc, str]]
-            list of metrics to use. These can be Metric objects (credoai.metric.metrics) or
-            strings. If strings, they will be converted to Metric objects using find_metrics
+            list of metrics to use. These can be Metric or ThresholdMetric objects
+            (see credoai.metric.metrics), or strings.
+            If strings, they will be converted to Metric or ThresholdMetric objects
+            as appropriate, using find_metrics
 
         Returns
         -------
@@ -184,7 +195,10 @@ class Performance(Evaluator):
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
-                metric = find_metrics(metric, MODEL_METRIC_CATEGORIES)
+                metric = find_metrics(
+                    metric,
+                    MODEL_METRIC_CATEGORIES + THRESHOLD_METRIC_CATEGORIES,
+                )
                 if len(metric) == 1:
                     metric = metric[0]
                 elif len(metric) == 0:
@@ -198,13 +212,18 @@ class Performance(Evaluator):
             else:
                 metric_name = metric.name
             if not isinstance(metric, Metric):
-                raise ValidationError("Metric is not of type credoai.metric.Metric")
+                raise ValidationError(
+                    "Specified metric is not of type credoai.metric.Metric no credoai.metric.ThresholdMetric"
+                )
             if metric.metric_category == "FAIRNESS":
                 global_logger.info(
                     f"fairness metric, {metric_name}, unused by PerformanceModule"
                 )
                 pass
-            elif metric.metric_category in MODEL_METRIC_CATEGORIES:
+            elif (
+                metric.metric_category
+                in MODEL_METRIC_CATEGORIES + THRESHOLD_METRIC_CATEGORIES
+            ):
                 if metric.takes_prob:
                     prob_metrics[metric_name] = metric
                 else:
