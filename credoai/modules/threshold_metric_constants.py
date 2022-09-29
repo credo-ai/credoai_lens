@@ -1,10 +1,5 @@
 from sklearn import metrics as sk_metrics
 
-# Not needed for now...everything is binary classification
-# Only reason to extend is if we supported multi-class or something...
-# METRIC_CATEGORIES = [
-#     "BINARY_CLASSIFICATION",
-# ]
 
 # MODEL METRICS
 BINARY_CLASSIFICATION_CURVE_FUNCTIONS = {
@@ -21,4 +16,7 @@ PROBABILITY_FUNCTIONS = {
 
 # Included for consistency relative to Metric and metric_constants.py
 # Empty because there are no supported equivalent names for threshold-varying metric functions
-METRIC_EQUIVALENTS = {}
+METRIC_EQUIVALENTS = {
+    "precision_recall_curve": ["pr_curve"],
+    "det_curve": ["detection_error_tradeoff"],
+}
