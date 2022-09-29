@@ -4,9 +4,8 @@ Setup
 Installation
 -------------
 
-The latest stable release (and required dependencies) can be installed from PyPI. We suggest
-installing credoai-lens[full] for full functionality. Following the directions
-for Conda is the most robust installation method.
+The latest stable release (and required dependencies) can be installed from PyPI. 
+Following the directions for Conda below is the most robust installation method.
 
 **Conda**
 
@@ -27,25 +26,10 @@ you only want to install the basic lens, edit the environment.yml file before ru
 
 **Pip**
 
-.. note::
-   This installation only includes dependencies needed for a small set of assessments.
-   To include additional dependencies needed for additional assessments, install with
-   "full"
-
-
 ::
 
    pip install credoai-lens
 
-
-
-On Mac
-::
-   pip install 'credoai-lens[full]'
-
-On Windows
-::
-   pip install credoai-lens[full]
 
 **ARM Macbook installation troubleshooting**
 
