@@ -161,6 +161,8 @@ class Lens:
         """
         Run the main loop across all the pipeline steps.
         """
+        if self.pipeline == {}:
+            raise RuntimeError("No evaluators were added to the pipeline.")
         for step, details in self.pipeline.items():
             self.logger.info(f"Running evaluation for step: {step}")
             details["evaluator"].evaluate()

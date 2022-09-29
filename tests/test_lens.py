@@ -22,8 +22,6 @@ from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
 from pandas import DataFrame
 
-from credoai import evaluators
-
 
 @pytest.fixture(scope="class")
 def init_lens(credo_model, assessment_data, train_data, request):
@@ -208,3 +206,11 @@ def test_bulk_pipeline_run(credo_model, assessment_data, train_data):
     )
     my_pipeline.run()
     assert my_pipeline.get_results()
+
+
+@pytest.mark.xfail(raises=RuntimeError)
+def test_empty_pipeline_run(credo_model, assessment_data, train_data):
+    my_pipeline = Lens(
+        model=credo_model, assessment_data=assessment_data, training_data=train_data
+    )
+    my_pipeline.run()
