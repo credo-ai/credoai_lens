@@ -51,7 +51,7 @@ class Metric:
     metric_category: str
     fun: Optional[Callable[[Any], Any]] = None
     takes_prob: Optional[bool] = False
-    equivalent_names: Optional[list[str]] = None
+    equivalent_names: Optional[List[str]] = None
 
     def __post_init__(self):
         if self.equivalent_names is None:

@@ -3,7 +3,7 @@ Credo Governance
 """
 
 import json
-from typing import Union
+from typing import List, Union
 
 from credoai import __version__
 from credoai.evidence import Evidence, EvidenceRequirement
@@ -57,8 +57,8 @@ class Governance:
     def __init__(self, credo_api_client: CredoApiClient = None):
         self._use_case_id: str = None
         self._policy_pack_id: str = None
-        self._evidence_requirements: list[EvidenceRequirement] = []
-        self._evidences: list[Evidence] = []
+        self._evidence_requirements: List[EvidenceRequirement] = []
+        self._evidences: List[Evidence] = []
         self._plan: dict = None
 
         if credo_api_client:
@@ -162,20 +162,20 @@ class Governance:
 
         Returns
         -------
-        list[EvidenceRequirement]
+        List[EvidenceRequirement]
         """
         return self._evidence_requirements
 
     def clear_evidence(self):
         self.set_evidence([])
 
-    def set_evidence(self, evidences: list[Evidence]):
+    def set_evidence(self, evidences: List[Evidence]):
         """
         Update evidences
         """
         self._evidences = evidences
 
-    def add_evidence(self, evidences: Union[Evidence, list[Evidence]]):
+    def add_evidence(self, evidences: Union[Evidence, List[Evidence]]):
         """
         Add evidences
         """

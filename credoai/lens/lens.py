@@ -1,7 +1,7 @@
 import uuid
 from copy import deepcopy
 from inspect import isclass
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
@@ -11,7 +11,7 @@ from credoai.lens.utils import log_command
 from credoai.utils import ValidationError, flatten_list, global_logger
 
 # Custom type
-Pipeline = List[Union[Evaluator, tuple[Evaluator, str, dict]]]
+Pipeline = List[Union[Evaluator, Tuple[Evaluator, str, dict]]]
 
 
 ## TODO: Decide Metadata policy, connected to governance and evidence creation!

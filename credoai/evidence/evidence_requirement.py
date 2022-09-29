@@ -1,4 +1,5 @@
 from abc import ABC
+from typing import List
 
 
 class EvidenceRequirement(ABC):
@@ -8,7 +9,7 @@ class EvidenceRequirement(ABC):
     ):
         self._evidence_type: str = data.get("evidence_type")
         self._label: dict = data.get("label")
-        self._sensitive_features: list[str] = data.get("sensitive_features", [])
+        self._sensitive_features: List[str] = data.get("sensitive_features", [])
 
     def __str__(self) -> str:
         return f"{self.evidence_type}-EvidenceRequirement.label-{self.label}"
