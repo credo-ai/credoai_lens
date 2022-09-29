@@ -1,3 +1,4 @@
+"""Abstract class for model artifacts used by `Lens`"""
 from abc import ABC
 
 from credoai.utils import ValidationError
@@ -10,10 +11,14 @@ class Model(ABC):
 
     Parameters
     ----------
-    name : str
-        Label of the model
     type : str, optional
         Type of the model
+    possible_functions: List[str]
+        List of possible methods that can be used by a model
+    necessary_functions: List[str]
+        List of necessary methods for the model type
+    name: str
+        Class name.
     model_like : model_like
         A model or pipeline.
 
@@ -37,17 +42,38 @@ class Model(ABC):
         self._validate(necessary_functions)
         self._build(possible_functions)
 
-    def _build(self, function_names):
+    def _build(self, function_names: List[str]):
+        """
+        Makes the necessary methods available in the class
+
+        Parameters
+        ----------
+        function_names : List[str]
+            List of possible methods to be imported from model_like
+        """
         for key in function_names:
             self._add_functionality(key)
 
-    def _validate(self, function_names):
+    def _validate(self, function_names: List[str]):
+        """
+        Checks the the necessary methods are available in model_like
+
+        Parameters
+        ----------
+        function_names : List[str]
+            List of necessary functions
+
+        Raises
+        ------
+        ValidationError
+            If a necessary method is missing from model_like
+        """
         for key in function_names:
             validated = getattr(self.model_like, key, False)
             if not validated:
                 raise ValidationError(f"Model-like must have a {key} function")
 
-    def _add_functionality(self, key):
+    def _add_functionality(self, key: str):
         """Adds functionality from model_like, if it exists"""
         func = getattr(self.model_like, key, None)
         if func:

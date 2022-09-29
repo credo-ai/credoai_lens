@@ -1,3 +1,4 @@
+"""Model artifact wrapping any classification model"""
 from .base_model import Model
 
 
