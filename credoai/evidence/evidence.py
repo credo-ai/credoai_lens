@@ -1,13 +1,18 @@
+"""
+Wrappers formatting results of evaluator runs for the Credo AI Platform
+"""
 import pprint
 from abc import ABC, abstractproperty
 from datetime import datetime
 from typing import Tuple
 
 from credoai.utils import ValidationError
-from pandas import DataFrame, Series
+from pandas import DataFrame
 
 
 class Evidence(ABC):
+    """Abstract class defining Evidence"""
+
     def __init__(self, type: str, additional_labels: dict = None, **metadata):
         self.type = type
         self.additional_labels = additional_labels or {}
@@ -61,7 +66,7 @@ class Evidence(ABC):
 
 class MetricEvidence(Evidence):
     """
-    Metric Evidence
+    Evidence for Metric:value result type
 
     Parameters
     ----------
@@ -113,8 +118,7 @@ class MetricEvidence(Evidence):
 
 class TableEvidence(Evidence):
     """
-    Table Evidence
-
+    Evidence for tabular data
 
     Parameters
     ----------
@@ -147,7 +151,7 @@ class TableEvidence(Evidence):
 
 class ProfilerEvidence(Evidence):
     """
-    Place holder for Profiler Evidence
+    Evidence for the result of pandas profiler
     """
 
     def __init__(self, data: dict, additional_labels: dict = None, **metadata):

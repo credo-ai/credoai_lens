@@ -1,32 +1,4 @@
 
-Modules & Assessments
----------------------
-Modules are a broad class. They can be anything - any tool you'd want to run on a model
-or dataset. While Credo AI has defined some modules of our own, your own code can be 
-thought of as a module (inherit from the abstract `CredoModule <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/modules/credo_module.py>`_ class), as could other tools available in the broader AI ecosystem.
-
-Some well known packages already serve as the foudnation for some Lens modules, such as:
-
-* Fairlearn
-* Adversarial Robustness Toolbox
-* Pandas Profiler
-
-Because the class of modules is  unconstrained, we need a way to standardize
-their API. We do that in the form of CredoAssessments. CredoAssessments are 
-wrappers around one or more modules that allow them to connect to 
-CredoModels and Data (:ref:`Credo Artifacts: Model, Data, & Governance`).
-
-Assessments have certain functionality requirements, which the CredoModel/Data must meet to be run.
-Essentially, we use "duck typing" for models. Assessments require certain functionality and can
-run on any object that initiates that functionality. Lens makes use of these functionality requirements
-to automatically determine which assessments to run.
-
-You can easily define your own assessment by inheriting from the abstract `CredoAssessment <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/assessment/credo_assessment.py>`_ class.
-
-.. image:: _static/images/assessments_modules_schematic.png
-   :width: 600
-
-
 Credo Artifacts: Model, Data, & Governance
 -------------------------------------------
 AI Models and Datasets take many forms. This flexibility has many benefits, but is
@@ -53,7 +25,7 @@ for that use-case.
 
 
 The Assessment Plan
-------------------
+--------------------
 An "Assessment Plan" must be supplied to Lens. The plan configures
 how different assessments should be run.
 
@@ -83,4 +55,6 @@ a risk perspective.
 This app is independent from using Lens for assessments. You can use *any*
 method to assess your AI artifacts and upload the results to the Governance App
 smoothly. Check out the `integration demo <https://credoai-lens.readthedocs.io/en/latest/notebooks/integration_demo.html>`_ to see how that is done.
+
+
 

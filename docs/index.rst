@@ -98,6 +98,3 @@ Lens Architecture Diagram
 .. image:: _static/images/lens_schematic.jpg
    :width: 600
 
-
-
-
