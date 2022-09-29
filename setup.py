@@ -23,17 +23,13 @@ with open("README.md", "r") as fh:
 with open("requirements.txt") as f:
     INSTALL_REQUIRES = [line.strip() for line in f]
 
-# Fetch extra requirements files
-with open("requirements-extras.txt") as f:
-    extras_requirements = [line.strip() for line in f]
-
 # Fetch dev requirements files (including documentation)
 with open("docs/requirements.txt") as f:
     doc_requirements = [line.strip() for line in f]
 
-dev_requirements = extras_requirements + doc_requirements
+dev_requirements = doc_requirements
 
-EXTRAS_REQUIRES = {"full": extras_requirements, "dev": dev_requirements}
+EXTRAS_REQUIRES = {"dev": dev_requirements}
 
 
 CLASSIFIERS = [

@@ -1,4 +1,3 @@
-import inspect
 from abc import ABC, abstractmethod
 
 from credoai.evidence import EvidenceContainer
@@ -104,9 +103,11 @@ class Evaluator(ABC):
 
     def _get_artifacts(self):
         artifacts = {}
+        save_keys = {"model": "model_name"}
         for k in self.artifact_keys:
+            save_key = save_keys.get(k, k)
             try:
-                artifacts[k] = self.__dict__[k].name
+                artifacts[save_key] = self.__dict__[k].name
             except AttributeError:
                 pass
         return artifacts

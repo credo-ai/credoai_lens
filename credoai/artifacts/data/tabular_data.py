@@ -1,10 +1,12 @@
-from typing import Union
+"""Data artifact wrapping any data in table format"""
 from copy import deepcopy
+from typing import Union
+
 import numpy as np
 import pandas as pd
 from credoai.utils.common import ValidationError
 
-from .data import Data
+from .base_data import Data
 
 
 class TabularData(Data):
@@ -44,16 +46,19 @@ class TabularData(Data):
         )
 
     def copy(self):
+        """Returns a deepcopy of the instantiated class"""
         return deepcopy(self)
 
     def _process_X(self, X):
+        """Standardize X data"""
         temp = pd.DataFrame(X)
         # Column names are converted to strings, to avoid mixed types
         temp.columns = temp.columns.astype("str")
         return temp
 
     def _process_y(self, y):
-        # if X is pandas object, and y is convertable, convert y to
+        """Standardize y data"""
+        # if X is pandas object, and y is convertible, convert y to
         # pandas object with X's index
         if isinstance(y, (np.ndarray, list)):
             pd_type = pd.Series
@@ -63,6 +68,7 @@ class TabularData(Data):
         return y
 
     def _validate_y(self):
+        """Basic validation for y"""
         if len(self.X) != len(self.y):
             raise ValidationError(
                 "X and y are not the same length. "
@@ -74,6 +80,7 @@ class TabularData(Data):
             raise ValidationError("X and y must have the same index")
 
     def _validate_X(self):
+        """Basica validation for X"""
         # Validate that the data column names are unique
         if len(self.X.columns) != len(set(self.X.columns)):
             raise ValidationError("X contains duplicate column names")

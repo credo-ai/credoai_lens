@@ -31,6 +31,7 @@ release = credoai.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx.ext.intersphinx",  # Interdocument references
     "sphinx.ext.autodoc",  # Core library for html generation from docstrings
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.autosummary",  # Create neat summary tables
@@ -105,6 +106,7 @@ autodoc_mock_imports = [
     "tempfile",
     "tensorflow",
     "transformers",
+    "logging",
 ]
 
 

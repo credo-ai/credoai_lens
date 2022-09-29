@@ -1,6 +1,6 @@
 """Requires installation of requirements-extras.txt"""
 
-from credoai.data import load_lr_toxicity
+from credoai.datasets import load_lr_toxicity
 from transformers import (
     GPT2LMHeadModel,
     GPT2Tokenizer,
@@ -8,7 +8,7 @@ from transformers import (
     OpenAIGPTTokenizer,
 )
 
-GENERATOR_CACHE = {}
+GENERATOR_CACHE: dict = {}
 
 
 def text_generator(prompt, tokenizer, model, num_sequences=1, model_kwargs=None):

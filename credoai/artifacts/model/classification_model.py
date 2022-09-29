@@ -1,4 +1,5 @@
-from .model import Model
+"""Model artifact wrapping any classification model"""
+from .base_model import Model
 
 
 class ClassificationModel(Model):

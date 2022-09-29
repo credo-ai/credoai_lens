@@ -161,6 +161,8 @@ class Lens:
         """
         Run the main loop across all the pipeline steps.
         """
+        if self.pipeline == {}:
+            raise RuntimeError("No evaluators were added to the pipeline.")
         for step, details in self.pipeline.items():
             self.logger.info(f"Running evaluation for step: {step}")
             details["evaluator"].evaluate()
@@ -228,22 +230,6 @@ class Lens:
 
     def get_evaluators(self):
         return [i["evaluator"] for i in self.pipeline.values()]
-
-    def push(self):
-        """
-        Placeholder!
-        1. Convert internal evidence to platform evidence (unless this is already part of
-        each specific evaluator)
-        2. Push to platform, main code to do that should be in the governance folder
-        """
-        pass
-
-    def pull(self):
-        """
-        Placeholder!
-        1. Gets the assessment plan from the platform.
-        """
-        pass
 
     def set_governance(self, governance: Governance):
         self.gov = governance

@@ -1,3 +1,9 @@
+"""
+Generic containers for evaluator results
+
+The containers accept raw data from the evaluators and convert it into
+suitable evidences.
+"""
 from abc import ABC, abstractmethod
 
 import pandas as pd
@@ -48,6 +54,8 @@ class EvidenceContainer(ABC):
 
 
 class MetricContainer(EvidenceContainer):
+    """Containers for all Metric type evidence"""
+
     def __init__(self, df: pd.DataFrame, labels: dict = None, metadata: dict = None):
         super().__init__(MetricEvidence, df, labels, metadata)
 
@@ -69,6 +77,8 @@ class MetricContainer(EvidenceContainer):
 
 
 class TableContainer(EvidenceContainer):
+    """Container for all Table type evidence"""
+
     def __init__(self, df: pd.DataFrame, labels: dict = None, metadata: dict = None):
         super().__init__(TableEvidence, df, labels, metadata)
 
@@ -87,6 +97,8 @@ class TableContainer(EvidenceContainer):
 
 
 class ProfilerContainer(EvidenceContainer):
+    """Container for al profiler type evidence"""
+
     def __init__(self, data, labels: dict = None, metadata: dict = None):
         super().__init__(ProfilerEvidence, data, labels)
 
