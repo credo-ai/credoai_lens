@@ -28,7 +28,7 @@ class ModelFairness(Evaluator):
     ----------
     metrics : List-like
         list of metric names as string or list of Metrics (credoai.metrics.Metric).
-        Metric strings should in list returned by credoai.metrics.list_metrics.
+        Metric strings should in list returned by credoai.modules.list_metrics.
         Note for performance parity metrics like
         "false negative rate parity" just list "false negative rate". Parity metrics
         are calculated automatically if the performance metric is supplied
@@ -113,7 +113,7 @@ class ModelFairness(Evaluator):
         ----------
         metrics : List-like
             list of metric names as string or list of Metrics (credoai.metrics.Metric).
-            Metric strings should in list returned by credoai.metrics.list_metrics.
+            Metric strings should in list returned by credoai.modules.list_metrics.
             Note for performance parity metrics like
             "false negative rate parity" just list "false negative rate". Parity metrics
             are calculated automatically if the performance metric is supplied
