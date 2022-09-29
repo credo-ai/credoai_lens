@@ -106,6 +106,7 @@ autodoc_mock_imports = [
     "tempfile",
     "tensorflow",
     "transformers",
+    "logging",
 ]
 
 

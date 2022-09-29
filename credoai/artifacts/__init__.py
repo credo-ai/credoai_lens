@@ -1,7 +1,7 @@
 """
 Containers for different types of data and models
 
-In order to ensure Lens running correctly across a variety of data formats
+In order to ensure Lens runs correctly across a variety of data formats
 and model types, user's inputs are wrapped into classes that format/validate
 them.
 """
