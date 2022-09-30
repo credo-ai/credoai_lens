@@ -1,4 +1,5 @@
 from fairlearn.metrics import MetricFrame
+from credoai.utils import ValidationError
 
 ########### General functions shared across evaluators ###########
 
@@ -26,12 +27,22 @@ def setup_metric_frames(
             sensitive_features=sensitive_features,
         )
 
-        # for metrics that require the probabilities
-        prob_metric_frame = None
-        if y_prob is not None and prob_metrics:
+    if y_prob is not None and prob_metrics:
+        if all(
+            [
+                "BINARY" in prob_metrics[key].metric_category
+                for key in prob_metrics.keys()
+            ]
+        ):
             metric_frames["prob"] = create_metric_frame(
                 prob_metrics,
-                y_prob,
+                y_prob[:, 1],
+                y_true,
                 sensitive_features=sensitive_features,
             )
+        else:
+            raise ValidationError(
+                "Specified non-binary metric with probabilistic model. Multi-output probabilistic metrics not currently supported."
+            )
+
     return metric_frames
