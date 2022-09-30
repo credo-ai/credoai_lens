@@ -1,3 +1,5 @@
+from credoai.utils import ValidationError
+
 from fairlearn.metrics import MetricFrame
 
 ########### General functions shared across evaluators ###########
@@ -26,12 +28,11 @@ def setup_metric_frames(
             sensitive_features=sensitive_features,
         )
 
-        # for metrics that require the probabilities
-        prob_metric_frame = None
-        if y_prob is not None and prob_metrics:
-            metric_frames["prob"] = create_metric_frame(
-                prob_metrics,
-                y_prob,
-                sensitive_features=sensitive_features,
-            )
+    if y_prob is not None and prob_metrics:
+        metric_frames["prob"] = create_metric_frame(
+            prob_metrics,
+            y_prob,
+            y_true,
+            sensitive_features=sensitive_features,
+        )
     return metric_frames
