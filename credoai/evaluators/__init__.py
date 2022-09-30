@@ -1,3 +1,7 @@
+"""
+Perform specific evaluations on model and/or dataset
+"""
+
 from .evaluator import Evaluator
 from .data_fairness import DataFairness
 from .data_profiling import DataProfiling
