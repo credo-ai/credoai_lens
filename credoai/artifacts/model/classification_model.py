@@ -29,6 +29,13 @@ class ClassificationModel(Model):
             model_like,
         )
 
+    def _update_functionality(self):
+        """Conditionally updates functionality based on framework"""
+        if self.model_info["framework"] == "sklearn":
+            func = getattr(self, "predict_proba", None)
+            if func and len(self.model_like.classes_) == 2:
+                self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
+
 
 class DummyClassifier:
     """Class wrapper around classification model predictions
