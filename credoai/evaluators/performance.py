@@ -23,7 +23,7 @@ class Performance(Evaluator):
     calculated on a set of ground truth labels and predictions,
     e.g., binary classification, multiclass classification, regression.
 
-    This module takes in a set of metrics  and provides functionality to:
+    This module takes in a set of metrics and provides functionality to:
     - calculate the metrics
     - create disaggregated metrics
 
@@ -32,7 +32,7 @@ class Performance(Evaluator):
     metrics : List-like
         list of metric names as strings or list of Metric or ThresholdMetric objects
         (credoai.modules.metrics.Metric and credoai.modules.metrics.ThresholdMetric).
-        Metric strings should in list returned by credoai.metrics.list_metrics.
+        Metric strings should in list returned by credoai.modules.metric_utils.list_metrics().
         Note for performance parity metrics like
         "false negative rate parity" just list "false negative rate". Parity metrics
         are calculated automatically if the performance metric is supplied
@@ -69,6 +69,7 @@ class Performance(Evaluator):
         except:
             self.y_prob = None
         self.update_metrics(self.metrics)
+        self.results = list()
 
         return self
 
@@ -85,10 +86,10 @@ class Performance(Evaluator):
         return self
 
     def _prepare_results(self):
-        """Prepares results for Credo AI's governance platform
+        """Prepares metric results for Credo AI's governance platform
 
         Structures results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
+        for exporting. See credoai.evidence.containers.
 
         Returns
         -------
@@ -98,11 +99,13 @@ class Performance(Evaluator):
         NotRunError
             Occurs if self.run is not called yet to generate the raw assessment results
         """
-        self.results = [
-            MetricContainer(self.get_overall_metrics(), **self.get_container_info())
-        ]
-
-        # TODO do a thing for table container!!
+        scalar_results, tabular_results = self.get_overall_metrics()
+        self.results.append(
+            MetricContainer(scalar_results, **self.get_container_info())
+        )
+        self.results.append(
+            TableContainer(tabular_results, **self.get_container_info())
+        )
 
     def update_metrics(self, metrics, replace=True):
         """replace metrics
@@ -162,8 +165,14 @@ class Performance(Evaluator):
         """
         # retrive overall metrics for one of the sensitive features only as they are the same
         overall_metrics = [
-            metric_frame.overall for metric_frame in self.metric_frames.values()
+            metric_frame.overall for metric_frame in list(self.metric_frames.values())
         ]
+
+        # TODO From here, I want to be able to parse out which things are metrics (scalar)
+        # vs. which ones are tables. and then return 2 values
+
+        # Labels for the columns of the output df are an issue
+        # This isn't a metric_frame issue...sklearn just doesn't return labels
         if overall_metrics:
             output_series = (
                 pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
@@ -178,11 +187,11 @@ class Performance(Evaluator):
 
         Parameters
         ----------
-        metrics : Union[List[Metirc, str]]
+        metrics : Union[List[Metric, str]]
             list of metrics to use. These can be Metric or ThresholdMetric objects
-            (see credoai.metric.metrics), or strings.
+            (see credoai.modules.metrics), or strings.
             If strings, they will be converted to Metric or ThresholdMetric objects
-            as appropriate, using find_metrics
+            as appropriate, using find_metrics()
 
         Returns
         -------
@@ -213,7 +222,7 @@ class Performance(Evaluator):
                 metric_name = metric.name
             if not isinstance(metric, Metric):
                 raise ValidationError(
-                    "Specified metric is not of type credoai.metric.Metric nor credoai.metric.ThresholdMetric"
+                    "Specified metric is not of type credoai.metric.Metric"
                 )
             if metric.metric_category == "FAIRNESS":
                 global_logger.info(
