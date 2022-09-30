@@ -26,15 +26,7 @@ def get_model_info(model):
         framework = model.__class__.__module__.split(".")[0]
     except AttributeError:
         framework = None
-    model_type = None
-    if framework in ("sklearn", "xgboost"):
-        if is_classifier(model):
-            model_type = "CLASSIFIER"
-        elif is_regressor(model):
-            model_type = "REGRESSOR"
-    elif framework in ("keras", "torch"):
-        model_type = "NEURAL_NETWORK"
-    return {"framework": framework, "model_type": model_type}
+    return {"framework": framework}
 
 
 def get_default_metrics(model):
