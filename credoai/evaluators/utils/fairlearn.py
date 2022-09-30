@@ -44,7 +44,10 @@ def setup_metric_frames(
                 sensitive_features=sensitive_features,
             )
         else:
-            raise ValidationError(
-                "Specified non-binary metric with probabilistic model. Multi-output probabilistic metrics not currently supported."
+            metric_frames["prob"] = create_metric_frame(
+                prob_metrics,
+                y_prob,
+                y_true,
+                sensitive_features=sensitive_features,
             )
     return metric_frames
