@@ -7,6 +7,8 @@
    Home page <self>
    Setup <setup>
    Jupyter tutorials <tutorials>
+   Developer Guide <developer_guide>
+   Evaluators <evaluators>
    Metrics <metrics>
    API reference <_autosummary/credoai>
 

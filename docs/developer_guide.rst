@@ -1,60 +1,84 @@
 
-Credo Artifacts: Model, Data, & Governance
--------------------------------------------
-AI Models and Datasets take many forms. This flexibility has many benefits, but is
-an obstacle when your goal is to connect any model or dataset to any assessment! To
-solve this issue we introduce two artifacts: CredoModels and CredoData.
+Developer Guide
+===============
 
-**Credo Models** are not "models" in the traditional sense - they are connector objects
-that instantiate functions necessary for an assessment. For instance, to evaluate
-fairness using the "Fairness" assessment, the CredoModel must instantiate
-a `predict_proba` or `predict`. The nature of these functions can be quite general.
+This document will go into more detail about the different components of Lens so that you can
+extend it to fit your needs. 
 
-The simplest case is you setting CredoModel's `predict` to the `predict` method of your model.
-But your "model" may actually be an API call that you want to assess, in which case
-the `predict` may be an API call.
+Lens reuses a design pattern whereby abstract classes are defined which articulate base 
+functionality that are then extended by specific classes. For instance, all evaluators 
+inherit from the ``Evaluator`` abstract class, models from the ``Model`` class, etc. 
+Thus understanding the different abstract classes goes a long way to understanding the 
+architecture of Lens. You can then build your own new model or evaluator by inheriting from
+the base classes.
 
-Some functions can be inferred from well-known frameworks like scikit-learn. This allows
-the CredoModel to be automatically set up, though further customization is possible.
+Abstract classes
+----------------
 
-**Credo Data** are simple objects that normalize datasets.
-Data assessments are run on these.
+Model
+   The ``Model`` abstract class is used to wrap trained models. Classes inheriting
+   ``Model`` will define specific functionality associated with a particularly kind of model type.
+   For example, ``ClassificationModel`` defines the functionality expected of a classification model -
+   specifically, that it has a ``predict`` function and possibly a ``predict_proba`` function.
+   Model and Data objects are referred to as AI Artifacts (or just artifacts) in parts of Lens
+   documentation.
 
-**CredoGovernance** is the connection between Lens and the Governance App. This is only relevant
-for that use-case.
+Data
+   The ``Data`` abstract class is used to wrap datasets. Classes inheriting ``Data`` will specify
+   processing steps and validation to ensure that a a particular kind of dataset is standardized
+   for use by downstream evaluators. ``TabularData`` is such a class and has certain requirements
+   for the form of data passed to it, and ensures that the data has a certain form after processing
+   (pandas dataframes or series, in this case). Model and Data objects are referred to as 
+   AI Artifacts (or just artifacts) in parts of Lens documentation.
 
+Evaluator
+   The ``Evaluator`` abstract class is the workhorse of the framework. Added to a Lens pipeline,
+   any Evaluator takes in AI Artifacts and outputs ``EvidenceContainers``.
+   Classes inheriting ``Evaluator`` will perform any kind of assessment or function needed to
+   understand an AI Artifacts behavior or characteristics. There are clearly a wide range of possible
+   evaluators! Everything from assessing performance metrics to levying adversarial attacks
+   can be instantiated in an evaluator.
 
-The Assessment Plan
---------------------
-An "Assessment Plan" must be supplied to Lens. The plan configures
-how different assessments should be run.
+EvidenceContainers
+   The ``EvidenceContainer`` abstract class is used to hold results of evaluators. An EvidenceContainer
+   is an extension of a pandas dataframe using the `composition strategy recommended by pandas <https://pandas.pydata.org/docs/development/extending.html#subclassing-pandas-data-structures>`_.
+   Essentially, they contain a dataframe, but include addition functionality including validation
+   and the ability to transform the dataframe into ``Evidence`` using the ``to_evidence`` function.
+   ``EvidenceContainers`` are primarily used to ensure that all evaluator results can work with the
+   Credo AI Governance Platform, which specifically consumes ``Evidence``.
+   An example class inheriting ``EvidenceContainer`` is ``MetricContainer``, which contains
+   a dataframe where each row is a different metric.
 
-The plan makes most sense as part of Credo AI's overall governance app. In 
-this context the Assessment Plan is the output of a multi-stakeholder articulation of
-how the AI system should be assessed. Lens actually takes care of automatically
-retrieving the Assessment Plan from Governance App, connecting 
-your technical team to compliance, product, and other stakeholders.
+Evidence
+   The ``Evidence`` abstract class is used to define the structure of results that can
+   be consumed by the Credo AI Governance Platform. ``Evidence`` is automatically created
+   from the associated ``EvidenceContainer`` and so is rarely interacted with directly by 
+   a developer. Examples of ``Evidence`` include ``MetricEvidence`` which structure metric
+   information in a particular JSON format for the platform.
 
-Of course, a single person can also defined the Plan. 
-In this case, the Assessment Plan still serves as an initial decision
-as to how assessments should be run, and summary of the assessments run.
+Other Classes
+-------------
 
-Beyond the Assessment Plan, each module has other parameters that can be configured. 
-See :ref:`the FAQ <lens faq>` for more information.
+Lens
+   ``Lens`` is the primary interface between models, data, and evaluators. Lens performs an orchestration
+   function. It interacts with an (optional) Governance object, generates or ingests a user-specified
+   pipeline of evaluators, runs those evaluators, and defined functions to access the results.
 
+   The pipeline of evaluators is a list of instantiated ``Evaluators`` with optional IDs or metadata
+   attached. Manually, it can be created all at once by defining a list of evaluators, or incrementally,
+   by adding evaluators to a Lens object one at a time. It can also be created automatically, using
+   a ``PipelineCreator`` under the hood, in certain circumstances.
 
-Credo AI Governance App
-----------------------------
-Assessment is important, but it's not the end all of Responsible AI development!
-`Credo AI's <https://www.credo.ai/>`_ Governance App provides the other aspects needed for effective
-AI governance including: support for multi-stakeholder alignment, policy packs
-for different areas of responsible AI development and compliance needs,
-and continuous translation of all evidence (including assessment result!) into
-a risk perspective.
+PipelineCreator
+   A ``PipelineCreator`` handles pipeline creation that isn't manual. Currently it supports creating
+   piplines when a ``Governance`` object is passed connected to a policy pack on the Platform. 
 
-This app is independent from using Lens for assessments. You can use *any*
-method to assess your AI artifacts and upload the results to the Governance App
-smoothly. Check out the `integration demo <https://credoai-lens.readthedocs.io/en/latest/notebooks/integration_demo.html>`_ to see how that is done.
+Governance
+   The ``Governance`` object serves as a connection point between the Credo AI Platform and Lens.
+   Developers who don't work specifically with Credo AI should not need to change this.
 
+Developing in Lens
+------------------
 
-
+Section in progress! For now, the main area to extend functionality is by creating
+your own Evaluator. 

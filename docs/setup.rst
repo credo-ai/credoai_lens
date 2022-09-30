@@ -20,16 +20,25 @@ Then run...
 
    conda env create --file {path-to-environment.yml}
 
-The above will install Lens with all dependencies (equivalent to credoai-lens[full]) below. If
-you only want to install the basic lens, edit the environment.yml file before running.
+The above will install the latest stable version of Lens. If you prefer to use
+the latest development version, follow the above by installing directly from
+github using pip (see below).
 
 
 **Pip**
+
+Lens is on PyPi and can be installed using pip. The below will install the latest stable release
+of the package.
 
 ::
 
    pip install credoai-lens
 
+The latest development version can also be installed directly from github.
+
+::
+
+   pip install git+https://github.com/credo-ai/credoai_lens#develop
 
 **ARM Macbook installation troubleshooting**
 

@@ -1,7 +1,6 @@
 from collections import deque
 from io import StringIO
 from logging import FileHandler, Formatter, Handler, StreamHandler, getLogger
-
 from os.path import join
 from sys import stdout
 
@@ -68,7 +67,7 @@ class Logger:
         self.logger.addHandler(file_handler)
 
 
-def setup_logger(name="lens", path=None, record_stream=True, logging_level="INFO"):
+def setup_logger(name="lens", path=None, record_stream=False, logging_level="INFO"):
     tmp = Logger(name, path, record_stream, logging_level)
     return tmp.logger, tmp.stream
 
