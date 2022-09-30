@@ -7,7 +7,6 @@ from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.governance import Governance
 from credoai.lens.pipeline_creator import PipelineCreator
-from credoai.lens.utils import log_command
 from credoai.utils import ValidationError, flatten_list, global_logger
 
 # Custom type
@@ -71,7 +70,6 @@ class Lens:
     def __getitem__(self, stepname):
         return self.pipeline[stepname]
 
-    @log_command
     def add(self, evaluator: Evaluator, id: str = None, metadata: dict = None):
         """
         Add a single step to the pipeline.
@@ -142,7 +140,6 @@ class Lens:
             )
         return self
 
-    @log_command
     def remove(self, id: str):
         """
         Remove a step from the pipeline based on the id.
@@ -156,7 +153,6 @@ class Lens:
         del self.pipeline[id]
         return self
 
-    @log_command
     def run(self):
         """
         Run the main loop across all the pipeline steps.
