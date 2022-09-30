@@ -54,7 +54,7 @@ class Governance:
 
     """
 
-    def __init__(self, credo_api_client: CredoApiClient = None):
+    def __init__(self, credo_api_client: CredoApiClient = None, config_path=None):
         self._use_case_id: str = None
         self._policy_pack_id: str = None
         self._evidence_requirements: List[EvidenceRequirement] = []
@@ -64,7 +64,7 @@ class Governance:
         if credo_api_client:
             client = credo_api_client
         else:
-            client = CredoApiClient()
+            client = CredoApiClient(config_path=config_path)
 
         self._api = CredoApi(client=client)
 
