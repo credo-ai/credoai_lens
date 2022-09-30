@@ -16,13 +16,14 @@ from credoai.utils.common import NotRunError, ValidationError
 
 class ModelFairness(Evaluator):
     """
-    Fairness module for Credo AI. Handles any metric that can be
-    calculated on a set of ground truth labels and predictions,
+    Model Fairness evaluator for Credo AI.
+
+    This evaluator calculates performance metrics disaggregated by a sensitive feature, as
+    well as evaluating the parity of those metrics.
+
+    Handles any metric that can be calculated on a set of ground truth labels and predictions,
     e.g., binary classification, multiclass classification, regression.
 
-    This module takes in a set of metrics  and provides functionality to:
-    - calculate the metrics
-    - create disaggregated metrics
 
     Parameters
     ----------

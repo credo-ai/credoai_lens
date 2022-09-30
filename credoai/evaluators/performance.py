@@ -16,13 +16,12 @@ from credoai.utils.common import ValidationError
 
 class Performance(Evaluator):
     """
-    Performance module for Credo AI. Handles any metric that can be
-    calculated on a set of ground truth labels and predictions,
+    Performance evaluator for Credo AI.
+
+    This evaluator calculates overall performance metrics.
+    Handles any metric that can be calculated on a set of ground truth labels and predictions,
     e.g., binary classification, multiclass classification, regression.
 
-    This module takes in a set of metrics  and provides functionality to:
-    - calculate the metrics
-    - create disaggregated metrics
 
     Parameters
     ----------

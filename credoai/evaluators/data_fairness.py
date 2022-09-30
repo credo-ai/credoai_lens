@@ -6,18 +6,17 @@ import numpy as np
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
-    check_data_instance,
-    check_existence,
-)
+from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
+                                                 check_data_instance,
+                                                 check_existence)
 from credoai.evidence import MetricContainer
 from credoai.utils.common import NotRunError, ValidationError, is_categorical
 from credoai.utils.constants import MULTICLASS_THRESH
 from credoai.utils.dataset_utils import ColumnTransformerUtil
 from credoai.utils.model_utils import get_generic_classifier
 from sklearn.compose import ColumnTransformer
-from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
+from sklearn.feature_selection import (mutual_info_classif,
+                                       mutual_info_regression)
 from sklearn.metrics import make_scorer, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
@@ -25,9 +24,15 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
 class DataFairness(Evaluator):
-    """Dataset module for Credo AI.
+    """Data Fairness for Credo AI.
 
-    This module takes in features and labels and provides functionality to perform dataset assessment
+    This evaluator performs a fairness evaluation on the dataset. Given a sensitive feature,
+    it calculates a number of assessments:
+
+    - group differences of features
+    - evaluates whether features in the dataset are proxies for the sensitive feature
+    - whether the entire dataset can be seen as a proxy for the sensitive feature
+      (i.e., the sensitive feature is "redundantly encoded")
 
     Parameters
     ----------

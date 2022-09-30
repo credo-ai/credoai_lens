@@ -5,11 +5,9 @@ import numpy as np
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
-    check_data_instance,
-    check_existence,
-)
+from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
+                                                 check_data_instance,
+                                                 check_existence)
 from credoai.evidence import MetricContainer, TableContainer
 from credoai.utils import NotRunError, global_logger
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
@@ -17,15 +15,15 @@ from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
 
 class DataEquity(Evaluator):
     """
-    Dataset Equity module for Credo AI.
+    Data Equity module for Credo AI.
 
-    This module assesses whether outcomes are distributed equally across a sensitive
+    This evaluator assesses whether outcomes are distributed equally across a sensitive
     feature. Depending on the kind of outcome, different tests will be performed.
 
-    * Discrete: chi-squared contingency tests,
+    - Discrete: chi-squared contingency tests,
       followed by bonferronni corrected posthoc chi-sq tests
-    * Continuous: One-way ANOVA, followed by Tukey HSD posthoc tests
-    * Proportion (Bounded [0-1] continuous outcome): outcome is transformed to logits, then
+    - Continuous: One-way ANOVA, followed by Tukey HSD posthoc tests
+    - Proportion (Bounded [0-1] continuous outcome): outcome is transformed to logits, then
         proceed as normal for continuous
 
     Parameters
