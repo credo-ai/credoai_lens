@@ -7,7 +7,7 @@ class ClassificationModel(Model):
 
     ClassificationModel serves as an adapter between arbitrary binary or multi-class
     classification models and the evaluations in Lens. Evaluations depend on
-    ClassificationModel instantiating certain methods.
+    ClassificationModel instantiating `predict` and (optionally) `predict_proba`
 
     Parameters
     ----------
