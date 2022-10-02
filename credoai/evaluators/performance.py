@@ -6,7 +6,9 @@ from credoai.evaluators.utils.validation import (
     check_artifact_for_nulls,
     check_data_instance,
     check_existence,
+    check_model_instance,
 )
+from credoai.artifacts import ClassificationModel
 from credoai.evidence import MetricContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
@@ -220,3 +222,4 @@ class Performance(Evaluator):
         check_existence(self.metrics, "metrics")
         check_data_instance(self.assessment_data, TabularData)
         check_artifact_for_nulls(self.assessment_data, "Data")
+        check_model_instance(self.model, ClassificationModel)

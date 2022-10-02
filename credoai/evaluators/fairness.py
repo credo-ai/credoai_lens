@@ -6,7 +6,9 @@ from credoai.evaluators.utils.validation import (
     check_artifact_for_nulls,
     check_data_instance,
     check_existence,
+    check_model_instance,
 )
+from credoai.artifacts import ClassificationModel
 from credoai.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
@@ -310,3 +312,4 @@ class ModelFairness(Evaluator):
         check_data_instance(self.data, TabularData)
         check_existence(self.data.sensitive_features, "sensitive_features")
         check_artifact_for_nulls(self.data, "Data")
+        check_model_instance(self.model, ClassificationModel)
