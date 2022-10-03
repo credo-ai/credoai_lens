@@ -8,7 +8,10 @@ from credoai.evaluators.utils.validation import (
     check_existence,
 )
 from credoai.evidence import MetricContainer, TableContainer
-from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
+from credoai.modules.metric_constants import (
+    MODEL_METRIC_CATEGORIES,
+    THRESHOLD_METRIC_CATEGORIES,
+)
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError
@@ -81,10 +84,15 @@ class ModelFairness(Evaluator):
         self._prepare_results()
         return self
 
+    # TODO add threshold metrics
+    # We'll need to fiddle with disaggregated_df
+    # Maybe separated disaggregated_df into metrics and threshold metrics
+    # ..table of ThresholdMetricContainers for each threshold metric??
     def _prepare_results(self):
         fairness_results = self.get_fairness_results()
         fairness_results = pd.DataFrame(fairness_results).reset_index()
         fairness_results.rename({"metric_type": "type"}, axis=1, inplace=True)
+
         disaggregated_df = self.get_disaggregated_performance()
 
         self.results = [
@@ -138,6 +146,8 @@ class ModelFairness(Evaluator):
             self.sensitive_features,
         )
 
+    # TODO add thresholds here. The functionality should be ~the same as for
+    # performance
     def get_disaggregated_performance(self):
         """Return performance metrics for each group
 
@@ -171,6 +181,11 @@ class ModelFairness(Evaluator):
         Note, performance parity metrics are labeled with their
         related performance label, but are computed using
         fairlearn.metrics.MetricFrame.difference(method)
+
+        By convention, ThresholdMetrics are not considered in this function.
+        There is no agreed-upon notion of how to calculate the 'difference' between
+        two performance curves (e.g. comparing separate roc curves showing performance
+        across groups for a sensitive feature).
 
         Parameters
         ----------
@@ -246,14 +261,19 @@ class ModelFairness(Evaluator):
         results.loc[results.index[-len(parity_results) :], "subtype"] = "parity"
         return results.sort_values(by="sensitive_feature")
 
+    # TODO check for threshold metrics
+    # should be pretty similar to the change to _process_metrics in performance.py
+    # make sure not to add them to the fairness_metrics list..otherwise .difference()
+    # will get called and that will throw an error
     def _process_metrics(self, metrics):
         """Separates metrics
 
         Parameters
         ----------
-        metrics : Union[List[Metirc, str]]
-            list of metrics to use. These can be Metric objects (credoai.metric.metrics) or
-            strings. If strings, they will be converted to Metric objects using find_metrics
+        metrics : Union[List[Metric, str]]
+            list of metrics to use. These can be Metric or ThresholdMetrics objects
+            (see credoai.modules.metrics.py), or strings.
+            If strings, they will be converted to Metric objects using find_metrics
 
         Returns
         -------
@@ -268,7 +288,10 @@ class ModelFairness(Evaluator):
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
-                metric = find_metrics(metric, MODEL_METRIC_CATEGORIES)
+                metric = find_metrics(
+                    metric,
+                    MODEL_METRIC_CATEGORIES + THRESHOLD_METRIC_CATEGORIES,
+                )
                 if len(metric) == 1:
                     metric = metric[0]
                 elif len(metric) == 0:
@@ -284,8 +307,14 @@ class ModelFairness(Evaluator):
             if not isinstance(metric, Metric):
                 raise ValidationError("Metric is not of type credoai.metric.Metric")
             if metric.metric_category == "FAIRNESS":
-                fairness_metrics[metric_name] = metric
-            elif metric.metric_category in MODEL_METRIC_CATEGORIES:
+                if metric.takes_prob:
+                    fairness_prob_metrics[metric_name] = metric
+                else:
+                    fairness_metrics[metric_name] = metric
+            elif (
+                metric.metric_category
+                in MODEL_METRIC_CATEGORIES + THRESHOLD_METRIC_CATEGORIES
+            ):
                 if metric.takes_prob:
                     prob_metrics[metric_name] = metric
                 else:

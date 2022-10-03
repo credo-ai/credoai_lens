@@ -199,7 +199,7 @@ class Performance(Evaluator):
         ----------
         metrics : Union[List[Metric, str]]
             list of metrics to use. These can be Metric or ThresholdMetric objects
-            (see credoai.modules.metrics), or strings.
+            (see credoai.modules.metrics.py), or strings.
             If strings, they will be converted to Metric or ThresholdMetric objects
             as appropriate, using find_metrics()
 
