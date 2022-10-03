@@ -9,9 +9,9 @@ BINARY_CLASSIFICATION_CURVE_FUNCTIONS = {
 }
 
 THRESHOLD_PROBABILITY_FUNCTIONS = {
-    "roc_curve",
-    "precision_recall_curve",
-    "det_curve",
+    "roc_curve": ["fpr", "tpr", "thresholds"],
+    "precision_recall_curve": ["precision", "recall", "thresholds"],
+    "det_curve": ["fpr", "fnr", "thresholds"],
 }
 
 # Included for consistency relative to Metric and metric_constants.py

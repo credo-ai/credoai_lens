@@ -149,6 +149,37 @@ class TableEvidence(Evidence):
         return label
 
 
+class ThresholdVaryingEvidence(Evidence):
+    """
+    Evidence for threshold-varying metrics (roc_curve, precision_recall_curve, etc.)
+
+    Parameters
+    ----------
+    name : string
+        Name of the curve type (e.g. 'roc_curve')
+    curve_data : dict
+        dictionary of numpy arrays containing metrics and threshold values
+        Arrays are not necessarily of same length
+    metadata : dict, optional
+        Arbitrary keyword arguments to append to metric as metadata. These will be
+        displayed in the governance app
+    """
+
+    def __init__(self, name: str, curve_data: dict, additional_labels=None, **metadata):
+        self.name = name
+        self._data = curve_data
+        super().__init__("threshold_varying_curve", additional_labels, **metadata)
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def base_label(self):
+        label = {"curve_name": self.name}
+        return label
+
+
 class ProfilerEvidence(Evidence):
     """
     Evidence for the result of pandas profiler

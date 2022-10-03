@@ -7,12 +7,13 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from credoai.evidence import MetricContainer, TableContainer
+from credoai.evidence import MetricContainer, ThresholdEvidenceContainer
 from credoai.modules.metric_constants import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,
 )
-from credoai.modules.metrics import Metric, ThresholdMetric, find_metrics
+from credoai.modules.threshold_metric_constants import THRESHOLD_PROBABILITY_FUNCTIONS
+from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
 
@@ -56,7 +57,7 @@ class Performance(Evaluator):
         self.prob_metrics = None
         self.failed_metrics = None
         self.perform_disaggregation = True
-        # I think perform_disaggregations is no longer needed
+        # erform_disaggregations is no longer needed?
         # Removing it might break some things, like the Quickstart.
         # Keeping for now. ESS 9/29/22
 
@@ -99,13 +100,18 @@ class Performance(Evaluator):
         NotRunError
             Occurs if self.run is not called yet to generate the raw assessment results
         """
-        scalar_results, tabular_results = self.get_overall_metrics()
-        self.results.append(
-            MetricContainer(scalar_results, **self.get_container_info())
-        )
-        self.results.append(
-            TableContainer(tabular_results, **self.get_container_info())
-        )
+        scalar_results, threshold_results = self.get_overall_metrics()
+
+        if not scalar_results.empty:
+            self.results.append(
+                MetricContainer(scalar_results, **self.get_container_info())
+            )
+        if not threshold_results.empty:
+            self.results.append(
+                ThresholdEvidenceContainer(
+                    threshold_results, **self.get_container_info()
+                )
+            )
 
     def update_metrics(self, metrics, replace=True):
         """replace metrics
@@ -168,16 +174,20 @@ class Performance(Evaluator):
             metric_frame.overall for metric_frame in list(self.metric_frames.values())
         ]
 
-        # TODO From here, I want to be able to parse out which things are metrics (scalar)
-        # vs. which ones are tables. and then return 2 values
-
-        # Labels for the columns of the output df are an issue
-        # This isn't a metric_frame issue...sklearn just doesn't return labels
         if overall_metrics:
             output_series = (
                 pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
             )
-            return output_series.reset_index().rename({"index": "type"}, axis=1)
+            scalar_series = output_series[
+                ~output_series.index.isin(THRESHOLD_PROBABILITY_FUNCTIONS.keys())
+            ]
+            threshold_results = output_series[
+                output_series.index.isin(THRESHOLD_PROBABILITY_FUNCTIONS.keys())
+            ]
+            return (
+                scalar_series.reset_index().rename({"index": "type"}, axis=1),
+                threshold_results.reset_index().rename({"index": "type"}, axis=1),
+            )
         else:
             global_logger.warn("No overall metrics could be calculated.")
 

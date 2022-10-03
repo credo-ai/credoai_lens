@@ -9,7 +9,14 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from credoai.utils import ValidationError
 
-from .evidence import MetricEvidence, ProfilerEvidence, TableEvidence
+from .evidence import (
+    MetricEvidence,
+    ProfilerEvidence,
+    TableEvidence,
+    ThresholdVaryingEvidence,
+)
+
+from credoai.modules.threshold_metric_constants import THRESHOLD_PROBABILITY_FUNCTIONS
 
 
 class EvidenceContainer(ABC):
@@ -94,6 +101,38 @@ class TableContainer(EvidenceContainer):
             df.name
         except AttributeError:
             raise ValidationError("DataFrame must have a 'name' attribute")
+
+
+class ThresholdEvidenceContainer(EvidenceContainer):
+    """Container for all threshold-varying type evidence"""
+
+    def __init__(
+        self, curve_data: pd.DataFrame, labels: dict = None, metadata: dict = None
+    ):
+        super().__init__(ThresholdVaryingEvidence, curve_data, labels, metadata)
+
+    def to_evidence(self, **metadata):
+        evidence = []
+        for _, metric in self._df.iterrows():
+            metric_dict = {
+                THRESHOLD_PROBABILITY_FUNCTIONS[metric.values[0]][i]: metric.value[i]
+                for i in range(len(metric.value))
+            }
+            evidence.append(
+                self.evidence_class(
+                    name=metric.values[0],
+                    curve_data=metric_dict,
+                    **self.metadata,
+                    **metadata,
+                )
+            )
+        return evidence
+
+    def _validate(self, df):
+        required_columns = {"type", "value"}
+        column_overlap = df.columns.intersection(required_columns)
+        if len(column_overlap) != len(required_columns):
+            raise ValidationError(f"Must have columns: {required_columns}")
 
 
 class ProfilerContainer(EvidenceContainer):
