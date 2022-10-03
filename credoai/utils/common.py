@@ -1,14 +1,11 @@
 import collections
 import hashlib
 import json
-import os
 from pathlib import Path
 from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
-import requests
-import sklearn.utils as skutils
 
 
 class NotRunError(Exception):
@@ -35,6 +32,32 @@ class SupressSettingWithCopyWarning:
         pd.options.mode.chained_assignment = "warn"
 
 
+def check_subset(subset, superset):
+    """Check whether one dictionary, list or set is a subset of another
+
+    Handles nested dictionaries
+    """
+    if type(subset) != type(superset):
+        return False
+    if isinstance(subset, dict):
+        for k, v in subset.items():
+            superset_value = superset.get(k)
+            if superset_value == v:
+                continue
+            elif type(v) != type(superset_value):
+                return False
+            elif isinstance(v, (dict, list, set)):
+                out = check_subset(v, superset_value)
+                if not out:
+                    return False
+            else:
+                return False
+    if isinstance(subset, (list, set)):
+        return set(subset) <= set(superset)
+
+    return True
+
+
 def get_project_root() -> Path:
     return Path(__file__).parent.parent
 
@@ -56,6 +79,7 @@ def update_dictionary(d, u):
 
 
 def wrap_list(obj):
+    """Ensures object is an iterable"""
     if type(obj) == str:
         obj = [obj]
     elif obj is None:
@@ -75,10 +99,11 @@ def humanize_label(s):
     return " ".join(s.split("_")).title()
 
 
-class NumpyEncoder(json.JSONEncoder):
+class CredoEncoder(json.JSONEncoder):
     """Special json encoder for numpy types"""
 
     def default(self, obj):
+        # numpy encoders
         if isinstance(obj, np.integer):
             return int(obj)
         elif isinstance(obj, np.floating):
@@ -90,7 +115,7 @@ class NumpyEncoder(json.JSONEncoder):
 
 def json_dumps(obj):
     """Custom json dumps with encoder"""
-    return json.dumps(obj, cls=NumpyEncoder)
+    return json.dumps(obj, cls=CredoEncoder, indent=2)
 
 
 def dict_hash(dictionary: Dict[str, Any]) -> str:

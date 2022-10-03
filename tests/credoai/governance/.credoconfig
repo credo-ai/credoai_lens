@@ -1,0 +1,4 @@
+TENANT=credoai
+API_KEY=AbcdeF
+CREDO_URL=http://localhost:4000
+    

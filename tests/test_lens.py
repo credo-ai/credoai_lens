@@ -1,205 +1,212 @@
-import credoai.lens as cl
-import numpy as np
-import pandas as pd
-from credoai.data._fetch_testdata import fetch_testdata
-from sklearn.linear_model import LogisticRegression
+"""
+Testing protocols for the Lens package. Tested functionalities:
+    1. General inits
+    2. Individual evaluator runs
+"""
 
-# set up data and models
-train_data, test_data = fetch_testdata(False, 1, 1)
+from abc import ABC, abstractmethod
 
-train_credo_data = cl.CredoData(
-    name="test_data_train",
-    X=train_data["X"],
-    y=train_data["y"],
-    sensitive_features=train_data["sensitive_features"],
-)
-test_credo_data = cl.CredoData(
-    name="test_data_test",
-    X=test_data["X"],
-    y=test_data["y"],
-    sensitive_features=test_data["sensitive_features"],
-)
+import pytest
+from credoai.artifacts import TabularData
+from credoai.evaluators import (DataEquity, DataFairness, DataProfiling,
+                                ModelEquity, ModelFairness, Performance,
+                                Privacy, Security)
+from credoai.evaluators.ranking_fairness import RankingFairness
+from credoai.lens import Lens
+from pandas import DataFrame
 
-gov = cl.CredoGovernance()
-gov.model_id = "model_test"
-gov.use_case_id = "use_case_test"
-gov.dataset_id = "dataset_test"
-
-model = LogisticRegression(random_state=0).fit(train_data["X"], train_data["y"])
-credo_model = cl.CredoModel(name="income_classifier", model=model)
-assessment_plan = {
-    "Fairness": {"metrics": ["precision_score"]},
-    "Performance": {"metrics": ["precision_score"]},
-}
+TEST_METRICS = [
+    ["false_negative_rate"],
+    ["average_precision_score"],
+    ["false_negative_rate", "average_precision_score"],
+]
+TEST_METRICS_IDS = ["binary_metric", "probability_metric", "both"]
 
 
-def test_lens_with_model():
-    lens = cl.Lens(
-        model=credo_model, data=test_credo_data, assessment_plan=assessment_plan
+@pytest.fixture(scope="class")
+def init_lens(
+    classification_model,
+    classification_assessment_data,
+    classification_train_data,
+    request,
+):
+    my_pipeline = Lens(
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
     )
+    request.cls.pipeline = my_pipeline
 
-    results = lens.run_assessments().get_results()
-    fairness_results = results["validation_model"]["Fairness"]["gender"]["fairness"]
-    metric = fairness_results.index[0]
-    metric_score = round(fairness_results.iloc[0]["value"], 2)
-    expected_assessments = {
-        "DatasetFairness",
-        "DatasetProfiling",
-        "DatasetEquity",
-        "ModelEquity",
-        "Fairness",
-        "Performance",
-    }
-    fairness_assessment = [
-        record for record in lens.assessments if record.name == "validation_model"
-    ][0].assessments["Fairness"]
 
-    assert metric == "precision_score"
-    assert metric_score == 0.17
-    assert (
-        set([a.name for a in lens.get_assessments(flatten=True)])
-        == expected_assessments
+@pytest.mark.usefixtures("init_lens")
+class Base_Evaluator_Test(ABC):
+    """
+    Base evaluator class
+
+    This takes in the initialized lens fixture and defines standardized tests
+    for each evaluator.
+    """
+
+    ...
+
+
+class TestModelFairness(Base_Evaluator_Test):
+    @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
+    def test_full_run(self, metrics):
+        evaluator = ModelFairness(metrics)
+        self.pipeline.add(evaluator)
+        self.pipeline.run()
+        assert len(self.pipeline.pipeline) == 4
+        assert self.pipeline.get_results()
+        self.pipeline.pipeline = {}
+
+
+class TestPrivacy(Base_Evaluator_Test):
+    evaluator = Privacy(attack_feature="experience")
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
+class TestDataFairness(Base_Evaluator_Test):
+    evaluator = DataFairness()
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 4
+
+    def test_run(self):
+        self.pipeline.get_results()
+        assert True
+
+
+class TestDataProfiling(Base_Evaluator_Test):
+    evaluator = DataProfiling()
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 2
+
+    def test_run(self):
+        self.pipeline.get_results()
+        assert True
+
+
+class TestModelEquity(Base_Evaluator_Test):
+    evaluator = ModelEquity()
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 2
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
+class TestDataEquity(Base_Evaluator_Test):
+    evaluator = DataEquity()
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 4
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
+class TestSecurity(Base_Evaluator_Test):
+    evaluator = Security()
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
+class TestPerformance(Base_Evaluator_Test):
+    @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
+    def test_full_run(self, metrics):
+        evaluator = Performance(metrics)
+        self.pipeline.add(evaluator)
+        self.pipeline.run()
+        assert len(self.pipeline.pipeline) == 1
+        assert self.pipeline.get_results()
+        self.pipeline.pipeline = {}
+
+
+class TestRankingFairnes:
+    evaluator = RankingFairness()
+
+    df = DataFrame(
+        {
+            "rankings": [1, 2, 3, 4, 5, 6, 7],
+            "sensitive_features": ["f", "f", "m", "m", "f", "m", "f"],
+        }
     )
-    assert fairness_assessment.initialized_module.static_kwargs["metrics"] == [
-        "precision_score"
+    data = TabularData(
+        name="ranks", y=df[["rankings"]], sensitive_features=df[["sensitive_features"]]
+    )
+    expected_results = DataFrame(
+        {
+            "value": [0.86, 1.14, 0.32],
+            "type": ["minimum_skew", "maximum_skew", "NDKL"],
+            "subtype": ["score"] * 3,
+        }
+    )
+    pipeline = Lens(assessment_data=data)
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator, "dummy")
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+    def test_results(self):
+        results = self.pipeline.get_results()["dummy"][0].round(2)
+        assert results.equals(self.expected_results)
+
+
+def test_bulk_pipeline_run(
+    classification_model, classification_assessment_data, classification_train_data
+):
+    """
+    Testing the passing of the list of evaluator works
+    and the pipeline is running.
+    """
+    pipe_structure = [
+        (Security(), "Security assessment"),
+        (DataProfiling(), "Profiling test data"),
+        (DataFairness(), "Test data Fairness"),
     ]
-
-
-def test_lens_without_model():
-    lens = cl.Lens(data=test_credo_data)
-    results = lens.run_assessments().get_results()
-    metric_score = results["validation"]["DatasetFairness"]["gender"][
-        "demographic_parity_ratio"
-    ][0]["value"]
-    assert round(metric_score, 2) == 0.8
-    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {
-        "DatasetFairness",
-        "DatasetProfiling",
-        "DatasetEquity",
-    }
-
-
-def test_lens_without_sensitive_feature():
-    test_credo_data = cl.CredoData(name="test_data", X=test_data["X"], y=test_data["y"])
-    lens = cl.Lens(
-        model=credo_model, data=test_credo_data, assessment_plan=assessment_plan
+    my_pipeline = Lens(
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
+        pipeline=pipe_structure,
     )
-    results = lens.run_assessments().get_results()
-    expected_assessments = {"DatasetProfiling", "Performance"}
-    assert (
-        set([a.name for a in lens.get_assessments(flatten=True)])
-        == expected_assessments
+    my_pipeline.run()
+    assert my_pipeline.get_results()
+
+
+@pytest.mark.xfail(raises=RuntimeError)
+def test_empty_pipeline_run(
+    classification_model, classification_assessment_data, classification_train_data
+):
+    my_pipeline = Lens(
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
     )
-
-
-def test_lens_with_intersectionality():
-    test_credo_data = cl.CredoData(
-        name="test_data",
-        X=test_data["X"],
-        y=test_data["y"],
-        sensitive_features=test_data["sensitive_features"],
-        sensitive_intersections=True,
-    )
-    lens = cl.Lens(
-        model=credo_model, data=test_credo_data, assessment_plan=assessment_plan
-    )
-    results = lens.run_assessments().get_results()
-    expected_sensitive_features = {"race", "gender", "race_gender"}
-    assert (
-        set(test_credo_data.sensitive_features.columns) == expected_sensitive_features
-    )
-    assert (
-        set(results["validation"]["DatasetEquity"].keys())
-        == expected_sensitive_features
-    )
-    expected_assessments = {
-        "DatasetFairness",
-        "DatasetProfiling",
-        "DatasetEquity",
-        "ModelEquity",
-        "Fairness",
-        "Performance",
-    }
-    assert (
-        set([a.name for a in lens.get_assessments(flatten=True)])
-        == expected_assessments
-    )
-
-
-def test_lens_dataset_with_missing_data():
-    _, test_data = fetch_testdata(True, 1, 1)
-
-    test_credo_data = cl.CredoData(
-        name="test_data",
-        X=test_data["X"],
-        y=test_data["y"],
-        sensitive_features=test_data["sensitive_features"],
-    )
-
-    lens = cl.Lens(
-        data=test_credo_data,
-        assessment_plan={"DatasetFairness": {"nan_strategy": "drop"}},
-    )
-    results = lens.run_assessments().get_results()
-
-    metric_score = results["validation"]["DatasetFairness"]["gender"][
-        "demographic_parity_ratio"
-    ][0]["value"]
-    assert round(metric_score, 2) == 0.44
-    assert set([a.name for a in lens.get_assessments(flatten=True)]) == {
-        "DatasetFairness",
-        "DatasetProfiling",
-        "DatasetEquity",
-    }
-
-
-def test_display():
-    lens = cl.Lens(
-        model=credo_model, data=test_credo_data, assessment_plan=assessment_plan
-    )
-    lens.run_assessments()
-    lens.display_results()
-
-
-def test_asset_creation():
-    lens = cl.Lens(
-        model=credo_model,
-        data=test_credo_data,
-        assessment_plan=assessment_plan,
-        governance=gov,
-    )
-    lens.run_assessments()
-    lens.export(".")
-
-
-def test_lens_with_model_and_training():
-    lens = cl.Lens(
-        model=credo_model,
-        data=test_credo_data,
-        training_data=train_credo_data,
-        assessment_plan=assessment_plan,
-    )
-
-    results = lens.run_assessments().get_results()
-    rule_based_attack_score = round(
-        results["validation_training_model"]["Privacy"][
-            "membership_inference_attack_score"
-        ],
-        2,
-    )
-    expected_assessments = {
-        "DatasetFairness",
-        "DatasetProfiling",
-        "DatasetEquity",
-        "ModelEquity",
-        "Fairness",
-        "Performance",
-        "Privacy",
-        "Security",
-    }
-
-    assert rule_based_attack_score == 0.5
-    assert (
-        set([a.name for a in lens.get_assessments(flatten=True)])
-        == expected_assessments
-    )
+    my_pipeline.run()

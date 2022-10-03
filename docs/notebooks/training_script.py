@@ -1,5 +1,5 @@
 # imports for example data and model training
-from credoai.data import fetch_creditdefault
+from credoai.datasets import fetch_creditdefault
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
@@ -8,7 +8,7 @@ df = data["data"]
 df["target"] = data["target"].astype(int)
 
 # fit model
-model = RandomForestClassifier()
+model = RandomForestClassifier(random_state=42)
 X = df.drop(columns=["SEX", "target"])
 y = df["target"]
 sensitive_features = df["SEX"]

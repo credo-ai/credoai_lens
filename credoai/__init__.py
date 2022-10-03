@@ -1,1 +1,5 @@
-__version__ = "0.2.1"
+"""
+Primary interface for Credo AI Lens package
+"""
+
+__version__ = "1.0.0"

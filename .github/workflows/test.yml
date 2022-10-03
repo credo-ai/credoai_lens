@@ -26,7 +26,6 @@ jobs:
           pip install pytest pytest-cov
           pip install tensorflow
           pip install -r requirements.txt
-          pip install -r requirements-extras.txt
       - name: Run tests
         run: |
           scripts/test.sh 
