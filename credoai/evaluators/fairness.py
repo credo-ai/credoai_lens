@@ -9,7 +9,6 @@ from credoai.evaluators.utils.validation import (
     check_model_instance,
 )
 from credoai.evidence import MetricContainer, TableContainer
-from credoai.evidence.utils import tuple_metric_to_DataFrame
 from credoai.modules.metric_constants import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,
@@ -123,19 +122,26 @@ class ModelFairness(Evaluator):
 
         if not disaggregated_thresh_df.empty:
             for _, thresh_metric in disaggregated_thresh_df.iterrows():
-                thresh_metric_as_df = tuple_metric_to_DataFrame(
-                    thresh_metric,
-                    self.sensitive_features.name,
-                    thresh_metric[self.sensitive_features.name],
+                # thresh_metric_as_df = tuple_metric_to_DataFrame(
+                #     thresh_metric,
+                #     self.sensitive_features.name,
+                #     thresh_metric[self.sensitive_features.name],
+                # )
+                thresh_metric.value.name = (
+                    thresh_metric.threshold_metric
+                    + "_"
+                    + self.sensitive_features.name
+                    + "_"
+                    + thresh_metric[self.sensitive_features.name]
                 )
                 self.results.append(
                     TableContainer(
-                        thresh_metric_as_df,
+                        thresh_metric.value,
                         **self.get_container_info(
                             labels={
                                 "sensitive_feature": self.sensitive_features.name,
-                                "sensitive_feature_val": thresh_metric_as_df[
-                                    "sensitive_feat"
+                                "sensitive_feature_val": thresh_metric[
+                                    self.sensitive_features.name
                                 ],
                             }
                         ),

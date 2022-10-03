@@ -8,7 +8,6 @@ from credoai.evaluators.utils.validation import (
     check_existence,
 )
 from credoai.evidence import MetricContainer, TableContainer
-from credoai.evidence.utils import tuple_metric_to_DataFrame
 from credoai.modules.metric_constants import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,
@@ -111,9 +110,9 @@ class Performance(Evaluator):
             )
         if not threshold_results.empty:
             for _, threshold_metric in threshold_results.iterrows():
-                thresh_metric_as_df = tuple_metric_to_DataFrame(threshold_metric)
+                threshold_metric.value.name = threshold_metric.threshold_metric
                 self.results.append(
-                    TableContainer(thresh_metric_as_df, **self.get_container_info())
+                    TableContainer(threshold_metric.value, **self.get_container_info())
                 )
 
     def update_metrics(self, metrics, replace=True):
