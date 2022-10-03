@@ -154,6 +154,30 @@ class TestPerformance(Base_Evaluator_Test):
         assert self.pipeline.get_results()
 
 
+class TestThresholdPerformance(Base_Evaluator_Test):
+    evaluator = Performance(["roc_curve"])
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
+class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
+    evaluator = Performance(["roc_curve", "precision_recall_curve"])
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
 class TestRankingFairnes:
     evaluator = RankingFairness()
 
