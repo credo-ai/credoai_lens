@@ -22,7 +22,7 @@ pandas_profiling==3.3.0
 
 # required for privacy and security module
 adversarial-robustness-toolbox>=1.10.1
-
+torch>=1.12.1
 # for dev
 pytest>=6.2.5
 pytest-cov>=3.0.0
