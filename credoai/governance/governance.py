@@ -54,17 +54,21 @@ class Governance:
 
     """
 
-    def __init__(self, credo_api_client: CredoApiClient = None, config_path=None):
+    def __init__(self, config_path: str = None):
+        """Governance object to connect Lens with Credo AI Platform
+
+        Parameters
+        ----------
+        config_path : str, optional
+            path to .credoconfig file. If None, points to ~/.credoconfig, by default None
+        """
         self._use_case_id: str = None
         self._policy_pack_id: str = None
         self._evidence_requirements: List[EvidenceRequirement] = []
         self._evidences: List[Evidence] = []
         self._plan: dict = None
 
-        if credo_api_client:
-            client = credo_api_client
-        else:
-            client = CredoApiClient(config_path=config_path)
+        client = CredoApiClient(config_path=config_path)
 
         self._api = CredoApi(client=client)
 
