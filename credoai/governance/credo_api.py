@@ -1,6 +1,7 @@
 """
 Credo API functions
 """
+from typing import List
 
 from credoai.utils import global_logger
 from requests.exceptions import HTTPError
@@ -105,7 +106,7 @@ class CredoApi:
         return self._client.get(url)
 
     def create_assessment(
-        self, use_case_id: str, policy_pack_id: str, evidences: list[dict]
+        self, use_case_id: str, policy_pack_id: str, evidences: List[dict]
     ):
         """
         Upload evidences to API server.

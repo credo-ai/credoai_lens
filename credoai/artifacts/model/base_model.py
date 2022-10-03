@@ -1,9 +1,9 @@
 """Abstract class for model artifacts used by `Lens`"""
 from abc import ABC
+from typing import List
 
 from credoai.utils import ValidationError
 from credoai.utils.model_utils import get_model_info
-from typing import List
 
 
 class Model(ABC):
@@ -36,11 +36,10 @@ class Model(ABC):
         self.type = type
         self.name = name
         self.model_like = model_like
-
-        info = get_model_info(model_like)
-        self.framework = info["framework"]
+        self.model_info = get_model_info(model_like)
         self._validate(necessary_functions)
         self._build(possible_functions)
+        self._update_functionality()
 
     def _build(self, function_names: List[str]):
         """
@@ -78,3 +77,7 @@ class Model(ABC):
         func = getattr(self.model_like, key, None)
         if func:
             self.__dict__[key] = func
+
+    def _update_functionality(self):
+        """Optional framework specific functionality update"""
+        pass

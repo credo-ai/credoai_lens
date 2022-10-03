@@ -7,6 +7,7 @@ from typing import Dict
 import requests
 from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
+from credoai.utils import global_logger
 from credoai.utils.common import json_dumps
 from credoai.utils.constants import CREDO_URL
 from credoai import __version__
@@ -22,6 +23,7 @@ class CredoApiConfig:
         self._tenant = tenant
         self._api_server = api_server
         self._api_base = self.__build_api_base()
+        self.logger = global_logger
 
     @staticmethod
     def default_config_path():
@@ -69,6 +71,7 @@ class CredoApiConfig:
         config_path = config_path or self.default_config_path()
 
         if not os.path.exists(config_path):
+            self.logger.error("Path to config file Not Found")
             # return example
             self._api_key = None
             self._tenant = None
@@ -97,12 +100,12 @@ class CredoApiClient:
     CredoApiClient is interface class to the Credo API server.
     """
 
-    def __init__(self, config: CredoApiConfig = None):
+    def __init__(self, config: CredoApiConfig = None, config_path=None):
         if config:
             self._config = config
         else:
             self._config = CredoApiConfig()
-            self._config.load_config()
+            self._config.load_config(config_path=config_path)
 
         self._session = requests.Session()
         self.refresh_token()

@@ -7,7 +7,7 @@ class ClassificationModel(Model):
 
     ClassificationModel serves as an adapter between arbitrary binary or multi-class
     classification models and the evaluations in Lens. Evaluations depend on
-    ClassificationModel instantiating certain methods.
+    ClassificationModel instantiating `predict` and (optionally) `predict_proba`
 
     Parameters
     ----------
@@ -28,6 +28,13 @@ class ClassificationModel(Model):
             name,
             model_like,
         )
+
+    def _update_functionality(self):
+        """Conditionally updates functionality based on framework"""
+        if self.model_info["framework"] == "sklearn":
+            func = getattr(self, "predict_proba", None)
+            if func and len(self.model_like.classes_) == 2:
+                self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
 
 
 class DummyClassifier:

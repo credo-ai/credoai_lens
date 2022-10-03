@@ -7,7 +7,8 @@
    Home page <self>
    Setup <setup>
    Jupyter tutorials <tutorials>
-   Reporting <report>
+   Developer Guide <developer_guide>
+   Evaluators <evaluators>
    Metrics <metrics>
    API reference <_autosummary/credoai>
 
@@ -16,152 +17,86 @@
 .. image:: _static/images/credo_ai-lens.png
    :width: 400
 
-Lens is an AI Assessment Framework. With a focus on responsible AI, Lens makes
+Lens is an AI Assessment Framework. With a focus on responsible AI (RAI), Lens makes
 comprehensive AI assessment streamlined, structured and interpretable to diverse audiences. Lens
 aims to be the single entrypoint to a broad ecosystem of open source assessment
-tools developed in industry and academia. It is also extensible, and can accommodate
-your own assessment pipeline as custom modules.
+tools developed in industry and academia. It is also extensible, and can be incorporate 
+custom functionality from your own system.
 
-Lens allows you to assess your AI systems with respect to:
+Lens allows you to assess your AI systems with respect to a number of RAI considerations including
+Fairness, Performance, Security and more. See :ref:`evaluators` for a full list of Lens's
+evaluation capabilities.
 
-* Performance
-* Fairness
-* Security
-* Privacy
-
-Lens is developed by Credo AI, and integrates easily with the Credo AI Governance App. The comprehensive
-assessments Lens provides is the foundation of AI Governance, but it is only one component! The Governance App helps with 
-the rest.
+As an assessment framework, Lens is an important component of your overall **AI Governance** strategy.
+A full AI Governance system requires other components! Credo AI, the developer of Lens, also develops
+tools to satisfy your general AI Governance needs, which integrate easily with Lens.
 
 Check out the :ref:`quickstart tutorial <quickstart>` to get started. 
 
 Check out the :ref:`FAQ <lens faq>` for answers to common questions.
 
-If you are connecting to the Credo AI Governance App, see the :ref:`governance integration tutorial <Connecting with the Credo AI Governance App>`.
+To connect with the Credo AI Governance Platform, see the :ref:`governance integration tutorial <Connecting with the Credo AI Governance App>`.
 
 
 Overview
 --------
-Lens is made of a few components.
+Lens runs a ``pipeline`` of ``evaluators`` which assess your model and datas along multiple 
+dimensions. Each evaluator is focused on a limited set of assessments, but they can be strung
+together to create a comprehensive view of the characteristics of your model and/or data. 
+Evaluators create ``evidence`` as their output.
 
-* **Lens** is the primary interface between models, data, modules and (optionally) the Credo AI Governance App.
-* **CredoModel / CredoData** are wrappers to bring models and data into the Lens Framework
-* **Modules** are tools to perform assessment-related functions on models and/or data. 
-* **Assessments** are the connective tissue between CredoModels and CredoData and modules.
+Your model and datas are wrapped in Lens-specific classes which make them understandable to the
+overall framework. Different classes are used for different types of models. For instance, 
+``TabularData`` is used to wrap tabular dataframes.
 
-Usage of Lens boils down to creating the artifacts you want to assess (CredoModel and/or CredoData), articulating the
-assessments you want run, how you want them to be run ("alignment") and running Lens. Most steps along this path
-can be automated by Lens or fully customized by the user. As an open-source tool, the end product 
-is the set of assessments packaged as dataframes, and plots. When combined with the Credo AI
-Governance Platform, these assessments are exported into an integrated Governance Platform that
-provides perspective on the risk and compliance of all registered AI systems.
+When developing AI systems responsibly, comprehensive assessment is only one (important) component
+of your development flow. Equally important is determining which assessments to run, and using
+those assessments to make decisions about the development or deployment of your AI system. These
+other processes, when combined with proper assessment is what is called **AI Governance**. 
 
+Lens uses a ``Governance`` object to connect with the Credo AI Governance Platform. This allows your
+governance team to communicate assessment directly into a programmatic assessment, and allows
+the assessment results to immediately be translated into digestible reports on the platform.
+
+Glossary
+--------
 
 Lens
-----
-Lens is a single interface that allows easy assessment of your models and data.
-Within the framework we have provided interfaces to well known responsible AI tools
-as well as to Credo AI's own modules. Lens can be applied to any modeling framework - 
-it was built with the breadth of the ML ecosystem in mind.
+   The primary interface between models, data, and evaluators. Lens performs an orchestration
+   function. It interacts with an (optional) Governance object, generates or ingests a user-specified
+   pipeline of evaluators, runs those evaluators, and defined functions to access the results.
+
+Evaluators
+   The workhorses of the framework. Evaluators are the classes that perform specific functions on 
+   a model and/or data. These can include assessing the model for fairness, or profiling a 
+   data. Evaluators are constantly being added to the framework, which creates Lens's standard
+   library. Custom evaluators can also be defined and brought into the framework.
+
+   Evaluators generally require specific kinds of Models or Data to run. For instance, a specific
+   evaluator may require ``TabularData`` and a ``ClassificationModel``.
+
+Model
+   A Model in Lens is a type of AI artifact that wraps a trained model. Model types are defined
+   by their functionality generally, rather than their framework. For instance, a 
+   ``ClassificationModel`` can wrap any model that has a ``predict`` function defined. As such,
+   Lens as a whole is framework-agnostic.
+
+Data
+   Data ins Lens is another type of AI artifact that wraps a dataset. Different data classes
+   support different types of data (e.g. ``TabularData``). When passed to Lens, Data can either be
+   labeled "training_data" or "assessment_data". The latter will be used for assessments of the model,
+   while the former is passed when assessments of the training data itself is desired, or some
+   assessment requires it
+
+
+Usage of Lens boils down to creating the artifacts you want to assess (Model and/or Data), defining
+a pipeline of evaluators (or connecting Lens to Governance), and running Lens. 
+
+
+Lens Architecture Diagram
+-------------------------
+
 
 .. image:: _static/images/lens_schematic.jpg
    :width: 600
-
-Lens supports AI evaluation by automatically determining the assessments to run,
-running multiple assessments with just a few lines of code, and supporting
-downstream communication with report creation and integration with the 
-Credo AI Governance App.
-
-Is is also easily extensible. Your own code can easily be brought into Lens by 
-defining your own assessments, you are able to override Lens' automatic selection
-of assessments, and change almost any parameter of the underlying modules you should
-care to.
-
-
-Modules & Assessments
----------------------
-Modules are a broad class. They can be anything - any tool you'd want to run on a model
-or dataset. While Credo AI has defined some modules of our own, your own code can be 
-thought of as a module (inherit from the abstract `CredoModule <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/modules/credo_module.py>`_ class), as could other tools available in the broader AI ecosystem.
-
-Some well known packages already serve as the foudnation for some Lens modules, such as:
-
-* Fairlearn
-* Adversarial Robustness Toolbox
-* Pandas Profiler
-
-Because the class of modules is  unconstrained, we need a way to standardize
-their API. We do that in the form of CredoAssessments. CredoAssessments are 
-wrappers around one or more modules that allow them to connect to 
-CredoModels and Data (:ref:`Credo Artifacts: Model, Data, & Governance`).
-
-Assessments have certain functionality requirements, which the CredoModel/Data must meet to be run.
-Essentially, we use "duck typing" for models. Assessments require certain functionality and can
-run on any object that initiates that functionality. Lens makes use of these functionality requirements
-to automatically determine which assessments to run.
-
-You can easily define your own assessment by inheriting from the abstract `CredoAssessment <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/assessment/credo_assessment.py>`_ class.
-
-.. image:: _static/images/assessments_modules_schematic.png
-   :width: 600
-
-
-Credo Artifacts: Model, Data, & Governance
--------------------------------------------
-AI Models and Datasets take many forms. This flexibility has many benefits, but is
-an obstacle when your goal is to connect any model or dataset to any assessment! To
-solve this issue we introduce two artifacts: CredoModels and CredoData.
-
-**Credo Models** are not "models" in the traditional sense - they are connector objects
-that instantiate functions necessary for an assessment. For instance, to evaluate
-fairness using the "Fairness" assessment, the CredoModel must instantiate
-a `predict_proba` or `predict`. The nature of these functions can be quite general.
-
-The simplest case is you setting CredoModel's `predict` to the `predict` method of your model.
-But your "model" may actually be an API call that you want to assess, in which case
-the `predict` may be an API call.
-
-Some functions can be inferred from well-known frameworks like scikit-learn. This allows
-the CredoModel to be automatically set up, though further customization is possible.
-
-**Credo Data** are simple objects that normalize datasets.
-Data assessments are run on these.
-
-**CredoGovernance** is the connection between Lens and the Governance App. This is only relevant
-for that use-case.
-
-
-The Assessment Plan
-------------------
-An "Assessment Plan" must be supplied to Lens. The plan configures
-how different assessments should be run.
-
-The plan makes most sense as part of Credo AI's overall governance app. In 
-this context the Assessment Plan is the output of a multi-stakeholder articulation of
-how the AI system should be assessed. Lens actually takes care of automatically
-retrieving the Assessment Plan from Governance App, connecting 
-your technical team to compliance, product, and other stakeholders.
-
-Of course, a single person can also defined the Plan. 
-In this case, the Assessment Plan still serves as an initial decision
-as to how assessments should be run, and summary of the assessments run.
-
-Beyond the Assessment Plan, each module has other parameters that can be configured. 
-See :ref:`the FAQ <lens faq>` for more information.
-
-
-Credo AI Governance App
-----------------------------
-Assessment is important, but it's not the end all of Responsible AI development!
-`Credo AI's <https://www.credo.ai/>`_ Governance App provides the other aspects needed for effective
-AI governance including: support for multi-stakeholder alignment, policy packs
-for different areas of responsible AI development and compliance needs,
-and continuous translation of all evidence (including assessment result!) into
-a risk perspective.
-
-This app is independent from using Lens for assessments. You can use *any*
-method to assess your AI artifacts and upload the results to the Governance App
-smoothly. Check out the `integration demo <https://credoai-lens.readthedocs.io/en/latest/notebooks/integration_demo.html>`_ to see how that is done.
-
-
 

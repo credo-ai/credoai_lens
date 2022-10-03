@@ -1,5 +1,6 @@
 import inspect
 from collections import defaultdict
+from typing import List
 
 import credoai.evaluators
 from credoai.evaluators import *
@@ -20,7 +21,7 @@ class PipelineCreator:
         return governance_pipeline
 
 
-def process_evidence_requirements(evidence_requirements: list[EvidenceRequirement]):
+def process_evidence_requirements(evidence_requirements: List[EvidenceRequirement]):
     evaluators = set()
     kwargs = defaultdict(dict)
     for e in evidence_requirements:

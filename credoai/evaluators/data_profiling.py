@@ -16,9 +16,10 @@ matplotlib.use(backend)
 
 
 class DataProfiling(Evaluator):
-    """Dataset profiling module for Credo AI.
+    """Data profiling module for Credo AI.
 
-    This module takes in features and labels and provides functionality to generate profile reports
+    This evaluator runs the pandas profiler on a data. Pandas profiler calculates a number
+    of descriptive statistics about the data.
 
     Parameters
     ----------

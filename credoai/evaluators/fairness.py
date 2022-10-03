@@ -1,12 +1,11 @@
 import pandas as pd
-from credoai.artifacts import TabularData
+from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
-from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
-    check_data_instance,
-    check_existence,
-)
+from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
+                                                 check_data_instance,
+                                                 check_existence,
+                                                 check_model_instance)
 from credoai.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import (
     MODEL_METRIC_CATEGORIES,
@@ -19,13 +18,14 @@ from credoai.utils.common import NotRunError, ValidationError
 
 class ModelFairness(Evaluator):
     """
-    Fairness module for Credo AI. Handles any metric that can be
-    calculated on a set of ground truth labels and predictions,
+    Model Fairness evaluator for Credo AI.
+
+    This evaluator calculates performance metrics disaggregated by a sensitive feature, as
+    well as evaluating the parity of those metrics.
+
+    Handles any metric that can be calculated on a set of ground truth labels and predictions,
     e.g., binary classification, multiclass classification, regression.
 
-    This module takes in a set of metrics  and provides functionality to:
-    - calculate the metrics
-    - create disaggregated metrics
 
     Parameters
     ----------

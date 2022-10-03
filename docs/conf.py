@@ -64,9 +64,11 @@ nbsphinx_allow_errors = True  # Continue through Jupyter errors
 nbsphinx_execute = "never"  # do not execute jupyter notebooks
 
 autodoc_mock_imports = [
+    "absl",
     "art",
     "art.attacks.evasion",
     "art.attacks.extraction",
+    "art.attacks.inference.attribute_inference",
     "art.attacks.inference.membership_inference",
     "art.estimators.classification",
     "art.estimators.classification.scikitlearn",
@@ -96,9 +98,13 @@ autodoc_mock_imports = [
     "seaborn.utils",
     "sklearn",
     "sklearn.base",
+    "sklearn.compose",
     "sklearn.datasets",
     "sklearn.ensemble",
+    "sklearn.feature_selection",
     "sklearn.metrics",
+    "sklearn.model_selection",
+    "sklearn.pipeline",
     "sklearn.preprocessing",
     "sklearn.utils",
     "sklearn.utils.multiclass",
@@ -106,7 +112,6 @@ autodoc_mock_imports = [
     "tempfile",
     "tensorflow",
     "transformers",
-    "logging",
 ]
 
 

@@ -23,7 +23,6 @@ class Metric:
     * {BINARY|MULTICLASS}_CLASSIFICATION: metrics like `scikit-learn's classification metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
     * REGRESSION: metrics like `scikit-learn's regression metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
     * CLUSTERING: metrics like `scikit-learn's clustering metrics <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
-    #fairlearn.metrics.equalized_odds_ratio>`_
     * FAIRNESS: metrics like `fairlearn's equalized odds metric <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html
     * DATASET: metrics intended
     * CUSTOM: No expectations for fun
@@ -50,7 +49,7 @@ class Metric:
     metric_category: str
     fun: Optional[Callable[[Any], Any]] = None
     takes_prob: Optional[bool] = False
-    equivalent_names: Optional[list[str]] = None
+    equivalent_names: Optional[List[str]] = None
 
     def __post_init__(self):
         if self.equivalent_names is None:

@@ -1,5 +1,5 @@
 import pandas as pd
-from credoai.artifacts import TabularData
+from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
 from credoai.evaluators.utils.validation import (
@@ -20,8 +20,10 @@ from credoai.utils.common import ValidationError
 
 class Performance(Evaluator):
     """
-    Performance module for Credo AI. Handles any metric that can be
-    calculated on a set of ground truth labels and predictions,
+    Performance evaluator for Credo AI.
+
+    This evaluator calculates overall performance metrics.
+    Handles any metric that can be calculated on a set of ground truth labels and predictions,
     e.g., binary classification, multiclass classification, regression.
 
     This module takes in a set of metrics and provides functionality to:

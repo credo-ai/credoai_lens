@@ -3,7 +3,7 @@ Credo Governance
 """
 
 import json
-from typing import Union
+from typing import List, Union
 
 from credoai import __version__
 from credoai.evidence import Evidence, EvidenceRequirement
@@ -35,9 +35,10 @@ class Governance:
         Default Credo API client uses `~/.credo_config` to read API server configuration.
         Please prepare `~/.credo_config` file by downloading it from CredoAI Governance App.(My Settings > Tokens)
 
-        If you want to use your own configuration,
+    Examples
+    --------
+    If you want to use your own configuration:
 
-        ```python
         from credoai.governance.credo_api_client import CredoApiClient, CredoApiConfig
         from credoai.governance.goverance import Governance
 
@@ -50,21 +51,32 @@ class Governance:
 
         client = CredoApiClient(config=config)
         governace = Governance(credo_api_client=client)
-        ```
 
     """
 
-    def __init__(self, credo_api_client: CredoApiClient = None):
+    def __init__(
+        self, config_path: str = None, credo_api_client: CredoApiClient = None
+    ):
+        """Governance object to connect Lens with Credo AI Platform
+
+        Parameters
+        ----------
+        config_path : str, optional
+            path to .credoconfig file. If None, points to ~/.credoconfig, by default None
+        credo_api_client : CredoApiClient, optional
+            If provided, overrides the API configuration defined by
+            the config path, by default None
+        """
         self._use_case_id: str = None
         self._policy_pack_id: str = None
-        self._evidence_requirements: list[EvidenceRequirement] = []
-        self._evidences: list[Evidence] = []
+        self._evidence_requirements: List[EvidenceRequirement] = []
+        self._evidences: List[Evidence] = []
         self._plan: dict = None
 
         if credo_api_client:
             client = credo_api_client
         else:
-            client = CredoApiClient()
+            client = CredoApiClient(config_path=config_path)
 
         self._api = CredoApi(client=client)
 
@@ -77,28 +89,6 @@ class Governance:
         assessment_plan_file: str = None,
     ):
         """
-        Get assessment plan and register it.
-        There are three ways to do it
-        1. With assessment_plan_url.
-        ```
-        gov.register(assessment_plan_url="https://api.credo.ai/api/v2/tenant/use_cases/{id}/assessment_plans/{pp_id}")
-        ```
-        2. With use case name and policy pack key.
-        ```
-        gov.register(use_case_name="Fraud Detection", policy_pack_key="FAIR")
-        ```
-        3. With assessment_plan json string or filename. It is used in the air-gap condition.
-        ```
-        gov.register(assessment_plan="JSON_STRING")
-        gov.register(assessment_plan_file="FILENAME")
-        ```
-
-        Afeter successful registration, `gov.registered` returns True and able to get evidence_requirements
-        ```
-        gov.registered    # returns True
-        gov.get_evidence_requirements()
-        ```
-
         Parameters
         ----------
         assessment_plan_url : str
@@ -111,6 +101,31 @@ class Governance:
             assessment plan JSON string
         assessment_plan_file : str
             assessment plan file name that holds assessment plan JSON string
+
+        Examples
+        --------
+        Get assessment plan and register it.
+        There are three ways to do it:
+
+            1. With assessment_plan_url.
+
+                gov.register(assessment_plan_url="https://api.credo.ai/api/v2/tenant/use_cases/{id}/assessment_plans/{pp_id}")
+
+            2. With use case name and policy pack key.
+
+                gov.register(use_case_name="Fraud Detection", policy_pack_key="FAIR")
+
+            3. With assessment_plan json string or filename. It is used in the air-gap condition.
+
+                gov.register(assessment_plan="JSON_STRING")
+                gov.register(assessment_plan_file="FILENAME")
+
+        After successful registration, `gov.registered` returns True and able to get evidence_requirements:
+
+            gov.registered    # returns True
+            gov.get_evidence_requirements()
+
+
         """
         self._plan = None
 
@@ -162,20 +177,20 @@ class Governance:
 
         Returns
         -------
-        list[EvidenceRequirement]
+        List[EvidenceRequirement]
         """
         return self._evidence_requirements
 
     def clear_evidence(self):
         self.set_evidence([])
 
-    def set_evidence(self, evidences: list[Evidence]):
+    def set_evidence(self, evidences: List[Evidence]):
         """
         Update evidences
         """
         self._evidences = evidences
 
-    def add_evidence(self, evidences: Union[Evidence, list[Evidence]]):
+    def add_evidence(self, evidences: Union[Evidence, List[Evidence]]):
         """
         Add evidences
         """
