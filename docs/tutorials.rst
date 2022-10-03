@@ -9,6 +9,7 @@ Start here!
    :maxdepth: 1
    
    notebooks/quickstart
+   notebooks/lens_faq
    notebooks/governance_integration
    
 
@@ -17,6 +18,9 @@ Start here!
 Get started here. We will assess a payment default prediction model for gender fairness 
 using Lens, in 5 minutes.
 
+**Lens FAQ**
+
+Lens has a number of functionalities. This notebook showcases them and shows how to achieve common tasks.
 
 **Connecting with the Credo AI Governance Platform Demo**
 
