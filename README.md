@@ -28,40 +28,12 @@ App that supports multi-stakeholder alignment, AI assessment (via Lens) and AI r
 ## Installation
 
 The latest stable release (and required dependencies) can be installed from PyPI.
-Note this installation only includes dependencies needed for a small set of modules
 
 ```
 pip install credoai-lens
 ```
 
-To include additional dependencies needed for some modules and demos, use the 
-following installation command. 
-
-On Mac
-```
-pip install 'credoai-lens[full]'
-```
-
-On Windows
-```
-pip install credoai-lens[full]
-```
-
-Modules that require extras include:
-* nlp_generator
-
-
-### ARM Macbook failed pip installation - use conda
-
-Installation sometimes fails on M1 macbooks. Specifically, pandas, scipy, and scikit-learn 
-may fail to build. Installing these packages with the anaconda package manager seems to be
-the easiest way to circumvent this issue. 
-
-For development, the easiest way to interact with Lens is to use anaconda.
-
-```
-conda env create --file environment.yml
-```
+Additional installation instructions can be found in our [setup documentation](https://credoai-lens.readthedocs.io/en/latest/notebooks/quickstart.html)
 
 ## Getting Started
 
@@ -77,25 +49,19 @@ Documentation is hosted by [readthedocs](https://credoai-lens.readthedocs.io/en/
 
 For dev documentation, see [latest](https://credoai-lens.readthedocs.io/en/latest/index.html).
 
-## Configuration
+## AI Governance
 
-To connect to [Credo AI's Governance App](https://www.credo.ai/product), enter your connection info in `~/.credoconfig` (".credoconfig" in the root directory) using
-the below format. 
+As an assessment framework, Lens is an important component of your overall **AI Governance** strategy.
+But it's not the only component! Credo AI, the developer of Lens, also develops
+tools to satisfy your general AI Governance needs, which integrate easily with Lens.
 
-```
-TENANT={tenant name} # Example: credoai
-API_KEY=<your api key> # Example: JSMmd26...
-```
+To connect to [Credo AI's Governance App](https://www.credo.ai/product), see the Governance
+tutorial on [readthedocs](https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html).
  
 # For Lens developers
 
 ## Running tests
 
-Install requirements needed for testing.
-
-```shell
-pip install -r requirements-extras.txt
-```
 
 Running a test
 

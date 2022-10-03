@@ -91,3 +91,9 @@ Data
 
 Usage of Lens boils down to creating the artifacts you want to assess (Model and/or Data), defining
 a pipeline of evaluators (or connecting Lens to Governance), and running Lens. 
+
+Architecture Diagram
+--------------------
+
+.. image:: _static/images/lens_schematic.jpg
+   :width: 600
