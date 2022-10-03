@@ -23,7 +23,7 @@ def general_wilson(p, n, z=1.96):
         np.ndarray
         Array of length 2 of form: [lower_bound, upper_bound]
     """
-    denominator = 1 + z ** 2 / n
+    denominator = 1 + z**2 / n
     centre_adjusted_probability = p + z * z / (2 * n)
     adjusted_standard_deviation = np.sqrt((p * (1 - p) + z * z / (4 * n))) / np.sqrt(n)
     lower_bound = (
@@ -227,3 +227,52 @@ def ks_statistic(y_true, y_pred) -> float:
     ks_stat = st.ks_2samp(y_true, y_pred).statistic
 
     return ks_stat
+
+
+def interpolate_increasing_thresholds(series1, series2, lib_thresholds):
+    series1_out = list()
+    series2_out = list()
+    interpolated_thresholds = np.arange(0, 1, min(0.001, 1 / len(lib_thresholds)))
+
+    for t in interpolated_thresholds:
+        if t >= lib_thresholds[0]:
+            lib_thresholds.pop(0)
+            series1.pop(0)
+            series2.pop(0)
+        series1_out.append(series1[0])
+        series2_out.append(series2[0])
+
+    return series1_out, series2_out, interpolated_thresholds
+
+
+def interpolate_decreasing_thresholds(series1, series2, lib_thresholds):
+    series1_out = list()
+    series2_out = list()
+    interpolated_thresholds = np.arange(
+        max(lib_thresholds), 0, -1 * min(0.001, 1 / len(lib_thresholds))
+    )
+
+    for t in interpolated_thresholds:
+        series1_out.append(series1[0])
+        series2_out.append(series2[0])
+        if t <= lib_thresholds[0]:
+            lib_thresholds.pop(0)
+            series1.pop(0)
+            series2.pop(0)
+
+    return series1_out, series2_out, interpolated_thresholds
+
+
+def credo_pr_curve(y_true, y_prob):
+    p, r, t = sk_metrics.precision_recall_curve(y_true, y_prob)
+    return interpolate_increasing_thresholds(p.tolist(), r.tolist(), t.tolist())
+
+
+def credo_roc_curve(y_true, y_prob):
+    fpr, tpr, t = sk_metrics.roc_curve(y_true, y_prob)
+    return interpolate_decreasing_thresholds(fpr.tolist(), tpr.tolist(), t.tolist())
+
+
+def credo_det_curve(y_true, y_prob):
+    fpr, fnr, t = sk_metrics.det_curve(y_true, y_prob)
+    return interpolate_increasing_thresholds(fpr.tolist(), fnr.tolist(), t.tolist())

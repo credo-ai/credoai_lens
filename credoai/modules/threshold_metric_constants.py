@@ -1,11 +1,16 @@
 from sklearn import metrics as sk_metrics
+from credoai.modules.credoai_metrics import (
+    credo_pr_curve,
+    credo_roc_curve,
+    credo_det_curve,
+)
 
 
 # MODEL METRICS
 BINARY_CLASSIFICATION_CURVE_FUNCTIONS = {
-    "roc_curve": sk_metrics.roc_curve,
-    "precision_recall_curve": sk_metrics.precision_recall_curve,
-    "det_curve": sk_metrics.det_curve,
+    "roc_curve": credo_roc_curve,
+    "precision_recall_curve": credo_pr_curve,
+    "det_curve": credo_det_curve,
 }
 
 THRESHOLD_PROBABILITY_FUNCTIONS = {

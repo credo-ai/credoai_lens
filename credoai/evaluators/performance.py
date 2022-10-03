@@ -7,7 +7,8 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from credoai.evidence import MetricContainer, ThresholdEvidenceContainer
+from credoai.evidence import MetricContainer, TableContainer
+from credoai.evidence.utils import tuple_metric_to_DataFrame
 from credoai.modules.metric_constants import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,
@@ -109,11 +110,11 @@ class Performance(Evaluator):
                 MetricContainer(scalar_results, **self.get_container_info())
             )
         if not threshold_results.empty:
-            self.results.append(
-                ThresholdEvidenceContainer(
-                    threshold_results, **self.get_container_info()
+            for _, threshold_metric in threshold_results.iterrows():
+                thresh_metric_as_df = tuple_metric_to_DataFrame(threshold_metric)
+                self.results.append(
+                    TableContainer(thresh_metric_as_df, **self.get_container_info())
                 )
-            )
 
     def update_metrics(self, metrics, replace=True):
         """replace metrics
@@ -180,16 +181,23 @@ class Performance(Evaluator):
             output_series = (
                 pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
             )
+
             scalar_series = output_series[
                 ~output_series.index.isin(THRESHOLD_PROBABILITY_FUNCTIONS.keys())
             ]
+            scalar_series = scalar_series.reset_index().rename(
+                {"index": "type"}, axis=1
+            )
+
             threshold_results = output_series[
                 output_series.index.isin(THRESHOLD_PROBABILITY_FUNCTIONS.keys())
             ]
-            return (
-                scalar_series.reset_index().rename({"index": "type"}, axis=1),
-                threshold_results.reset_index().rename({"index": "type"}, axis=1),
+            threshold_results = threshold_results.reset_index().rename(
+                {"index": "threshold_metric"}, axis=1
             )
+            threshold_results.name = "thresholded_metric_performance"
+
+            return scalar_series, threshold_results
         else:
             global_logger.warn("No overall metrics could be calculated.")
 
