@@ -276,3 +276,9 @@ def credo_roc_curve(y_true, y_prob):
 def credo_det_curve(y_true, y_prob):
     fpr, fnr, t = sk_metrics.det_curve(y_true, y_prob)
     return interpolate_increasing_thresholds(fpr.tolist(), fnr.tolist(), t.tolist())
+
+
+####
+# TODO: Change these to return dataframes rather than tuples...
+# ...That was really dumb
+####
