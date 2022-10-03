@@ -25,7 +25,7 @@ After creating the required files in `dist` and installing twine, run:
 ```
 python -m twine upload --repository testpypi dist/*
 ```
-For more info, follow instructions [here](https://packaging.python.org/en/latest/tutorials/packaging-projects/) to upload to PyPi.
+For more info, follow instructions [here](https://packaging.python.org/en/stable/tutorials/packaging-projects/) to upload to PyPi.
 
 ## Installating from test server
 To install from the test PyPi server (useful before full deployment) run:

@@ -33,21 +33,19 @@ The latest stable release (and required dependencies) can be installed from PyPI
 pip install credoai-lens
 ```
 
-Additional installation instructions can be found in our [setup documentation](https://credoai-lens.readthedocs.io/en/latest/notebooks/quickstart.html)
+Additional installation instructions can be found in our [setup documentation](https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html)
 
 ## Getting Started
 
-To get started, see the [quickstart demo](https://credoai-lens.readthedocs.io/en/latest/notebooks/quickstart.html).
+To get started, see the [quickstart demo](https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html).
 
-If you are using the Credo AI Governance App, also check out the [governance integration demo](https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html).
-
-A listing and overview of all the demonstration notebooks are available [here](https://github.com/credo-ai/credoai_lens/tree/develop/docs/notebooks).
+If you are using the Credo AI Governance App, also check out the [governance integration demo](https://credoai-lens.readthedocs.io/en/stable/notebooks/governance_integration.html).
 
 ## Documentation
 
 Documentation is hosted by [readthedocs](https://credoai-lens.readthedocs.io/en/stable/).
 
-For dev documentation, see [latest](https://credoai-lens.readthedocs.io/en/latest/index.html).
+For dev documentation, see [latest](https://credoai-lens.readthedocs.io/en/stable/index.html).
 
 ## AI Governance
 
@@ -56,7 +54,7 @@ But it's not the only component! Credo AI, the developer of Lens, also develops
 tools to satisfy your general AI Governance needs, which integrate easily with Lens.
 
 To connect to [Credo AI's Governance App](https://www.credo.ai/product), see the Governance
-tutorial on [readthedocs](https://credoai-lens.readthedocs.io/en/latest/notebooks/governance_integration.html).
+tutorial on [readthedocs](https://credoai-lens.readthedocs.io/en/stable/notebooks/governance_integration.html).
  
 # For Lens developers
 
