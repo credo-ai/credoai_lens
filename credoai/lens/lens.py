@@ -227,6 +227,15 @@ class Lens:
     def get_evaluators(self):
         return [i["evaluator"] for i in self.pipeline.values()]
 
+    def print_results(self):
+        results = self.get_results()
+        for key, val in results.items():
+            print(f"Evaluator: {key}\n")
+            for i in val:
+                print(i)
+                print()
+            print()
+
     def set_governance(self, governance: Governance):
         self.gov = governance
 
