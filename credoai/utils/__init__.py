@@ -6,9 +6,3 @@ from .common import *
 from .dataset_utils import *
 from .logging import *
 from .model_utils import *
-
-# for modules that have "extra" requirements
-try:
-    import nlp_utils
-except:
-    pass
