@@ -135,6 +135,7 @@ class Performance(Evaluator):
         (
             self.performance_metrics,
             self.prob_metrics,
+            self.threshold_metrics,
             self.failed_metrics,
         ) = self._process_metrics(self.metrics)
 
@@ -142,6 +143,7 @@ class Performance(Evaluator):
         self.metric_frames = setup_metric_frames(
             self.performance_metrics,
             self.prob_metrics,
+            self.threshold_metrics,
             self.y_pred,
             self.y_prob,
             self.y_true,
@@ -221,6 +223,7 @@ class Performance(Evaluator):
         failed_metrics = []
         performance_metrics = {}
         prob_metrics = {}
+        threshold_metrics = {}
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
@@ -249,21 +252,20 @@ class Performance(Evaluator):
                     f"fairness metric, {metric_name}, unused by PerformanceModule"
                 )
                 pass
-            elif (
-                metric.metric_category
-                in MODEL_METRIC_CATEGORIES + THRESHOLD_METRIC_CATEGORIES
-            ):
+            elif metric.metric_category in MODEL_METRIC_CATEGORIES:
                 if metric.takes_prob:
                     prob_metrics[metric_name] = metric
                 else:
                     performance_metrics[metric_name] = metric
+            elif metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
+                threshold_metrics[metric_name] = metric
             else:
                 global_logger.warning(
                     f"{metric_name} failed to be used by FairnessModule"
                 )
                 failed_metrics.append(metric_name)
 
-        return (performance_metrics, prob_metrics, failed_metrics)
+        return (performance_metrics, prob_metrics, threshold_metrics, failed_metrics)
 
     def _validate_arguments(self):
         check_existence(self.metrics, "metrics")
