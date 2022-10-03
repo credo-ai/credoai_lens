@@ -8,16 +8,9 @@ from abc import ABC, abstractmethod
 
 import pytest
 from credoai.artifacts import TabularData
-from credoai.evaluators import (
-    DataEquity,
-    DataFairness,
-    DataProfiling,
-    ModelEquity,
-    ModelFairness,
-    Performance,
-    Privacy,
-    Security,
-)
+from credoai.evaluators import (DataEquity, DataFairness, DataProfiling,
+                                ModelEquity, ModelFairness, Performance,
+                                Privacy, Security)
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
 from pandas import DataFrame
@@ -31,9 +24,16 @@ TEST_METRICS_IDS = ["binary_metric", "probability_metric", "both"]
 
 
 @pytest.fixture(scope="class")
-def init_lens(credo_model, assessment_data, train_data, request):
+def init_lens(
+    classification_model,
+    classification_assessment_data,
+    classification_train_data,
+    request,
+):
     my_pipeline = Lens(
-        model=credo_model, assessment_data=assessment_data, training_data=train_data
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
     )
     request.cls.pipeline = my_pipeline
 
@@ -178,7 +178,9 @@ class TestRankingFairnes:
         assert results.equals(self.expected_results)
 
 
-def test_bulk_pipeline_run(credo_model, assessment_data, train_data):
+def test_bulk_pipeline_run(
+    classification_model, classification_assessment_data, classification_train_data
+):
     """
     Testing the passing of the list of evaluator works
     and the pipeline is running.
@@ -189,9 +191,9 @@ def test_bulk_pipeline_run(credo_model, assessment_data, train_data):
         (DataFairness(), "Test data Fairness"),
     ]
     my_pipeline = Lens(
-        model=credo_model,
-        assessment_data=assessment_data,
-        training_data=train_data,
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
         pipeline=pipe_structure,
     )
     my_pipeline.run()
@@ -199,8 +201,12 @@ def test_bulk_pipeline_run(credo_model, assessment_data, train_data):
 
 
 @pytest.mark.xfail(raises=RuntimeError)
-def test_empty_pipeline_run(credo_model, assessment_data, train_data):
+def test_empty_pipeline_run(
+    classification_model, classification_assessment_data, classification_train_data
+):
     my_pipeline = Lens(
-        model=credo_model, assessment_data=assessment_data, training_data=train_data
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
     )
     my_pipeline.run()

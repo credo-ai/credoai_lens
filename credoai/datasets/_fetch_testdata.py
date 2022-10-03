@@ -8,7 +8,7 @@ def hiring_probabilities(x):
     return prob
 
 
-def fetch_testdata(add_nan=False, train_repeats=30, test_repeats=30):
+def fetch_testdata(add_nan=False, train_repeats=30, test_repeats=30, output="binary"):
     """Returns testing data for Lens"""
     RNG = np.random.RandomState(1)
 
@@ -35,20 +35,27 @@ def fetch_testdata(add_nan=False, train_repeats=30, test_repeats=30):
         train_df = train_df.mask(RNG.random(train_df.shape) < 0.1)
         test_df = test_df.mask(RNG.random(test_df.shape) < 0.1)
 
+    train_df["skill"] = RNG.rand(len(train_df))
     train_df["hired"] = (
-        RNG.rand(len(train_df)) < train_df.apply(hiring_probabilities, axis=1)
+        train_df["skill"] < train_df.apply(hiring_probabilities, axis=1)
     ).astype(int)
+    test_df["skill"] = RNG.rand(len(test_df))
     test_df["hired"] = (
-        RNG.rand(len(test_df)) < test_df.apply(hiring_probabilities, axis=1)
+        test_df["skill"] < test_df.apply(hiring_probabilities, axis=1)
     ).astype(int)
+
+    if output == "binary":
+        output_key = "hired"
+    elif output == "continuous":
+        output_key = "skill"
     train_data = {
         "X": train_df[["experience"]],
-        "y": train_df["hired"],
+        "y": train_df[output_key],
         "sensitive_features": train_df[["race", "gender"]],
     }
     test_data = {
         "X": test_df[["experience"]],
-        "y": test_df["hired"],
+        "y": test_df[output_key],
         "sensitive_features": test_df[["race", "gender"]],
     }
     return train_data, test_data
