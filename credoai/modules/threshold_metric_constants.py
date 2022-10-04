@@ -1,12 +1,9 @@
+from credoai.modules.credoai_metrics import (credo_det_curve, credo_pr_curve,
+                                             credo_roc_curve)
 from sklearn import metrics as sk_metrics
-from credoai.modules.credoai_metrics import (
-    credo_pr_curve,
-    credo_roc_curve,
-    credo_det_curve,
-)
 
 """
-Current outputting functionality in evaluator modules (e.g. performance.py) relies on
+Current outputting functionality in evaluators (e.g. Performance) relies on
 the assumption that threshold metric functions return DataFrames, with columns labeled.
 
 Other return types are possible, in principle. These may require further wrangling on the
