@@ -47,11 +47,11 @@ class Data(ABC):
         sensitive_intersections: Union[bool, list] = False,
     ):
         self.name = name
-        self.X = self._process_X(X)
-        self.y = self._process_y(y)
-        self.sensitive_features = self._process_sensitive(
-            sensitive_features, sensitive_intersections
-        )
+        self.X = X
+        self.y = y
+        self.sensitive_features = sensitive_features
+        self._validate_inputs()
+        self._process_inputs(sensitive_intersections)
         self._validate_processing()
         self._active_sensitive_feature: Optional[str] = None
 

@@ -74,13 +74,15 @@ class TabularData(Data):
                 "X and y are not the same length. "
                 + f"X Length: {len(self.X)}, y Length: {len(self.y)}"
             )
+
+    def _validate_processed_y(self):
         if isinstance(self.X, (pd.Series, pd.DataFrame)) and not self.X.index.equals(
             self.y.index
         ):
             raise ValidationError("X and y must have the same index")
 
     def _validate_X(self):
-        """Basica validation for X"""
+        """Basic validation for X"""
         # Validate that the data column names are unique
         if len(self.X.columns) != len(set(self.X.columns)):
             raise ValidationError("X contains duplicate column names")
