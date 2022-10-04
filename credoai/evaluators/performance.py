@@ -12,7 +12,6 @@ from credoai.modules.metric_constants import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,
 )
-from credoai.modules.threshold_metric_constants import THRESHOLD_PROBABILITY_FUNCTIONS
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
@@ -33,8 +32,7 @@ class Performance(Evaluator):
     Parameters
     ----------
     metrics : List-like
-        list of metric names as strings or list of Metric or ThresholdMetric objects
-        (credoai.modules.metrics.Metric and credoai.modules.metrics.ThresholdMetric).
+        list of metric names as strings or list of Metric objects (credoai.modules.metrics.Metric).
         Metric strings should in list returned by credoai.modules.metric_utils.list_metrics().
         Note for performance parity metrics like
         "false negative rate parity" just list "false negative rate". Parity metrics
@@ -174,33 +172,36 @@ class Performance(Evaluator):
             The overall performance metrics
         """
         # retrive overall metrics for one of the sensitive features only as they are the same
-        overall_metrics = [
-            metric_frame.overall for metric_frame in list(self.metric_frames.values())
-        ]
 
-        if overall_metrics:
-            output_series = (
-                pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
+        if self.threshold_metrics:
+            threshold_results = (
+                pd.concat([self.metric_frames["thresh"].overall], axis=0)
+                .rename(index="value")
+                .to_frame()
             )
-
-            scalar_series = output_series[
-                ~output_series.index.isin(THRESHOLD_PROBABILITY_FUNCTIONS)
-            ]
-            scalar_series = scalar_series.reset_index().rename(
-                {"index": "type"}, axis=1
-            )
-
-            threshold_results = output_series[
-                output_series.index.isin(THRESHOLD_PROBABILITY_FUNCTIONS)
-            ]
             threshold_results = threshold_results.reset_index().rename(
                 {"index": "threshold_metric"}, axis=1
             )
             threshold_results.name = "thresholded_metric_performance"
 
-            return scalar_series, threshold_results
-        else:
+        scalar_metrics = []
+
+        if self.performance_metrics:
+            scalar_metrics.append(self.metric_frames["pred"].overall)
+        if self.prob_metrics:
+            scalar_metrics.append(self.metric_frames["prob"].overall)
+
+        if scalar_metrics:
+            scalar_series = (
+                pd.concat(scalar_metrics, axis=0).rename(index="value").to_frame()
+            )
+            scalar_series = scalar_series.reset_index().rename(
+                {"index": "type"}, axis=1
+            )
+
+        if scalar_series.empty and threshold_results.empty:
             global_logger.warn("No overall metrics could be calculated.")
+        return scalar_series, threshold_results
 
     @staticmethod
     def _process_metrics(metrics):
@@ -209,9 +210,9 @@ class Performance(Evaluator):
         Parameters
         ----------
         metrics : Union[List[Metric, str]]
-            list of metrics to use. These can be Metric or ThresholdMetric objects
+            list of metrics to use. These can be Metric objects
             (see credoai.modules.metrics.py), or strings.
-            If strings, they will be converted to Metric or ThresholdMetric objects
+            If strings, they will be converted to Metric objects
             as appropriate, using find_metrics()
 
         Returns

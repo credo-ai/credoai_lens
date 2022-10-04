@@ -88,49 +88,6 @@ class Metric:
         return standard
 
 
-@dataclass
-class ThresholdMetric(Metric):
-    """Class to define threshold-varying metrics
-
-    Threshold-varying metrics are assumed to be used exclusively with binary classification
-    problems (multi-class metrics not supported).
-
-    ThresholdMetrics metrics place further structure on Metrics to enforce the notion that performance
-    varies according to a decision boundary. This is done by forcing the takes_prob variable to be True.
-    These will lead to performance curves (ROC, PR, etc.) rather than scalar values.
-
-    Parameters
-    ----------
-    name : str
-        The primary name of the metric
-    metric_category: str
-        defined to be "BINARY_CLASSIFICATION_THRESHOLD", as this is the only supported category type
-    fun : callable, optional
-        The function definition of the metric. If none, the metric cannot be used and is only
-        defined for documentation purposes
-    takes_prob : bool, optional, default to true
-        Whether the function takes the decision probabilities
-        instead of the predicted class, as for ROC AUC. Similar to `needs_proba` used by
-        `sklearn <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.make_scorer.html>`_
-    equivalent_names
-        list of other names for metric
-    """
-
-    def __init__(
-        self,
-        name,
-        metric_category,
-        fun,  #: Optional[Callable[[Any], Any]] = None
-        takes_prob,  #: Optional[bool] = True
-        equivalent_names,  #: Optional[list[str]] = None
-    ):
-        super().__init__(name, metric_category, fun, takes_prob, equivalent_names)
-        if not self.takes_prob:
-            raise ValidationError(
-                f"Threshold metrics require decision probabilities; takes_prob set to False by user."
-            )
-
-
 def metrics_from_dict(dict, metric_category, probability_functions, metric_equivalents):
     # Convert to metric objects
     metrics = {}
@@ -138,13 +95,7 @@ def metrics_from_dict(dict, metric_category, probability_functions, metric_equiv
         equivalents = metric_equivalents.get(metric_name, [])  # get equivalent names
         # whether the metric takes probabities instead of predictions
         takes_prob = metric_name in probability_functions
-        metric = (
-            Metric(metric_name, metric_category, fun, takes_prob, equivalents)
-            if metric_category in SCALAR_METRIC_CATEGORIES
-            else ThresholdMetric(
-                metric_name, metric_category, fun, takes_prob, equivalents
-            )
-        )
+        metric = Metric(metric_name, metric_category, fun, takes_prob, equivalents)
         metrics[metric_name] = metric
     return metrics
 
@@ -181,7 +132,7 @@ BINARY_CLASSIFICATION_METRICS = metrics_from_dict(
 )
 
 THRESHOLD_VARYING_METRICS = metrics_from_dict(
-    BINARY_CLASSIFICATION_CURVE_FUNCTIONS,
+    THRESHOLD_PROBABILITY_FUNCTIONS,
     "BINARY_CLASSIFICATION_THRESHOLD",
     THRESHOLD_PROBABILITY_FUNCTIONS,
     THRESHOLD_METRIC_EQUIVALENTS,

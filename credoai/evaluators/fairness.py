@@ -13,7 +13,6 @@ from credoai.modules.metric_constants import (
     THRESHOLD_METRIC_CATEGORIES,
 )
 from credoai.modules.metrics import Metric, find_metrics
-from credoai.modules.threshold_metric_constants import THRESHOLD_PROBABILITY_FUNCTIONS
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
 
@@ -187,17 +186,20 @@ class ModelFairness(Evaluator):
         pandas.DataFrame
             The disaggregated performance metrics
         """
-        disaggregated_df = pd.DataFrame()
-        for metric_frame in self.metric_frames.values():
-            df = metric_frame.by_group.copy().convert_dtypes()
-            disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
+        disaggregated_metric_results = pd.DataFrame()
+        disaggregated_threshold_results = pd.DataFrame()
 
-        disaggregated_metric_results = disaggregated_df[
-            disaggregated_df.columns.difference(THRESHOLD_PROBABILITY_FUNCTIONS)
-        ]
-        disaggregated_threshold_results = disaggregated_df[
-            disaggregated_df.columns.intersection(THRESHOLD_PROBABILITY_FUNCTIONS)
-        ]
+        for metric_frame, value in self.metric_frames.items():
+            if metric_frame == "thresh":
+                df = value.by_group.copy().convert_dtypes()
+                disaggregated_threshold_results = pd.concat(
+                    [disaggregated_threshold_results, df], axis=1
+                )
+            else:
+                df = value.by_group.copy().convert_dtypes()
+                disaggregated_metric_results = pd.concat(
+                    [disaggregated_metric_results, df], axis=1
+                )
 
         disaggregated_metric_results = disaggregated_metric_results.reset_index().melt(
             id_vars=[disaggregated_metric_results.index.name],
@@ -224,7 +226,7 @@ class ModelFairness(Evaluator):
         related performance label, but are computed using
         fairlearn.metrics.MetricFrame.difference(method)
 
-        By convention, ThresholdMetrics are not considered in this function.
+        By convention, threshold-varying metrics are not considered in this function.
         There is no agreed-upon notion of how to calculate the 'difference' between
         two performance curves (e.g. comparing separate roc curves showing performance
         across groups for a sensitive feature).
@@ -288,17 +290,12 @@ class ModelFairness(Evaluator):
         # add parity results
         parity_results = pd.Series(dtype=float)
         parity_results = []
-        for metric_frame in self.metric_frames.values():
-            if any(
+        for metric_frame, value in self.metric_frames.items():
+            if metric_frame == "thresh":
                 # Don't calculate difference for curve metrics. This is not mathematically well-defined.
-                [
-                    metric_frame.overall.index[i] in THRESHOLD_PROBABILITY_FUNCTIONS
-                    for i in range(len(metric_frame.overall.index))
-                ]
-            ):
                 pass
             else:
-                diffs = metric_frame.difference(method=self.fairness_method)
+                diffs = value.difference(method=self.fairness_method)
                 diffs = pd.DataFrame(
                     {"metric_type": diffs.index, "value": diffs.values}
                 )
@@ -320,8 +317,7 @@ class ModelFairness(Evaluator):
         Parameters
         ----------
         metrics : Union[List[Metric, str]]
-            list of metrics to use. These can be Metric or ThresholdMetrics objects
-            (see credoai.modules.metrics.py), or strings.
+            list of metrics to use. These can be Metric objects (see credoai.modules.metrics.py), or strings.
             If strings, they will be converted to Metric objects using find_metrics
 
         Returns

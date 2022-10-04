@@ -230,47 +230,43 @@ def ks_statistic(y_true, y_pred) -> float:
     return ks_stat
 
 
-def interpolate_increasing_thresholds(series1, series2, lib_thresholds):
-    series1_out = list()
-    series2_out = list()
-    interpolated_thresholds = np.arange(
-        min(lib_thresholds), max(lib_thresholds), min(0.001, 1 / len(lib_thresholds))
-    )
+def interpolate_increasing_thresholds(lib_thresholds, *series, quantization=0.01):
+    out = [list() for i in series]
+    interpolated_thresholds = np.arange(0, max(lib_thresholds), quantization)
 
     for t in interpolated_thresholds:
         if t >= lib_thresholds[0]:
             lib_thresholds.pop(0)
-            series1.pop(0)
-            series2.pop(0)
-        series1_out.append(series1[0])
-        series2_out.append(series2[0])
+            for s in series:
+                s.pop(0)
+        for i, s in enumerate(out):
+            s.append(series[i][0])
 
-    return series1_out, series2_out, interpolated_thresholds
+    return out + [interpolated_thresholds]
 
 
-def interpolate_decreasing_thresholds(series1, series2, lib_thresholds):
-    series1_out = list()
-    series2_out = list()
-    interpolated_thresholds = np.arange(
-        max(lib_thresholds), min(lib_thresholds), -1 * min(0.001, 1 / len(lib_thresholds))
-    )
+def interpolate_decreasing_thresholds(lib_thresholds, *series, quantization=-0.01):
+    out = [list() for i in series]
+    interpolated_thresholds = np.arange(max(lib_thresholds), 0, quantization)
 
     for t in interpolated_thresholds:
-        series1_out.append(series1[0])
-        series2_out.append(series2[0])
+        for i, s in enumerate(out):
+            s.append(series[i][0])
         if t <= lib_thresholds[0]:
             lib_thresholds.pop(0)
-            series1.pop(0)
-            series2.pop(0)
+            for s in series:
+                s.pop(0)
 
-    return series1_out, series2_out, interpolated_thresholds
+    return out + [interpolated_thresholds]
 
 
 def credo_pr_curve(y_true, y_prob):
     p, r, t = sk_metrics.precision_recall_curve(y_true, y_prob)
-    precision, recall, thresholds = interpolate_increasing_thresholds(
-        p.tolist(), r.tolist(), t.tolist()
-    )
+    (
+        precision,
+        recall,
+        thresholds,
+    ) = interpolate_increasing_thresholds(t.tolist(), p.tolist(), r.tolist())
     return pd.DataFrame(
         {
             "precision": precision,
@@ -286,7 +282,7 @@ def credo_roc_curve(y_true, y_prob):
         false_positive_rate,
         true_positive_rate,
         thresholds,
-    ) = interpolate_decreasing_thresholds(fpr.tolist(), tpr.tolist(), t.tolist())
+    ) = interpolate_decreasing_thresholds(t.tolist(), fpr.tolist(), tpr.tolist())
     return pd.DataFrame(
         {
             "fpr": false_positive_rate,
@@ -302,7 +298,7 @@ def credo_det_curve(y_true, y_prob):
         false_positive_rate,
         false_negative_rate,
         thresholds,
-    ) = interpolate_increasing_thresholds(fpr.tolist(), fnr.tolist(), t.tolist())
+    ) = interpolate_increasing_thresholds(t.tolist(), fpr.tolist(), fnr.tolist())
     return pd.DataFrame(
         {
             "fpr": false_positive_rate,
