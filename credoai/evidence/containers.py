@@ -9,11 +9,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from credoai.utils import ValidationError
 
-from .evidence import (
-    MetricEvidence,
-    ProfilerEvidence,
-    TableEvidence,
-)
+from .evidence import MetricEvidence, ProfilerEvidence, TableEvidence
 
 
 class EvidenceContainer(ABC):

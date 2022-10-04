@@ -1,12 +1,11 @@
 import pandas as pd
-from credoai.artifacts import ClassificationModel, TabularData
+from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
 from credoai.evaluators.utils.validation import (
     check_artifact_for_nulls,
     check_data_instance,
     check_existence,
-    check_model_instance,
 )
 from credoai.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import (
@@ -16,7 +15,7 @@ from credoai.modules.metric_constants import (
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.modules.threshold_metric_constants import THRESHOLD_PROBABILITY_FUNCTIONS
 from credoai.utils import global_logger
-from credoai.utils.common import NotRunError, ValidationError
+from credoai.utils.common import ValidationError
 
 
 class ModelFairness(Evaluator):
@@ -87,10 +86,6 @@ class ModelFairness(Evaluator):
         self._prepare_results()
         return self
 
-    # TODO add threshold metrics
-    # We'll need to fiddle with disaggregated_df
-    # Maybe separated disaggregated_df into metrics and threshold metrics
-    # ..table of ThresholdMetricContainers for each threshold metric??
     def _prepare_results(self):
         fairness_results = self.get_fairness_results()
         fairness_results = pd.DataFrame(fairness_results).reset_index()
@@ -122,11 +117,6 @@ class ModelFairness(Evaluator):
 
         if not disaggregated_thresh_df.empty:
             for _, thresh_metric in disaggregated_thresh_df.iterrows():
-                # thresh_metric_as_df = tuple_metric_to_DataFrame(
-                #     thresh_metric,
-                #     self.sensitive_features.name,
-                #     thresh_metric[self.sensitive_features.name],
-                # )
                 thresh_metric.value.name = (
                     thresh_metric.threshold_metric
                     + "_"
@@ -184,8 +174,6 @@ class ModelFairness(Evaluator):
             self.sensitive_features,
         )
 
-    # TODO add thresholds here. The functionality should be ~the same as for
-    # performance
     def get_disaggregated_performance(self):
         """Return performance metrics for each group
 
@@ -205,12 +193,10 @@ class ModelFairness(Evaluator):
             disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
 
         disaggregated_metric_results = disaggregated_df[
-            disaggregated_df.columns.difference(THRESHOLD_PROBABILITY_FUNCTIONS.keys())
+            disaggregated_df.columns.difference(THRESHOLD_PROBABILITY_FUNCTIONS)
         ]
         disaggregated_threshold_results = disaggregated_df[
-            disaggregated_df.columns.intersection(
-                THRESHOLD_PROBABILITY_FUNCTIONS.keys()
-            )
+            disaggregated_df.columns.intersection(THRESHOLD_PROBABILITY_FUNCTIONS)
         ]
 
         disaggregated_metric_results = disaggregated_metric_results.reset_index().melt(
@@ -352,10 +338,7 @@ class ModelFairness(Evaluator):
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
-                metric = find_metrics(
-                    metric,
-                    MODEL_METRIC_CATEGORIES + THRESHOLD_METRIC_CATEGORIES,
-                )
+                metric = find_metrics(metric, MODEL_METRIC_CATEGORIES)
                 if len(metric) == 1:
                     metric = metric[0]
                 elif len(metric) == 0:
@@ -377,11 +360,12 @@ class ModelFairness(Evaluator):
                     fairness_metrics[metric_name] = metric
             elif metric.metric_category in MODEL_METRIC_CATEGORIES:
                 if metric.takes_prob:
-                    prob_metrics[metric_name] = metric
+                    if metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
+                        threshold_metrics[metric_name] = metric
+                    else:
+                        prob_metrics[metric_name] = metric
                 else:
                     performance_metrics[metric_name] = metric
-            elif metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
-                threshold_metrics[metric_name] = metric
             else:
                 global_logger.warning(
                     f"{metric_name} failed to be used by FairnessModule"

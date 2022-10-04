@@ -13,11 +13,7 @@ BINARY_CLASSIFICATION_CURVE_FUNCTIONS = {
     "det_curve": credo_det_curve,
 }
 
-THRESHOLD_PROBABILITY_FUNCTIONS = {
-    "roc_curve": ["fpr", "tpr", "thresholds"],
-    "precision_recall_curve": ["precision", "recall", "thresholds"],
-    "det_curve": ["fpr", "fnr", "thresholds"],
-}
+THRESHOLD_PROBABILITY_FUNCTIONS = {"roc_curve", "precision_recall_curve", "det_curve"}
 
 # Included for consistency relative to Metric and metric_constants.py
 # Empty because there are no supported equivalent names for threshold-varying metric functions

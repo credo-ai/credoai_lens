@@ -1,5 +1,5 @@
 import pandas as pd
-from credoai.artifacts import ClassificationModel, TabularData
+from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
 from credoai.evaluators.utils.validation import (
@@ -59,7 +59,7 @@ class Performance(Evaluator):
         self.prob_metrics = None
         self.failed_metrics = None
         self.perform_disaggregation = True
-        # erform_disaggregations is no longer needed?
+        # Perform_disaggregations is no longer needed?
         # Removing it might break some things, like the Quickstart.
         # Keeping for now. ESS 9/29/22
 
@@ -184,14 +184,14 @@ class Performance(Evaluator):
             )
 
             scalar_series = output_series[
-                ~output_series.index.isin(THRESHOLD_PROBABILITY_FUNCTIONS.keys())
+                ~output_series.index.isin(THRESHOLD_PROBABILITY_FUNCTIONS)
             ]
             scalar_series = scalar_series.reset_index().rename(
                 {"index": "type"}, axis=1
             )
 
             threshold_results = output_series[
-                output_series.index.isin(THRESHOLD_PROBABILITY_FUNCTIONS.keys())
+                output_series.index.isin(THRESHOLD_PROBABILITY_FUNCTIONS)
             ]
             threshold_results = threshold_results.reset_index().rename(
                 {"index": "threshold_metric"}, axis=1
@@ -226,10 +226,7 @@ class Performance(Evaluator):
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
-                metric = find_metrics(
-                    metric,
-                    MODEL_METRIC_CATEGORIES + THRESHOLD_METRIC_CATEGORIES,
-                )
+                metric = find_metrics(metric, MODEL_METRIC_CATEGORIES)
                 if len(metric) == 1:
                     metric = metric[0]
                 elif len(metric) == 0:
@@ -253,11 +250,12 @@ class Performance(Evaluator):
                 pass
             elif metric.metric_category in MODEL_METRIC_CATEGORIES:
                 if metric.takes_prob:
-                    prob_metrics[metric_name] = metric
+                    if metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
+                        threshold_metrics[metric_name] = metric
+                    else:
+                        prob_metrics[metric_name] = metric
                 else:
                     performance_metrics[metric_name] = metric
-            elif metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
-                threshold_metrics[metric_name] = metric
             else:
                 global_logger.warning(
                     f"{metric_name} failed to be used by FairnessModule"
