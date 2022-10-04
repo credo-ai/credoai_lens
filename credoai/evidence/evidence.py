@@ -42,7 +42,7 @@ class Evidence(ABC):
         """
         # additional_labels prioritized
         if self._label is None:
-            self._label = self.base_label | self.additional_labels
+            self._label = {**self.base_label, **self.additional_labels}
         return self._label
 
     @label.setter

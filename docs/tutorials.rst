@@ -20,8 +20,7 @@ using Lens, in 5 minutes.
 
 **Lens FAQ**
 
-Lens has a number of functionalities. This notebook showcases them and shows how 
-to achieve common tasks.
+Lens has a number of functionalities. This notebook showcases them and shows how to achieve common tasks.
 
 **Connecting with the Credo AI Governance Platform Demo**
 

@@ -73,7 +73,7 @@ class TestGovernance:
 
     @pytest.fixture()
     def gov(self, client):
-        return Governance(client)
+        return Governance(credo_api_client=client)
 
     @pytest.fixture
     def plan_file_mock(self, mocker):
