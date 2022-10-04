@@ -198,6 +198,8 @@ class ModelFairness(Evaluator):
             The disaggregated performance metrics
         """
         metric_frame = self.metric_frames.get("thresh")
+        if metric_frame is None:
+            return
         df = metric_frame.by_group.copy().convert_dtypes()
 
         df = df.reset_index().melt(
