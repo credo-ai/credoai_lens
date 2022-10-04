@@ -233,7 +233,9 @@ def ks_statistic(y_true, y_pred) -> float:
 def interpolate_increasing_thresholds(series1, series2, lib_thresholds):
     series1_out = list()
     series2_out = list()
-    interpolated_thresholds = np.arange(0, 1, min(0.001, 1 / len(lib_thresholds)))
+    interpolated_thresholds = np.arange(
+        min(lib_thresholds), max(lib_thresholds), min(0.001, 1 / len(lib_thresholds))
+    )
 
     for t in interpolated_thresholds:
         if t >= lib_thresholds[0]:
@@ -250,7 +252,7 @@ def interpolate_decreasing_thresholds(series1, series2, lib_thresholds):
     series1_out = list()
     series2_out = list()
     interpolated_thresholds = np.arange(
-        max(lib_thresholds), 0, -1 * min(0.001, 1 / len(lib_thresholds))
+        max(lib_thresholds), min(lib_thresholds), -1 * min(0.001, 1 / len(lib_thresholds))
     )
 
     for t in interpolated_thresholds:
@@ -308,9 +310,3 @@ def credo_det_curve(y_true, y_prob):
             "thresholds": thresholds,
         }
     )
-
-
-####
-# TODO: Change these to return dataframes rather than tuples...
-# ...That was really dumb
-####
