@@ -100,14 +100,15 @@ class Performance(Evaluator):
         NotRunError
             Occurs if self.run is not called yet to generate the raw assessment results
         """
-        scalar_results, threshold_results = self.get_overall_metrics()
+        overall_metrics = self.get_overall_metrics()
+        threshold_metrics = self.get_overall_threshold_metrics()
 
-        if not scalar_results.empty:
+        if overall_metrics is not None:
             self.results.append(
-                MetricContainer(scalar_results, **self.get_container_info())
+                MetricContainer(overall_metrics, **self.get_container_info())
             )
-        if not threshold_results.empty:
-            for _, threshold_metric in threshold_results.iterrows():
+        if threshold_metrics is not None:
+            for _, threshold_metric in threshold_metrics.iterrows():
                 threshold_metric.value.name = threshold_metric.threshold_metric
                 self.results.append(
                     TableContainer(threshold_metric.value, **self.get_container_info())
@@ -164,6 +165,28 @@ class Performance(Evaluator):
         return df
 
     def get_overall_metrics(self):
+        """Return scalar performance metrics for each group
+
+        Returns
+        -------
+        pandas.Series
+            The overall performance metrics
+        """
+        # retrieve overall metrics for one of the sensitive features only as they are the same
+        overall_metrics = [
+            metric_frame.overall
+            for name, metric_frame in self.metric_frames.items()
+            if name != "thresh"
+        ]
+        if overall_metrics:
+            output_series = (
+                pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
+            )
+            return output_series.reset_index().rename({"index": "type"}, axis=1)
+        else:
+            global_logger.warn("No overall metrics could be calculated.")
+
+    def get_overall_threshold_metrics(self):
         """Return performance metrics for each group
 
         Returns
@@ -171,8 +194,7 @@ class Performance(Evaluator):
         pandas.Series
             The overall performance metrics
         """
-        # retrive overall metrics for one of the sensitive features only as they are the same
-        threshold_results = pd.DataFrame()
+        # retrieve overall metrics for one of the sensitive features only as they are the same
         if self.threshold_metrics:
             threshold_results = (
                 pd.concat([self.metric_frames["thresh"].overall], axis=0)
@@ -182,27 +204,8 @@ class Performance(Evaluator):
             threshold_results = threshold_results.reset_index().rename(
                 {"index": "threshold_metric"}, axis=1
             )
-            threshold_results.name = "thresholded_metric_performance"
-
-        scalar_metrics = []
-        scalar_series = pd.Series()
-
-        if self.performance_metrics:
-            scalar_metrics.append(self.metric_frames["pred"].overall)
-        if self.prob_metrics:
-            scalar_metrics.append(self.metric_frames["prob"].overall)
-
-        if scalar_metrics:
-            scalar_series = (
-                pd.concat(scalar_metrics, axis=0).rename(index="value").to_frame()
-            )
-            scalar_series = scalar_series.reset_index().rename(
-                {"index": "type"}, axis=1
-            )
-
-        if scalar_series.empty and threshold_results.empty:
-            global_logger.warn("No overall metrics could be calculated.")
-        return scalar_series, threshold_results
+            threshold_results.name = "threshold_metric_performance"
+            return threshold_results
 
     @staticmethod
     def _process_metrics(metrics):
