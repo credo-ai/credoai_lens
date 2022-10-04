@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
@@ -58,7 +60,6 @@ class ModelFairness(Evaluator):
         self.metrics = metrics
         self.fairness_method = method
         self.fairness_metrics = None
-        self.fairness_prob_metrics = None
 
     name = "ModelFairness"
     required_artifacts = {"model", "data", "sensitive_feature"}
@@ -86,53 +87,38 @@ class ModelFairness(Evaluator):
         return self
 
     def _prepare_results(self):
-        fairness_results = self.get_fairness_results()
-        fairness_results = pd.DataFrame(fairness_results).reset_index()
-        fairness_results.rename({"metric_type": "type"}, axis=1, inplace=True)
-
-        (
-            disaggregated_metrics_df,
-            disaggregated_thresh_df,
-        ) = self.get_disaggregated_performance()
-
-        if not disaggregated_metrics_df.empty:
-            self.results = [
-                MetricContainer(
-                    fairness_results.drop("sensitive_feature", axis=1),
-                    **self.get_container_info(
-                        labels={"sensitive_feature": self.sensitive_features.name}
-                    ),
+        self.results = [
+            MetricContainer(
+                self.get_fairness_results(),
+                **self.get_container_info(
+                    labels={"sensitive_feature": self.sensitive_features.name}
                 ),
-                TableContainer(
-                    disaggregated_metrics_df,
-                    **self.get_container_info(
-                        labels={
-                            "sensitive_feature": self.sensitive_features.name,
-                            "metric_types": disaggregated_metrics_df.type.unique().tolist(),
-                        }
-                    ),
-                ),
-            ]
+            )
+        ]
 
-        if not disaggregated_thresh_df.empty:
-            for _, thresh_metric in disaggregated_thresh_df.iterrows():
-                thresh_metric.value.name = (
-                    thresh_metric.threshold_metric
-                    + "_"
-                    + self.sensitive_features.name
-                    + "_"
-                    + thresh_metric[self.sensitive_features.name]
-                )
+        disaggregated_metrics_df = self.get_disaggregated_performance()
+        disaggregated_thresh_results = self.get_disaggregated_threshold_performance()
+
+        if disaggregated_metrics_df is None:
+            e = TableContainer(
+                disaggregated_metrics_df,
+                **self.get_container_info(
+                    labels={
+                        "sensitive_feature": self.sensitive_features.name,
+                        "metric_types": disaggregated_metrics_df.type.unique().tolist(),
+                    }
+                ),
+            )
+            self.results.append(e)
+
+        if disaggregated_thresh_results:
+            for key, df in disaggregated_thresh_results.items():
+                df.name = key
                 self.results.append(
                     TableContainer(
-                        thresh_metric.value,
+                        df,
                         **self.get_container_info(
-                            labels={
-                                "sensitive_feature": self.sensitive_features.name,
-                                "sensitive_feature_val": thresh_metric[
-                                    self.sensitive_features.name
-                                ],
-                            }
+                            labels={"sensitive_feature": self.sensitive_features.name}
                         ),
                     )
                 )
@@ -160,7 +146,6 @@ class ModelFairness(Evaluator):
             self.prob_metrics,
             self.threshold_metrics,
             self.fairness_metrics,
-            self.fairness_prob_metrics,
             self.failed_metrics,
         ) = self._process_metrics(self.metrics)
         self.metric_frames = setup_metric_frames(
@@ -175,6 +160,32 @@ class ModelFairness(Evaluator):
 
     def get_disaggregated_performance(self):
         """Return performance metrics for each group
+        Parameters
+        ----------
+        melt : bool, optional
+            If True, return a long-form dataframe, by default False
+        Returns
+        -------
+        pandas.DataFrame
+            The disaggregated performance metrics
+        """
+        disaggregated_df = pd.DataFrame()
+        for metric_frame in self.metric_frames.values():
+            df = metric_frame.by_group.copy().convert_dtypes()
+            disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
+        disaggregated_results = disaggregated_df.reset_index().melt(
+            id_vars=[disaggregated_df.index.name],
+            var_name="type",
+        )
+        disaggregated_results.name = "disaggregated_performance"
+
+        if disaggregated_results.empty:
+            global_logger.warn("No disaggregated metrics could be calculated.")
+            return
+        return disaggregated_results
+
+    def get_disaggregated_threshold_performance(self):
+        """Return performance metrics for each group
 
         Parameters
         ----------
@@ -186,40 +197,21 @@ class ModelFairness(Evaluator):
         pandas.DataFrame
             The disaggregated performance metrics
         """
-        disaggregated_metric_results = pd.DataFrame()
-        disaggregated_threshold_results = pd.DataFrame()
+        metric_frame = self.metric_frames.get("thresh")
+        df = metric_frame.by_group.copy().convert_dtypes()
 
-        for metric_frame, value in self.metric_frames.items():
-            if metric_frame == "thresh":
-                df = value.by_group.copy().convert_dtypes()
-                disaggregated_threshold_results = pd.concat(
-                    [disaggregated_threshold_results, df], axis=1
-                )
-            else:
-                df = value.by_group.copy().convert_dtypes()
-                disaggregated_metric_results = pd.concat(
-                    [disaggregated_metric_results, df], axis=1
-                )
-        if not disaggregated_metric_results.empty:
-            disaggregated_metric_results = (
-                disaggregated_metric_results.reset_index().melt(
-                    id_vars=[disaggregated_metric_results.index.name],
-                    var_name="type",
-                )
-            )
-            disaggregated_metric_results.name = "disaggregated_performance"
-        if not disaggregated_threshold_results.empty:
-            disaggregated_threshold_results = (
-                disaggregated_threshold_results.reset_index().melt(
-                    id_vars=[disaggregated_threshold_results.index.name],
-                    var_name="threshold_metric",
-                )
-            )
-            disaggregated_threshold_results.name = "disaggregated_threshold_curves"
+        df = df.reset_index().melt(
+            id_vars=[df.index.name],
+            var_name="type",
+        )
 
-        if disaggregated_metric_results.empty and disaggregated_threshold_results.empty:
-            global_logger.warn("No disaggregated metrics could be calculated.")
-        return disaggregated_metric_results, disaggregated_threshold_results
+        to_return = defaultdict(pd.DataFrame)
+        for i, row in df.iterrows():
+            label = f'{row["type"]}_disaggregated_performance'
+            tmp_df = row["value"]
+            tmp_df = tmp_df.assign(**row.drop("value"))
+            to_return[label] = pd.concat([to_return[label], tmp_df])
+        return to_return
 
     def get_fairness_results(self):
         """Return fairness and performance parity metrics
@@ -227,15 +219,6 @@ class ModelFairness(Evaluator):
         Note, performance parity metrics are labeled with their
         related performance label, but are computed using
         fairlearn.metrics.MetricFrame.difference(method)
-
-        By convention, threshold-varying metrics are not considered in this function.
-        There is no agreed-upon notion of how to calculate the 'difference' between
-        two performance curves (e.g. comparing separate roc curves showing performance
-        across groups for a sensitive feature).
-
-        Parameters
-        ----------
-
 
         Returns
         -------
@@ -245,12 +228,15 @@ class ModelFairness(Evaluator):
 
         results = []
         for metric_name, metric in self.fairness_metrics.items():
+            pred_argument = {"y_pred": self.y_pred}
+            if metric.takes_prob:
+                pred_argument = {"y_prob": self.y_prob}
             try:
                 metric_value = metric.fun(
                     y_true=self.y_true,
-                    y_pred=self.y_pred,
                     sensitive_features=self.sensitive_features,
                     method=self.fairness_method,
+                    **pred_argument,
                 )
             except Exception as e:
                 global_logger.error(
@@ -258,60 +244,29 @@ class ModelFairness(Evaluator):
                     "Are you sure it works with this kind of model and target?\n"
                 )
                 raise e
-            results.append(
-                {
-                    "metric_type": metric_name,
-                    "value": metric_value,
-                    "sensitive_feature": self.sensitive_features.name,
-                }
-            )
-
-        for metric_name, metric in self.fairness_prob_metrics.items():
-            try:
-                metric_value = metric.fun(
-                    y_true=self.y_true,
-                    y_prob=self.y_prob,
-                    sensitive_features=self.sensitive_features,
-                    method=self.fairness_method,
-                )
-            except Exception as e:
-                global_logger.error(
-                    f"A metric ({metric_name}) failed to run. Are you sure it works with this kind of model and target?"
-                )
-                raise e
-            results.append(
-                {
-                    "metric_type": metric_name,
-                    "value": metric_value,
-                    "sensitive_feature": self.sensitive_features.name,
-                }
-            )
+            results.append({"metric_type": metric_name, "value": metric_value})
 
         results = pd.DataFrame.from_dict(results)
 
         # add parity results
         parity_results = pd.Series(dtype=float)
         parity_results = []
-        for metric_frame, value in self.metric_frames.items():
-            if metric_frame == "thresh":
+        for name, metric_frame in self.metric_frames.items():
+            if name == "thresh":
                 # Don't calculate difference for curve metrics. This is not mathematically well-defined.
-                pass
-            else:
-                diffs = value.difference(method=self.fairness_method)
-                diffs = pd.DataFrame(
-                    {"metric_type": diffs.index, "value": diffs.values}
-                )
-                diffs["sensitive_feature"] = self.sensitive_features.name
-                parity_results.append(diffs)
+                continue
+            diffs = metric_frame.difference(self.fairness_method).rename(
+                "{}_parity".format
+            )
+            diffs = pd.DataFrame({"metric_type": diffs.index, "value": diffs.values})
+            parity_results.append(diffs)
 
         if parity_results:
             parity_results = pd.concat(parity_results)
             results = pd.concat([results, parity_results])
         results.set_index("metric_type", inplace=True)
-        # add kind
-        results["subtype"] = ["fairness"] * len(results)
-        results.loc[results.index[-len(parity_results) :], "subtype"] = "parity"
-        return results.sort_values(by="sensitive_feature")
+
+        return results.reset_index().rename({"metric_type": "type"}, axis=1)
 
     def _process_metrics(self, metrics):
         """Separates metrics
@@ -352,10 +307,7 @@ class ModelFairness(Evaluator):
             if not isinstance(metric, Metric):
                 raise ValidationError("Metric is not of type credoai.metric.Metric")
             if metric.metric_category == "FAIRNESS":
-                if metric.takes_prob:
-                    fairness_prob_metrics[metric_name] = metric
-                else:
-                    fairness_metrics[metric_name] = metric
+                fairness_metrics[metric_name] = metric
             elif metric.metric_category in MODEL_METRIC_CATEGORIES:
                 if metric.takes_prob:
                     if metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
@@ -375,7 +327,6 @@ class ModelFairness(Evaluator):
             prob_metrics,
             threshold_metrics,
             fairness_metrics,
-            fairness_prob_metrics,
             failed_metrics,
         )
 
