@@ -200,20 +200,22 @@ class ModelFairness(Evaluator):
                 disaggregated_metric_results = pd.concat(
                     [disaggregated_metric_results, df], axis=1
                 )
-
-        disaggregated_metric_results = disaggregated_metric_results.reset_index().melt(
-            id_vars=[disaggregated_metric_results.index.name],
-            var_name="type",
-        )
-        disaggregated_metric_results.name = "disaggregated_performance"
-
-        disaggregated_threshold_results = (
-            disaggregated_threshold_results.reset_index().melt(
-                id_vars=[disaggregated_threshold_results.index.name],
-                var_name="threshold_metric",
+        if not disaggregated_metric_results.empty:
+            disaggregated_metric_results = (
+                disaggregated_metric_results.reset_index().melt(
+                    id_vars=[disaggregated_metric_results.index.name],
+                    var_name="type",
+                )
             )
-        )
-        disaggregated_threshold_results.name = "disaggregated_threshold_curves"
+            disaggregated_metric_results.name = "disaggregated_performance"
+        if not disaggregated_threshold_results.empty:
+            disaggregated_threshold_results = (
+                disaggregated_threshold_results.reset_index().melt(
+                    id_vars=[disaggregated_threshold_results.index.name],
+                    var_name="threshold_metric",
+                )
+            )
+            disaggregated_threshold_results.name = "disaggregated_threshold_curves"
 
         if disaggregated_metric_results.empty and disaggregated_threshold_results.empty:
             global_logger.warn("No disaggregated metrics could be calculated.")

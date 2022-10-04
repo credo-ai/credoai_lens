@@ -232,7 +232,9 @@ def ks_statistic(y_true, y_pred) -> float:
 
 def interpolate_increasing_thresholds(lib_thresholds, *series, quantization=0.01):
     out = [list() for i in series]
-    interpolated_thresholds = np.arange(0, max(lib_thresholds), quantization)
+    interpolated_thresholds = np.arange(
+        min(lib_thresholds), max(lib_thresholds), quantization
+    )
 
     for t in interpolated_thresholds:
         if t >= lib_thresholds[0]:
@@ -247,7 +249,9 @@ def interpolate_increasing_thresholds(lib_thresholds, *series, quantization=0.01
 
 def interpolate_decreasing_thresholds(lib_thresholds, *series, quantization=-0.01):
     out = [list() for i in series]
-    interpolated_thresholds = np.arange(max(lib_thresholds), 0, quantization)
+    interpolated_thresholds = np.arange(
+        max(lib_thresholds), min(lib_thresholds), quantization
+    )
 
     for t in interpolated_thresholds:
         for i, s in enumerate(out):
@@ -277,12 +281,12 @@ def credo_pr_curve(y_true, y_prob):
 
 
 def credo_roc_curve(y_true, y_prob):
-    fpr, tpr, t = sk_metrics.roc_curve(y_true, y_prob)
+    fpr, tpr, thresh = sk_metrics.roc_curve(y_true, y_prob)
     (
         false_positive_rate,
         true_positive_rate,
         thresholds,
-    ) = interpolate_decreasing_thresholds(t.tolist(), fpr.tolist(), tpr.tolist())
+    ) = interpolate_decreasing_thresholds(thresh.tolist(), fpr.tolist(), tpr.tolist())
     return pd.DataFrame(
         {
             "fpr": false_positive_rate,

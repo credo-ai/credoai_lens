@@ -172,7 +172,7 @@ class Performance(Evaluator):
             The overall performance metrics
         """
         # retrive overall metrics for one of the sensitive features only as they are the same
-
+        threshold_results = pd.DataFrame()
         if self.threshold_metrics:
             threshold_results = (
                 pd.concat([self.metric_frames["thresh"].overall], axis=0)
@@ -185,6 +185,7 @@ class Performance(Evaluator):
             threshold_results.name = "thresholded_metric_performance"
 
         scalar_metrics = []
+        scalar_series = pd.Series()
 
         if self.performance_metrics:
             scalar_metrics.append(self.metric_frames["pred"].overall)
