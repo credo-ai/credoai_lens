@@ -42,8 +42,8 @@ class Evaluator(ABC):
 
     def __call__(self, **kwargs):
         """
-        This method is used to pass the model, assessment_dataset and training_dataset
-        to instantiated evaluator.
+        This method is used to pass the model, assessment_data and training_data
+        artifacts to instantiated evaluator.
 
         After objects are passed, it performs arguments validation and calls _setup
 

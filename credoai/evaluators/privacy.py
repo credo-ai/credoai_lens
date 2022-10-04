@@ -1,3 +1,4 @@
+from typing import Optional, Union
 from warnings import filterwarnings
 
 import numpy as np
@@ -85,11 +86,32 @@ class Privacy(Evaluator):
         self.attack_train_ratio = attack_train_ratio
         # Validates and assigns attack feature/s
         self._validate_attack_feature(attack_feature, attack_feature_name)
+        self._results = []
 
     name = "Privacy"
     required_artifacts = {"model", "assessment_data", "training_data"}
 
+    def _validate_arguments(self):
+        """
+        Input validation step, this is run after _init_artifacts() in the
+        parent class.
+        """
+        check_requirements_existence(self)
+        check_model_instance(self.model, ClassificationModel)
+        for ds in ["assessment_data", "training_data"]:
+            artifact = vars(self)[ds]
+            check_data_instance(artifact, TabularData, ds)
+            check_artifact_for_nulls(artifact, ds)
+            if isinstance(self.attack_feature, str):
+                check_feature_presence(
+                    self.attack_feature, artifact.X, "assessment_data"
+                )
+
     def _setup(self):
+        """
+        Complete initialization after the artifacts have been passed by _init_artifacts() in the
+        parent class.
+        """
         # Data prep
         self.x_train = self.training_data.X.to_numpy()
         self.y_train = self.training_data.y.to_numpy()
@@ -112,13 +134,13 @@ class Privacy(Evaluator):
         return self
 
     def evaluate(self):
-        """Runs the assessment process
+        """
+        Runs the assessment process.
 
         Returns
         -------
-        dict
-            Key: metric name
-            Value: metric value
+            Update the results with a list of MetricContainers
+
         """
 
         attacks_to_run = SUPPORTED_MEMBERSHIP_ATTACKS
@@ -139,48 +161,13 @@ class Privacy(Evaluator):
                 [v for k, v in attack_scores.items() if "Attribute" in k]
             )
 
-        self._results = attack_scores
-        self._prepare_results()
+        attack_score = DataFrame(list(attack_scores.items()), columns=["type", "value"])
+        attack_score[["type", "subtype"]] = attack_score.type.str.split(
+            "-", expand=True
+        )
+        self.results = [MetricContainer(attack_score, **self.get_container_info())]
 
         return self
-
-    def _prepare_results(self):
-        """Prepares results for export to Credo AI's Governance App
-
-        Structures a subset of results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
-
-        Returns
-        -------
-        pd.DataFrame
-
-        Raises
-        ------
-        NotRunError
-            If results have not been run, raise
-        """
-        if self._results is not None:
-            res = DataFrame(list(self._results.items()), columns=["type", "value"])
-            res[["type", "subtype"]] = res.type.str.split("-", expand=True)
-            self.results = [MetricContainer(res, **self.get_container_info())]
-
-        else:
-            raise ValueError(
-                "Results not created yet. Call 'evaluate' to create results"
-            )
-
-    def _validate_arguments(self):
-
-        check_requirements_existence(self)
-        check_model_instance(self.model, ClassificationModel)
-        for ds in ["assessment_data", "training_data"]:
-            artifact = vars(self)[ds]
-            check_data_instance(artifact, TabularData, ds)
-            check_artifact_for_nulls(artifact, ds)
-            if self.attack_feature:
-                check_feature_presence(
-                    self.attack_feature, artifact.X, "assessment_data"
-                )
 
     def _general_attack_method(self, attack_details):
         """
@@ -333,7 +320,8 @@ class Privacy(Evaluator):
         return np.sum(inferred == original) / len(inferred)
 
     def _predict_binary_class_matrix(self, x):
-        """`predict` that returns a binary class matrix
+        """
+        `predict` that returns a binary class matrix.
 
         ----------
         x : features array
@@ -350,7 +338,24 @@ class Privacy(Evaluator):
             ai[bi] = 1
         return y_transformed
 
-    def _validate_attack_feature(self, attack_feature, attack_feature_name):
+    def _validate_attack_feature(
+        self, attack_feature: Union[str, int], attack_feature_name: Optional[str]
+    ):
+        """
+        Validation of attack feature.
+
+        Parameters
+        ----------
+        attack_feature : Union[str, int]
+            Feature name or position in the dataframe
+        attack_feature_name : Optional[str]
+            Feature name
+
+        Raises
+        ------
+        ValidationError
+            If attack feature is positional a correspondent name needs to be provided.
+        """
         if isinstance(attack_feature, int) and attack_feature_name is None:
             raise ValidationError("attack_feature_name must be provided")
 
