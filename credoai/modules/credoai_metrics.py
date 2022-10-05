@@ -4,6 +4,7 @@ from fairlearn.metrics import make_derived_metric, true_positive_rate
 from sklearn import metrics as sk_metrics
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.utils import check_consistent_length
+import pandas as pd
 
 
 def general_wilson(p, n, z=1.96):
@@ -23,7 +24,7 @@ def general_wilson(p, n, z=1.96):
         np.ndarray
         Array of length 2 of form: [lower_bound, upper_bound]
     """
-    denominator = 1 + z ** 2 / n
+    denominator = 1 + z**2 / n
     centre_adjusted_probability = p + z * z / (2 * n)
     adjusted_standard_deviation = np.sqrt((p * (1 - p) + z * z / (4 * n))) / np.sqrt(n)
     lower_bound = (
@@ -227,3 +228,85 @@ def ks_statistic(y_true, y_pred) -> float:
     ks_stat = st.ks_2samp(y_true, y_pred).statistic
 
     return ks_stat
+
+
+def interpolate_increasing_thresholds(lib_thresholds, *series, quantization=0.01):
+    out = [list() for i in series]
+    interpolated_thresholds = np.arange(
+        min(lib_thresholds), max(lib_thresholds), quantization
+    )
+
+    for t in interpolated_thresholds:
+        if t >= lib_thresholds[0]:
+            lib_thresholds.pop(0)
+            for s in series:
+                s.pop(0)
+        for i, s in enumerate(out):
+            s.append(series[i][0])
+
+    return out + [interpolated_thresholds]
+
+
+def interpolate_decreasing_thresholds(lib_thresholds, *series, quantization=-0.01):
+    out = [list() for i in series]
+    interpolated_thresholds = np.arange(
+        max(lib_thresholds), min(lib_thresholds), quantization
+    )
+
+    for t in interpolated_thresholds:
+        for i, s in enumerate(out):
+            s.append(series[i][0])
+        if t <= lib_thresholds[0]:
+            lib_thresholds.pop(0)
+            for s in series:
+                s.pop(0)
+
+    return out + [interpolated_thresholds]
+
+
+def credo_pr_curve(y_true, y_prob):
+    p, r, t = sk_metrics.precision_recall_curve(y_true, y_prob)
+    (
+        precision,
+        recall,
+        thresholds,
+    ) = interpolate_increasing_thresholds(t.tolist(), p.tolist(), r.tolist())
+    return pd.DataFrame(
+        {
+            "precision": precision,
+            "recall": recall,
+            "thresholds": thresholds,
+        }
+    )
+
+
+def credo_roc_curve(y_true, y_prob):
+    fpr, tpr, thresh = sk_metrics.roc_curve(y_true, y_prob)
+    (
+        false_positive_rate,
+        true_positive_rate,
+        thresholds,
+    ) = interpolate_decreasing_thresholds(thresh.tolist(), fpr.tolist(), tpr.tolist())
+    return pd.DataFrame(
+        {
+            "fpr": false_positive_rate,
+            "tpr": true_positive_rate,
+            "thresholds": thresholds,
+        }
+    )
+
+
+def credo_det_curve(y_true, y_prob):
+    fpr, fnr, t = sk_metrics.det_curve(y_true, y_prob)
+    (
+        false_positive_rate,
+        false_negative_rate,
+        thresholds,
+    ) = interpolate_increasing_thresholds(t.tolist(), fpr.tolist(), fnr.tolist())
+    return pd.DataFrame(
+        {
+            "fpr": false_positive_rate,
+            "fnr": false_negative_rate,
+            "thresholds": thresholds,
+        }
+    )
