@@ -64,23 +64,29 @@ class TabularData(Data):
             pd_type = pd.Series
             if isinstance(y, np.ndarray) and y.ndim == 2 and y.shape[1] > 1:
                 pd_type = pd.DataFrame
-            y = pd_type(y, index=self.X.index, name="target")
+            if self.X is not None:
+                y = pd_type(y, index=self.X.index, name="target")
+            else:
+                y = pd_type(y, name="target")
         return y
 
     def _validate_y(self):
-        """Basic validation for y"""
-        if len(self.X) != len(self.y):
-            raise ValidationError(
-                "X and y are not the same length. "
-                + f"X Length: {len(self.X)}, y Length: {len(self.y)}"
-            )
+        if self.X is not None:
+            """Basic validation for y"""
+            if len(self.X) != len(self.y):
+                raise ValidationError(
+                    "X and y are not the same length. "
+                    + f"X Length: {len(self.X)}, y Length: {len(self.y)}"
+                )
+
+    def _validate_processed_y(self):
         if isinstance(self.X, (pd.Series, pd.DataFrame)) and not self.X.index.equals(
             self.y.index
         ):
             raise ValidationError("X and y must have the same index")
 
     def _validate_X(self):
-        """Basica validation for X"""
+        """Basic validation for X"""
         # Validate that the data column names are unique
         if len(self.X.columns) != len(set(self.X.columns)):
             raise ValidationError("X contains duplicate column names")
