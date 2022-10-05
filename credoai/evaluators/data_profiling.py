@@ -64,9 +64,6 @@ class DataProfiling(Evaluator):
         self.results = [results]
         return self
 
-    def _prepare_results(self):
-        return self
-
     def _create_reporter(self):
         default_kwargs = {"title": "Dataset", "minimal": True}
         default_kwargs.update(self.profile_kwargs)
