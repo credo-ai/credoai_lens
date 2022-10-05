@@ -86,7 +86,7 @@ class Privacy(Evaluator):
         self.attack_train_ratio = attack_train_ratio
         # Validates and assigns attack feature/s
         self._validate_attack_feature(attack_feature, attack_feature_name)
-        self._results = []
+        self._results = None
 
     name = "Privacy"
     required_artifacts = {"model", "assessment_data", "training_data"}
