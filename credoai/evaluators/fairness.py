@@ -2,10 +2,12 @@ import pandas as pd
 from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
-from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
-                                                 check_data_instance,
-                                                 check_existence,
-                                                 check_model_instance)
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_existence,
+    check_model_instance,
+)
 from credoai.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
@@ -71,36 +73,25 @@ class ModelFairness(Evaluator):
 
     def evaluate(self):
         """
-        Run fairness base module
-
-
-        Returns
-        -------
-        self
+        Run fairness base module.
         """
-        self._prepare_results()
-        return self
-
-    def _prepare_results(self):
         fairness_results = self.get_fairness_results()
         fairness_results = pd.DataFrame(fairness_results).reset_index()
         fairness_results.rename({"metric_type": "type"}, axis=1, inplace=True)
         disaggregated_df = self.get_disaggregated_performance()
 
+        sens_feat_label = {"sensitive_feature": self.sensitive_features.name}
+        metric_type_label = {"metric_types": disaggregated_df.type.unique().tolist()}
+
         self.results = [
             MetricContainer(
                 fairness_results.drop("sensitive_feature", axis=1),
-                **self.get_container_info(
-                    labels={"sensitive_feature": self.sensitive_features.name}
-                ),
+                **self.get_container_info(labels=sens_feat_label),
             ),
             TableContainer(
                 disaggregated_df,
                 **self.get_container_info(
-                    labels={
-                        "sensitive_feature": self.sensitive_features.name,
-                        "metric_types": disaggregated_df.type.unique().tolist(),
-                    }
+                    labels={**sens_feat_label, **metric_type_label}
                 ),
             ),
         ]
