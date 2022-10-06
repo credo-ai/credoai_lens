@@ -60,6 +60,8 @@ class ModelFairness(Evaluator):
         self.metrics = metrics
         self.fairness_method = method
         self.fairness_metrics = None
+        self.fairness_prob_metrics = None
+        super().__init__()
 
     name = "ModelFairness"
     required_artifacts = {"model", "data", "sensitive_feature"}
@@ -76,50 +78,38 @@ class ModelFairness(Evaluator):
 
     def evaluate(self):
         """
-        Run fairness base module
-
-
-        Returns
-        -------
-        self
+        Run fairness base module.
         """
-        self._prepare_results()
-        return self
-
-    def _prepare_results(self):
-        self.results = [
-            MetricContainer(
-                self.get_fairness_results(),
-                **self.get_container_info(
-                    labels={"sensitive_feature": self.sensitive_features.name}
-                ),
-            )
-        ]
-
         disaggregated_metrics_df = self.get_disaggregated_performance()
         disaggregated_thresh_results = self.get_disaggregated_threshold_performance()
+
+        sens_feat_label = {"sensitive_feature": self.sensitive_features.name}
+        metric_type_label = {
+            "metric_types": disaggregated_metrics_df.type.unique().tolist()
+        }
+
+        self._results = [
+            MetricContainer(
+                self.get_fairness_results(),
+                **self.get_container_info(labels=sens_feat_label),
+            )
+        ]
 
         if disaggregated_metrics_df is None:
             e = TableContainer(
                 disaggregated_metrics_df,
                 **self.get_container_info(
-                    labels={
-                        "sensitive_feature": self.sensitive_features.name,
-                        "metric_types": disaggregated_metrics_df.type.unique().tolist(),
-                    }
+                    labels={**sens_feat_label, **metric_type_label}
                 ),
             )
-            self.results.append(e)
+            self._results.append(e)
 
         if disaggregated_thresh_results:
             for key, df in disaggregated_thresh_results.items():
                 df.name = key
-                self.results.append(
+                self._results.append(
                     TableContainer(
-                        df,
-                        **self.get_container_info(
-                            labels={"sensitive_feature": self.sensitive_features.name}
-                        ),
+                        df, **self.get_container_info(labels=sens_feat_label)
                     )
                 )
 

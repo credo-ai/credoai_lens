@@ -151,8 +151,7 @@ class TableEvidence(Evidence):
 
 class ProfilerEvidence(Evidence):
     """
-    Evidence for the result of pandas profiler
-    """
+    Evidence for the result of pandas profiler"""
 
     def __init__(self, data: dict, additional_labels: dict = None, **metadata):
         self._data = data

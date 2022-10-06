@@ -37,7 +37,7 @@ class DataProfiling(Evaluator):
     def __init__(self, dataset_name=None, **profile_kwargs):
         self.profile_kwargs = profile_kwargs
         self.dataset_name = dataset_name
-        self.results = []
+        super().__init__()
 
     def _setup(self):
         self.data_to_eval = self.data
@@ -62,9 +62,6 @@ class DataProfiling(Evaluator):
         results = pd.DataFrame({"results": results})
         results = ProfilerContainer(results, **self.get_container_info())
         self.results = [results]
-        return self
-
-    def _prepare_results(self):
         return self
 
     def _create_reporter(self):

@@ -1,3 +1,4 @@
+import statistics
 import traceback
 from itertools import combinations
 
@@ -5,9 +6,11 @@ import numpy as np
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
-                                                 check_data_instance,
-                                                 check_existence)
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_existence,
+)
 from credoai.evidence import MetricContainer, TableContainer
 from credoai.utils import NotRunError, global_logger
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
@@ -42,6 +45,7 @@ class DataEquity(Evaluator):
 
     def __init__(self, p_value=0.01):
         self.pvalue = p_value
+        super().__init__()
 
     def _setup(self):
         self.sensitive_features = self.data.sensitive_feature
@@ -57,79 +61,48 @@ class DataEquity(Evaluator):
         check_artifact_for_nulls(self.data, "Data")
 
     def evaluate(self):
-        self._results = {"descriptive": self.describe()}
-        if self.type_of_target in ("binary", "multiclass"):
-            self.results["statistics"] = self.discrete_stats()
-        else:
-            self.results["statistics"] = self.continuous_stats()
-        self.results = self._prepare_results()
-        return self
+        sens_feat_label = {"sensitive_feature": self.sensitive_features.name}
+        desc = self.describe()
+        # Create summary
+        summary = TableContainer(
+            desc["summary"],
+            **self.get_container_info(labels=sens_feat_label),
+        )
+        # Create parity results
+        parity_results = pd.DataFrame(
+            [
+                {"type": k, "value": v}
+                for k, v in desc.items()
+                if "demographic_parity" in k
+            ]
+        )
+        parity_results = MetricContainer(
+            parity_results,
+            **self.get_container_info(labels=sens_feat_label),
+        )
+        # Add statistics
+        overall_equity, posthoc_tests = self._get_formatted_stats()
+        overall_equity = MetricContainer(
+            pd.DataFrame(overall_equity, index=[0]),
+            **self.get_container_info(
+                labels={"sensitive_feature": self.sensitive_features.name}
+            ),
+        )
+        # Combine
+        equity_containers = [summary, parity_results, overall_equity]
 
-    def _prepare_results(self):
-        if self._results:
-            desc = self._results["descriptive"]
-            summary = desc["summary"]
-            summary["subtype"] = "summary"
-            summary.name = "summary"
-            summary = TableContainer(
-                summary,
-                **self.get_container_info(
-                    labels={"sensitive_feature": self.sensitive_features.name}
-                ),
-            )
-            desc_metadata = {
-                "highest_group": desc["highest_group"],
-                "lowest_group": desc["lowest_group"],
-            }
-
-            results = pd.DataFrame(
-                [
-                    {"type": k, "value": v}
-                    for k, v in desc.items()
-                    if "demographic_parity" in k
-                ]
-            )
-            results = MetricContainer(
-                results,
-                **self.get_container_info(
-                    labels={"sensitive_feature": self.sensitive_features.name}
-                ),
-            )
-
-            # add statistics
-            stats = self.results["statistics"]
-            overall_equity = {
-                "type": "overall",
-                "value": stats["equity_test"]["statistic"],
-                "subtype": stats["equity_test"]["test_type"],
-                "p_value": stats["equity_test"]["pvalue"],
-            }
-            overall_equity = MetricContainer(
-                pd.DataFrame(overall_equity, index=[0]),
-                **self.get_container_info(
-                    labels={"sensitive_feature": self.sensitive_features.name}
-                ),
-            )
-            # add posthoc tests if needed
-            equity_containers = [summary, results, overall_equity]
-            if "significant_posthoc_tests" in stats:
-                posthoc_tests = pd.DataFrame(stats["significant_posthoc_tests"])
-                posthoc_tests.rename({"test_type": "subtype"}, axis=1, inplace=True)
-                posthoc_tests.name = "posthoc"
-                equity_containers.append(
-                    TableContainer(
-                        posthoc_tests,
-                        **self.get_container_info(
-                            labels={"sensitive_feature": self.sensitive_features.name}
-                        ),
-                    )
+        # Add posthoc if available
+        if posthoc_tests:
+            equity_containers.append(
+                TableContainer(
+                    posthoc_tests,
+                    **self.get_container_info(
+                        labels={"sensitive_feature": self.sensitive_features.name}
+                    ),
                 )
-
-            return equity_containers
-        else:
-            raise NotRunError(
-                "Results not created yet. Call 'run' with appropriate arguments before preparing results"
             )
+        self.results = equity_containers
+        return self
 
     def describe(self):
         """Create descriptive output"""
@@ -138,13 +111,50 @@ class DataEquity(Evaluator):
                 self.y.name
             ].describe()
         }
-        r = results["summary"]
+        summary = results["summary"]
         results["sensitive_feature"] = self.sensitive_features.name
-        results["highest_group"] = r["mean"].idxmax()
-        results["lowest_group"] = r["mean"].idxmin()
-        results["demographic_parity_difference"] = r["mean"].max() - r["mean"].min()
-        results["demographic_parity_ratio"] = r["mean"].min() / r["mean"].max()
+        results["highest_group"] = summary["mean"].idxmax()
+        results["lowest_group"] = summary["mean"].idxmin()
+        results["demographic_parity_difference"] = (
+            summary["mean"].max() - summary["mean"].min()
+        )
+        results["demographic_parity_ratio"] = (
+            summary["mean"].min() / summary["mean"].max()
+        )
+
+        summary["subtype"] = "summary"
+        summary.name = "summary"
+
         return results
+
+    def _get_formatted_stats(self) -> tuple:
+        """
+        Select statistics based on classification type, add formatting.
+
+        Returns
+        -------
+        tuple
+            Overall equity, posthoc tests
+        """
+        if self.type_of_target in ("binary", "multiclass"):
+            statistics = self.discrete_stats()
+        else:
+            statistics = self.continuous_stats()
+
+        overall_equity = {
+            "type": "overall",
+            "value": statistics["equity_test"]["statistic"],
+            "subtype": statistics["equity_test"]["test_type"],
+            "p_value": statistics["equity_test"]["pvalue"],
+        }
+
+        posthoc_tests = None
+        if "significant_posthoc_tests" in statistics:
+            posthoc_tests = pd.DataFrame(statistics["significant_posthoc_tests"])
+            posthoc_tests.rename({"test_type": "subtype"}, axis=1, inplace=True)
+            posthoc_tests.name = "posthoc"
+
+        return overall_equity, posthoc_tests
 
     def discrete_stats(self):
         """Run statistics on discrete outcomes"""

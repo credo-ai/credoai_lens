@@ -16,7 +16,7 @@ from credoai.evaluators.utils.validation import (
     check_requirements_existence,
 )
 from credoai.evidence import MetricContainer
-from credoai.utils.common import NotRunError, ValidationError
+from credoai.utils.common import NotRunError
 from keras.layers import Dense
 from keras.models import Sequential
 from keras.utils.np_utils import to_categorical
@@ -87,31 +87,11 @@ class Security(Evaluator):
             Key: metric name
             Value: metric value
         """
-        self._results = {**self._extraction_attack(), **self._evasion_attack()}
-        self._prepare_results()
+        res = {**self._extraction_attack(), **self._evasion_attack()}
+        res = pd.DataFrame(list(res.items()), columns=["type", "value"])
+        res[["type", "subtype"]] = res.type.str.split("-", expand=True)
+        self.results = [MetricContainer(res, **self.get_container_info())]
         return self
-
-    def _prepare_results(self):
-        """Prepares results for export to Credo AI's Governance App
-
-        Structures a subset of results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
-
-        Returns
-        -------
-        pd.Series
-
-        Raises
-        ------
-        NotRunError
-            If results have not been run, raise
-        """
-        if self._results is not None:
-            res = pd.DataFrame(list(self._results.items()), columns=["type", "value"])
-            res[["type", "subtype"]] = res.type.str.split("-", expand=True)
-            self.results = [MetricContainer(res, **self.get_container_info())]
-        else:
-            raise NotRunError("Results not created yet. Call 'run' to create results")
 
     def _extraction_attack(self):
         """Model extraction security attack

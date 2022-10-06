@@ -8,9 +8,16 @@ from abc import ABC, abstractmethod
 
 import pytest
 from credoai.artifacts import TabularData
-from credoai.evaluators import (DataEquity, DataFairness, DataProfiling,
-                                ModelEquity, ModelFairness, Performance,
-                                Privacy, Security)
+from credoai.evaluators import (
+    DataEquity,
+    DataFairness,
+    DataProfiling,
+    ModelEquity,
+    ModelFairness,
+    Performance,
+    Privacy,
+    Security,
+)
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
 from pandas import DataFrame
@@ -199,6 +206,7 @@ class TestRankingFairnes:
 
     def test_results(self):
         results = self.pipeline.get_results()["dummy"][0].round(2)
+        results = results.reset_index(drop=True)
         assert results.equals(self.expected_results)
 
 
