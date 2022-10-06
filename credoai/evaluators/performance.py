@@ -2,10 +2,12 @@ import pandas as pd
 from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
-from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
-                                                 check_data_instance,
-                                                 check_existence,
-                                                 check_model_instance)
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_existence,
+    check_model_instance,
+)
 from credoai.evidence import MetricContainer
 from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
 from credoai.modules.metrics import Metric, find_metrics
@@ -66,32 +68,11 @@ class Performance(Evaluator):
     def evaluate(self):
         """
         Run performance base module
-
-
-        Returns
-        -------
-        self
-        """
-        self._prepare_results()
-        return self
-
-    def _prepare_results(self):
-        """Prepares results for Credo AI's governance platform
-
-        Structures results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
-
-        Returns
-        -------
-        pd.DataFrame
-        Raises
-        ------
-        NotRunError
-            Occurs if self.run is not called yet to generate the raw assessment results
         """
         self.results = [
             MetricContainer(self.get_overall_metrics(), **self.get_container_info())
         ]
+        return self
 
     def update_metrics(self, metrics, replace=True):
         """replace metrics
