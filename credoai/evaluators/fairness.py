@@ -95,7 +95,7 @@ class ModelFairness(Evaluator):
             )
         ]
 
-        if disaggregated_metrics_df is None:
+        if disaggregated_metrics_df is not None:
             e = TableContainer(
                 disaggregated_metrics_df,
                 **self.get_container_info(
@@ -104,7 +104,7 @@ class ModelFairness(Evaluator):
             )
             self._results.append(e)
 
-        if disaggregated_thresh_results:
+        if disaggregated_thresh_results is not None:
             for key, df in disaggregated_thresh_results.items():
                 df.name = key
                 self._results.append(
@@ -160,7 +160,9 @@ class ModelFairness(Evaluator):
             The disaggregated performance metrics
         """
         disaggregated_df = pd.DataFrame()
-        for metric_frame in self.metric_frames.values():
+        for name, metric_frame in self.metric_frames.items():
+            if name == "thresh":
+                continue
             df = metric_frame.by_group.copy().convert_dtypes()
             disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
         disaggregated_results = disaggregated_df.reset_index().melt(
