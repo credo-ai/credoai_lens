@@ -138,8 +138,11 @@ class TableEvidence(Evidence):
 
     @property
     def data(self):
+        columns = [
+            {"value": k, "type": str(v)} for k, v in self._data.dtypes.iteritems()
+        ]
         return {
-            "columns": self._data.columns.tolist(),
+            "columns": columns,
             "value": self._data.values.tolist(),
         }
 
@@ -160,7 +163,7 @@ class ProfilerEvidence(Evidence):
 
     @property
     def data(self):
-        return self._data["results"].to_json()
+        return self._data["results"]
 
     @property
     def base_label(self):
