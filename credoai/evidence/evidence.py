@@ -160,7 +160,7 @@ class ProfilerEvidence(Evidence):
 
     @property
     def data(self):
-        return self._data["results"].to_json()
+        return self._data["results"]
 
     @property
     def base_label(self):
