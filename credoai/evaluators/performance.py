@@ -78,13 +78,13 @@ class Performance(Evaluator):
         threshold_metrics = self.get_overall_threshold_metrics()
 
         if overall_metrics is not None:
-            self.results.append(
+            self._results.append(
                 MetricContainer(overall_metrics, **self.get_container_info())
             )
         if threshold_metrics is not None:
             for _, threshold_metric in threshold_metrics.iterrows():
                 threshold_metric.value.name = threshold_metric.threshold_metric
-                self.results.append(
+                self._results.append(
                     TableContainer(threshold_metric.value, **self.get_container_info())
                 )
         return self

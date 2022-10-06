@@ -84,9 +84,11 @@ class ModelFairness(Evaluator):
         disaggregated_thresh_results = self.get_disaggregated_threshold_performance()
 
         sens_feat_label = {"sensitive_feature": self.sensitive_features.name}
-        metric_type_label = {"metric_types": disaggregated_df.type.unique().tolist()}
+        metric_type_label = {
+            "metric_types": disaggregated_metrics_df.type.unique().tolist()
+        }
 
-        self.results = [
+        self._results = [
             MetricContainer(
                 self.get_fairness_results(),
                 **self.get_container_info(labels=sens_feat_label),
@@ -100,12 +102,12 @@ class ModelFairness(Evaluator):
                     labels={**sens_feat_label, **metric_type_label}
                 ),
             )
-            self.results.append(e)
+            self._results.append(e)
 
         if disaggregated_thresh_results:
             for key, df in disaggregated_thresh_results.items():
                 df.name = key
-                self.results.append(
+                self._results.append(
                     TableContainer(
                         df, **self.get_container_info(labels=sens_feat_label)
                     )
