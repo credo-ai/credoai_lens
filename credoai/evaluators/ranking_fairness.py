@@ -85,11 +85,11 @@ class RankingFairness(Evaluator):
         skew_results = self._skew()
         ndkl_results = self._ndkl()
 
-        self._results = {**skew_results, **ndkl_results}
-        self._results = {k: v for k, v in self._results.items() if k in METRIC_SUBSET}
+        res = {**skew_results, **ndkl_results}
+        res = {k: v for k, v in res.items() if k in METRIC_SUBSET}
 
         # Reformat results
-        res = [pd.DataFrame(v).assign(metric_type=k) for k, v in self._results.items()]
+        res = [pd.DataFrame(v).assign(metric_type=k) for k, v in res.items()]
         res = pd.concat(res)
         res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
         res.drop("metric_type", axis=1, inplace=True)

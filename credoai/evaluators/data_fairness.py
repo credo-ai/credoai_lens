@@ -106,7 +106,7 @@ class DataFairness(Evaluator):
         """
         Runs the assessment process.
         """
-        self._results = {}
+        res = {}
         ##  Aggregate results from all subprocess
         sensitive_feature_prediction_results = self._run_cv()
         mi_results = self._calculate_mutual_information()
@@ -116,7 +116,7 @@ class DataFairness(Evaluator):
         # reintroduced in final results.
         group_differences = self._group_differences()
 
-        self._results.update(
+        res.update(
             {
                 **balance_metrics,
                 **sensitive_feature_prediction_results,
@@ -126,10 +126,10 @@ class DataFairness(Evaluator):
         )
 
         # Select relevant results
-        self._results = {k: v for k, v in self._results.items() if k in METRIC_SUBSET}
+        res = {k: v for k, v in res.items() if k in METRIC_SUBSET}
 
         # Reformat results
-        res = [pd.DataFrame(v).assign(metric_type=k) for k, v in self._results.items()]
+        res = [pd.DataFrame(v).assign(metric_type=k) for k, v in res.items()]
         res = pd.concat(res)
         res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
         res.drop("metric_type", axis=1, inplace=True)

@@ -18,7 +18,12 @@ class Evaluator(ABC):
 
     @property
     def results(self):
-        return self._results
+        if self._results:
+            return self._results
+        else:
+            raise NotRunError(
+                "No results available, please call the method: 'evaluate'."
+            )
 
     @results.setter
     def results(self, results):
