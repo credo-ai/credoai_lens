@@ -123,22 +123,6 @@ class Evaluator(ABC):
         self.artifact_keys = list(artifacts.keys())
         self.__dict__.update(artifacts)
 
-    def _prepare_results(self):
-        """
-        Transforms the results of the evaluation in internal evidences.
-
-        Returns
-        --------
-        Internal evidence type
-        """
-        if self.results is not None:
-            # prepare results code
-            pass
-        else:
-            raise NotRunError(
-                "Results not created yet. Call evaluate with the appropriate method"
-            )
-
     @abstractmethod
     def _setup(self):
         pass

@@ -15,6 +15,11 @@ from credoai.evidence.containers import MetricContainer
 from credoai.utils.common import NotRunError
 
 EPSILON = 1e-12
+METRIC_SUBSET = [
+    "minimum_skew-score",
+    "maximum_skew-score",
+    "NDKL-score",
+]
 
 
 class RankingFairness(Evaluator):
@@ -76,71 +81,21 @@ class RankingFairness(Evaluator):
             Key: assessment category
             Values: detailed results associated with each category
         """
-        self._results = {}
 
         skew_results = self._skew()
         ndkl_results = self._ndkl()
 
-        self._results.update(
-            {
-                **skew_results,
-                **ndkl_results,
-            }
-        )
-        self.results = self._prepare_results()
+        self._results = {**skew_results, **ndkl_results}
+        self._results = {k: v for k, v in self._results.items() if k in METRIC_SUBSET}
+
+        # Reformat results
+        res = [pd.DataFrame(v).assign(metric_type=k) for k, v in self._results.items()]
+        res = pd.concat(res)
+        res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
+        res.drop("metric_type", axis=1, inplace=True)
+
+        self.results = [MetricContainer(res, **self.get_container_info())]
         return self
-
-    def _prepare_results(self):
-        """Prepares results for export to Credo AI's Governance Platform
-
-        Structures a subset of results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
-
-        Returns
-        -------
-        pd.DataFrame
-        Raises
-        ------
-        NotRunError
-            If results have not been run, raise
-        """
-        if self._results is not None:
-            metric_types = [
-                "minimum_skew-score",
-                "maximum_skew-score",
-                "NDKL-score",
-            ]
-            prepared_arr = []
-            index = []
-            for metric_type in metric_types:
-                if metric_type not in self.results:
-                    continue
-                val = self.results[metric_type]
-                # if multiple values were calculated for metric_type
-                # add them all. Assumes each element of list is a dictionary with a "value" key,
-                # and other optional keys as metricmetadata
-                if isinstance(val, list):
-                    for l in val:
-                        index.append(metric_type)
-                        prepared_arr.append(l)
-                else:
-                    # assumes the dictionary has a "value" key, along with other optional keys
-                    # as metric metadata
-                    if isinstance(val, dict):
-                        tmp = val
-                    elif isinstance(val, (int, float)):
-                        tmp = {"value": val}
-                    index.append(metric_type)
-                    prepared_arr.append(tmp)
-            res = pd.DataFrame(prepared_arr, index=index).rename_axis(
-                index="metric_type"
-            )
-            res = res.reset_index()
-            res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
-            res.drop("metric_type", axis=1, inplace=True)
-            return [MetricContainer(res)]
-        else:
-            raise NotRunError("Results not created yet. Call 'run' to create results")
 
     def _skew(self):
         """Claculates skew metrics
@@ -172,8 +127,8 @@ class RankingFairness(Evaluator):
             skew[g] = sk
 
         skew_extrema = {
-            "minimum_skew-score": min(skew.values()),
-            "maximum_skew-score": max(skew.values()),
+            "minimum_skew-score": [{"value": min(skew.values())}],
+            "maximum_skew-score": [{"value": max(skew.values())}],
         }
 
         return skew_extrema
@@ -227,6 +182,6 @@ class RankingFairness(Evaluator):
                 item_distr, list(self.desired_proportions.values())
             )
 
-        ndkl = {"NDKL-score": (1 / Z) * total}
+        ndkl = {"NDKL-score": [{"value": (1 / Z) * total}]}
 
         return ndkl
