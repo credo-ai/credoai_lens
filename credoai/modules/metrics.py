@@ -2,9 +2,9 @@ import re
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
 
-from absl import logging
 from credoai.modules.metric_constants import *
-from credoai.utils.common import ValidationError, humanize_label, remove_suffix
+from credoai.modules.threshold_metric_constants import *
+from credoai.utils.common import ValidationError, humanize_label
 
 
 @dataclass
@@ -132,6 +132,13 @@ BINARY_CLASSIFICATION_METRICS = metrics_from_dict(
     METRIC_EQUIVALENTS,
 )
 
+THRESHOLD_VARYING_METRICS = metrics_from_dict(
+    THRESHOLD_PROBABILITY_FUNCTIONS,
+    "BINARY_CLASSIFICATION_THRESHOLD",
+    THRESHOLD_PROBABILITY_FUNCTIONS,
+    THRESHOLD_METRIC_EQUIVALENTS,
+)
+
 REGRESSION_METRICS = metrics_from_dict(
     REGRESSION_FUNCTIONS, "REGRESSION", PROBABILITY_FUNCTIONS, METRIC_EQUIVALENTS
 )
@@ -151,6 +158,7 @@ SECURITY_METRICS = {
 
 METRIC_NAMES = (
     list(BINARY_CLASSIFICATION_METRICS.keys())
+    + list(THRESHOLD_VARYING_METRICS.keys())
     + list(FAIRNESS_METRICS.keys())
     + list(DATASET_METRICS.keys())
     + list(PRIVACY_METRICS.keys())
@@ -160,6 +168,7 @@ METRIC_NAMES = (
 
 ALL_METRICS = (
     list(BINARY_CLASSIFICATION_METRICS.values())
+    + list(THRESHOLD_VARYING_METRICS.values())
     + list(FAIRNESS_METRICS.values())
     + list(DATASET_METRICS.values())
     + list(PRIVACY_METRICS.values())

@@ -1,13 +1,17 @@
 import pandas as pd
-from credoai.artifacts import ClassificationModel, TabularData
+from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
-from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
-                                                 check_data_instance,
-                                                 check_existence,
-                                                 check_model_instance)
-from credoai.evidence import MetricContainer
-from credoai.modules.metric_constants import MODEL_METRIC_CATEGORIES
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_existence,
+)
+from credoai.evidence import MetricContainer, TableContainer
+from credoai.modules.metric_constants import (
+    MODEL_METRIC_CATEGORIES,
+    THRESHOLD_METRIC_CATEGORIES,
+)
 from credoai.modules.metrics import Metric, find_metrics
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
@@ -21,12 +25,15 @@ class Performance(Evaluator):
     Handles any metric that can be calculated on a set of ground truth labels and predictions,
     e.g., binary classification, multiclass classification, regression.
 
+    This module takes in a set of metrics and provides functionality to:
+    - calculate the metrics
+    - create disaggregated metrics
 
     Parameters
     ----------
     metrics : List-like
-        list of metric names as string or list of Metrics (credoai.metrics.Metric).
-        Metric strings should in list returned by credoai.modules.list_metrics.
+        list of metric names as strings or list of Metric objects (credoai.modules.metrics.Metric).
+        Metric strings should in list returned by credoai.modules.metric_utils.list_metrics().
         Note for performance parity metrics like
         "false negative rate parity" just list "false negative rate". Parity metrics
         are calculated automatically if the performance metric is supplied
@@ -50,6 +57,9 @@ class Performance(Evaluator):
         self.prob_metrics = None
         self.failed_metrics = None
         self.perform_disaggregation = True
+        # Perform_disaggregations is no longer needed?
+        # Removing it might break some things, like the Quickstart.
+        # Keeping for now. ESS 9/29/22
 
     def _setup(self):
         # data variables
@@ -60,6 +70,7 @@ class Performance(Evaluator):
         except:
             self.y_prob = None
         self.update_metrics(self.metrics)
+        self.results = list()
 
         return self
 
@@ -76,10 +87,10 @@ class Performance(Evaluator):
         return self
 
     def _prepare_results(self):
-        """Prepares results for Credo AI's governance platform
+        """Prepares metric results for Credo AI's governance platform
 
         Structures results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
+        for exporting. See credoai.evidence.containers.
 
         Returns
         -------
@@ -89,9 +100,19 @@ class Performance(Evaluator):
         NotRunError
             Occurs if self.run is not called yet to generate the raw assessment results
         """
-        self.results = [
-            MetricContainer(self.get_overall_metrics(), **self.get_container_info())
-        ]
+        overall_metrics = self.get_overall_metrics()
+        threshold_metrics = self.get_overall_threshold_metrics()
+
+        if overall_metrics is not None:
+            self.results.append(
+                MetricContainer(overall_metrics, **self.get_container_info())
+            )
+        if threshold_metrics is not None:
+            for _, threshold_metric in threshold_metrics.iterrows():
+                threshold_metric.value.name = threshold_metric.threshold_metric
+                self.results.append(
+                    TableContainer(threshold_metric.value, **self.get_container_info())
+                )
 
     def update_metrics(self, metrics, replace=True):
         """replace metrics
@@ -112,6 +133,7 @@ class Performance(Evaluator):
         (
             self.performance_metrics,
             self.prob_metrics,
+            self.threshold_metrics,
             self.failed_metrics,
         ) = self._process_metrics(self.metrics)
 
@@ -119,6 +141,7 @@ class Performance(Evaluator):
         self.metric_frames = setup_metric_frames(
             self.performance_metrics,
             self.prob_metrics,
+            self.threshold_metrics,
             self.y_pred,
             self.y_prob,
             self.y_true,
@@ -142,16 +165,18 @@ class Performance(Evaluator):
         return df
 
     def get_overall_metrics(self):
-        """Return performance metrics for each group
+        """Return scalar performance metrics for each group
 
         Returns
         -------
         pandas.Series
             The overall performance metrics
         """
-        # retrive overall metrics for one of the sensitive features only as they are the same
+        # retrieve overall metrics for one of the sensitive features only as they are the same
         overall_metrics = [
-            metric_frame.overall for metric_frame in self.metric_frames.values()
+            metric_frame.overall
+            for name, metric_frame in self.metric_frames.items()
+            if name != "thresh"
         ]
         if overall_metrics:
             output_series = (
@@ -161,15 +186,38 @@ class Performance(Evaluator):
         else:
             global_logger.warn("No overall metrics could be calculated.")
 
+    def get_overall_threshold_metrics(self):
+        """Return performance metrics for each group
+
+        Returns
+        -------
+        pandas.Series
+            The overall performance metrics
+        """
+        # retrieve overall metrics for one of the sensitive features only as they are the same
+        if self.threshold_metrics:
+            threshold_results = (
+                pd.concat([self.metric_frames["thresh"].overall], axis=0)
+                .rename(index="value")
+                .to_frame()
+            )
+            threshold_results = threshold_results.reset_index().rename(
+                {"index": "threshold_metric"}, axis=1
+            )
+            threshold_results.name = "threshold_metric_performance"
+            return threshold_results
+
     @staticmethod
     def _process_metrics(metrics):
         """Separates metrics
 
         Parameters
         ----------
-        metrics : Union[List[Metirc, str]]
-            list of metrics to use. These can be Metric objects (credoai.metric.metrics) or
-            strings. If strings, they will be converted to Metric objects using find_metrics
+        metrics : Union[List[Metric, str]]
+            list of metrics to use. These can be Metric objects
+            (see credoai.modules.metrics.py), or strings.
+            If strings, they will be converted to Metric objects
+            as appropriate, using find_metrics()
 
         Returns
         -------
@@ -179,6 +227,7 @@ class Performance(Evaluator):
         failed_metrics = []
         performance_metrics = {}
         prob_metrics = {}
+        threshold_metrics = {}
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
@@ -196,7 +245,9 @@ class Performance(Evaluator):
             else:
                 metric_name = metric.name
             if not isinstance(metric, Metric):
-                raise ValidationError("Metric is not of type credoai.metric.Metric")
+                raise ValidationError(
+                    "Specified metric is not of type credoai.metric.Metric"
+                )
             if metric.metric_category == "FAIRNESS":
                 global_logger.info(
                     f"fairness metric, {metric_name}, unused by PerformanceModule"
@@ -204,7 +255,10 @@ class Performance(Evaluator):
                 pass
             elif metric.metric_category in MODEL_METRIC_CATEGORIES:
                 if metric.takes_prob:
-                    prob_metrics[metric_name] = metric
+                    if metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
+                        threshold_metrics[metric_name] = metric
+                    else:
+                        prob_metrics[metric_name] = metric
                 else:
                     performance_metrics[metric_name] = metric
             else:
@@ -213,7 +267,7 @@ class Performance(Evaluator):
                 )
                 failed_metrics.append(metric_name)
 
-        return (performance_metrics, prob_metrics, failed_metrics)
+        return (performance_metrics, prob_metrics, threshold_metrics, failed_metrics)
 
     def _validate_arguments(self):
         check_existence(self.metrics, "metrics")
