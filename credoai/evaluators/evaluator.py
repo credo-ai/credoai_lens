@@ -18,7 +18,12 @@ class Evaluator(ABC):
 
     @property
     def results(self):
-        return self._results
+        if self._results:
+            return self._results
+        else:
+            raise NotRunError(
+                "No results available, please call the method: 'evaluate'."
+            )
 
     @results.setter
     def results(self, results):
@@ -42,8 +47,8 @@ class Evaluator(ABC):
 
     def __call__(self, **kwargs):
         """
-        This method is used to pass the model, assessment_dataset and training_dataset
-        to instantiated evaluator.
+        This method is used to pass the model, assessment_data and training_data
+        artifacts to instantiated evaluator.
 
         After objects are passed, it performs arguments validation and calls _setup
 
@@ -122,22 +127,6 @@ class Evaluator(ABC):
         """
         self.artifact_keys = list(artifacts.keys())
         self.__dict__.update(artifacts)
-
-    def _prepare_results(self):
-        """
-        Transforms the results of the evaluation in internal evidences.
-
-        Returns
-        --------
-        Internal evidence type
-        """
-        if self.results is not None:
-            # prepare results code
-            pass
-        else:
-            raise NotRunError(
-                "Results not created yet. Call evaluate with the appropriate method"
-            )
 
     @abstractmethod
     def _setup(self):

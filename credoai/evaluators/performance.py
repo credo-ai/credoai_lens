@@ -56,10 +56,6 @@ class Performance(Evaluator):
         self.performance_metrics = None
         self.prob_metrics = None
         self.failed_metrics = None
-        self.perform_disaggregation = True
-        # Perform_disaggregations is no longer needed?
-        # Removing it might break some things, like the Quickstart.
-        # Keeping for now. ESS 9/29/22
 
     def _setup(self):
         # data variables
@@ -77,42 +73,21 @@ class Performance(Evaluator):
     def evaluate(self):
         """
         Run performance base module
-
-
-        Returns
-        -------
-        self
-        """
-        self._prepare_results()
-        return self
-
-    def _prepare_results(self):
-        """Prepares metric results for Credo AI's governance platform
-
-        Structures results for export as a dataframe with appropriate structure
-        for exporting. See credoai.evidence.containers.
-
-        Returns
-        -------
-        pd.DataFrame
-        Raises
-        ------
-        NotRunError
-            Occurs if self.run is not called yet to generate the raw assessment results
         """
         overall_metrics = self.get_overall_metrics()
         threshold_metrics = self.get_overall_threshold_metrics()
 
         if overall_metrics is not None:
-            self.results.append(
+            self._results.append(
                 MetricContainer(overall_metrics, **self.get_container_info())
             )
         if threshold_metrics is not None:
             for _, threshold_metric in threshold_metrics.iterrows():
                 threshold_metric.value.name = threshold_metric.threshold_metric
-                self.results.append(
+                self._results.append(
                     TableContainer(threshold_metric.value, **self.get_container_info())
                 )
+        return self
 
     def update_metrics(self, metrics, replace=True):
         """replace metrics

@@ -6,21 +6,29 @@ import numpy as np
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
-                                                 check_data_instance,
-                                                 check_existence)
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_existence,
+)
 from credoai.evidence import MetricContainer
 from credoai.utils.common import NotRunError, ValidationError, is_categorical
 from credoai.utils.constants import MULTICLASS_THRESH
 from credoai.utils.dataset_utils import ColumnTransformerUtil
 from credoai.utils.model_utils import get_generic_classifier
 from sklearn.compose import ColumnTransformer
-from sklearn.feature_selection import (mutual_info_classif,
-                                       mutual_info_regression)
+from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 from sklearn.metrics import make_scorer, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+METRIC_SUBSET = [
+    "sensitive_feature-prediction_score",
+    "demographic_parity-difference",
+    "demographic_parity-ratio",
+    "proxy_mutual_information-max",
+]
 
 
 class DataFairness(Evaluator):
@@ -57,6 +65,7 @@ class DataFairness(Evaluator):
 
         self.categorical_features_keys = categorical_features_keys
         self.categorical_threshold = categorical_threshold
+        super().__init__()
 
     name = "DataFairness"
     required_artifacts = {"data", "sensitive_feature"}
@@ -94,84 +103,43 @@ class DataFairness(Evaluator):
         return self
 
     def evaluate(self):
-        """Runs the assessment process
-
-        Returns
-        -------
-        dict, nested
-            Key: assessment category
-            Values: detailed results associated with each category
         """
-        self._results = {}
+        Runs the assessment process.
+        """
+        res = {}
+        ##  Aggregate results from all subprocess
         sensitive_feature_prediction_results = self._run_cv()
-        group_differences = self._group_differences()
         mi_results = self._calculate_mutual_information()
         balance_metrics = self._assess_balance_metrics()
+        # Note: Output for group difference is in a different format
+        # Probably more suitable for table container. Address when this is
+        # reintroduced in final results.
+        group_differences = self._group_differences()
 
-        self.results.update(
+        res.update(
             {
                 **balance_metrics,
                 **sensitive_feature_prediction_results,
                 **mi_results,
-                f"standardized_group_diffs": group_differences,
+                "standardized_group_diffs": group_differences,
             }
         )
-        self.results = self._prepare_results()
+
+        # Select relevant results
+        res = {k: v for k, v in res.items() if k in METRIC_SUBSET}
+
+        # Reformat results
+        res = [pd.DataFrame(v).assign(metric_type=k) for k, v in res.items()]
+        res = pd.concat(res)
+        res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
+        res.drop("metric_type", axis=1, inplace=True)
+
+        self.results = [MetricContainer(res, **self.get_container_info())]
         return self
 
-    def _prepare_results(self):
-        """Prepares results for export to Credo AI's Governance App
-        Structures a subset of results for export as a dataframe with appropriate structure
-        for exporting. See credoai.modules.credo_module.
-        Returns
-        -------
-        pd.DataFrame
-        Raises
-        ------
-        NotRunError
-            If results have not been run, raise
-        """
-        if self._results is not None:
-            metric_types = [
-                "sensitive_feature-prediction_score",
-                "demographic_parity-difference",
-                "demographic_parity-ratio",
-                "proxy_mutual_information-max",
-            ]
-            prepared_arr = []
-            index = []
-            for metric_type in metric_types:
-                if metric_type not in self.results:
-                    continue
-                val = self.results[metric_type]
-                # if multiple values were calculated for metric_type
-                # add them all. Assumes each element of list is a dictionary with a "value" key,
-                # and other optional keys as metricmetadata
-                if isinstance(val, list):
-                    for l in val:
-                        index.append(metric_type)
-                        prepared_arr.append(l)
-                else:
-                    # assumes the dictionary has a "value" key, along with other optional keys
-                    # as metric metadata
-                    if isinstance(val, dict):
-                        tmp = val
-                    elif isinstance(val, (int, float)):
-                        tmp = {"value": val}
-                    index.append(metric_type)
-                    prepared_arr.append(tmp)
-            res = pd.DataFrame(prepared_arr, index=index).rename_axis(
-                index="metric_type"
-            )
-            res = res.reset_index()
-            res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
-            res.drop("metric_type", axis=1, inplace=True)
-            return [MetricContainer(res, **self.get_container_info())]
-        else:
-            raise NotRunError("Results not created yet. Call 'run' to create results")
-
     def _group_differences(self):
-        """Calculates standardized mean differences
+        """
+        Calculates standardized mean differences.
 
         It is performed for all numeric features and all possible group pairs combinations present in the sensitive feature.
 
@@ -194,7 +162,8 @@ class DataFairness(Evaluator):
         return diffs
 
     def _run_cv(self):
-        """Determines redundant encoding
+        """
+        Determines redundant encoding.
 
         A model is trained on the features to predict the sensitive attribute.
         The score, called "sensitive-feature-prediction-score" is a cross-validated ROC-AUC score.
@@ -238,17 +207,25 @@ class DataFairness(Evaluator):
         feature_importances = pd.Series(
             model.feature_importances_, index=col_names
         ).sort_values(ascending=False)
-        results["sensitive_feature-prediction_score"] = max(
-            cv_results.mean() * 2 - 1, 0
-        )  # move to 0-1 range
+
+        results["sensitive_feature-prediction_score"] = [
+            {"value": max(cv_results.mean() * 2 - 1, 0)}
+        ]  # move to 0-1 range
+
+        # Reformat feature importance
+        feature_importances = [
+            {"feat_name": k, "value": v}
+            for k, v in feature_importances.to_dict().items()
+        ]
         results[
             "sensitive_feature-prediction_feature_importances"
-        ] = feature_importances.to_dict()
+        ] = feature_importances
 
         return results
 
     def _make_pipe(self):
-        """Makes a pipeline
+        """
+        Makes a pipeline.
 
         Returns
         -------
@@ -277,7 +254,8 @@ class DataFairness(Evaluator):
         return pipe
 
     def _find_categorical_features(self, threshold):
-        """Identifies categorical features
+        """
+        Identifies categorical features.
 
         Returns
         -------
@@ -293,7 +271,8 @@ class DataFairness(Evaluator):
         return cat_cols
 
     def _calculate_mutual_information(self, normalize=True):
-        """Calculates normalized mutual information between sensitive feature and other features
+        """
+        Calculates normalized mutual information between sensitive feature and other features.
 
         Mutual information is the "amount of information" obtained about the sensitive feature by observing another feature.
         Mutual information is useful to proxy detection purposes.
@@ -354,26 +333,31 @@ class DataFairness(Evaluator):
 
         # Create the results
         mi = mi.sort_index().to_dict()
-        mutual_information_results = {}
+        mutual_information_results = []
         for k, v in mi.items():
             if k in self.categorical_features_keys:
-                mutual_information_results[k] = {
-                    "value": v,
-                    "feature_type": "categorical",
-                }
+                feature_type = "categorical"
             else:
-                mutual_information_results[k] = {
+                feature_type = "continuous"
+
+            mutual_information_results.append(
+                {
+                    "feat_name": k,
                     "value": v,
-                    "feature_type": "continuous",
+                    "feature_type": feature_type,
                 }
-        max_proxy_value = max([i["value"] for i in mutual_information_results.values()])
+            )
+        # Get max value
+        max_proxy_value = max([i["value"] for i in mutual_information_results])
+
         return {
             "proxy_mutual_information": mutual_information_results,
-            "proxy_mutual_information-max": max_proxy_value,
+            "proxy_mutual_information-max": [{"value": max_proxy_value}],
         }
 
     def _assess_balance_metrics(self):
-        """Calculate dataset balance statistics and metrics
+        """
+        Calculate dataset balance statistics and metrics.
 
         Returns
         -------
@@ -439,5 +423,4 @@ class DataFairness(Evaluator):
             balance_results["demographic_parity-ratio"] = get_demo_parity(
                 lambda x: np.min(x) / np.max(x)
             )
-
         return balance_results

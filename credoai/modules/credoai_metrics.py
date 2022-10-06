@@ -1,10 +1,10 @@
 import numpy as np
+import pandas as pd
 import scipy.stats as st
 from fairlearn.metrics import make_derived_metric, true_positive_rate
 from sklearn import metrics as sk_metrics
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.utils import check_consistent_length
-import pandas as pd
 
 
 def general_wilson(p, n, z=1.96):
@@ -24,7 +24,7 @@ def general_wilson(p, n, z=1.96):
         np.ndarray
         Array of length 2 of form: [lower_bound, upper_bound]
     """
-    denominator = 1 + z**2 / n
+    denominator = 1 + z ** 2 / n
     centre_adjusted_probability = p + z * z / (2 * n)
     adjusted_standard_deviation = np.sqrt((p * (1 - p) + z * z / (4 * n))) / np.sqrt(n)
     lower_bound = (
@@ -275,7 +275,7 @@ def credo_pr_curve(y_true, y_prob):
         {
             "precision": precision,
             "recall": recall,
-            "thresholds": thresholds,
+            "threshold": thresholds,
         }
     )
 
@@ -289,9 +289,9 @@ def credo_roc_curve(y_true, y_prob):
     ) = interpolate_decreasing_thresholds(thresh.tolist(), fpr.tolist(), tpr.tolist())
     return pd.DataFrame(
         {
-            "fpr": false_positive_rate,
-            "tpr": true_positive_rate,
-            "thresholds": thresholds,
+            "false_positive_rate": false_positive_rate,
+            "true_positive_rate": true_positive_rate,
+            "threshold": thresholds,
         }
     )
 
@@ -305,8 +305,8 @@ def credo_det_curve(y_true, y_prob):
     ) = interpolate_increasing_thresholds(t.tolist(), fpr.tolist(), fnr.tolist())
     return pd.DataFrame(
         {
-            "fpr": false_positive_rate,
-            "fnr": false_negative_rate,
+            "false_positive_rate": false_positive_rate,
+            "false_negative_rate": false_negative_rate,
             "thresholds": thresholds,
         }
     )
