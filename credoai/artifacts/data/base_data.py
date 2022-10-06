@@ -47,11 +47,11 @@ class Data(ABC):
         sensitive_intersections: Union[bool, list] = False,
     ):
         self.name = name
-        self.X = self._process_X(X)
-        self.y = self._process_y(y)
-        self.sensitive_features = self._process_sensitive(
-            sensitive_features, sensitive_intersections
-        )
+        self.X = X
+        self.y = y
+        self.sensitive_features = sensitive_features
+        self._validate_inputs()
+        self._process_inputs(sensitive_intersections)
         self._validate_processing()
         self._active_sensitive_feature: Optional[str] = None
 
@@ -99,7 +99,8 @@ class Data(ABC):
         return data
 
     def _process_inputs(self, sensitive_intersections):
-        self.X = self._process_X(self.X)
+        if self.X is not None:
+            self.X = self._process_X(self.X)
         if self.y is not None:
             self.y = self._process_y(self.y)
         if self.sensitive_features is not None:
@@ -150,7 +151,8 @@ class Data(ABC):
 
     def _validate_inputs(self):
         """Basic input validation"""
-        self._validate_X()
+        if self.X is not None:
+            self._validate_X()
         if self.y is not None:
             self._validate_y()
         if self.sensitive_features is not None:
@@ -165,11 +167,12 @@ class Data(ABC):
                 + type(self.sensitive_features).__name__
                 + "' but the required type is either pd.DataFrame or pd.Series"
             )
-        if len(self.X) != len(self.sensitive_features):
-            raise ValidationError(
-                "X and sensitive_features are not the same length. "
-                + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
-            )
+        if self.X is not None:
+            if len(self.X) != len(self.sensitive_features):
+                raise ValidationError(
+                    "X and sensitive_features are not the same length. "
+                    + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
+                )
         if isinstance(self.X, (pd.Series, pd.DataFrame)) and not self.X.index.equals(
             self.sensitive_features.index
         ):
@@ -189,7 +192,8 @@ class Data(ABC):
 
     def _validate_processing(self):
         """Validation of processed data"""
-        self._validate_processed_X()
+        if self.X is not None:
+            self._validate_processed_X()
         if self.y is not None:
             self._validate_processed_y()
         if self.sensitive_features is not None:
