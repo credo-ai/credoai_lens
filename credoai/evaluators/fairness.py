@@ -15,7 +15,6 @@ from credoai.modules.metric_constants import (
     THRESHOLD_METRIC_CATEGORIES,
 )
 from credoai.modules.metrics import Metric, find_metrics
-from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
 
 
@@ -172,7 +171,7 @@ class ModelFairness(Evaluator):
         disaggregated_results.name = "disaggregated_performance"
 
         if disaggregated_results.empty:
-            global_logger.warn("No disaggregated metrics could be calculated.")
+            self.logger.warn("No disaggregated metrics could be calculated.")
             return
         return disaggregated_results
 
@@ -233,7 +232,7 @@ class ModelFairness(Evaluator):
                     **pred_argument,
                 )
             except Exception as e:
-                global_logger.error(
+                self.logger.error(
                     f"A metric ({metric_name}) failed to run. "
                     "Are you sure it works with this kind of model and target?\n"
                 )
@@ -311,7 +310,7 @@ class ModelFairness(Evaluator):
                 else:
                     performance_metrics[metric_name] = metric
             else:
-                global_logger.warning(
+                self.logger.warning(
                     f"{metric_name} failed to be used by FairnessModule"
                 )
                 failed_metrics.append(metric_name)

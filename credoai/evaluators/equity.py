@@ -12,7 +12,7 @@ from credoai.evaluators.utils.validation import (
     check_existence,
 )
 from credoai.evidence import MetricContainer, TableContainer
-from credoai.utils import NotRunError, self.logger
+from credoai.utils import NotRunError
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
 
 
