@@ -16,7 +16,7 @@ class Evaluator(ABC):
     def __init__(self):
         self._results = None
         self.artifact_keys = []
-        self.logger = self.logger
+        self.logger = global_logger
 
     @property
     def results(self):
