@@ -17,7 +17,7 @@ class CoxPH:
         self.fit_kwargs = fit_kwargs
         self.data = data
         if "formula" in fit_kwargs:
-            self.name += f": formula: {fit_kwargs['formula']}"
+            self.name += f" (formula: {fit_kwargs['formula']})"
         return self
 
     def summary(self):
