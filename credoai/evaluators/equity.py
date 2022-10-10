@@ -12,7 +12,7 @@ from credoai.evaluators.utils.validation import (
     check_existence,
 )
 from credoai.evidence import MetricContainer, TableContainer
-from credoai.utils import NotRunError, global_logger
+from credoai.utils import NotRunError, self.logger
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
 
 
@@ -62,7 +62,7 @@ class DataEquity(Evaluator):
 
     def evaluate(self):
         sens_feat_label = {"sensitive_feature": self.sensitive_features.name}
-        desc = self.describe()
+        desc = self._describe()
         # Create summary
         summary = TableContainer(
             desc["summary"],
@@ -104,7 +104,7 @@ class DataEquity(Evaluator):
         self.results = equity_containers
         return self
 
-    def describe(self):
+    def _describe(self):
         """Create descriptive output"""
         results = {
             "summary": self.df.groupby(self.sensitive_features.name)[
@@ -206,7 +206,7 @@ class DataEquity(Evaluator):
                 try:
                     chi2, p, dof, ex = chi2_contingency(new_df, correction=False)
                 except ValueError as e:
-                    global_logger.error(
+                    self.logger.error(
                         "Chi2 test could not be run, likely due to insufficient"
                         f" outcome frequencies. Error produced below:\n {traceback.print_exc()}"
                     )
@@ -283,13 +283,18 @@ class DataEquity(Evaluator):
 
 
 class ModelEquity(DataEquity):
+    def __init__(self, use_predict_proba=False, p_value=0.01):
+        self.use_predict_proba = use_predict_proba
+        super().__init__(p_value)
+
     name = "ModelEquity"
     required_artifacts = {"model", "assessment_data", "sensitive_feature"}
 
     def _setup(self):
         self.sensitive_features = self.assessment_data.sensitive_feature
+        fun = self.model.predict_proba if self.use_predict_proba else self.model.predict
         self.y = pd.Series(
-            self.model.predict(self.assessment_data.X),
+            fun(self.assessment_data.X),
             index=self.sensitive_features.index,
         )
         try:
