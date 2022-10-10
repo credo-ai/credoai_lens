@@ -13,6 +13,7 @@ from credoai.evaluators.utils.validation import (
 )
 from credoai.evidence import MetricContainer, TableContainer
 from credoai.utils import NotRunError
+from credoai.utils.model_utils import type_of_target
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
 
 
@@ -61,12 +62,20 @@ class DataEquity(Evaluator):
         check_artifact_for_nulls(self.data, "Data")
 
     def evaluate(self):
-        sens_feat_label = {"sensitive_feature": self.sensitive_features.name}
+        labels = {
+            "sensitive_feature": self.sensitive_features.name,
+            "outcome": self.y.name,
+        }
         desc = self._describe()
         # Create summary
         summary = TableContainer(
             desc["summary"],
-            **self.get_container_info(labels=sens_feat_label),
+            **self.get_container_info(labels=labels),
+        )
+        # outcome distribution
+        outcome_distribution = TableContainer(
+            self._outcome_distributions(),
+            **self.get_container_info(labels=labels),
         )
         # Create parity results
         parity_results = pd.DataFrame(
@@ -78,7 +87,7 @@ class DataEquity(Evaluator):
         )
         parity_results = MetricContainer(
             parity_results,
-            **self.get_container_info(labels=sens_feat_label),
+            **self.get_container_info(labels=labels),
         )
         # Add statistics
         overall_equity, posthoc_tests = self._get_formatted_stats()
@@ -89,7 +98,12 @@ class DataEquity(Evaluator):
             ),
         )
         # Combine
-        equity_containers = [summary, parity_results, overall_equity]
+        equity_containers = [
+            summary,
+            outcome_distribution,
+            parity_results,
+            overall_equity,
+        ]
 
         # Add posthoc if available
         if posthoc_tests is not None:
@@ -122,10 +136,33 @@ class DataEquity(Evaluator):
             summary["mean"].min() / summary["mean"].max()
         )
 
-        summary["subtype"] = "summary"
-        summary.name = "summary"
+        summary.name = f"{self.name} Summary"
 
         return results
+
+    def _outcome_distributions(self):
+        # count categorical data
+        if self.type_of_target in ("binary", "multiclass"):
+            distribution = self.df.value_counts().sort_index().reset_index(name="count")
+        # histogram binning for continuous
+        else:
+            distribution = []
+            bins = 10
+            for i, group in self.df.groupby(self.sensitive_features.name):
+                counts, edges = np.histogram(group[self.y.name], bins=bins)
+                bins = edges  # ensure all groups have same bins
+                bin_centers = 0.5 * (edges[:-1] + edges[1:])
+                tmp = pd.DataFrame(
+                    {
+                        self.sensitive_features.name: i,
+                        self.y.name: bin_centers,
+                        "count": counts,
+                    }
+                )
+                distribution.append(tmp)
+            distribution = pd.concat(distribution, axis=0)
+        distribution.name = "Outcome Distributions"
+        return distribution
 
     def _get_formatted_stats(self) -> tuple:
         """
@@ -302,7 +339,7 @@ class ModelEquity(DataEquity):
         except:
             self.y.name = "predicted outcome"
 
-        self.type_of_target = self.assessment_data.y_type
+        self.type_of_target = type_of_target(self.y)
 
         self.df = pd.concat([self.sensitive_features, self.y], axis=1)
         return self

@@ -6,7 +6,7 @@ from typing import Optional, Union
 
 import pandas as pd
 from credoai.utils.common import ValidationError
-from sklearn.utils.multiclass import type_of_target
+from credoai.utils.model_utils import type_of_target
 
 
 class Data(ABC):
@@ -91,7 +91,7 @@ class Data(ABC):
 
     @property
     def y_type(self):
-        return type_of_target(self.y) if self.y is not None else None
+        return type_of_target(self.y)
 
     @property
     def data(self):
