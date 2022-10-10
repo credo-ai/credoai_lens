@@ -144,8 +144,8 @@ class Privacy(Evaluator):
         """
 
         attacks_to_run = SUPPORTED_MEMBERSHIP_ATTACKS
-        if self.attack_feature:
-            attacks_to_run = attacks_to_run | SUPPORTED_ATTRIBUTE_ATTACKS
+        if self.attack_feature is not None:
+            attacks_to_run = {**attacks_to_run, **SUPPORTED_ATTRIBUTE_ATTACKS}
 
         attack_scores = {}
         for attack_name, attack_info in attacks_to_run.items():
@@ -156,7 +156,7 @@ class Privacy(Evaluator):
             [v for k, v in attack_scores.items() if "Membership" in k]
         )
 
-        if self.attack_feature:
+        if self.attack_feature is not None:
             attack_scores["AttributeInference-attack_score"] = max(
                 [v for k, v in attack_scores.items() if "Attribute" in k]
             )
