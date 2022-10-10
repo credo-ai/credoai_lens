@@ -27,8 +27,10 @@ class SurvivalFairness(Evaluator):
             + self._get_expected_survival()
             + self._get_survival_curves()
         )
+        sens_feat_label = {"sensitive_feature": self.sensitive_name}
         self.results = [
-            TableContainer(df, **self.get_container_info()) for df in result_dfs
+            TableContainer(df, **self.get_container_info(labels=sens_feat_label))
+            for df in result_dfs
         ]
         return self
 
