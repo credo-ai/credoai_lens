@@ -92,7 +92,7 @@ class DataEquity(Evaluator):
         equity_containers = [summary, parity_results, overall_equity]
 
         # Add posthoc if available
-        if posthoc_tests:
+        if posthoc_tests is not None:
             equity_containers.append(
                 TableContainer(
                     posthoc_tests,

@@ -229,6 +229,12 @@ class Governance:
             self._api_export(evidences)
         else:
             self._file_export(evidences, filename)
+
+        if to_return:
+            export_status = "Export succeeded with no issues"
+        else:
+            export_status = "Export had issues. See logging for additional details."
+        global_logger.info(export_status)
         return to_return
 
     def _api_export(self, evidences):
