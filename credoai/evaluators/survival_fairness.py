@@ -22,9 +22,13 @@ class SurvivalFairness(Evaluator):
 
     def evaluate(self):
         self._run_survival_analyses()
+        result_dfs = (
+            self._get_summaries()
+            + self._get_expected_survival()
+            + self._get_survival_curves()
+        )
         self.results = [
-            TableContainer(summary, **self.get_container_info())
-            for summary in self._get_summaries()
+            TableContainer(df, **self.get_container_info()) for df in result_dfs
         ]
         return self
 
@@ -80,5 +84,11 @@ class SurvivalFairness(Evaluator):
                     f"Columns supplied to CoxPh formula not found in data. Columns are: {missing_columns}"
                 )
 
+    def _get_expected_survival(self):
+        return [s.expected_survival() for s in self.stats]
+
     def _get_summaries(self):
         return [s.summary() for s in self.stats]
+
+    def _get_survival_curves(self):
+        return [s.survival_curves() for s in self.stats]

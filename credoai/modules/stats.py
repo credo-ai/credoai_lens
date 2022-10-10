@@ -22,7 +22,7 @@ class CoxPH:
 
     def summary(self):
         s = self.cph.summary
-        s.name = self.name
+        s.name = f"{self.name} Stat Summary"
         return s
 
     def expected_survival(self):
@@ -30,21 +30,23 @@ class CoxPH:
         expected_predictions = self.cph.predict_expectation(prediction_data)
         expected_predictions.name = "E(time survive)"
         final = pd.concat([prediction_data, expected_predictions], axis=1)
+        final.name = f"{self.name} Expected Survival"
         return final
 
     def survival_curves(self):
         prediction_data = self._get_prediction_data()
         survival_curves = self.cph.predict_survival_function(prediction_data)
         survival_curves = (
-            survival_curves.loc[
-                0:,
-            ]
+            # fmt: off
+            survival_curves.loc[0:,]
+            # fmt: on
             .rename_axis("time_step")
             .reset_index()
             .melt(id_vars=["time_step"])
             .merge(right=prediction_data, left_on="variable", right_index=True)
             .drop(columns=["variable"])
         )
+        survival_curves.name = f"{self.name} Survival Curves"
         return survival_curves
 
     def _get_prediction_data(self):
