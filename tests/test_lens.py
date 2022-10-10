@@ -68,16 +68,17 @@ class TestModelFairness(Base_Evaluator_Test):
         self.pipeline.pipeline = {}
 
 
-class TestPrivacy(Base_Evaluator_Test):
-    evaluator = Privacy(attack_feature="experience")
-
-    def test_add(self):
-        self.pipeline.add(self.evaluator)
-        assert len(self.pipeline.pipeline) == 1
-
-    def test_run(self):
-        self.pipeline.run()
-        assert self.pipeline.get_results()
+def test_privacy(
+    credit_classification_model, credit_assessment_data, credit_training_data
+):
+    lens = Lens(
+        model=credit_classification_model,
+        assessment_data=credit_assessment_data,
+        training_data=credit_training_data,
+    )
+    lens.add(Privacy(attack_feature="MARRIAGE"))
+    lens.run()
+    assert lens.get_results()
 
 
 class TestDataFairness(Base_Evaluator_Test):
