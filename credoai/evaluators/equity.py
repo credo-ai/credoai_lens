@@ -136,7 +136,7 @@ class DataEquity(Evaluator):
             summary["mean"].min() / summary["mean"].max()
         )
 
-        summary.name = f"{self.name} Summary"
+        summary.name = f"Summary"
 
         return results
 
@@ -334,10 +334,11 @@ class ModelEquity(DataEquity):
             fun(self.assessment_data.X),
             index=self.sensitive_features.index,
         )
+        prefix = "predicted probability" if self.use_predict_proba else "predicted"
         try:
-            self.y.name = f"predicted {self.assessment_data.y.name}"
+            self.y.name = f"{prefix} {self.assessment_data.y.name}"
         except:
-            self.y.name = "predicted outcome"
+            self.y.name = f"{prefix} outcome"
 
         self.type_of_target = type_of_target(self.y)
 
