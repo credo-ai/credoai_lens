@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 
 from credoai.evidence import EvidenceContainer
+from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError
 
 
 class Evaluator(ABC):
     """
-    Base abastract class for all lens evaluators.
+    Base abstract class for all lens evaluators.
 
     Defines basic functions required from any evaluator object.
 
@@ -15,6 +16,7 @@ class Evaluator(ABC):
     def __init__(self):
         self._results = None
         self.artifact_keys = []
+        self.logger = self.logger
 
     @property
     def results(self):
