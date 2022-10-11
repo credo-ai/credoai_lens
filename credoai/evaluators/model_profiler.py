@@ -3,6 +3,7 @@ from pandas import DataFrame
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
 from credoai.evidence.containers import ModelProfilerContainer
+from credoai.utils.common import ValidationError
 
 USER_INFO_TEMPLATE = {
     "developed_by": None,
@@ -20,6 +21,14 @@ USER_INFO_TEMPLATE = {
     "performance_evaluated_on": None,
     "limitations": None,
 }
+
+PROTECTED_KEYS = [
+    "model_name",
+    "python_model_type",
+    "library",
+    "model_architecture",
+    "feature_names",
+]
 
 
 class ModelProfiler(Evaluator):
@@ -51,6 +60,7 @@ class ModelProfiler(Evaluator):
         """
         super().__init__()
         self.usr_model_info = model_info
+        self._validate_usr_model_info()
 
     def _setup(self):
         self.model_name = self.model.name
@@ -72,6 +82,28 @@ class ModelProfiler(Evaluator):
         # Package into evidence
         self.results = [ModelProfilerContainer(res, **self.get_container_info())]
         return self.results
+
+    def _validate_usr_model_info(self):
+        """
+        Validate user model info.
+
+        Any key is valid unless it's already in use internally.
+
+        """
+        protected = [k for k in self.usr_model_info.keys() if k in PROTECTED_KEYS]
+        if protected:
+            message = f"Found {protected} in model_info.keys(), these keys are already in use. Please rename/remove them."
+            raise ValidationError(message)
+
+        accepted_formats = (list, int, float, dict, str)
+        non_accepted = [
+            k
+            for k, v in self.usr_model_info.items()
+            if not isinstance(v, accepted_formats) and v is not None
+        ]
+        if non_accepted:
+            message = f"The items {non_accepted} in model info are not of types: (list, int, float, dict, str)"
+            raise ValidationError(message)
 
     def _get_basic_info(self) -> dict:
         """
