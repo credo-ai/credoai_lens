@@ -12,7 +12,8 @@ from credoai.evaluators.utils.validation import (
     check_existence,
 )
 from credoai.evidence import MetricContainer, TableContainer
-from credoai.utils import NotRunError, global_logger
+from credoai.utils import NotRunError
+from credoai.utils.model_utils import type_of_target
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
 
 
@@ -61,12 +62,20 @@ class DataEquity(Evaluator):
         check_artifact_for_nulls(self.data, "Data")
 
     def evaluate(self):
-        sens_feat_label = {"sensitive_feature": self.sensitive_features.name}
-        desc = self.describe()
+        labels = {
+            "sensitive_feature": self.sensitive_features.name,
+            "outcome": self.y.name,
+        }
+        desc = self._describe()
         # Create summary
         summary = TableContainer(
             desc["summary"],
-            **self.get_container_info(labels=sens_feat_label),
+            **self.get_container_info(labels=labels),
+        )
+        # outcome distribution
+        outcome_distribution = TableContainer(
+            self._outcome_distributions(),
+            **self.get_container_info(labels=labels),
         )
         # Create parity results
         parity_results = pd.DataFrame(
@@ -78,7 +87,7 @@ class DataEquity(Evaluator):
         )
         parity_results = MetricContainer(
             parity_results,
-            **self.get_container_info(labels=sens_feat_label),
+            **self.get_container_info(labels=labels),
         )
         # Add statistics
         overall_equity, posthoc_tests = self._get_formatted_stats()
@@ -89,7 +98,12 @@ class DataEquity(Evaluator):
             ),
         )
         # Combine
-        equity_containers = [summary, parity_results, overall_equity]
+        equity_containers = [
+            summary,
+            outcome_distribution,
+            parity_results,
+            overall_equity,
+        ]
 
         # Add posthoc if available
         if posthoc_tests is not None:
@@ -104,7 +118,7 @@ class DataEquity(Evaluator):
         self.results = equity_containers
         return self
 
-    def describe(self):
+    def _describe(self):
         """Create descriptive output"""
         results = {
             "summary": self.df.groupby(self.sensitive_features.name)[
@@ -122,10 +136,33 @@ class DataEquity(Evaluator):
             summary["mean"].min() / summary["mean"].max()
         )
 
-        summary["subtype"] = "summary"
-        summary.name = "summary"
+        summary.name = f"Summary"
 
         return results
+
+    def _outcome_distributions(self):
+        # count categorical data
+        if self.type_of_target in ("binary", "multiclass"):
+            distribution = self.df.value_counts().sort_index().reset_index(name="count")
+        # histogram binning for continuous
+        else:
+            distribution = []
+            bins = 10
+            for i, group in self.df.groupby(self.sensitive_features.name):
+                counts, edges = np.histogram(group[self.y.name], bins=bins)
+                bins = edges  # ensure all groups have same bins
+                bin_centers = 0.5 * (edges[:-1] + edges[1:])
+                tmp = pd.DataFrame(
+                    {
+                        self.sensitive_features.name: i,
+                        self.y.name: bin_centers,
+                        "count": counts,
+                    }
+                )
+                distribution.append(tmp)
+            distribution = pd.concat(distribution, axis=0)
+        distribution.name = "Outcome Distributions"
+        return distribution
 
     def _get_formatted_stats(self) -> tuple:
         """
@@ -206,7 +243,7 @@ class DataEquity(Evaluator):
                 try:
                     chi2, p, dof, ex = chi2_contingency(new_df, correction=False)
                 except ValueError as e:
-                    global_logger.error(
+                    self.logger.error(
                         "Chi2 test could not be run, likely due to insufficient"
                         f" outcome frequencies. Error produced below:\n {traceback.print_exc()}"
                     )
@@ -283,21 +320,27 @@ class DataEquity(Evaluator):
 
 
 class ModelEquity(DataEquity):
+    def __init__(self, use_predict_proba=False, p_value=0.01):
+        self.use_predict_proba = use_predict_proba
+        super().__init__(p_value)
+
     name = "ModelEquity"
     required_artifacts = {"model", "assessment_data", "sensitive_feature"}
 
     def _setup(self):
         self.sensitive_features = self.assessment_data.sensitive_feature
+        fun = self.model.predict_proba if self.use_predict_proba else self.model.predict
         self.y = pd.Series(
-            self.model.predict(self.assessment_data.X),
+            fun(self.assessment_data.X),
             index=self.sensitive_features.index,
         )
+        prefix = "predicted probability" if self.use_predict_proba else "predicted"
         try:
-            self.y.name = f"predicted {self.assessment_data.y.name}"
+            self.y.name = f"{prefix} {self.assessment_data.y.name}"
         except:
-            self.y.name = "predicted outcome"
+            self.y.name = f"{prefix} outcome"
 
-        self.type_of_target = self.assessment_data.y_type
+        self.type_of_target = type_of_target(self.y)
 
         self.df = pd.concat([self.sensitive_features, self.y], axis=1)
         return self

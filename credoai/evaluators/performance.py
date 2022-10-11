@@ -13,7 +13,6 @@ from credoai.modules.metric_constants import (
     THRESHOLD_METRIC_CATEGORIES,
 )
 from credoai.modules.metrics import Metric, find_metrics
-from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
 
 
@@ -159,7 +158,7 @@ class Performance(Evaluator):
             )
             return output_series.reset_index().rename({"index": "type"}, axis=1)
         else:
-            global_logger.warn("No overall metrics could be calculated.")
+            self.logger.warn("No overall metrics could be calculated.")
 
     def get_overall_threshold_metrics(self):
         """Return performance metrics for each group
@@ -224,7 +223,7 @@ class Performance(Evaluator):
                     "Specified metric is not of type credoai.metric.Metric"
                 )
             if metric.metric_category == "FAIRNESS":
-                global_logger.info(
+                self.logger.info(
                     f"fairness metric, {metric_name}, unused by PerformanceModule"
                 )
                 pass
@@ -237,7 +236,7 @@ class Performance(Evaluator):
                 else:
                     performance_metrics[metric_name] = metric
             else:
-                global_logger.warning(
+                self.logger.warning(
                     f"{metric_name} failed to be used by FairnessModule"
                 )
                 failed_metrics.append(metric_name)

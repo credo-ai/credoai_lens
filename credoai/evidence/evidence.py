@@ -163,4 +163,4 @@ class ProfilerEvidence(Evidence):
 
     @property
     def base_label(self):
-        return {"profiler_info": "placeholder"}
+        return {}

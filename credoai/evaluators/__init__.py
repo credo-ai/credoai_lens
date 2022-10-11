@@ -11,3 +11,4 @@ from .equity import DataEquity, ModelEquity
 from .performance import Performance
 from .fairness import ModelFairness
 from .ranking_fairness import RankingFairness
+from .survival_fairness import SurvivalFairness

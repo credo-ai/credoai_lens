@@ -2,6 +2,7 @@ import warnings
 
 from sklearn.base import is_classifier, is_regressor
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.utils import multiclass
 
 
 def get_generic_classifier():
@@ -36,3 +37,7 @@ def get_default_metrics(model):
         return ["r2_score"]
     else:
         return None
+
+
+def type_of_target(target):
+    return multiclass.type_of_target(target) if target is not None else None
