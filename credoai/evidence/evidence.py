@@ -4,6 +4,7 @@ Wrappers formatting results of evaluator runs for the Credo AI Platform
 import pprint
 from abc import ABC, abstractproperty
 from datetime import datetime
+from symbol import parameters
 from typing import Tuple
 
 from credoai.utils import ValidationError
@@ -164,3 +165,26 @@ class ProfilerEvidence(Evidence):
     @property
     def base_label(self):
         return {}
+
+
+class ModelProfilerEvidence(Evidence):
+    def __init__(self, data: DataFrame, additional_labels: dict = None, **metadata):
+        super().__init__("model_profiler", additional_labels, **metadata)
+        self._data = data["results"]
+
+    @property
+    def data(self):
+        parameters = self._data.loc["parameters"]
+        features_names = self._data.loc["feature_names"]
+        remaining_info = self._data[
+            ~self._data.index.isin(["parameters", "feature_names", "model_name"])
+        ]
+        return {
+            "info": remaining_info.to_dict(),
+            "parameters": parameters,
+            "features_names": features_names,
+        }
+
+    @property
+    def base_label(self):
+        return {"model_name": self._data.loc["model_name"]}
