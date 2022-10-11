@@ -1,13 +1,13 @@
-import collections
-import io
-import logging
-import os
-import sys
+from collections import deque
+from io import StringIO
+from logging import FileHandler, Formatter, Handler, StreamHandler, getLogger
+from os.path import join
+from sys import stdout
 
 
-class TailLogHandler(logging.Handler):
+class TailLogHandler(Handler):
     def __init__(self, log_queue):
-        logging.Handler.__init__(self)
+        Handler.__init__(self)
         self.log_queue = log_queue
 
     def emit(self, record):
@@ -16,7 +16,7 @@ class TailLogHandler(logging.Handler):
 
 class TailLogger(object):
     def __init__(self, maxlen):
-        self._log_queue = collections.deque(maxlen=maxlen)
+        self._log_queue = deque(maxlen=maxlen)
         self._log_handler = TailLogHandler(self._log_queue)
 
     def contents(self):
@@ -34,21 +34,21 @@ class Logger:
         self.file_path = None
         self.stream = None
         if formatter is None:
-            formatter = logging.Formatter(
+            formatter = Formatter(
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
         self.formatter = formatter
         self.logger = self.setup_logger(name, logging_level)
-        self.log_capture_string = io.StringIO()
+        self.log_capture_string = StringIO()
         if record_stream:
             self.stream = self.setup_stream()
         if path:
-            self.file_path = os.path.join(path, f"{name}.log")
+            self.file_path = join(path, f"{name}.log")
             self.setup_file()
 
     def setup_logger(self, name, logging_level):
-        logger = logging.getLogger(name)
-        handler = logging.StreamHandler(sys.stdout)
+        logger = getLogger(name)
+        handler = StreamHandler(stdout)
         handler.setFormatter(self.formatter)
         logger.addHandler(handler)
         logger.setLevel(logging_level)
@@ -62,12 +62,12 @@ class Logger:
         return tail
 
     def setup_file(self):
-        file_handler = logging.FileHandler(self.file_path)
+        file_handler = FileHandler(self.file_path)
         file_handler.setFormatter(self.formatter)
         self.logger.addHandler(file_handler)
 
 
-def setup_logger(name="lens", path=None, record_stream=True, logging_level="INFO"):
+def setup_logger(name="lens", path=None, record_stream=False, logging_level="INFO"):
     tmp = Logger(name, path, record_stream, logging_level)
     return tmp.logger, tmp.stream
 

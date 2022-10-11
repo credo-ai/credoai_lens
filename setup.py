@@ -23,17 +23,13 @@ with open("README.md", "r") as fh:
 with open("requirements.txt") as f:
     INSTALL_REQUIRES = [line.strip() for line in f]
 
-# Fetch extra requirements files
-with open("requirements-extras.txt") as f:
-    extras_requirements = [line.strip() for line in f]
-
 # Fetch dev requirements files (including documentation)
 with open("docs/requirements.txt") as f:
     doc_requirements = [line.strip() for line in f]
 
-dev_requirements = extras_requirements + doc_requirements
+dev_requirements = doc_requirements
 
-EXTRAS_REQUIRES = {"full": extras_requirements, "dev": dev_requirements}
+EXTRAS_REQUIRES = {"dev": dev_requirements}
 
 
 CLASSIFIERS = [
@@ -47,9 +43,9 @@ CLASSIFIERS = [
 
 PACKAGE_DATA = {
     "credoai": [
-        "data/*",
-        "data/static/nlp_generator_analyzer/persisted_models/*",
-        "data/static/nlp_generator_analyzer/prompts/*",
+        "datasets/*",
+        "datasets/static/nlp_generator_analyzer/persisted_models/*",
+        "datasets/static/nlp_generator_analyzer/prompts/*",
     ]
 }
 
@@ -59,9 +55,6 @@ if __name__ == "__main__":
     import sys
 
     from setuptools import setup
-
-    if sys.version_info[:2] < (3, 6):
-        raise RuntimeError("seaborn requires python >= 3.6.")
 
     setup(
         name=DISTNAME,

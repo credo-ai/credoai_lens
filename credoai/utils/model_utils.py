@@ -2,6 +2,7 @@ import warnings
 
 from sklearn.base import is_classifier, is_regressor
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.utils import multiclass
 
 
 def get_generic_classifier():
@@ -26,15 +27,7 @@ def get_model_info(model):
         framework = model.__class__.__module__.split(".")[0]
     except AttributeError:
         framework = None
-    model_type = None
-    if framework in ("sklearn", "xgboost"):
-        if is_classifier(model):
-            model_type = "CLASSIFIER"
-        elif is_regressor(model):
-            model_type = "REGRESSOR"
-    elif framework in ("keras", "torch"):
-        model_type = "NEURAL_NETWORK"
-    return {"framework": framework, "model_type": model_type}
+    return {"framework": framework}
 
 
 def get_default_metrics(model):
@@ -44,3 +37,7 @@ def get_default_metrics(model):
         return ["r2_score"]
     else:
         return None
+
+
+def type_of_target(target):
+    return multiclass.type_of_target(target) if target is not None else None
