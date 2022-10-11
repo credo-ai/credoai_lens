@@ -60,6 +60,8 @@ class ModelProfiler(Evaluator):
         """
         super().__init__()
         self.usr_model_info = model_info
+        if not self.usr_model_info:
+            self.usr_model_info = {}
         self._validate_usr_model_info()
 
     def _setup(self):
