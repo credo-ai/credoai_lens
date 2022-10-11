@@ -4,8 +4,23 @@ Setup
 Installation
 -------------
 
-The latest stable release (and required dependencies) can be installed from PyPI. 
-Following the directions for Conda below is the most robust installation method.
+The latest stable release or development release can be installed from PyPI.
+
+
+**Pip**
+
+Lens is on PyPi and can be installed using pip. The below will install the latest stable release
+of the package.
+
+::
+
+   pip install credoai-lens
+
+The latest development version can also be installed directly from github.
+
+::
+
+   pip install git+https://github.com/credo-ai/credoai_lens#develop
 
 **Conda**
 
@@ -23,22 +38,6 @@ Then run...
 The above will install the latest stable version of Lens. If you prefer to use
 the latest development version, follow the above by installing directly from
 github using pip (see below).
-
-
-**Pip**
-
-Lens is on PyPi and can be installed using pip. The below will install the latest stable release
-of the package.
-
-::
-
-   pip install credoai-lens
-
-The latest development version can also be installed directly from github.
-
-::
-
-   pip install git+https://github.com/credo-ai/credoai_lens#develop
 
 **ARM Macbook installation troubleshooting**
 
