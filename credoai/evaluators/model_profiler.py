@@ -42,7 +42,12 @@ class ModelProfiler(Evaluator):
     ----------
     model_info : Optional[dict], optional
         Information provided by the user that cannot be inferred by
-        the model itself, by default None
+        the model itself. The dictionary con contain any number of elements,
+        a template can be provided by running the generate_template() method.
+
+        The only restrictions are checked in a validation step:
+        1. Some keys are protected because they are used internally
+        2. Only basic python types are accepted as values
 
     """
 
@@ -84,28 +89,6 @@ class ModelProfiler(Evaluator):
         # Package into evidence
         self.results = [ModelProfilerContainer(res, **self.get_container_info())]
         return self.results
-
-    def _validate_usr_model_info(self):
-        """
-        Validate user model info.
-
-        Any key is valid unless it's already in use internally.
-
-        """
-        protected = [k for k in self.usr_model_info.keys() if k in PROTECTED_KEYS]
-        if protected:
-            message = f"Found {protected} in model_info.keys(), these keys are already in use. Please rename/remove them."
-            raise ValidationError(message)
-
-        accepted_formats = (list, int, float, dict, str)
-        non_accepted = [
-            k
-            for k, v in self.usr_model_info.items()
-            if not isinstance(v, accepted_formats) and v is not None
-        ]
-        if non_accepted:
-            message = f"The items {non_accepted} in model info are not of types: (list, int, float, dict, str)"
-            raise ValidationError(message)
 
     def _get_basic_info(self) -> dict:
         """
@@ -152,6 +135,28 @@ class ModelProfiler(Evaluator):
             "parameters": parameters,
             "feature_names": feature_names,
         }
+
+    def _validate_usr_model_info(self):
+        """
+        Validate user model info.
+
+        Any key is valid unless it's already in use internally.
+
+        """
+        protected = [k for k in self.usr_model_info.keys() if k in PROTECTED_KEYS]
+        if protected:
+            message = f"Found {protected} in model_info.keys(), these keys are already in use. Please rename/remove them."
+            raise ValidationError(message)
+
+        accepted_formats = (list, int, float, dict, str)
+        non_accepted = [
+            k
+            for k, v in self.usr_model_info.items()
+            if not isinstance(v, accepted_formats) and v is not None
+        ]
+        if non_accepted:
+            message = f"The items {non_accepted} in model info are not of types: (list, int, float, dict, str)"
+            raise ValidationError(message)
 
     @staticmethod
     def generate_template() -> dict:
