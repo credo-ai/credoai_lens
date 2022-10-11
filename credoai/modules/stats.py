@@ -46,6 +46,7 @@ class CoxPH:
             .merge(right=prediction_data, left_on="variable", right_index=True)
             .drop(columns=["variable"])
         )
+        survival_curves = survival_curves[survival_curves["time_step"] % 5 == 0]
         survival_curves.name = f"{self.name} Survival Curves"
         return survival_curves
 
