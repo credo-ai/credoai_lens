@@ -8,7 +8,23 @@ from numpy import mean, abs
 
 
 class ShapValues(Evaluator):
+    """
+    This evaluator perform the calculation of shapley values for a dataset/model,
+    leveraging the SHAP package.
+
+    It calculates 2 types of assessments:
+    1. Overall statistics of the shap values across all samples, currently: mean and mean(|x|)
+    2. Optional: individual shapley values for a list of samples
+
+    Parameters
+    ----------
+    samples_ind : Optional[List[int]], optional
+        List of row numbers representing the samples for which to extract individual
+        shapley values , by default None
+    """
+
     def __init__(self, samples_ind: Optional[List[int]] = None):
+
         super().__init__()
         self.samples_ind = samples_ind
 
@@ -25,19 +41,25 @@ class ShapValues(Evaluator):
 
     def evaluate(self):
         ## Overall stats
-        explainer = Explainer(self.model.predict, self.X)
-        self.shap_values = explainer(self.X)
+        self._setup_shap()
         res = self._get_overall_shap_contributions()
-        res.name = "Summary of Shap statistics"
         self.results = [TableContainer(res, **self.get_container_info())]
 
         ## Sample specific results
-        labels = {"ordered_feature_names": self.shap_values.feature_names}
         if self.samples_ind:
+            labels = {"ordered_feature_names": self.shap_values.feature_names}
             ind_res = self._get_mult_sample_shapley_values()
             self.results += [
                 TableContainer(ind_res, **self.get_container_info(labels=labels))
             ]
+        return self
+
+    def _setup_shap(self):
+        """
+        Setup the explainer given the model and the feature dataset
+        """
+        explainer = Explainer(self.model.predict, self.X)
+        self.shap_values = explainer(self.X)
         return self
 
     def _get_overall_shap_contributions(self) -> DataFrame:
@@ -58,11 +80,13 @@ class ShapValues(Evaluator):
         """
         values_df = DataFrame(self.shap_values.values)
         values_df.columns = self.shap_values.feature_names
-        stats_1 = values_df.apply(["mean", "min", "max"]).T
+        stats_1 = values_df.apply(["mean"]).T
         stats_2 = values_df.apply(lambda x: mean(abs(x)))
         stats_2.name = "mean(|x|)"
         final = concat([stats_1, stats_2], axis=1)
         final = final.sort_values("mean(|x|)", ascending=False)
+        final.name = "Summary of Shap statistics"
+
         return final
 
     def _get_mult_sample_shapley_values(self) -> DataFrame:
