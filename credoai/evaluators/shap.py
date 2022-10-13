@@ -13,7 +13,7 @@ class ShapValues(Evaluator):
     leveraging the SHAP package.
 
     It calculates 2 types of assessments:
-    1. Overall statistics of the shap values across all samples, currently: mean and mean(|x|)
+    1. Overall statistics of the shap values across all samples: mean and mean(|x|)
     2. Optional: individual shapley values for a list of samples
 
     Parameters
