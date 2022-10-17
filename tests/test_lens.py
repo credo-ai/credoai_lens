@@ -26,8 +26,16 @@ TEST_METRICS = [
     ["false_negative_rate"],
     ["average_precision_score"],
     ["false_negative_rate", "average_precision_score"],
+    ["equal_opportunity"],
+    ["false_negative_rate", "average_precision_score", "equal_opportunity"],
 ]
-TEST_METRICS_IDS = ["binary_metric", "probability_metric", "both"]
+TEST_METRICS_IDS = [
+    "binary_metric",
+    "probability_metric",
+    "binary_and_probability",
+    "fairness",
+    "all_types",
+]
 
 
 @pytest.fixture(scope="class")
