@@ -92,7 +92,7 @@ class ModelProfiler(Evaluator):
         res.columns = ["results"]
         # Package into evidence
         self.results = [ModelProfilerContainer(res, **self.get_container_info())]
-        return self.results
+        return self
 
     def _get_basic_info(self) -> dict:
         """
