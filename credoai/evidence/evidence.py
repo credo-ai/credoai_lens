@@ -1,13 +1,15 @@
 """
 Wrappers formatting results of evaluator runs for the Credo AI Platform
 """
+import json
 import pprint
 from abc import ABC, abstractproperty
 from datetime import datetime
+from symbol import parameters
 from typing import Tuple
 
+import pandas as pd
 from credoai.utils import ValidationError
-from pandas import DataFrame
 
 
 class Evidence(ABC):
@@ -130,7 +132,7 @@ class TableEvidence(Evidence):
     """
 
     def __init__(
-        self, name: str, table_data: DataFrame, additional_labels=None, **metadata
+        self, name: str, table_data: pd.DataFrame, additional_labels=None, **metadata
     ):
         self.name = name
         self._data = table_data
