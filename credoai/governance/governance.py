@@ -227,6 +227,7 @@ class Governance:
 
         if filename is None:
             self._api_export(evidences)
+            
         else:
             self._file_export(evidences, filename)
 
@@ -241,7 +242,24 @@ class Governance:
         global_logger.info(
             f"Uploading {len(evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
         )
-        self._api.create_assessment(self._use_case_id, self._policy_pack_id, evidences)
+        result = self._api.create_assessment(self._use_case_id, self._policy_pack_id, evidences)
+        not_linked = list(filter(lambda e: e.get("result") == "not_linked", result.get("evidences", [])))
+        if len(not_linked) > 0:
+            not_linked_text = "\n".join(list(map(lambda e: f" - Evidence with label {e.get('label')}", not_linked)))
+            message = f'''
+---------------------------------------------------------------------------
+Warning!
+Evidence was uploaded, but not properly linked to the Control Requirements.
+The Assessment Plan may have been altered, pull or download the latest.
+
+If this issue persists contact Credo AI Support
+Email support@credo.ai
+
+{len(not_linked)} evidences were not linked
+{not_linked_text}
+---------------------------------------------------------------------------
+            '''
+            global_logger.warn(message)
 
     def _check_inclusion(self, label, evidence):
         matching_evidence = []
