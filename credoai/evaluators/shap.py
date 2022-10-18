@@ -6,7 +6,7 @@ from credoai.evidence import TableContainer
 from numpy import abs, mean
 from pandas import DataFrame, concat
 
-from shap import Explainer, Explanation
+from shap import Explainer, Explanation, kmeans
 
 
 class ShapExplainer(Evaluator):
@@ -23,12 +23,18 @@ class ShapExplainer(Evaluator):
     samples_ind : Optional[List[int]], optional
         List of row numbers representing the samples for which to extract individual
         shapley values , by default None
+    background_kmeans : bool, optional
+        If True, use SHAP kmeans to create a data summary to serve as background data for the
+        SHAP explainer using 50 centroids. If False, sample the dataset 100 times.
     """
 
-    def __init__(self, samples_ind: Optional[List[int]] = None):
+    def __init__(
+        self, samples_ind: Optional[List[int]] = None, background_kmeans=False
+    ):
 
         super().__init__()
         self.samples_ind = samples_ind
+        self.background_kmeans = background_kmeans
 
     name = "Shap"
     required_artifacts = ["assessment_data", "model"]
@@ -60,7 +66,16 @@ class ShapExplainer(Evaluator):
         """
         Setup the explainer given the model and the feature dataset
         """
-        explainer = Explainer(self.model.predict, self.X)
+        if self.background_kmeans:
+            data_summary = kmeans(self.X, 50).data
+        else:
+            data_summary = self.X.sample(100)
+        # try to use the model-like, which will only work if it is a model
+        # that shap supports
+        try:
+            explainer = Explainer(self.model.model_like, data_summary)
+        except:
+            explainer = Explainer(self.model.predict, data_summary)
         self.shap_values = explainer(self.X)
         return self
 
