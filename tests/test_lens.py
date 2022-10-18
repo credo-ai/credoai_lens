@@ -26,7 +26,7 @@ TEST_METRICS = [
     ["false_negative_rate"],
     ["average_precision_score"],
     ["false_negative_rate", "average_precision_score"],
-    ["equal_opportunity"],
+    ["precision_score", "equal_opportunity"],
     ["false_negative_rate", "average_precision_score", "equal_opportunity"],
 ]
 TEST_METRICS_IDS = [

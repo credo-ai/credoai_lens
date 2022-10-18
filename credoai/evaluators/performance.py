@@ -181,7 +181,6 @@ class Performance(Evaluator):
             threshold_results.name = "threshold_metric_performance"
             return threshold_results
 
-    # @staticmethod
     def _process_metrics(self, metrics):
         """Separates metrics
 
