@@ -3,6 +3,8 @@ from typing import Dict, List, Optional
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
 from credoai.evidence import TableContainer
+from credoai.utils.common import ValidationError
+
 from numpy import abs, mean
 from pandas import DataFrame, concat
 
@@ -14,15 +16,16 @@ class ShapExplainer(Evaluator):
     This evaluator perform the calculation of shapley values for a dataset/model,
     leveraging the SHAP package.
 
-    It calculates 2 types of assessments:
+    It supports 2 types of assessments:
     1. Overall statistics of the shap values across all samples: mean and mean(|x|)
-    2. Optional: individual shapley values for a list of samples
+    2. Individual shapley values for a list of samples
 
     Parameters
     ----------
     samples_ind : Optional[List[int]], optional
         List of row numbers representing the samples for which to extract individual
-        shapley values , by default None
+        shapley values. This must be a list of integer indices. The underlying SHAP
+        library does not support non-integer indexing
     background_kmeans : bool, optional
         If True, use SHAP kmeans to create a data summary to serve as background data for the
         SHAP explainer using 50 centroids. If False, sample the dataset 100 times.
@@ -34,6 +37,7 @@ class ShapExplainer(Evaluator):
 
         super().__init__()
         self.samples_ind = samples_ind
+        self._validate_samples_ind()
         self.background_kmeans = background_kmeans
 
     name = "Shap"
@@ -76,6 +80,7 @@ class ShapExplainer(Evaluator):
             explainer = Explainer(self.model.model_like, data_summary)
         except:
             explainer = Explainer(self.model.predict, data_summary)
+        # Generating the actual values calling the specific Shap function
         self.shap_values = explainer(self.X)
         return self
 
@@ -87,7 +92,7 @@ class ShapExplainer(Evaluator):
         dataset. To summarise the contribution of each feature in a dataset, the
         samples contributions need to be aggregated.
 
-        For each of the features, this method provides: mean, max, minimum and the
+        For each of the features, this method provides: mean and the
         mean of the absolute value of the samples shapley values.
 
         Returns
@@ -97,10 +102,10 @@ class ShapExplainer(Evaluator):
         """
         values_df = DataFrame(self.shap_values.values)
         values_df.columns = self.shap_values.feature_names
-        stats_1 = values_df.apply(["mean"]).T
-        stats_2 = values_df.apply(lambda x: mean(abs(x)))
-        stats_2.name = "mean(|x|)"
-        final = concat([stats_1, stats_2], axis=1)
+        shap_means = values_df.apply(["mean"]).T
+        shap_abs_means = values_df.apply(lambda x: mean(abs(x)))
+        shap_abs_means.name = "mean(|x|)"
+        final = concat([shap_means, shap_abs_means], axis=1)
         final = final.sort_values("mean(|x|)", ascending=False)
         final.name = "Summary of Shap statistics"
 
@@ -130,6 +135,25 @@ class ShapExplainer(Evaluator):
         res = DataFrame(all_sample_shaps)
         res.name = "Shap values for specific samples"
         return res
+
+    def _validate_samples_ind(self, limit=5):
+        """
+        Enforce limit on maximum amount of samples for which to extract
+        individual shap values.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Max number of samples allowed, by default 5
+
+        Raises
+        ------
+        ValidationError
+        """
+        if self.samples_ind is not None:
+            if len(self.samples_ind) > limit:
+                message = "The maximum amount of individual samples_ind allowed is 5."
+                raise ValidationError(message)
 
     @staticmethod
     def _get_single_sample_values(sample_shap: Explanation) -> Dict:
