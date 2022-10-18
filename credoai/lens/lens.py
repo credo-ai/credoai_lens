@@ -353,7 +353,7 @@ class Lens:
         ------
         ValidationError
         """
-        if not isinstance(self.assessment_data, Data):
+        if not (isinstance(self.assessment_data, Data) or self.assessment_data is None):
             raise ValidationError(
                 "Assessment data should inherit from credoai.artifacts.Data"
             )
