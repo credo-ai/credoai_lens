@@ -363,8 +363,8 @@ def population_stability_index(
     The common interpretations of the PSI result are:
 
     PSI < 0.1: no significant population change
-    PSI < 0.2: moderate population change
-    PSI >= 0.2: significant population change
+    PSI < 0.25: moderate population change
+    PSI >= 0.25: significant population change
 
     The number of buckets chosen and the bucketing logic affect the final result.
 

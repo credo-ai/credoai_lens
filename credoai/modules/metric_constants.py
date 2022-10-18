@@ -6,6 +6,7 @@ from credoai.modules.credoai_metrics import (
     false_omission_rate,
     ks_statistic,
     gini_coefficient_discriminatory,
+    population_stability_index,
 )
 from fairlearn import metrics as fl_metrics
 from sklearn import metrics as sk_metrics
@@ -90,6 +91,7 @@ METRIC_EQUIVALENTS = {
         "discriminatory_gini_index",
         "discriminatory_gini",
     ],
+    "population_stability_index": ["psi", "PSI"],
 }
 
 # DATASET METRICS
