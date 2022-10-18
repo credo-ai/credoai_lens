@@ -1,3 +1,4 @@
+from typing import Literal, Optional
 import numpy as np
 import pandas as pd
 import scipy.stats as st
@@ -341,3 +342,82 @@ def gini_coefficient_discriminatory(y_true, y_prob):
     """
     G = (2 * sk_metrics.roc_auc_score(y_true, y_prob)) - 1
     return G
+
+
+def population_stability_index(
+    expected_array,
+    actual_array,
+    buckets: int = 10,
+    buckettype: Literal["bins", "quantiles"] = "bins",
+    epsilon: float = 0.001,
+):
+    """Calculate the PSI for a single variable.
+
+    PSI is a measure of how much a distribution has changed over time or between
+    two different samples of a population.
+    It does this by bucketing the two distributions and comparing the percents of
+    items in each of the buckets. The final result is a single number:
+
+        :math:`PSI = \sum \left ( Actual_{%} - Expected_{%} \right ) \cdot ln\left ( \frac{Actual_{%}}{Expected_{%}} \right )`
+
+    The common interpretations of the PSI result are:
+
+    PSI < 0.1: no significant population change
+    PSI < 0.2: moderate population change
+    PSI >= 0.2: significant population change
+
+    The number of buckets chosen and the bucketing logic affect the final result.
+
+    Based on the code in github.com/mwburke by Matthew Burke.
+
+    Parameters
+    ----------
+    expected_array: array-like
+        Array of expected/initial values
+    actual_array: array-like
+        Array of new values
+    buckets: int
+        number of percentile ranges to bucket the values into
+    buckettype: Literal["bins", "quantiles"]
+        type of strategy for creating buckets, bins splits into even splits,
+        quantiles splits into quantile buckets
+    epsilon: float
+        Quantity substituting empty buckets content.
+        Empty buckets cause inf to appear in the calculation.
+
+    Returns:
+        psi_value: calculated PSI value
+    """
+
+    def scale_range(input, min, max):
+        input += -(np.min(input))
+        input /= np.max(input) / (max - min)
+        input += min
+        return input
+
+    # Define histogram breakpoints
+    breakpoints = np.arange(0, buckets + 1) / (buckets) * 100
+
+    if buckettype == "bins":
+        breakpoints = scale_range(
+            breakpoints, np.min(expected_array), np.max(expected_array)
+        )
+    elif buckettype == "quantiles":
+        breakpoints = np.stack([np.percentile(expected_array, b) for b in breakpoints])
+
+    # Populate bins and calculate percentages
+    expected_percents = np.histogram(expected_array, breakpoints)[0] / len(
+        expected_array
+    )
+    actual_percents = np.histogram(actual_array, breakpoints)[0] / len(actual_array)
+
+    # Substitute 0 with an arbitrary epsilon << 1
+    # This is to avoid inf in the following calculations
+    expected_percents[expected_percents == 0] = epsilon
+    actual_percents[actual_percents == 0] = epsilon
+
+    psi_values = (expected_percents - actual_percents) * np.log(
+        expected_percents / actual_percents
+    )
+
+    return np.sum(psi_values)
