@@ -12,4 +12,4 @@ from .performance import Performance
 from .fairness import ModelFairness
 from .ranking_fairness import RankingFairness
 from .survival_fairness import SurvivalFairness
-from .shap import ShapValues
+from .shap import ShapExplainer

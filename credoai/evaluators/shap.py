@@ -1,13 +1,15 @@
 from typing import Dict, List, Optional
+
 from credoai.evaluators import Evaluator
-from credoai.evidence import TableContainer
 from credoai.evaluators.utils.validation import check_requirements_existence
-from shap import Explainer, Explanation
+from credoai.evidence import TableContainer
+from numpy import abs, mean
 from pandas import DataFrame, concat
-from numpy import mean, abs
+
+from shap import Explainer, Explanation
 
 
-class ShapValues(Evaluator):
+class ShapExplainer(Evaluator):
     """
     This evaluator perform the calculation of shapley values for a dataset/model,
     leveraging the SHAP package.
