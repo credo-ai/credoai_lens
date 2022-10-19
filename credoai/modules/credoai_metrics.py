@@ -24,7 +24,7 @@ def general_wilson(p, n, z=1.96):
         np.ndarray
         Array of length 2 of form: [lower_bound, upper_bound]
     """
-    denominator = 1 + z ** 2 / n
+    denominator = 1 + z**2 / n
     centre_adjusted_probability = p + z * z / (2 * n)
     adjusted_standard_deviation = np.sqrt((p * (1 - p) + z * z / (4 * n))) / np.sqrt(n)
     lower_bound = (
@@ -310,3 +310,34 @@ def credo_det_curve(y_true, y_prob):
             "thresholds": thresholds,
         }
     )
+
+
+def gini_coefficient_discriminatory(y_true, y_prob):
+    """Returns the Gini Coefficient of a discriminatory model
+
+    NOTE: There are two popular, yet distinct metrics known as the 'gini coefficient'.
+
+    The value calculated by this function provides a summary statistic for the Cumulative Accuracy Profile (CAP) curve.
+    This notion of Gini coefficient (or Gini index) is a _discriminatory_ metric. It helps characterize the ordinal
+    relationship between predictions made by a model and the ground truth values for each sample.
+
+    This metric has a linear relationship with the area under the receiver operating characteristic curve:
+        :math:`G = 2*AUC - 1`
+
+    See https://towardsdatascience.com/using-the-gini-coefficient-to-evaluate-the-performance-of-credit-score-models-59fe13ef420
+    for more details.
+
+    Parameters
+    ----------
+    y_true : array-like
+        Ground truth (correct) labels.
+    y_prob : array-like
+        Predicted probabilities returned by a call to the model's `predict_proba()` function.
+
+    Returns
+    -------
+    float
+        Discriminatory Gini Coefficient
+    """
+    G = (2 * sk_metrics.roc_auc_score(y_true, y_prob)) - 1
+    return G

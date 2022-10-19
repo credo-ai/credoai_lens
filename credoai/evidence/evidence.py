@@ -160,7 +160,10 @@ class ProfilerEvidence(Evidence):
 
     @property
     def data(self):
-        return self._data["results"]
+        data = self._data["results"]
+        if isinstance(data, (pd.Series, pd.DataFrame)):
+            data = json.loads(data.to_json())
+        return data
 
     @property
     def base_label(self):
