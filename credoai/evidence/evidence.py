@@ -1,12 +1,13 @@
 """
 Wrappers formatting results of evaluator runs for the Credo AI Platform
 """
+import json
 import pprint
 from abc import ABC, abstractproperty
 from datetime import datetime
 from typing import Tuple
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from credoai.utils import ValidationError
 
@@ -161,7 +162,7 @@ class ProfilerEvidence(Evidence):
     @property
     def data(self):
         data = self._data["results"]
-        if isinstance(data, (pd.Series, pd.DataFrame)):
+        if isinstance(data, (Series, DataFrame)):
             data = json.loads(data.to_json())
         return data
 
