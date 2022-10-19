@@ -5,6 +5,7 @@ import json
 import pprint
 from abc import ABC, abstractproperty
 from datetime import datetime
+from symbol import parameters
 from typing import Tuple
 
 from pandas import DataFrame, Series
