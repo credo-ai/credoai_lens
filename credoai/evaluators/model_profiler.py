@@ -30,6 +30,8 @@ PROTECTED_KEYS = [
     "library",
     "model_architecture",
     "feature_names",
+    "parameters",
+    "data_sample",
 ]
 
 
@@ -50,7 +52,7 @@ class ModelProfiler(Evaluator):
 
     Parameters
     ----------
-    model_info : Optional[dict], optional
+    model_info : Optional[dict]
         Information provided by the user that cannot be inferred by
         the model itself. The dictionary con contain any number of elements,
         a template can be provided by running the generate_template() method.
@@ -88,10 +90,11 @@ class ModelProfiler(Evaluator):
         data_sample = self._get_dataset_sample()
         res = {**basic, **res, **self.usr_model_info, **data_sample}
         # Format
-        res = DataFrame.from_dict(res, orient="index")
-        res.columns = ["results"]
+        res, labels = self._add_entries_labeling(res)
         # Package into evidence
-        self.results = [ModelProfilerContainer(res, **self.get_container_info())]
+        self.results = [
+            ModelProfilerContainer(res, **self.get_container_info(labels=labels))
+        ]
         return self
 
     def _get_basic_info(self) -> dict:
@@ -183,6 +186,27 @@ class ModelProfiler(Evaluator):
         if non_accepted:
             message = f"The items {non_accepted} in model info are not of types: (list, int, float, dict, str)"
             raise ValidationError(message)
+
+    @staticmethod
+    def _add_entries_labeling(results: dict) -> tuple:
+        """
+        Takes the combined entries and format + create label to distinguish
+        user generated ones.
+
+        Parameters
+        ----------
+        results : dict
+            Dictionary of all the entries
+
+        Returns
+        -------
+        tuple
+            DataFrame, dict
+        """
+        res = DataFrame.from_dict(results, orient="index")
+        res.columns = ["results"]
+        labels = {"user_generated": list(res.index[~res.index.isin(PROTECTED_KEYS)])}
+        return res, labels
 
     @staticmethod
     def generate_template() -> dict:
