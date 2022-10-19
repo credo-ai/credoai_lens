@@ -121,7 +121,7 @@ class ShapExplainer(Evaluator):
         Setup the explainer given the model and the feature dataset
         """
         if self.background_kmeans:
-            if isinstance(self.background_kmeans, int):
+            if type(self.background_kmeans) is int:
                 centroids_num = self.background_kmeans
             else:
                 centroids_num = 50
