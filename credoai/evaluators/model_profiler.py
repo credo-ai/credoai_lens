@@ -28,7 +28,7 @@ PROTECTED_KEYS = [
     "model_name",
     "python_model_type",
     "library",
-    "model_architecture",
+    "model_library",
     "feature_names",
     "parameters",
     "data_sample",
@@ -155,7 +155,7 @@ class ModelProfiler(Evaluator):
             Dictionary of info about the model
         """
         parameters = self.model.get_params()
-        model_architecture = self.model_type.__name__
+        model_library = self.model_type.__name__
         library = "sklearn"
         if hasattr(self.model, "feature_names_in_"):
             feature_names = list(self.model.feature_names_in_)
@@ -163,7 +163,7 @@ class ModelProfiler(Evaluator):
             feature_names = None
         return {
             "library": library,
-            "model_architecture": model_architecture,
+            "model_library": model_library,
             "parameters": parameters,
             "feature_names": feature_names,
         }

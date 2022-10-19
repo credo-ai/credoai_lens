@@ -4,11 +4,11 @@ Wrappers formatting results of evaluator runs for the Credo AI Platform
 import pprint
 from abc import ABC, abstractproperty
 from datetime import datetime
-from symbol import parameters
 from typing import Tuple
 
-from credoai.utils import ValidationError
 from pandas import DataFrame
+
+from credoai.utils import ValidationError
 
 
 class Evidence(ABC):
