@@ -47,12 +47,15 @@ class FeatureDrift(Evaluator):
         self.expected_prediction = prediction_method(self.training_data.X)
         self.actual_prediction = prediction_method(self.assessment_data.X)
 
-        # Create the bins manually for categorical prediction
+        # Create the bins manually for categorical prediction if predict_proba
+        # is not available.
         if self.percentage:
-            self.expected_prediction = self._create_bin_percentage(
-                self.expected_prediction
+            (
+                self.expected_prediction,
+                self.actual_prediction,
+            ) = self._create_bin_percentage(
+                self.expected_prediction, self.actual_prediction
             )
-            self.actual_prediction = self._create_bin_percentage(self.actual_prediction)
 
     def evaluate(self):
         prediction_psi = self._calculate_psi_on_prediction()
