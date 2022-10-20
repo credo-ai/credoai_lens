@@ -191,27 +191,72 @@ class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
         assert self.pipeline.get_results()
 
 
+"""
+Frozen Results
+
+These tests load frozen validation data, model, pipeline info, and results from past run of Lens
+Runs Lens (in current form) with frozen model, data, and pipeline info and compares current 
+results to the frozen results.
+
+Tests are not designed to reveal fine-grain issues. Targeted at 'broad strokes' evaluation
+of possible breaking changes.
+
+Frozen artifacts (including results) generated in credoai_lens/tests/frozen_ml_tests/generation_notebooks
+
+Tests of this type require a substantial degree of hard-coding. We make assumptions about:
+    Locations of pickle files for data, models, etc.
+    Evaluator names; fixed in the SRING2EVALUATOR dictionary at the top of this file
+    Structure of frozen artifacts
+        e.g. If, down the road, we change how Lens wraps results from a dictionary to some other structure,
+        then this test will break. That is a feature of this test type.
+
+Devising a viable way to generalize/standardize this test type (see, for instance, the parametrization
+    decorators utilized by other tests in this file) remains an open problem. It is not necessarily
+    clear, however, that such standardization/generalization is desirable for a frozen results test.
+"""
+
+
 class TestFrozenBinaryCLF:
-    with open("tests/frozen_ml_tests/frozen_results/pipeline_info.pkl", "rb") as f:
+    """
+    TestFrozenBinaryCLF
+
+    Tests Lens against frozen results for a binary classifier.
+    Model in freeze: sklearn.LogisticRegression
+    Assessments in freeze: Performance and ModelFairness
+    Metrics in freeze: false_negative_rate, average_precision_score
+
+    Data info: Data are derived from a Kaggle dataset on loan worthiness:
+    https://www.kaggle.com/datasets/vikasukani/loan-eligible-dataset?select=loan-train.csv
+    Data were cleaned by Amin Rasekh (amin@credo.ai) here:
+    https://github.com/credo-ai/customer_demos/blob/prod/prod/d3_loan_approval/data_preparation.ipynb
+    Neither CSV file is pushed to GitHub;
+    Test relies on pickled version in tests/frozen_ml_tests/frozen_data/binary/loan_processed.pkl and the derived
+    validation data in tests/frozen_ml_tests/frozen_data/binary/loan_validation.pkl
+    """
+
+    # Load pipeline information: evaluators and metrics to run
+    with open(
+        "tests/frozen_ml_tests/frozen_results/binary/pipeline_info.pkl", "rb"
+    ) as f:
         pipeline_info = pickle.load(f)
 
-    pipeline = []
-
-    for assessment in pipeline_info["assessments"]:
-        pipeline.append(
-            (
-                STRING2EVALUATOR[assessment](pipeline_info["metrics"]),
-                assessment + " Assessment",
-            )
+    pipeline = [
+        (
+            STRING2EVALUATOR[assessment](pipeline_info["metrics"]),
+            assessment + " Assessment",
         )
+        for assessment in pipeline_info["assessments"]
+    ]
 
+    # Load frozen classifier and wrap as a Credo Model
     with open("tests/frozen_ml_tests/frozen_models/loan_binary_clf.pkl", "rb") as f:
         clf = pickle.load(f)
 
     test_model = ClassificationModel("binary_clf", clf)
 
+    # Load frozen validation data and wrap as Credo Data
     with open(
-        "tests/frozen_ml_tests/frozen_data/loan_binary/loan_validation.pkl", "rb"
+        "tests/frozen_ml_tests/frozen_data/binary/loan_validation.pkl", "rb"
     ) as f:
         val_data = pickle.load(f)
 
@@ -222,12 +267,24 @@ class TestFrozenBinaryCLF:
         sensitive_features=val_data["sensitive_features"],
     )
 
-    with open("tests/frozen_ml_tests/frozen_results/binary_clf_results.pkl", "rb") as f:
+    # Load frozen results
+    with open(
+        "tests/frozen_ml_tests/frozen_results/binary/binary_clf_results.pkl", "rb"
+    ) as f:
         frozen_results = pickle.load(f)
 
+    # Create lens object
     lens = Lens(model=test_model, assessment_data=val_data_credo, pipeline=pipeline)
 
     def test_results(self):
+        """
+        Test checks each component of the results for equality with frozen results
+        Frozen results is dictionary with "[Evaluator] Assessment" as keys and lists
+        of DataFrames as values.
+        Current freeze (10/20/22) uses Performance and ModelFairness evaluators.
+            Performance list contains 1 DataFrame: performance results
+            ModelFairness list contains 2 DataFrames: parity results, disaggregated performance results
+        """
         self.lens.run()
         test_results = self.lens.get_results()
         assert len(test_results) == len(self.frozen_results)
