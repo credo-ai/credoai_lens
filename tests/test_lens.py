@@ -240,13 +240,17 @@ class TestFrozenBinaryCLF:
     ) as f:
         pipeline_info = pickle.load(f)
 
-    pipeline = [
-        (
-            STRING2EVALUATOR[assessment](pipeline_info["metrics"]),
-            assessment + " Assessment",
+    metrics = pipeline_info["metrics"]
+    assessments = pipeline_info["assessments"]
+
+    pipeline = []
+    for assessment in assessments:
+        pipeline.append(
+            (
+                STRING2EVALUATOR[assessment](metrics),
+                assessment + " Assessment",
+            )
         )
-        for assessment in pipeline_info["assessments"]
-    ]
 
     # Load frozen classifier and wrap as a Credo Model
     with open("tests/frozen_ml_tests/frozen_models/loan_binary_clf.pkl", "rb") as f:
