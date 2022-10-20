@@ -7,7 +7,7 @@ Testing protocols for the Lens package. Tested functionalities:
 from abc import ABC, abstractmethod
 
 import pytest
-from credoai.artifacts import TabularData
+from credoai.artifacts import TabularData, ClassificationModel
 from credoai.evaluators import (
     DataEquity,
     DataFairness,
@@ -17,10 +17,13 @@ from credoai.evaluators import (
     Performance,
     Privacy,
     Security,
+    evaluator,
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
 from pandas import DataFrame
+import pickle
+import os
 
 TEST_METRICS = [
     ["false_negative_rate"],
@@ -28,6 +31,18 @@ TEST_METRICS = [
     ["false_negative_rate", "average_precision_score"],
 ]
 TEST_METRICS_IDS = ["binary_metric", "probability_metric", "both"]
+
+STRING2EVALUATOR = {
+    "DataEquity": DataEquity,
+    "DataFairness": DataFairness,
+    "DataProfiling": DataProfiling,
+    "ModelEquity": ModelEquity,
+    "ModelFairness": ModelFairness,
+    "Performance": Performance,
+    "Privacy": Privacy,
+    "Security": Security,
+    "evaluator": evaluator,
+}
 
 
 @pytest.fixture(scope="class")
@@ -174,6 +189,52 @@ class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+
+class TestFrozenBinaryCLF:
+    with open("tests/frozen_ml_tests/frozen_results/pipeline_info.pkl", "rb") as f:
+        pipeline_info = pickle.load(f)
+
+    pipeline = []
+
+    for assessment in pipeline_info["assessments"]:
+        pipeline.append(
+            (
+                STRING2EVALUATOR[assessment](pipeline_info["metrics"]),
+                assessment + " Assessment",
+            )
+        )
+
+    with open("tests/frozen_ml_tests/frozen_models/loan_binary_clf.pkl", "rb") as f:
+        clf = pickle.load(f)
+
+    test_model = ClassificationModel("binary_clf", clf)
+
+    with open(
+        "tests/frozen_ml_tests/frozen_data/loan_binary/loan_validation.pkl", "rb"
+    ) as f:
+        val_data = pickle.load(f)
+
+    val_data_credo = TabularData(
+        name=val_data["name"],
+        X=val_data["val_features"],
+        y=val_data["val_labels"],
+        sensitive_features=val_data["sensitive_features"],
+    )
+
+    with open("tests/frozen_ml_tests/frozen_results/binary_clf_results.pkl", "rb") as f:
+        frozen_results = pickle.load(f)
+
+    lens = Lens(model=test_model, assessment_data=val_data_credo, pipeline=pipeline)
+
+    def test_results(self):
+        self.lens.run()
+        test_results = self.lens.get_results()
+        assert len(test_results) == len(self.frozen_results)
+        for assessment, assessment_results in test_results.items():
+            for idx, result in enumerate(assessment_results):
+                current_result = result.reset_index(drop=True)
+                assert current_result.equals(self.frozen_results[assessment][idx])
 
 
 class TestRankingFairnes:
