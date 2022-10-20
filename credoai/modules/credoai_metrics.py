@@ -1,4 +1,6 @@
+from time import perf_counter
 from typing import Literal, Optional
+
 import numpy as np
 import pandas as pd
 import scipy.stats as st
@@ -347,9 +349,9 @@ def gini_coefficient_discriminatory(y_true, y_prob):
 def population_stability_index(
     expected_array,
     actual_array,
+    percentage=False,
     buckets: int = 10,
     buckettype: Literal["bins", "quantiles"] = "bins",
-    epsilon: float = 0.001,
 ):
     """Calculate the PSI for a single variable.
 
@@ -376,18 +378,20 @@ def population_stability_index(
         Array of expected/initial values
     actual_array: array-like
         Array of new values
+    percentage: bool
+        When True the arrays are interepreted as already binned/aggregated. This is
+        so that the user can perform their own aggregation and pass it directly to
+        the metric. Default = False
     buckets: int
         number of percentile ranges to bucket the values into
     buckettype: Literal["bins", "quantiles"]
         type of strategy for creating buckets, bins splits into even splits,
         quantiles splits into quantile buckets
-    epsilon: float
-        Quantity substituting empty buckets content.
-        Empty buckets cause inf to appear in the calculation.
 
     Returns:
         psi_value: calculated PSI value
     """
+    epsilon: float = 0.001
 
     def scale_range(input, min, max):
         input += -(np.min(input))
@@ -395,21 +399,27 @@ def population_stability_index(
         input += min
         return input
 
-    # Define histogram breakpoints
-    breakpoints = np.arange(0, buckets + 1) / (buckets) * 100
+    if not percentage:
+        # Define histogram breakpoints
+        breakpoints = np.arange(0, buckets + 1) / (buckets) * 100
 
-    if buckettype == "bins":
-        breakpoints = scale_range(
-            breakpoints, np.min(expected_array), np.max(expected_array)
+        if buckettype == "bins":
+            breakpoints = scale_range(
+                breakpoints, np.min(expected_array), np.max(expected_array)
+            )
+        elif buckettype == "quantiles":
+            breakpoints = np.stack(
+                [np.percentile(expected_array, b) for b in breakpoints]
+            )
+
+        # Populate bins and calculate percentages
+        expected_percents = np.histogram(expected_array, breakpoints)[0] / len(
+            expected_array
         )
-    elif buckettype == "quantiles":
-        breakpoints = np.stack([np.percentile(expected_array, b) for b in breakpoints])
-
-    # Populate bins and calculate percentages
-    expected_percents = np.histogram(expected_array, breakpoints)[0] / len(
-        expected_array
-    )
-    actual_percents = np.histogram(actual_array, breakpoints)[0] / len(actual_array)
+        actual_percents = np.histogram(actual_array, breakpoints)[0] / len(actual_array)
+    else:
+        expected_percents = expected_array
+        actual_percents = actual_array
 
     # Substitute 0 with an arbitrary epsilon << 1
     # This is to avoid inf in the following calculations
