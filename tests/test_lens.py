@@ -294,8 +294,10 @@ class TestFrozenBinaryCLF:
         assert len(test_results) == len(self.frozen_results)
         for assessment, assessment_results in test_results.items():
             for idx, result in enumerate(assessment_results):
-                current_result = result.reset_index(drop=True)
-                assert current_result.equals(self.frozen_results[assessment][idx])
+                current_result = result.reset_index(drop=True).round(3)
+                assert current_result.equals(
+                    self.frozen_results[assessment][idx].round(3)
+                )
 
 
 class TestRankingFairnes:
