@@ -1,4 +1,4 @@
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from credoai.artifacts import ClassificationModel
 from credoai.evaluators import Evaluator
@@ -10,7 +10,9 @@ from credoai.modules.credoai_metrics import population_stability_index
 
 class FeatureDrift(Evaluator):
     """
-    Measuring drift
+    Measure Feature Drift using population stability index
+
+    This evaluator
     """
 
     def __init__(self, buckets=10, buckettype="bins", csi_calculation=False):
@@ -26,14 +28,6 @@ class FeatureDrift(Evaluator):
 
     def _validate_arguments(self):
         check_requirements_existence(self)
-
-    @staticmethod
-    def _create_bin_percentage(train, assess):
-        len_training = len(train)
-        len_assessment = len(assess)
-        train_bin_perc = train.value_counts() / len_training
-        assess_bin_perc = assess.value_counts() / len_assessment
-        return train_bin_perc, assess_bin_perc
 
     def _setup(self):
         # Default prediction to predict method
@@ -65,7 +59,15 @@ class FeatureDrift(Evaluator):
             self.results.append(TableContainer(csi, self.get_container_info()))
         return self
 
-    def _calculate_psi_on_prediction(self):
+    def _calculate_psi_on_prediction(self) -> DataFrame:
+        """
+        Calculate the psi index on the model prediction.
+
+        Returns
+        -------
+        DataFrame
+            Formatted for metric container.
+        """
         psi = population_stability_index(
             self.expected_prediction,
             self.actual_prediction,
@@ -76,7 +78,15 @@ class FeatureDrift(Evaluator):
         res = DataFrame({"value": psi, "type": "population_stability_index"}, index=[0])
         return res
 
-    def _calculate_csi(self):
+    def _calculate_csi(self) -> DataFrame:
+        """
+        Calculate psi for all the columns in the dataframes.
+
+        Returns
+        -------
+        DataFrame
+            Formatted for the table container.
+        """
         columns_names = list(self.assessment_data.X.columns)
         psis = {}
         for col_name in columns_names:
@@ -91,3 +101,28 @@ class FeatureDrift(Evaluator):
         psis.columns = ["value"]
         psis.name = "Characteristic Stability Index"
         return psis
+
+    @staticmethod
+    def _create_bin_percentage(train: Series, assess: Series) -> tuple:
+        """
+        In case of categorical values proceed to count the instances
+        of each class and divide by the total amount of samples to get
+        the ratios.
+
+        Parameters
+        ----------
+        train : Series
+            Array of values, dtype == category
+        assess : Series
+            Array of values, dtype == category
+
+        Returns
+        -------
+        tuple
+            Class percentages for both arrays
+        """
+        len_training = len(train)
+        len_assessment = len(assess)
+        train_bin_perc = train.value_counts() / len_training
+        assess_bin_perc = assess.value_counts() / len_assessment
+        return train_bin_perc, assess_bin_perc
