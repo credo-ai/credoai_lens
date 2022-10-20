@@ -1,0 +1,74 @@
+"""Data artifact for pair-wise-comparison-based identity verification"""
+from copy import deepcopy
+import pandas as pd
+from credoai.utils.common import ValidationError
+
+from .base_data import Data
+
+
+class ComparisonData(Data):
+    """Class wrapper for pair-wise-comparison-based identity verification
+
+    ComparisonData serves as an adapter between pair-wise-comparison-based identity verification
+    and the identity verification evaluator in Lens.
+
+    Parameters
+    -------------
+    name : str
+        Label of the dataset
+    pairs : pd.DataFrame of shape (n_pairs, 4)
+        Dataframe where each row represents a data sample pair and associated subjects
+        Required columns:
+            source-subject-id: unique identifier of the source subject
+            source-subject-data-sample: data sample from the source subject
+            source-subject-id: unique identifier of the target subject
+            source-subject-data-sample: data sample from the target subject
+    subjects_sensitive_features : pd.DataFrame of shape (n_subjects, n_sensitive_feature_names), optional
+        Sensitive features of all subjects present in pairs dataframe
+        This will be used for disaggregating performance
+        metrics. This can be the columns you want to perform segmentation analysis on, or
+        a feature related to fairness like 'race' or 'gender'
+        Required columns:
+            subject-id: id of subjects
+            other columns with arbitrary names for sensitive features
+    """
+
+    def __init__(
+        self,
+        name: str,
+        pairs=None,
+        subjects_sensitive_features=None,
+    ):
+        super().__init__("Comparison", name, pairs, subjects_sensitive_features)
+
+    def copy(self):
+        """Returns a deepcopy of the instantiated class"""
+        return deepcopy(self)
+
+    def _validate_pairs(self):
+        if self.X is not None:
+            """Basic validation for pairs"""
+            if not isinstance(self.pairs, (pd.DataFrame)):
+                raise ValidationError("pairs must be a pd.DataFrame")
+            required_columns = [
+                "source-subject-id",
+                "source-subject-data-sample",
+                "source-subject-id",
+                "source-subject-data-sample",
+            ]
+            available_columns = self.pairs.columns
+            for c in required_columns:
+                if c not in available_columns:
+                    raise ValidationError(
+                        "pairs does not contain the required column " + c
+                    )
+
+    def _validate_subjects_sensitive_features(self):
+        """Basic validation for subjects_sensitive_features"""
+        if not isinstance(self.subjects_sensitive_features, (pd.DataFrame)):
+            raise ValidationError("subjects_sensitive_features must be a pd.DataFrame")
+        available_columns = self.subjects_sensitive_features.columns
+        if "subject-id" not in available_columns:
+            raise ValidationError(
+                "subjects_sensitive_features does not contain the required column subject-id"
+            )
