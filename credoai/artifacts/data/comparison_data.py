@@ -21,8 +21,8 @@ class ComparisonData(Data):
         Required columns:
             source-subject-id: unique identifier of the source subject
             source-subject-data-sample: data sample from the source subject
-            source-subject-id: unique identifier of the target subject
-            source-subject-data-sample: data sample from the target subject
+            target-subject-id: unique identifier of the target subject
+            target-subject-data-sample: data sample from the target subject
     subjects_sensitive_features : pd.DataFrame of shape (n_subjects, n_sensitive_feature_names), optional
         Sensitive features of all subjects present in pairs dataframe
         This will be used for disaggregating performance
@@ -46,15 +46,15 @@ class ComparisonData(Data):
         return deepcopy(self)
 
     def _validate_pairs(self):
-        if self.X is not None:
+        if self.pairs is not None:
             """Basic validation for pairs"""
             if not isinstance(self.pairs, (pd.DataFrame)):
                 raise ValidationError("pairs must be a pd.DataFrame")
             required_columns = [
                 "source-subject-id",
                 "source-subject-data-sample",
-                "source-subject-id",
-                "source-subject-data-sample",
+                "target-subject-id",
+                "target-subject-data-sample",
             ]
             available_columns = self.pairs.columns
             for c in required_columns:
@@ -64,11 +64,12 @@ class ComparisonData(Data):
                     )
 
     def _validate_subjects_sensitive_features(self):
-        """Basic validation for subjects_sensitive_features"""
-        if not isinstance(self.subjects_sensitive_features, (pd.DataFrame)):
-            raise ValidationError("subjects_sensitive_features must be a pd.DataFrame")
-        available_columns = self.subjects_sensitive_features.columns
-        if "subject-id" not in available_columns:
-            raise ValidationError(
-                "subjects_sensitive_features does not contain the required column subject-id"
-            )
+        if self.subjects_sensitive_features is not None:
+            """Basic validation for subjects_sensitive_features"""
+            if not isinstance(self.subjects_sensitive_features, (pd.DataFrame)):
+                raise ValidationError("subjects_sensitive_features must be a pd.DataFrame")
+            available_columns = self.subjects_sensitive_features.columns
+            if "subject-id" not in available_columns:
+                raise ValidationError(
+                    "subjects_sensitive_features does not contain the required column subject-id"
+                )
