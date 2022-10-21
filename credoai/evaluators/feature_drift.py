@@ -37,7 +37,7 @@ class FeatureDrift(Evaluator):
         Type of strategy for creating buckets, bins splits into even splits,
         quantiles splits into quantiles buckets, by default "bins"
     csi_calculation : bool, optional
-        _description_, by default False
+        Calculate PSI for all features in the datasets, by default False
     """
 
     def __init__(self, buckets: int = 10, buckettype="bins", csi_calculation=False):
