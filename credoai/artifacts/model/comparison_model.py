@@ -21,6 +21,7 @@ class ComparisonModel(Model):
         super().__init__(
             "Comparison",
             ["compare"],
+            ["compare"],
             name,
             model_like,
         )
