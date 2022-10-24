@@ -75,51 +75,59 @@ class Base_Frozen_Test(ABC):
     ...
 
 
-class TestFrozenBinaryCLF(Base_Frozen_Test):
+# class TestFrozenBinaryCLF(Base_Frozen_Test):
+"""
+TestFrozenBinaryCLF
+
+Tests Lens against frozen results for a binary classifier.
+Model in freeze: sklearn.LogisticRegression
+Assessments in freeze: Performance and ModelFairness
+Metrics in freeze: false_negative_rate, average_precision_score
+
+Data info: Data are derived from a Kaggle dataset on loan worthiness:
+https://www.kaggle.com/datasets/vikasukani/loan-eligible-dataset?select=loan-train.csv
+Data were cleaned by Amin Rasekh (amin@credo.ai) here:
+https://github.com/credo-ai/customer_demos/blob/prod/prod/d3_loan_approval/data_preparation.ipynb
+Neither CSV file is pushed to GitHub;
+Test relies on pickled version in tests/frozen_ml_tests/frozen_data/binary/loan_processed.pkl and the derived
+validation data in tests/frozen_ml_tests/frozen_data/binary/loan_validation.pkl
+"""
+
+
+@pytest.mark.parametrize("evaluator", SUPORTED_EVALUATORS, ids=TEST_EVALUATOR_IDS)
+def test_frozen_binary_clf_results(
+    frozen_classifier, frozen_validation_data, evaluator
+):
     """
-    TestFrozenBinaryCLF
-
-    Tests Lens against frozen results for a binary classifier.
-    Model in freeze: sklearn.LogisticRegression
-    Assessments in freeze: Performance and ModelFairness
-    Metrics in freeze: false_negative_rate, average_precision_score
-
-    Data info: Data are derived from a Kaggle dataset on loan worthiness:
-    https://www.kaggle.com/datasets/vikasukani/loan-eligible-dataset?select=loan-train.csv
-    Data were cleaned by Amin Rasekh (amin@credo.ai) here:
-    https://github.com/credo-ai/customer_demos/blob/prod/prod/d3_loan_approval/data_preparation.ipynb
-    Neither CSV file is pushed to GitHub;
-    Test relies on pickled version in tests/frozen_ml_tests/frozen_data/binary/loan_processed.pkl and the derived
-    validation data in tests/frozen_ml_tests/frozen_data/binary/loan_validation.pkl
+    Test checks each component of the results for equality with frozen results
+    Frozen results is dictionary with "[Evaluator] Assessment" as keys and lists
+    of DataFrames as values.
+    Current freeze (10/20/22) uses Performance and ModelFairness evaluators.
+        Performance list contains 1 DataFrame: performance results
+        ModelFairness list contains 2 DataFrames: parity results, disaggregated performance results
     """
+    lens = Lens(
+        model=frozen_classifier,
+        assessment_data=frozen_validation_data,
+        # training_data=frozen_training_data,
+    )
+    eval = string2evaluator(evaluator)(FROZEN_METRICS)
+    lens.add(eval, evaluator)
+    lens.run()
 
-    @pytest.mark.parametrize("evaluator", SUPORTED_EVALUATORS, ids=TEST_EVALUATOR_IDS)
-    def test_results(self, evaluator):
-        """
-        Test checks each component of the results for equality with frozen results
-        Frozen results is dictionary with "[Evaluator] Assessment" as keys and lists
-        of DataFrames as values.
-        Current freeze (10/20/22) uses Performance and ModelFairness evaluators.
-            Performance list contains 1 DataFrame: performance results
-            ModelFairness list contains 2 DataFrames: parity results, disaggregated performance results
-        """
-        eval = string2evaluator(evaluator)(FROZEN_METRICS)
-        self.pipeline.add(eval, evaluator)
-        self.pipeline.run()
+    with open(
+        "tests/frozen_ml_tests/frozen_results/binary/binary_clf_"
+        + evaluator
+        + "_results.pkl",
+        "rb",
+    ) as f:
+        frozen_results = pickle.load(f)
 
-        with open(
-            "tests/frozen_ml_tests/frozen_results/binary/binary_clf_"
-            + evaluator
-            + "_results.pkl",
-            "rb",
-        ) as f:
-            self.frozen_results = pickle.load(f)
+    test_results = lens.get_results()
 
-        test_results = self.pipeline.get_results()
-
-        for assessment_results in test_results.values():
-            for idx, result in enumerate(assessment_results):
-                current_result = result.reset_index(drop=True)
-                testing.assert_frame_equal(current_result, self.frozen_results[idx])
-        self.pipeline.pipeline = {}
-        self.pipeline.pipeline_results = list()
+    for assessment_results in test_results.values():
+        for idx, result in enumerate(assessment_results):
+            current_result = result.reset_index(drop=True)
+            testing.assert_frame_equal(current_result, frozen_results[idx])
+    # self.pipeline.pipeline = {}
+    # self.pipeline.pipeline_results = list()
