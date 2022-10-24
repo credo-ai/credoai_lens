@@ -17,6 +17,7 @@ from credoai.evaluators import (
     Performance,
     Privacy,
     Security,
+    FeatureDrift,
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
@@ -174,6 +175,18 @@ class TestThresholdPerformance(Base_Evaluator_Test):
 
 class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
     evaluator = Performance(["roc_curve", "precision_recall_curve"])
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
+class TestFeatureDrift(Base_Evaluator_Test):
+    evaluator = FeatureDrift(csi_calculation=True)
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
