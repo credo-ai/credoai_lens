@@ -104,8 +104,7 @@ class ShapExplainer(Evaluator):
     def evaluate(self):
         ## Overall stats
         self._setup_shap()
-        res = self._get_overall_shap_contributions()
-        self.results = [TableContainer(res, **self.get_container_info())]
+        self.results = self._get_overall_shap_contributions()
 
         ## Sample specific results
         if self.samples_ind:
@@ -154,15 +153,53 @@ class ShapExplainer(Evaluator):
         DataFrame
             Summary of the Shapley values across the full dataset.
         """
-        values_df = DataFrame(self.shap_values.values)
-        values_df.columns = self.shap_values.feature_names
-        shap_means = values_df.apply(["mean"]).T
-        shap_abs_means = values_df.apply(lambda x: mean(abs(x)))
+        classes = [None]
+        s_values = self.shap_values.values
+
+        if len(s_values.shape) == 2:
+            values_df = [DataFrame(s_values)]
+        elif len(s_values.shape) == 3:
+            values_df = [DataFrame(s_values[:, :, i]) for i in range(s_values.shape[2])]
+            classes = self.model.model_like.classes_
+
+        res = [self._summarize_shap_values(frame) for frame in values_df]
+        containers = []
+        for class_label, _res in enumerate(res):
+            containers.append(
+                TableContainer(
+                    _res,
+                    **self.get_container_info(
+                        labels={
+                            "class_label": classes[class_label],
+                            "feature_names": _res.index.to_list(),
+                        }
+                    )
+                )
+            )
+        return containers
+
+    def _summarize_shap_values(self, shap_val: DataFrame) -> DataFrame:
+        """
+        Summarise Shape values at a Dataset level.
+
+        Parameters
+        ----------
+        shap_val : DataFrame
+            Table containing shap values, if the model output is multiclass,
+            the table corresponds to the values for a single class.
+
+        Returns
+        -------
+        DataFrame
+            Summarized shap values.
+        """
+        shap_val.columns = self.shap_values.feature_names
+        shap_means = shap_val.apply(["mean"]).T
+        shap_abs_means = shap_val.apply(lambda x: mean(abs(x)))
         shap_abs_means.name = "mean(|x|)"
         final = concat([shap_means, shap_abs_means], axis=1)
         final = final.sort_values("mean(|x|)", ascending=False)
         final.name = "Summary of Shap statistics"
-
         return final
 
     def _get_mult_sample_shapley_values(self) -> DataFrame:
