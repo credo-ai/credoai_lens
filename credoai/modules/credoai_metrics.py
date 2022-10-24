@@ -370,7 +370,13 @@ def population_stability_index(
 
     The number of buckets chosen and the bucketing logic affect the final result.
 
-    Based on the code in github.com/mwburke by Matthew Burke.
+
+    References
+    ----------
+    Based on the code in: github.com/mwburke by Matthew Burke.
+    For implementation walk through: https://mwburke.github.io/data%20science/2018/04/29/population-stability-index.html
+    For a more theoretical reference: https://scholarworks.wmich.edu/cgi/viewcontent.cgi?article=4249&context=dissertations
+
 
     Parameters
     ----------
@@ -379,7 +385,7 @@ def population_stability_index(
     actual_array: array-like
         Array of new values
     percentage: bool
-        When True the arrays are interepreted as already binned/aggregated. This is
+        When True the arrays are interpreted as already binned/aggregated. This is
         so that the user can perform their own aggregation and pass it directly to
         the metric. Default = False
     buckets: int
