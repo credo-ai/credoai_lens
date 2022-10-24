@@ -11,7 +11,7 @@ from credoai.modules.credoai_metrics import population_stability_index
 
 class FeatureDrift(Evaluator):
     """
-    Measure Feature Drift using population stability index
+    Measure Feature Drift using population stability index.
 
     This evaluator measures feature drift in:
 
@@ -21,7 +21,8 @@ class FeatureDrift(Evaluator):
         If it is not available, the prediction is treated like a categorical variable, see the
         processing of categorical variables in the item below.
 
-    2. Dataset features: 1 to 1 comparison across all features for the datasets.
+    2. Dataset features: 1 to 1 comparison across all features for the datasets. This is also
+    referred to as "characteristic stability index" (CSI).
         - Numerical features are directly fed into the population_stability_index metric, and
         binned according to the parameters specified at init time.
         - Categorical features percentage distribution is manually calculated. The % amount of
@@ -37,7 +38,8 @@ class FeatureDrift(Evaluator):
         Type of strategy for creating buckets, bins splits into even splits,
         quantiles splits into quantiles buckets, by default "bins"
     csi_calculation : bool, optional
-        Calculate PSI for all features in the datasets, by default False
+        Calculate characteristic stability index, i.e., PSI for all features in the datasets,
+        by default False
     """
 
     def __init__(self, buckets: int = 10, buckettype="bins", csi_calculation=False):
