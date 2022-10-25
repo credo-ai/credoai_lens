@@ -68,6 +68,7 @@ class TestDataProfiling(Base_Evaluator_Test):
         assert len(self.pipeline.pipeline) == 2
 
     def test_run(self):
+        self.pipeline.run()
         self.pipeline.get_results()
         assert True
 
