@@ -161,6 +161,10 @@ class ShapExplainer(Evaluator):
         elif len(s_values.shape) == 3:
             values_df = [DataFrame(s_values[:, :, i]) for i in range(s_values.shape[2])]
             classes = self.model.model_like.classes_
+        else:
+            raise RuntimeError(
+                f"Shap vales have unsuported format. Detected shape {s_values.shape}"
+            )
 
         res = [self._summarize_shap_values(frame) for frame in values_df]
         containers = []
@@ -173,7 +177,7 @@ class ShapExplainer(Evaluator):
                             "class_label": classes[class_label],
                             "feature_names": _res.index.to_list(),
                         }
-                    )
+                    ),
                 )
             )
         return containers
