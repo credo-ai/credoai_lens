@@ -42,7 +42,7 @@ class FeatureDrift(Evaluator):
         by default False
     """
 
-    def __init__(self, buckets: int = 10, buckettype="bins", csi_calculation=True):
+    def __init__(self, buckets: int = 10, buckettype="bins", csi_calculation=False):
 
         self.bucket_number = buckets
         self.buckettype = buckettype

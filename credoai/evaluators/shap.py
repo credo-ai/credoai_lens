@@ -105,7 +105,11 @@ class ShapExplainer(Evaluator):
     def evaluate(self):
         ## Overall stats
         self._setup_shap()
-        self.results = self._get_overall_shap_contributions()
+        self.results = [
+            TableContainer(
+                self._get_overall_shap_contributions(), **self.get_container_info()
+            )
+        ]
 
         ## Sample specific results
         if self.samples_ind:
@@ -170,20 +174,14 @@ class ShapExplainer(Evaluator):
         """
 
         res = [self._summarize_shap_values(frame) for frame in self.values_df]
-        containers = []
-        for class_label, _res in enumerate(res):
-            containers.append(
-                TableContainer(
-                    _res,
-                    **self.get_container_info(
-                        metadata={
-                            "class_label": self.classes[class_label],
-                            "feature_names": _res.index.to_list(),
-                        }
-                    ),
-                )
-            )
-        return containers
+        all_labels = []
+        for label_pos, _res in enumerate(res):
+            all_labels.append(_res.assign(class_label=self.classes[label_pos]))
+        all_labels: DataFrame = concat(all_labels)
+        all_labels = all_labels.reset_index().rename({"index": "feature_name"}, axis=1)
+        all_labels.name = "Summary of Shap statistics"
+
+        return all_labels
 
     def _summarize_shap_values(self, shap_val: DataFrame) -> DataFrame:
         """
@@ -255,7 +253,7 @@ class ShapExplainer(Evaluator):
                 message = "The maximum amount of individual samples_ind allowed is 5."
                 raise ValidationError(message)
 
-    def _get_single_sample_values(self, sample_shap: Explanation) -> Dict:
+    def _get_single_sample_values(self, sample_shap: Explanation) -> DataFrame:
         """
         Returns shapley values for a specific sample in the dataset
 
