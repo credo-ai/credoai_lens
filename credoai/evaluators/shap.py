@@ -1,13 +1,13 @@
 from typing import Dict, List, Optional, Union
 
-from numpy import abs, mean
-from pandas import DataFrame, concat
-from shap import Explainer, Explanation, kmeans
-
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
 from credoai.evidence import TableContainer
 from credoai.utils.common import ValidationError
+from numpy import abs, mean
+from pandas import DataFrame, concat
+
+from shap import Explainer, Explanation, kmeans
 
 
 class ShapExplainer(Evaluator):
@@ -72,7 +72,6 @@ class ShapExplainer(Evaluator):
         background_kmeans: Union[bool, int] = False,
     ):
         """
-        _summary_
 
         Parameters
         ----------
@@ -90,7 +89,6 @@ class ShapExplainer(Evaluator):
         self.background_samples = background_samples
         self.background_kmeans = background_kmeans
 
-    name = "Shap"
     required_artifacts = ["assessment_data", "model"]
 
     def _setup(self):

@@ -31,7 +31,6 @@ class DataProfiling(Evaluator):
         Passed to pandas_profiling.ProfileReport
     """
 
-    name = "DataProfiler"
     required_artifacts = {"data"}
 
     def __init__(self, dataset_name=None, **profile_kwargs):
