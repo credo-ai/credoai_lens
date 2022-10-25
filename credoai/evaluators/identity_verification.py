@@ -2,17 +2,14 @@ import pandas as pd
 from credoai.artifacts import ComparisonData, ComparisonModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
     check_data_instance,
     check_model_instance,
     check_existence,
 )
 from credoai.evidence.containers import MetricContainer
+from credoai.modules.metric_constants import BINARY_CLASSIFICATION_FUNCTIONS as bcf
 
-METRIC_SUBSET = [
-    "fmr-score",
-    "fnmr-score"
-]
+METRIC_SUBSET = ["false_match_rate-score", "false_non_match_rate-score"]
 
 
 class IdentityVerification(Evaluator):
@@ -42,15 +39,17 @@ class IdentityVerification(Evaluator):
         list of similarity score thresholds
     comparison_levels : list
         list of comparison_levels. Options:
-            sample: it means a match is observed for every sample pair. Sample-level comparison represent 
-                a use case where only two samples (such as a real time selfie and stored ID image) are 
+            sample: it means a match is observed for every sample pair. Sample-level comparison represent
+                a use case where only two samples (such as a real time selfie and stored ID image) are
                 used to confirm an identity.
-            subject: it means if any pairs of samples for the same subject are a match, the subject pair 
-                is marked as a match. Some identity verification use cases improve overall accuracy by storing 
+            subject: it means if any pairs of samples for the same subject are a match, the subject pair
+                is marked as a match. Some identity verification use cases improve overall accuracy by storing
                 multiple samples per identity. Subject-level comparison mirrors this behavior.
     """
 
-    def __init__(self, thresholds: list = [90], comparison_levels: list = ['sample', 'subject']):
+    def __init__(
+        self, thresholds: list = [90, 95], comparison_levels: list = ["sample", "subject"]
+    ):
         self.thresholds = thresholds
         self.comparison_levels = comparison_levels
 
@@ -59,20 +58,36 @@ class IdentityVerification(Evaluator):
 
     def _setup(self):
         self.pairs = self.assessment_data.pairs
-        self.subjects_sensitive_features = self.assessment_data.subjects_sensitive_features
         try:
-            self.subjects_sensitive_features = self.assessment_data.subjects_sensitive_features
+            self.subjects_sensitive_features = (
+                self.assessment_data.subjects_sensitive_features
+            )
         except:
             self.subjects_sensitive_features = None
+
+        self.pairs["similarity_score"] = self.model.compare(
+            [
+                list(pair)
+                for pair in zip(
+                    self.pairs["source-subject-data-sample"].tolist(),
+                    self.pairs["target-subject-data-sample"].tolist(),
+                )
+            ]
+        )
+
+        self.pairs["match"] = self.pairs.apply(
+            lambda x: 1 if x["source-subject-id"] == x["target-subject-id"] else 0,
+            axis=1,
+        )
+
         self.results = list()
 
         return self
 
     def _validate_arguments(self):
-        check_data_instance(self.data, ComparisonData)
+        check_data_instance(self.assessment_data, ComparisonData)
         check_model_instance(self.model, ComparisonModel)
-        check_artifact_for_nulls(self.assessment_data, "Data")
-        check_existence(self.data.pairs, "pairs")
+        check_existence(self.assessment_data.pairs, "pairs")
         return self
 
     def evaluate(self):
@@ -84,52 +99,53 @@ class IdentityVerification(Evaluator):
             Key: assessment category
             Values: detailed results associated with each category
         """
-        # for threshold in self.thresholds:
-        #     for level in self.comparison_levels:
-        #         df_processed = self._preprocess_data(self.pairs, threshold=threshold, comparison_level=level)
-        #         fmr = self._find_fmr(df_processed)
-        #         print(fmr)
-        #         fnmr = self._find_fnmr(df_processed)
-        #         print(fnmr)
 
-        threshold = self.thresholds[0]
-        level = self.comparison_levels[0]
-        df_processed = self._preprocess_data(self.pairs, threshold=threshold, comparison_level=level)
+        display(self.subjects_sensitive_features)
+        res_list = []
+        for threshold in self.thresholds:
+            for level in self.comparison_levels:
+                df_processed = self._preprocess_data(
+                    self.pairs, threshold=threshold, comparison_level=level
+                )
 
-        fmr_results = fmr = self._find_fmr(df_processed)
-        fnmr_results = fmr = self._find_fnmr(df_processed)
+                fmr = bcf["false_positive_rate"](
+                    df_processed["match"], df_processed["match_prediction"]
+                )
+                fmr_results = {
+                    "false_match_rate-score": [{"value": fmr}]
+                }
 
-        res = {**fmr_results, **fnmr_results}
-        res = {k: v for k, v in res.items() if k in METRIC_SUBSET}
+                fnmr = bcf["false_negative_rate"](
+                    df_processed["match"], df_processed["match_prediction"]
+                )
+                fnmr_results = {
+                    "false_non_match_rate-score": [{"value": fnmr}]
+                } 
 
-        # Reformat results
-        res = [pd.DataFrame(v).assign(metric_type=k) for k, v in res.items()]
-        res = pd.concat(res)
-        res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
-        res.drop("metric_type", axis=1, inplace=True)
+                res = {**fmr_results, **fnmr_results}
+                res = {k: v for k, v in res.items() if k in METRIC_SUBSET}
 
-        self.results = [MetricContainer(res, **self.get_container_info())]
+                res = [pd.DataFrame(v).assign(metric_type=k) for k, v in res.items()]
+                res = pd.concat(res)
+                
+                res['threshold'] = threshold
+                res['comparison_level'] = level
+                res_list.append(res)
+
+        res_all = pd.concat(res_list)
+        res_all[["type", "subtype"]] = res_all.metric_type.str.split("-", expand=True)
+        res_all.drop("metric_type", axis=1, inplace=True)
+
+        self._results = [MetricContainer(res_all, **self.get_container_info(labels={"sensitive_feature": 'gender'}))]
 
         return self
 
-    def _preprocess_data(df, threshold=90, comparison_level='sample'):
-        df['match_prediction'] = df.apply(
-            lambda x: 1 if x['similarity_score']>=threshold else 0, axis=1
+    def _preprocess_data(self, df, threshold=90, comparison_level="sample"):
+        df["match_prediction"] = df.apply(
+            lambda x: 1 if x["similarity_score"] >= threshold else 0, axis=1
+        )
+        if comparison_level == "subject":
+            df = df.sort_values("match").drop_duplicates(
+                subset=["source-subject-id", "target-subject-id"], keep="last"
             )
-        if comparison_level == 'subject':
-            df = df.sort_values('match').drop_duplicates(
-                subset=['source-subject-id', 'target-subject-id'], keep='last'
-                )
         return df
-
-    def _find_fmr(df):
-        n = len(df[df['match']==0])
-        fp = len(df[(df['match']==0) & (df['match_prediction']==1)])
-        fmr = {"fmr-score": [{"value": fp/n}]}
-        return fmr
-
-    def _find_fnmr(df):
-        n = len(df[df['match']==1])
-        fn = len(df[(df['match']==1) & (df['match_prediction']==0)])
-        fnmr = {"fnmr-score": [{"value": fn/n}]}
-        return fnmr

@@ -6,7 +6,7 @@ from credoai.utils.common import ValidationError
 from .base_data import Data
 
 
-class ComparisonData():
+class ComparisonData(Data):
     """Class wrapper for pair-wise-comparison-based identity verification
 
     ComparisonData serves as an adapter between pair-wise-comparison-based identity verification
@@ -37,14 +37,13 @@ class ComparisonData():
         self,
         name: str,
         pairs=None,
-        subjects_sensitive_features=None,
+        subjects_sensitive_features=None
     ):
-        # super().__init__("Comparison", name, pairs, subjects_sensitive_features)
-        self.name= name
+        super().__init__("ComparisonData", name)
         self.pairs = pairs
         self.subjects_sensitive_features = subjects_sensitive_features
         self._validate_pairs()
-        self._validate_subjects_sensitive_features
+        self._validate_subjects_sensitive_features()
 
     def copy(self):
         """Returns a deepcopy of the instantiated class"""
@@ -65,7 +64,7 @@ class ComparisonData():
             for c in required_columns:
                 if c not in available_columns:
                     raise ValidationError(
-                        "pairs does not contain the required column " + c
+                        f"pairs does not contain the required column '{c}'"
                     )
 
     def _validate_subjects_sensitive_features(self):
@@ -76,7 +75,7 @@ class ComparisonData():
             available_columns = self.subjects_sensitive_features.columns
             if "subject-id" not in available_columns:
                 raise ValidationError(
-                    "subjects_sensitive_features does not contain the required column subject-id"
+                    "subjects_sensitive_features pandas dataframe does not contain the required column 'subject-id'"
                 )
 
     def _validate_X(self):

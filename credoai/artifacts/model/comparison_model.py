@@ -5,8 +5,9 @@ from .base_model import Model
 class ComparisonModel(Model):
     """Class wrapper around comparison model to be assessed
 
-    ComparisonModel serves as an adapter between arbitrary pair-wise comparison models and 
-    the identity verification evaluations in Lens. Evaluations depend on ComparisonModel instantiating `compare`
+    ComparisonModel serves as an adapter between arbitrary pair-wise comparison 
+    models and the identity verification evaluations in Lens. Evaluations depend
+    on ComparisonModel instantiating `compare`
 
     Parameters
     ----------
@@ -14,12 +15,13 @@ class ComparisonModel(Model):
         Label of the model
     model_like : model_like
         A pair-wise comparison model or pipeline. It must have a
-            `compare` function that returns array containing the similarity scores for each pair.
+            `compare` function that takes a two-dimensional python list of pairs and 
+            returns a list containing the similarity scores for each pair.
     """
 
     def __init__(self, name: str, model_like=None):
         super().__init__(
-            "Comparison",
+            "ComparisonModel",
             ["compare"],
             ["compare"],
             name,
@@ -43,5 +45,5 @@ class DummyComparisonModel:
     def __init__(self, compare_output=None):
         self.compare_output = compare_output
 
-    def compare(self, X=None):
+    def compare(self):
         return self.compare_output
