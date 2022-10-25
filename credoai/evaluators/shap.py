@@ -91,7 +91,7 @@ class ShapExplainer(Evaluator):
         self.background_samples = background_samples
         self.background_kmeans = background_kmeans
 
-    name = "Shap"
+    name = "ShapExplainer"
     required_artifacts = ["assessment_data", "model"]
 
     def _setup(self):
@@ -176,7 +176,7 @@ class ShapExplainer(Evaluator):
                 TableContainer(
                     _res,
                     **self.get_container_info(
-                        labels={
+                        metadata={
                             "class_label": self.classes[class_label],
                             "feature_names": _res.index.to_list(),
                         }

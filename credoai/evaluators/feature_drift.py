@@ -42,7 +42,7 @@ class FeatureDrift(Evaluator):
         by default False
     """
 
-    def __init__(self, buckets: int = 10, buckettype="bins", csi_calculation=False):
+    def __init__(self, buckets: int = 10, buckettype="bins", csi_calculation=True):
 
         self.bucket_number = buckets
         self.buckettype = buckettype
@@ -50,7 +50,7 @@ class FeatureDrift(Evaluator):
         self.percentage = False
         super().__init__()
 
-    name = "Feature Drift"
+    name = "FeatureDrift"
 
     required_artifacts = {"model", "assessment_data", "training_data"}
 
@@ -81,10 +81,10 @@ class FeatureDrift(Evaluator):
 
     def evaluate(self):
         prediction_psi = self._calculate_psi_on_prediction()
-        self.results = [MetricContainer(prediction_psi, self.get_container_info())]
+        self.results = [MetricContainer(prediction_psi, **self.get_container_info())]
         if self.csi_calculation:
             csi = self._calculate_csi()
-            self.results.append(TableContainer(csi, self.get_container_info()))
+            self.results.append(TableContainer(csi, **self.get_container_info()))
         return self
 
     def _calculate_psi_on_prediction(self) -> DataFrame:
