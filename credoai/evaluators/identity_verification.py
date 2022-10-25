@@ -100,7 +100,6 @@ class IdentityVerification(Evaluator):
             Values: detailed results associated with each category
         """
 
-        display(self.subjects_sensitive_features)
         res_list = []
         for threshold in self.thresholds:
             for level in self.comparison_levels:
@@ -136,7 +135,7 @@ class IdentityVerification(Evaluator):
         res_all[["type", "subtype"]] = res_all.metric_type.str.split("-", expand=True)
         res_all.drop("metric_type", axis=1, inplace=True)
 
-        self._results = [MetricContainer(res_all, **self.get_container_info(labels={"sensitive_feature": 'gender'}))]
+        self._results = [MetricContainer(res_all, **self.get_container_info(labels={"sensitive_feature": 'sensitive_feature'}))]
 
         return self
 
