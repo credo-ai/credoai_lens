@@ -1,3 +1,4 @@
+import enum
 from typing import Dict, List, Optional, Union
 
 from numpy import abs, mean
@@ -108,11 +109,8 @@ class ShapExplainer(Evaluator):
 
         ## Sample specific results
         if self.samples_ind:
-            labels = {"ordered_feature_names": self.shap_values.feature_names}
             ind_res = self._get_mult_sample_shapley_values()
-            self.results += [
-                TableContainer(ind_res, **self.get_container_info(labels=labels))
-            ]
+            self.results += [TableContainer(ind_res, **self.get_container_info())]
         return self
 
     def _setup_shap(self):
@@ -135,6 +133,23 @@ class ShapExplainer(Evaluator):
             explainer = Explainer(self.model.predict, data_summary)
         # Generating the actual values calling the specific Shap function
         self.shap_values = explainer(self.X)
+
+        # Define values dataframes and classes variables depending on
+        # the shape of the returned values. This accounts for multi class
+        # classification
+        self.classes = [None]
+        s_values = self.shap_values.values
+        if len(s_values.shape) == 2:
+            self.values_df = [DataFrame(s_values)]
+        elif len(s_values.shape) == 3:
+            self.values_df = [
+                DataFrame(s_values[:, :, i]) for i in range(s_values.shape[2])
+            ]
+            self.classes = self.model.model_like.classes_
+        else:
+            raise RuntimeError(
+                f"Shap vales have unsuported format. Detected shape {s_values.shape}"
+            )
         return self
 
     def _get_overall_shap_contributions(self) -> DataFrame:
@@ -153,20 +168,8 @@ class ShapExplainer(Evaluator):
         DataFrame
             Summary of the Shapley values across the full dataset.
         """
-        classes = [None]
-        s_values = self.shap_values.values
 
-        if len(s_values.shape) == 2:
-            values_df = [DataFrame(s_values)]
-        elif len(s_values.shape) == 3:
-            values_df = [DataFrame(s_values[:, :, i]) for i in range(s_values.shape[2])]
-            classes = self.model.model_like.classes_
-        else:
-            raise RuntimeError(
-                f"Shap vales have unsuported format. Detected shape {s_values.shape}"
-            )
-
-        res = [self._summarize_shap_values(frame) for frame in values_df]
+        res = [self._summarize_shap_values(frame) for frame in self.values_df]
         containers = []
         for class_label, _res in enumerate(res):
             containers.append(
@@ -174,7 +177,7 @@ class ShapExplainer(Evaluator):
                     _res,
                     **self.get_container_info(
                         labels={
-                            "class_label": classes[class_label],
+                            "class_label": self.classes[class_label],
                             "feature_names": _res.index.to_list(),
                         }
                     ),
@@ -221,13 +224,11 @@ class ShapExplainer(Evaluator):
         """
         all_sample_shaps = []
         for ind in self.samples_ind:
-            all_sample_shaps.append(
-                {
-                    **self._get_single_sample_values(self.shap_values[ind]),
-                    **{"sample_pos": ind},
-                }
-            )
-        res = DataFrame(all_sample_shaps)
+            sample_results = self._get_single_sample_values(self.shap_values[ind])
+            sample_results = sample_results.assign(sample_pos=ind)
+            all_sample_shaps.append(sample_results)
+
+        res = concat(all_sample_shaps)
         res.name = "Shap values for specific samples"
         return res
 
@@ -254,8 +255,7 @@ class ShapExplainer(Evaluator):
                 message = "The maximum amount of individual samples_ind allowed is 5."
                 raise ValidationError(message)
 
-    @staticmethod
-    def _get_single_sample_values(sample_shap: Explanation) -> Dict:
+    def _get_single_sample_values(self, sample_shap: Explanation) -> Dict:
         """
         Returns shapley values for a specific sample in the dataset
 
@@ -275,7 +275,14 @@ class ShapExplainer(Evaluator):
             The model prediction for the sample is equal to: ref_value + sum(values)
         """
 
-        return {
-            "values": sample_shap.values,
-            "ref_value": sample_shap.base_values,
-        }
+        class_values = []
+        for label, cls in enumerate(self.classes):
+            class_values.append(
+                DataFrame({"values": sample_shap.values[:, label]}).assign(
+                    class_label=cls,
+                    ref_value=sample_shap.base_values[label],
+                    column_names=self.shap_values.feature_names,
+                )
+            )
+
+        return concat(class_values)
