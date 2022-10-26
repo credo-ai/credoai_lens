@@ -7,13 +7,9 @@ from credoai.evaluators.utils.validation import (
     check_existence,
 )
 from credoai.evidence.containers import MetricContainer, TableContainer
-from credoai.modules.metric_constants import (
-    BINARY_CLASSIFICATION_FUNCTIONS as bcf,
-    MODEL_METRIC_CATEGORIES,
-)
+from credoai.modules.metric_constants import BINARY_CLASSIFICATION_FUNCTIONS as bcf
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
-from credoai.modules.metrics import Metric, find_metrics
-from credoai.utils.common import ValidationError
+from credoai.modules.metrics import Metric
 
 
 METRIC_SUBSET = ["false_match_rate-score", "false_non_match_rate-score"]
