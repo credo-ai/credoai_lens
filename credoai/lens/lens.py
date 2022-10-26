@@ -195,7 +195,11 @@ class Lens:
         return self
 
     def get_datasets(self):
-        return {name: data for name, data in vars(self).items() if "data" in name}
+        return {
+            name: data
+            for name, data in vars(self).items()
+            if "data" in name and data is not None
+        }
 
     def get_evidence(self, evaluator_name=None, metadata=None):
         """
