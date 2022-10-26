@@ -20,7 +20,7 @@ Pipeline = List[Union[Evaluator, Tuple[Evaluator, str, dict]]]
 @dataclass
 class PipelineStep:
     evaluator: Evaluator
-    metadata: dict = None
+    metadata: Optional[dict] = None
 
     def __post_init__(self):
         if self.metadata is None:
@@ -55,7 +55,7 @@ class Lens:
             Training data, extra dataset used by some of the evaluators, by default None
         pipeline : Pipeline_type, optional, default None
             User can add a pipeline using a list of steps. Steps can be in 2 formats:
-            - tuple: max length = . First element is the instantiated evaluator,
+            - tuple: max length = 2. First element is the instantiated evaluator,
              second element (optional) is metadata (dict) associated to the step.
             - Evaluator. If the user does not intend to specify id or metadata, instantiated
             evaluators can be put directly in the list.
@@ -243,7 +243,7 @@ class Lens:
             to_check["evaluator"] = evaluator_name
         return [p for p in self.pipeline if p.check_match(to_check)]
 
-    def get_results(self, evaluator_name=None, metadata=None) -> Dict:
+    def get_results(self, evaluator_name=None, metadata=None) -> List[Dict]:
         """
         Extract results from pipeline steps. Uses get_pipeline to determine to subset
         of pipeline steps to use
