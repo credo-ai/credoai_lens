@@ -126,7 +126,8 @@ class FeatureDrift(Evaluator):
             else:
                 psis[col_name] = population_stability_index(train_data, assess_data)
         psis = DataFrame.from_dict(psis, orient="index")
-        psis.columns = ["value"]
+        psis = psis.reset_index()
+        psis.columns = ["feature_names", "value"]
         psis.name = "Characteristic Stability Index"
         return psis
 

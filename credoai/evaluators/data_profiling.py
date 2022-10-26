@@ -15,7 +15,7 @@ from pandas_profiling import ProfileReport
 matplotlib.use(backend)
 
 
-class DataProfiling(Evaluator):
+class DataProfiler(Evaluator):
     """Data profiling module for Credo AI.
 
     This evaluator runs the pandas profiler on a data. Pandas profiler calculates a number
