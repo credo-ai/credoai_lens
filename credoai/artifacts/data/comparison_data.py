@@ -33,12 +33,7 @@ class ComparisonData(Data):
             other columns with arbitrary names for sensitive features
     """
 
-    def __init__(
-        self,
-        name: str,
-        pairs=None,
-        subjects_sensitive_features=None
-    ):
+    def __init__(self, name: str, pairs=None, subjects_sensitive_features=None):
         super().__init__("ComparisonData", name)
         self.pairs = pairs
         self.subjects_sensitive_features = subjects_sensitive_features
@@ -71,7 +66,9 @@ class ComparisonData(Data):
         if self.subjects_sensitive_features is not None:
             """Basic validation for subjects_sensitive_features"""
             if not isinstance(self.subjects_sensitive_features, (pd.DataFrame)):
-                raise ValidationError("subjects_sensitive_features must be a pd.DataFrame")
+                raise ValidationError(
+                    "subjects_sensitive_features must be a pd.DataFrame"
+                )
             available_columns = self.subjects_sensitive_features.columns
             if "subject-id" not in available_columns:
                 raise ValidationError(
