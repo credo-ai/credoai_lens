@@ -4,10 +4,10 @@ Testing protocols for the Lens package. Tested functionalities:
     2. Individual evaluator runs
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import pytest
-from credoai.artifacts import TabularData
+from credoai.artifacts import TabularData, ClassificationModel
 from credoai.evaluators import (
     DataEquity,
     DataFairness,
@@ -17,11 +17,12 @@ from credoai.evaluators import (
     Performance,
     Privacy,
     Security,
+    evaluator,
     FeatureDrift,
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
-from pandas import DataFrame
+from pandas import DataFrame, testing
 
 TEST_METRICS = [
     ["false_negative_rate"],
@@ -66,15 +67,22 @@ class Base_Evaluator_Test(ABC):
     ...
 
 
-class TestModelFairness(Base_Evaluator_Test):
-    @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
-    def test_full_run(self, metrics):
-        evaluator = ModelFairness(metrics)
-        self.pipeline.add(evaluator)
-        self.pipeline.run()
-        assert len(self.pipeline.pipeline) == 4
-        assert self.pipeline.get_results()
-        self.pipeline.pipeline = {}
+@pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
+def test_model_fairness(
+    classification_model,
+    classification_assessment_data,
+    classification_train_data,
+    metrics,
+):
+    lens = Lens(
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
+    )
+    evaluator = ModelFairness(metrics)
+    lens.add(evaluator, "dummy")
+    lens.run()
+    assert lens.get_results()
 
 
 def test_privacy(
@@ -150,15 +158,19 @@ class TestSecurity(Base_Evaluator_Test):
         assert self.pipeline.get_results()
 
 
-class TestPerformance(Base_Evaluator_Test):
-    @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
-    def test_full_run(self, metrics):
-        evaluator = Performance(metrics)
-        self.pipeline.add(evaluator)
-        self.pipeline.run()
-        assert len(self.pipeline.pipeline) == 1
-        assert self.pipeline.get_results()
-        self.pipeline.pipeline = {}
+@pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
+def test_performance(
+    credit_classification_model, credit_assessment_data, credit_training_data, metrics
+):
+    lens = Lens(
+        model=credit_classification_model,
+        assessment_data=credit_assessment_data,
+        training_data=credit_training_data,
+    )
+    evaluator = Performance(metrics)
+    lens.add(evaluator, "dummy")
+    lens.run()
+    assert lens.get_results()
 
 
 class TestThresholdPerformance(Base_Evaluator_Test):

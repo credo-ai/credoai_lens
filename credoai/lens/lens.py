@@ -264,6 +264,8 @@ class Lens:
             id = f"{evaluator.name}_{str(uuid.uuid4())[0:6]}"
 
         ## Attempt pipe addition
+        # TODO check if id is already in pipeline
+        # Do something when it is so the existing ID doesn't get overwritten
 
         self.pipeline[id] = {
             "evaluator": evaluator(**evaluator_arguments),
