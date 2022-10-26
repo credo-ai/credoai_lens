@@ -18,6 +18,7 @@ from credoai.evaluators import (
     Privacy,
     Security,
     evaluator,
+    FeatureDrift,
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
@@ -27,8 +28,16 @@ TEST_METRICS = [
     ["false_negative_rate"],
     ["average_precision_score"],
     ["false_negative_rate", "average_precision_score"],
+    ["precision_score", "equal_opportunity"],
+    ["false_negative_rate", "average_precision_score", "equal_opportunity"],
 ]
-TEST_METRICS_IDS = ["binary_metric", "probability_metric", "both"]
+TEST_METRICS_IDS = [
+    "binary_metric",
+    "probability_metric",
+    "binary_and_probability",
+    "fairness",
+    "all_types",
+]
 
 
 @pytest.fixture(scope="class")
@@ -178,6 +187,18 @@ class TestThresholdPerformance(Base_Evaluator_Test):
 
 class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
     evaluator = Performance(["roc_curve", "precision_recall_curve"])
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
+class TestFeatureDrift(Base_Evaluator_Test):
+    evaluator = FeatureDrift(csi_calculation=True)
 
     def test_add(self):
         self.pipeline.add(self.evaluator)

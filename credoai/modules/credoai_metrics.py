@@ -1,3 +1,6 @@
+from time import perf_counter
+from typing import Literal, Optional
+
 import numpy as np
 import pandas as pd
 import scipy.stats as st
@@ -24,7 +27,7 @@ def general_wilson(p, n, z=1.96):
         np.ndarray
         Array of length 2 of form: [lower_bound, upper_bound]
     """
-    denominator = 1 + z ** 2 / n
+    denominator = 1 + z**2 / n
     centre_adjusted_probability = p + z * z / (2 * n)
     adjusted_standard_deviation = np.sqrt((p * (1 - p) + z * z / (4 * n))) / np.sqrt(n)
     lower_bound = (
@@ -310,3 +313,127 @@ def credo_det_curve(y_true, y_prob):
             "thresholds": thresholds,
         }
     )
+
+
+def gini_coefficient_discriminatory(y_true, y_prob):
+    """Returns the Gini Coefficient of a discriminatory model
+
+    NOTE: There are two popular, yet distinct metrics known as the 'gini coefficient'.
+
+    The value calculated by this function provides a summary statistic for the Cumulative Accuracy Profile (CAP) curve.
+    This notion of Gini coefficient (or Gini index) is a _discriminatory_ metric. It helps characterize the ordinal
+    relationship between predictions made by a model and the ground truth values for each sample.
+
+    This metric has a linear relationship with the area under the receiver operating characteristic curve:
+        :math:`G = 2*AUC - 1`
+
+    See https://towardsdatascience.com/using-the-gini-coefficient-to-evaluate-the-performance-of-credit-score-models-59fe13ef420
+    for more details.
+
+    Parameters
+    ----------
+    y_true : array-like
+        Ground truth (correct) labels.
+    y_prob : array-like
+        Predicted probabilities returned by a call to the model's `predict_proba()` function.
+
+    Returns
+    -------
+    float
+        Discriminatory Gini Coefficient
+    """
+    G = (2 * sk_metrics.roc_auc_score(y_true, y_prob)) - 1
+    return G
+
+
+def population_stability_index(
+    expected_array,
+    actual_array,
+    percentage=False,
+    buckets: int = 10,
+    buckettype: Literal["bins", "quantiles"] = "bins",
+):
+    """Calculate the PSI for a single variable.
+
+    PSI is a measure of how much a distribution has changed over time or between
+    two different samples of a population.
+    It does this by bucketing the two distributions and comparing the percents of
+    items in each of the buckets. The final result is a single number:
+
+        :math:`PSI = \sum \left ( Actual_{%} - Expected_{%} \right ) \cdot ln\left ( \frac{Actual_{%}}{Expected_{%}} \right )`
+
+    The common interpretations of the PSI result are:
+
+    PSI < 0.1: no significant population change
+    PSI < 0.25: moderate population change
+    PSI >= 0.25: significant population change
+
+    The number of buckets chosen and the bucketing logic affect the final result.
+
+
+    References
+    ----------
+    Based on the code in: github.com/mwburke by Matthew Burke.
+    For implementation walk through: https://mwburke.github.io/data%20science/2018/04/29/population-stability-index.html
+    For a more theoretical reference: https://scholarworks.wmich.edu/cgi/viewcontent.cgi?article=4249&context=dissertations
+
+
+    Parameters
+    ----------
+    expected_array: array-like
+        Array of expected/initial values
+    actual_array: array-like
+        Array of new values
+    percentage: bool
+        When True the arrays are interpreted as already binned/aggregated. This is
+        so that the user can perform their own aggregation and pass it directly to
+        the metric. Default = False
+    buckets: int
+        number of percentile ranges to bucket the values into
+    buckettype: Literal["bins", "quantiles"]
+        type of strategy for creating buckets, bins splits into even splits,
+        quantiles splits into quantile buckets
+
+    Returns:
+        psi_value: calculated PSI value
+    """
+    epsilon: float = 0.001
+
+    def scale_range(input, min, max):
+        input += -(np.min(input))
+        input /= np.max(input) / (max - min)
+        input += min
+        return input
+
+    if not percentage:
+        # Define histogram breakpoints
+        breakpoints = np.arange(0, buckets + 1) / (buckets) * 100
+
+        if buckettype == "bins":
+            breakpoints = scale_range(
+                breakpoints, np.min(expected_array), np.max(expected_array)
+            )
+        elif buckettype == "quantiles":
+            breakpoints = np.stack(
+                [np.percentile(expected_array, b) for b in breakpoints]
+            )
+
+        # Populate bins and calculate percentages
+        expected_percents = np.histogram(expected_array, breakpoints)[0] / len(
+            expected_array
+        )
+        actual_percents = np.histogram(actual_array, breakpoints)[0] / len(actual_array)
+    else:
+        expected_percents = expected_array
+        actual_percents = actual_array
+
+    # Substitute 0 with an arbitrary epsilon << 1
+    # This is to avoid inf in the following calculations
+    expected_percents[expected_percents == 0] = epsilon
+    actual_percents[actual_percents == 0] = epsilon
+
+    psi_values = (expected_percents - actual_percents) * np.log(
+        expected_percents / actual_percents
+    )
+
+    return np.sum(psi_values)
