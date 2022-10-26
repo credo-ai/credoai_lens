@@ -23,7 +23,7 @@ class PipelineCreator:
 
 def process_evidence_requirements(evidence_requirements: List[EvidenceRequirement]):
     evaluators = set()
-    kwargs = defaultdict(dict)
+    kwargs: dict = defaultdict(dict)
     for e in evidence_requirements:
         labels = e.label
         evaluator = labels.get("evaluator")
@@ -38,6 +38,9 @@ def process_evidence_requirements(evidence_requirements: List[EvidenceRequiremen
                 metrics.add(labels["metric_type"])
             elif "metric_types" in labels:
                 metrics = metrics.union(labels["metric_types"])
+            elif "table_name" in labels:
+                # Accounts for metrics that return tables
+                metrics.add(labels["table_name"])
             kwargs[evaluator]["metrics"] = metrics
 
     pipeline = []

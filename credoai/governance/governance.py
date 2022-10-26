@@ -3,7 +3,7 @@ Credo Governance
 """
 
 import json
-from typing import List, Union
+from typing import List, Optional, Union
 
 from credoai import __version__
 from credoai.evidence import Evidence, EvidenceRequirement
@@ -67,11 +67,11 @@ class Governance:
             If provided, overrides the API configuration defined by
             the config path, by default None
         """
-        self._use_case_id: str = None
-        self._policy_pack_id: str = None
+        self._use_case_id: Optional[str] = None
+        self._policy_pack_id: Optional[str] = None
         self._evidence_requirements: List[EvidenceRequirement] = []
         self._evidences: List[Evidence] = []
-        self._plan: dict = None
+        self._plan: Optional[dict] = None
 
         if credo_api_client:
             client = credo_api_client
