@@ -1,3 +1,4 @@
+import enum
 from typing import Dict, List, Optional, Union
 
 from numpy import abs, mean
@@ -90,7 +91,7 @@ class ShapExplainer(Evaluator):
         self.background_samples = background_samples
         self.background_kmeans = background_kmeans
 
-    name = "Shap"
+    name = "ShapExplainer"
     required_artifacts = ["assessment_data", "model"]
 
     def _setup(self):
@@ -104,16 +105,16 @@ class ShapExplainer(Evaluator):
     def evaluate(self):
         ## Overall stats
         self._setup_shap()
-        res = self._get_overall_shap_contributions()
-        self.results = [TableContainer(res, **self.get_container_info())]
+        self.results = [
+            TableContainer(
+                self._get_overall_shap_contributions(), **self.get_container_info()
+            )
+        ]
 
         ## Sample specific results
         if self.samples_ind:
-            labels = {"ordered_feature_names": self.shap_values.feature_names}
             ind_res = self._get_mult_sample_shapley_values()
-            self.results += [
-                TableContainer(ind_res, **self.get_container_info(labels=labels))
-            ]
+            self.results += [TableContainer(ind_res, **self.get_container_info())]
         return self
 
     def _setup_shap(self):
@@ -136,6 +137,23 @@ class ShapExplainer(Evaluator):
             explainer = Explainer(self.model.predict, data_summary)
         # Generating the actual values calling the specific Shap function
         self.shap_values = explainer(self.X)
+
+        # Define values dataframes and classes variables depending on
+        # the shape of the returned values. This accounts for multi class
+        # classification
+        self.classes = [None]
+        s_values = self.shap_values.values
+        if len(s_values.shape) == 2:
+            self.values_df = [DataFrame(s_values)]
+        elif len(s_values.shape) == 3:
+            self.values_df = [
+                DataFrame(s_values[:, :, i]) for i in range(s_values.shape[2])
+            ]
+            self.classes = self.model.model_like.classes_
+        else:
+            raise RuntimeError(
+                f"Shap vales have unsuported format. Detected shape {s_values.shape}"
+            )
         return self
 
     def _get_overall_shap_contributions(self) -> DataFrame:
@@ -154,15 +172,39 @@ class ShapExplainer(Evaluator):
         DataFrame
             Summary of the Shapley values across the full dataset.
         """
-        values_df = DataFrame(self.shap_values.values)
-        values_df.columns = self.shap_values.feature_names
-        shap_means = values_df.apply(["mean"]).T
-        shap_abs_means = values_df.apply(lambda x: mean(abs(x)))
+
+        res = [self._summarize_shap_values(frame) for frame in self.values_df]
+        all_labels = []
+        for label_pos, _res in enumerate(res):
+            all_labels.append(_res.assign(class_label=self.classes[label_pos]))
+        all_labels: DataFrame = concat(all_labels)
+        all_labels = all_labels.reset_index().rename({"index": "feature_name"}, axis=1)
+        all_labels.name = "Summary of Shap statistics"
+
+        return all_labels
+
+    def _summarize_shap_values(self, shap_val: DataFrame) -> DataFrame:
+        """
+        Summarise Shape values at a Dataset level.
+
+        Parameters
+        ----------
+        shap_val : DataFrame
+            Table containing shap values, if the model output is multiclass,
+            the table corresponds to the values for a single class.
+
+        Returns
+        -------
+        DataFrame
+            Summarized shap values.
+        """
+        shap_val.columns = self.shap_values.feature_names
+        shap_means = shap_val.apply(["mean"]).T
+        shap_abs_means = shap_val.apply(lambda x: mean(abs(x)))
         shap_abs_means.name = "mean(|x|)"
         final = concat([shap_means, shap_abs_means], axis=1)
         final = final.sort_values("mean(|x|)", ascending=False)
         final.name = "Summary of Shap statistics"
-
         return final
 
     def _get_mult_sample_shapley_values(self) -> DataFrame:
@@ -180,13 +222,11 @@ class ShapExplainer(Evaluator):
         """
         all_sample_shaps = []
         for ind in self.samples_ind:
-            all_sample_shaps.append(
-                {
-                    **self._get_single_sample_values(self.shap_values[ind]),
-                    **{"sample_pos": ind},
-                }
-            )
-        res = DataFrame(all_sample_shaps)
+            sample_results = self._get_single_sample_values(self.shap_values[ind])
+            sample_results = sample_results.assign(sample_pos=ind)
+            all_sample_shaps.append(sample_results)
+
+        res = concat(all_sample_shaps)
         res.name = "Shap values for specific samples"
         return res
 
@@ -213,8 +253,7 @@ class ShapExplainer(Evaluator):
                 message = "The maximum amount of individual samples_ind allowed is 5."
                 raise ValidationError(message)
 
-    @staticmethod
-    def _get_single_sample_values(sample_shap: Explanation) -> Dict:
+    def _get_single_sample_values(self, sample_shap: Explanation) -> DataFrame:
         """
         Returns shapley values for a specific sample in the dataset
 
@@ -234,7 +273,20 @@ class ShapExplainer(Evaluator):
             The model prediction for the sample is equal to: ref_value + sum(values)
         """
 
-        return {
-            "values": sample_shap.values,
-            "ref_value": sample_shap.base_values,
-        }
+        class_values = []
+
+        if len(self.classes) == 1:
+            return DataFrame({"values": sample_shap.values}).assign(
+                ref_value=sample_shap.base_values,
+                column_names=self.shap_values.feature_names,
+            )
+
+        for label, cls in enumerate(self.classes):
+            class_values.append(
+                DataFrame({"values": sample_shap.values[:, label]}).assign(
+                    class_label=cls,
+                    ref_value=sample_shap.base_values[label],
+                    column_names=self.shap_values.feature_names,
+                )
+            )
+        return concat(class_values)
