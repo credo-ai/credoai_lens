@@ -231,11 +231,11 @@ class Governance:
             self._file_export(evidences, filename)
 
         if to_return:
-            export_status = "Export succeeded with no issues"
+            export_status = "All requirements were matched."
         else:
-            export_status = "Export had issues. See logging for additional details."
+            export_status = "Partial match of requirements."
+
         global_logger.info(export_status)
-        return to_return
 
     def _api_export(self, evidences):
         global_logger.info(

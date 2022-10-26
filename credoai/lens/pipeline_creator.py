@@ -1,3 +1,4 @@
+from cProfile import label
 import inspect
 from collections import defaultdict
 from typing import List
@@ -42,6 +43,9 @@ def process_evidence_requirements(evidence_requirements: List[EvidenceRequiremen
                 # Accounts for metrics that return tables
                 metrics.add(labels["table_name"])
             kwargs[evaluator]["metrics"] = metrics
+        if evaluator == "FeatureDrift":
+            if "table_name" in labels:
+                kwargs[evaluator]["csi_calculation"] = True
 
     pipeline = []
     for evaltr in evaluators:
