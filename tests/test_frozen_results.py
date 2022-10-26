@@ -7,7 +7,7 @@ from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import (
     DataEquity,
     DataFairness,
-    DataProfiling,
+    DataProfiler,
     ModelEquity,
     ModelFairness,
     Performance,

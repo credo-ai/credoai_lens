@@ -11,7 +11,7 @@ from credoai.artifacts import TabularData
 from credoai.evaluators import (
     DataEquity,
     DataFairness,
-    DataProfiling,
+    DataProfiler,
     FeatureDrift,
     ModelEquity,
     ModelFairness,
@@ -110,8 +110,8 @@ class TestDataFairness(Base_Evaluator_Test):
         assert True
 
 
-class TestDataProfiling(Base_Evaluator_Test):
-    evaluator = DataProfiling()
+class TestDataProfiler(Base_Evaluator_Test):
+    evaluator = DataProfiler()
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
@@ -254,7 +254,7 @@ def test_bulk_pipeline_run(
     """
     pipe_structure = [
         Security(),
-        DataProfiling(),
+        DataProfiler(),
         DataFairness(),
     ]
     my_pipeline = Lens(
