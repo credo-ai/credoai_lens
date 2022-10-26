@@ -78,10 +78,10 @@ class FeatureDrift(Evaluator):
 
     def evaluate(self):
         prediction_psi = self._calculate_psi_on_prediction()
-        self.results = [MetricContainer(prediction_psi, self.get_container_info())]
+        self.results = [MetricContainer(prediction_psi, **self.get_container_info())]
         if self.csi_calculation:
             csi = self._calculate_csi()
-            self.results.append(TableContainer(csi, self.get_container_info()))
+            self.results.append(TableContainer(csi, **self.get_container_info()))
         return self
 
     def _calculate_psi_on_prediction(self) -> DataFrame:
