@@ -10,7 +10,7 @@ import pytest
 from credoai.artifacts import TabularData
 from credoai.evaluators import (
     DataEquity,
-    DataProfiling,
+    DataProfiler,
     ModelEquity,
     ModelFairness,
     Performance,
@@ -60,8 +60,8 @@ class TestModelFairness(Base_Evaluator_Test):
         self.pipeline.pipeline = {}
 
 
-class TestDataProfiling(Base_Evaluator_Test):
-    evaluator = DataProfiling()
+class TestDataProfiler(Base_Evaluator_Test):
+    evaluator = DataProfiler()
 
     def test_add(self):
         self.pipeline.add(self.evaluator)

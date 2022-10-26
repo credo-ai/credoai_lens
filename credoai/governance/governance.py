@@ -236,6 +236,7 @@ class Governance:
             export_status = "Partial match of requirements."
 
         global_logger.info(export_status)
+        return to_return
 
     def _api_export(self, evidences):
         global_logger.info(
