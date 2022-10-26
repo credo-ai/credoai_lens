@@ -45,7 +45,8 @@ def process_evidence_requirements(evidence_requirements: List[EvidenceRequiremen
             kwargs[evaluator]["metrics"] = metrics
         if evaluator == "FeatureDrift":
             if "table_name" in labels:
-                kwargs[evaluator]["csi_calculation"] = True
+                if labels["table_name"] == "Characteristic Stability Index":
+                    kwargs[evaluator]["csi_calculation"] = True
 
     pipeline = []
     for evaltr in evaluators:
