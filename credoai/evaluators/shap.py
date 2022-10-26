@@ -274,6 +274,13 @@ class ShapExplainer(Evaluator):
         """
 
         class_values = []
+
+        if len(self.classes) == 1:
+            return DataFrame({"values": sample_shap.values}).assign(
+                ref_value=sample_shap.base_values,
+                column_names=self.shap_values.feature_names,
+            )
+
         for label, cls in enumerate(self.classes):
             class_values.append(
                 DataFrame({"values": sample_shap.values[:, label]}).assign(
@@ -282,5 +289,4 @@ class ShapExplainer(Evaluator):
                     column_names=self.shap_values.feature_names,
                 )
             )
-
         return concat(class_values)
