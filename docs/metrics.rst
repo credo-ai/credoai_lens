@@ -1,23 +1,6 @@
 Metrics
 =======
 
-Lens supports many metrics out-of-the-box. These metrics can be accessed simply, 
-by providing their name as a string to the Lens's assessment spec. 
-Below are some of the metrics we support. For a comprehensive list, 
-the following can be run in your python environment:
-
-::
-
-   from credoai.metrics import list_metrics
-   list_metrics()
-
-
-Other metrics are easily incorporated by using the `Metric` class, which can accommodate 
-any assessment function.
-
-Metric list
------------
-
 ``accuracy_score``
 
 Accuracy is the fraction of predictions that a classification model got right. This metric is not robust to class imbalance.
@@ -28,13 +11,31 @@ The best value is 1 and the worst value is 0.
 
    \text{Accuracy} = \frac{Correct \ Predictions}{Total \ Number \ of \ Examples}
 
+Dimension: ``performance``
+
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html>`__)
+
+------------
+
+``AttributeInference``
+
+Attribute inference attack occurs when an attacker attempts to learn the attacked feature from the rest of the features.
+
+Attribute inference attack score is the accuracy score of this binary classification task on a balanced dataset.
+
+The best value is 0 and the worst value is 1.
+
+Dimension: ``privacy``
+
+(`source <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/evaluators/privacy.py>`__)
 
 ------------
 
 ``average_precision_score``
 
 Average precision summarizes a precision-recall curve as the weighted mean of precisions achieved at each threshold, with the increase in recall from the previous threshold used as the weight.
+
+Dimension: ``performance``
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html>`__)
 
@@ -46,6 +47,8 @@ The balanced accuracy in classification problems is used to deal with imbalanced
 
 The best value is 1 and the worst value is 0.
 
+Dimension: ``performance``
+
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.balanced_accuracy_score.html>`__)
 
 ------------
@@ -53,6 +56,8 @@ The best value is 1 and the worst value is 0.
 ``d2_tweedie_score``
 
 :math:`D^2`  regression score is percentage of `Tweedie deviance <https://en.wikipedia.org/wiki/Tweedie_distribution#The_Tweedie_deviance>`__ explained.
+
+Dimension: ``performance``
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.d2_tweedie_score.html>`__)
 
@@ -63,6 +68,8 @@ The best value is 1 and the worst value is 0.
 Demographic parity difference is a parity metric that is satisfied if the results of a model's classification are not dependent on a given sensitive attribute.
 
 Demographic parity difference should be ideally 0.
+
+Dimension: ``fairness``
 
 Equivalents: ``statistical_parity``, ``demographic_parity``
 
@@ -76,15 +83,47 @@ Demographic parity ratio is a parity metric that is satisfied if the results of 
 
 Demographic parity ratio should be ideally 1.
 
+Dimension: ``fairness``
+
 Equivalents: ``disparate_impact``
 
 (`source <https://fairlearn.org/v0.4.6/api_reference/fairlearn.metrics.html#fairlearn.metrics.demographic_parity_ratio>`__)
 
 ------------
 
+``extraction-attack_score``
+
+Model extraction attack occurs when an attacker with black-box access to a model attempts to train a substitute model of it.
+
+Model extraction attack score is the accuracy of the thieved model divided by the accuracy of the victim model, corrected for chance.
+
+The best value is 0 and the worst value is 1.
+
+Dimension: ``security``
+
+(`source <https://github.com/credo-ai/credoai_lens/blob/main/credoai/evaluators/security.py>`__)
+
+------------
+
+``evasion-attack_score``
+
+Model evasion attack occurs when an attacker with black-box access to a model attempts to create minimally-perturbed samples that get misclassified by the model.
+
+Model evasion attack score the success rate of this attack.
+
+The best value is 0 and the worst value is 1.
+
+Dimension: ``security``
+
+(`source <https://github.com/credo-ai/credoai_lens/blob/main/credoai/evaluators/security.py>`__)
+
+------------
+
 ``equalized_odds_difference``
 
 The equalized odds difference of 0 means that all groups have the same true positive, true negative, false positive, and false negative rates.
+
+Dimension: ``fairness``
 
 Equivalents: ``equalized_odds``
 
@@ -95,6 +134,8 @@ Equivalents: ``equalized_odds``
 ``equal_opportunity_difference``
 
 The equalized odds difference is equivalent to the `true_positive_rate_difference` defined as the difference between the largest and smallest of :math:`P[h(X)=1 | A=a, Y=1]`, across all values :math:`a` of the sensitive feature(s).
+
+Dimension: ``fairness``
 
 Equivalents: ``equal_opportunity``
 
@@ -108,6 +149,8 @@ Explained variance regression score function.
 
 Best possible score is 1.0, lower values are worse.
 
+Dimension: ``performance``
+
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.explained_variance_score.html>`__)
 
 ------------
@@ -119,6 +162,8 @@ Also known as balanced F-score or F-measure, the F1 score can be interpreted as 
 .. math::
 
    \text{False Positive Rate} = \frac{2 \times Precision \times Recall}{Precision + Recall}
+
+Dimension: ``performance``
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html>`__)
 
@@ -134,6 +179,8 @@ The best value is 0 and the worst value is 1.
 
    \text{False Discovery Rate} = \frac{False \ Positives}{False \ Positives + True \ Positives}
 
+Dimension: ``performance``
+
 Equivalents: ``fdr``
 
 (`source <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__)
@@ -147,6 +194,8 @@ False negative rate  is defined as follows:
 .. math::
 
    \text{False Negative Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Positives}
+
+Dimension: ``performance``
 
 Equivalents: ``fnr``, ``miss_rate``
 
@@ -164,6 +213,8 @@ The best value is 0 and the worst value is 1.
 
    \text{False Omission Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Negatives}
 
+Dimension: ``performance``
+
 (`source <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__)
 
 ------------
@@ -176,6 +227,8 @@ False positive rate is defined as follows:
 
    \text{False Positive Rate} = \frac{False \ Positives}{False \ Positives + True \ Negatives}
 
+Dimension: ``performance``
+
 Equivalents: ``fpr``, ``fallout_rate``
 
 (`source <https://fairlearn.org/v0.4.6/api_reference/fairlearn.metrics.html#fairlearn.metrics.false_positive_rate>`__)
@@ -185,6 +238,8 @@ Equivalents: ``fpr``, ``fallout_rate``
 ``matthews_correlation_coefficient``
 
 The Matthews correlation coefficient is a measure of the quality of a classification model. It takes into account true and false positives and negatives and is generally regarded as a balanced measure which can be used even if the classes are of very different sizes.
+
+Dimension: ``performance``
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.matthews_corrcoef.html>`__)
 
@@ -196,6 +251,8 @@ Max error the maximum residual error, a metric that captures the worst case erro
 
 In a perfectly fitted single output regression model, ``max_error`` would be 0 on the training set and though this would be highly unlikely in the real world, this metric shows the extent of error that the model had when it was fitted.
 
+Dimension: ``performance``
+
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.max_error.html>`__)
 
 ------------
@@ -203,6 +260,8 @@ In a perfectly fitted single output regression model, ``max_error`` would be 0 o
 ``mean_absolute_error``
 
 Mean absolute error is the expected value of the absolute error loss or l1-norm loss.
+
+Dimension: ``performance``
 
 Equivalents: ``MAE``
 
@@ -216,6 +275,8 @@ Mean absolute percentage error is an evaluation metric for regression problems.
 
 The idea of this metric is to be sensitive to relative errors. It is for example not changed by a global scaling of the target variable.
 
+Dimension: ``performance``
+
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_percentage_error.html>`__)
 
 ------------
@@ -223,6 +284,8 @@ The idea of this metric is to be sensitive to relative errors. It is for example
 ``mean_gamma_deviance``
 
 Mean Gamma deviance is the mean `Tweedie deviance <https://en.wikipedia.org/wiki/Tweedie_distribution#The_Tweedie_deviance>`__ error with a power parameter 2. This is a metric that elicits predicted expectation values of regression targets.
+
+Dimension: ``performance``
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_gamma_deviance.html>`__)
 
@@ -232,6 +295,8 @@ Mean Gamma deviance is the mean `Tweedie deviance <https://en.wikipedia.org/wiki
 
 Mean pinball loss is used to evaluate the predictive performance of quantile regression models. The pinball loss is equivalent to mean_absolute_error when the quantile parameter alpha is set to 0.5.
 
+Dimension: ``performance``
+
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_pinball_loss.html>`__)
 
 ------------
@@ -239,6 +304,8 @@ Mean pinball loss is used to evaluate the predictive performance of quantile reg
 ``mean_poisson_deviance``
 
 Mean Poisson deviance is the mean `Tweedie deviance <https://en.wikipedia.org/wiki/Tweedie_distribution#The_Tweedie_deviance>`__ error with a power parameter 1. This is a metric that elicits predicted expectation values of regression targets.
+
+Dimension: ``performance``
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_poisson_deviance.html>`__)
 
@@ -250,6 +317,8 @@ Mean square error is the expected value of the squared (quadratic) error or loss
 
 Equivalents: ``MSE``, ``MSD``, ``mean_squared_deviation``
 
+Dimension: ``performance``
+
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html>`__)
 
 ------------
@@ -257,6 +326,8 @@ Equivalents: ``MSE``, ``MSD``, ``mean_squared_deviation``
 ``mean_squared_log_error``
 
 Mean squared log error is the expected value of the squared logarithmic (quadratic) error or loss.
+
+Dimension: ``performance``
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_log_error.html>`__)
 
@@ -266,13 +337,31 @@ Mean squared log error is the expected value of the squared logarithmic (quadrat
 
 Median absolute error the median of all absolute differences between the target and the prediction. It is robust to outliers.
 
+Dimension: ``performance``
+
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.median_absolute_error.html>`__)
+
+------------
+
+``MembershipInference``
+
+Membership inference attack occurs when an attacker with black-box access to a model attempts to infer if a data sample was in the model's training dataset or not.
+
+Membership inference attack score is the accuracy score of this binary classification task on a balanced dataset.
+
+The best value is 0 and the worst value is 1.
+
+Dimension: ``privacy``
+
+(`source <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/evaluators/privacy.py>`__)
 
 ------------
 
 ``overprediction``
 
 This is the mean of the error where any negative errors (i.e., underpredictions) are set to zero.
+
+Dimension: ``performance``
 
 (`source <https://github.com/fairlearn/fairlearn/blob/main/fairlearn/metrics/_mean_predictions.py>`__)
 
@@ -286,6 +375,8 @@ Precision is intuitively the ability of the classifier not to label as positive 
 
    \text{Precision} = \frac{True \ Positives}{True \ Positives + False \ Positives}
 
+Dimension: ``performance``
+
 Equivalents: ``precision``
 
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_score.html>`__)
@@ -297,6 +388,8 @@ Equivalents: ``precision``
 :math:`R^2` (coefficient of determination) regression score function.
 
 Best possible score is 1.0 and it can be negative (because the model can be arbitrarily worse). A constant model that always predicts the expected value of y, disregarding the input features, would get a :math:`R^2` score of 0.0.
+
+Dimension: ``performance``
 
 Equivalents: ``r_squared``, ``r2``
 
@@ -310,6 +403,8 @@ ROC-AUC score is the area Under the Receiver Operating Characteristic Curve from
 
 ROC-AUC varies between 0 and 1 (ideal) — with an uninformative classifier yielding 0.5.
 
+Dimension: ``performance``
+
 (`source <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html>`__)
 
 ------------
@@ -317,6 +412,8 @@ ROC-AUC varies between 0 and 1 (ideal) — with an uninformative classifier yiel
 ``root_mean_squared_error``
 
 Root mean square error is the root of ``mean_squared_error`` metric.
+
+Dimension: ``performance``
 
 Equivalents: ``RMSE``
 
@@ -327,6 +424,8 @@ Equivalents: ``RMSE``
 ``selection_rate``
 
 Selection rate is the fraction of predicted labels matching the "good" outcome.
+
+Dimension: ``performance``
 
 (`source <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.selection_rate>`__)
 
@@ -339,6 +438,8 @@ Sensitive feature prediction score quantifies how much a model redundantly encod
 To evaluate this, a model is trained that tries to predict the sensitive feature from the dataset.
 
 The score ranges from 0.5 - 1.0. If the score is 0.5, the model is random, and no information about the sensitive feature is likely contained in the dataset. A value of 1 means the sensitive feature is able to be perfectly reconstructed.
+
+Dimension: ``performance``
 
 (`source <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/modules/dataset_modules/dataset_fairness.py>`__)
 
@@ -354,6 +455,8 @@ If the KS statistic is small or the p-value is high, then we cannot reject the n
 
 For practical purposes, if the statistic value is higher than `the critical value <https://sparky.rice.edu//astr360/kstest.pdf>`__, the two distributions are different.
 
+Dimension: ``performance``
+
 (`source <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__)
 
 ------------
@@ -366,6 +469,8 @@ True negative rate (also called specificity or selectivity) refers to the probab
 
    \text{True Negative Rate} = \frac{True \ Negatives}{True \ Negatives + False \ Positives }
 
+Dimension: ``performance``
+
 Equivalents: ``tnr``, ``specificity``
 
 (`source <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.true_negative_rate>`__)
@@ -375,6 +480,8 @@ Equivalents: ``tnr``, ``specificity``
 ``true_positive_rate``
 
 True Positive Rate (also called sensitivity, recall, or hit rate) refers to the probability of a positive test, conditioned on truly being positive.
+
+Dimension: ``performance``
 
 Equivalents: ``tpr``, ``recall_score``, ``recall``, ``sensitivity``, ``hit_rate``
 
@@ -388,4 +495,10 @@ This is the mean of the error where any positive errors (i.e. overpredictions) a
 
 The absolute value of the underpredictions is used, so the returned value is always positive.
 
+Dimension: ``performance``
+
 (`source <https://github.com/fairlearn/fairlearn/blob/main/fairlearn/metrics/_mean_predictions.py>`__)
+
+------------
+
+**Note**: all the metrics tagged with ``performance`` dimension would have ``fairness`` dimension too in the presence of sensitive features as it makes disaggregated parity assessment possible.
