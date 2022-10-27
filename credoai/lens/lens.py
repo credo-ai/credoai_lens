@@ -1,3 +1,7 @@
+"""
+Main orchestration module handling running evaluators on AI artifacts
+"""
+
 from copy import deepcopy
 from dataclasses import dataclass
 from inspect import isclass
@@ -7,7 +11,8 @@ from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.governance import Governance
 from credoai.lens.pipeline_creator import PipelineCreator
-from credoai.utils import ValidationError, check_subset, flatten_list, global_logger
+from credoai.utils import (ValidationError, check_subset, flatten_list,
+                           global_logger)
 
 # Custom type
 Pipeline = List[Union[Evaluator, Tuple[Evaluator, str, dict]]]

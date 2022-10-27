@@ -15,7 +15,7 @@ from credoai.evaluators import (
     Security,
     evaluator,
 )
-from credoai.evaluators.utils.utils import string2evaluator
+from credoai.evaluators.utils.utils import name2evaluator
 from credoai.lens import Lens
 from pandas import testing
 
@@ -114,7 +114,7 @@ def test_frozen_binary_clf_results(
         assessment_data=frozen_validation_data,
         # training_data=frozen_training_data,
     )
-    eval = string2evaluator(evaluator)(FROZEN_METRICS)
+    eval = name2evaluator(evaluator)(FROZEN_METRICS)
     lens.add(eval)
     lens.run()
 
