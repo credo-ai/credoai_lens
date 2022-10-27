@@ -19,6 +19,10 @@ class Evaluator(ABC):
         self.logger = global_logger
 
     @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
     def results(self):
         if self._results:
             return self._results
@@ -35,12 +39,6 @@ class Evaluator(ABC):
             if not isinstance(result, EvidenceContainer):
                 raise ValidationError("All results must be EvidenceContainers")
         self._results = results
-
-    @property
-    @abstractmethod
-    def name(self):
-        """Used to define a unique identifier for the specific evaluator"""
-        pass
 
     @property
     @abstractmethod

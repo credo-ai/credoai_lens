@@ -7,22 +7,21 @@ Testing protocols for the Lens package. Tested functionalities:
 from abc import ABC
 
 import pytest
-from credoai.artifacts import TabularData, ClassificationModel
+from credoai.artifacts import TabularData
 from credoai.evaluators import (
     DataEquity,
     DataFairness,
-    DataProfiling,
+    DataProfiler,
+    FeatureDrift,
     ModelEquity,
     ModelFairness,
     Performance,
     Privacy,
     Security,
-    evaluator,
-    FeatureDrift,
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
-from pandas import DataFrame, testing
+from pandas import DataFrame
 
 TEST_METRICS = [
     ["false_negative_rate"],
@@ -80,7 +79,7 @@ def test_model_fairness(
         training_data=classification_train_data,
     )
     evaluator = ModelFairness(metrics)
-    lens.add(evaluator, "dummy")
+    lens.add(evaluator)
     lens.run()
     assert lens.get_results()
 
@@ -106,18 +105,20 @@ class TestDataFairness(Base_Evaluator_Test):
         assert len(self.pipeline.pipeline) == 4
 
     def test_run(self):
+        self.pipeline.run()
         self.pipeline.get_results()
         assert True
 
 
-class TestDataProfiling(Base_Evaluator_Test):
-    evaluator = DataProfiling()
+class TestDataProfiler(Base_Evaluator_Test):
+    evaluator = DataProfiler()
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
         assert len(self.pipeline.pipeline) == 2
 
     def test_run(self):
+        self.pipeline.run()
         self.pipeline.get_results()
         assert True
 
@@ -168,7 +169,7 @@ def test_performance(
         training_data=credit_training_data,
     )
     evaluator = Performance(metrics)
-    lens.add(evaluator, "dummy")
+    lens.add(evaluator)
     lens.run()
     assert lens.get_results()
 
@@ -231,7 +232,7 @@ class TestRankingFairnes:
     pipeline = Lens(assessment_data=data)
 
     def test_add(self):
-        self.pipeline.add(self.evaluator, "dummy")
+        self.pipeline.add(self.evaluator)
         assert len(self.pipeline.pipeline) == 1
 
     def test_run(self):
@@ -239,7 +240,7 @@ class TestRankingFairnes:
         assert self.pipeline.get_results()
 
     def test_results(self):
-        results = self.pipeline.get_results()["dummy"][0].round(2)
+        results = self.pipeline.get_results()[0]["results"][0].round(2)
         results = results.reset_index(drop=True)
         assert results.equals(self.expected_results)
 
@@ -252,9 +253,9 @@ def test_bulk_pipeline_run(
     and the pipeline is running.
     """
     pipe_structure = [
-        (Security(), "Security assessment"),
-        (DataProfiling(), "Profiling test data"),
-        (DataFairness(), "Test data Fairness"),
+        Security(),
+        DataProfiler(),
+        DataFairness(),
     ]
     my_pipeline = Lens(
         model=classification_model,

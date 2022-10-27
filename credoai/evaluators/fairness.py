@@ -62,7 +62,6 @@ class ModelFairness(Evaluator):
         self.fairness_prob_metrics = None
         super().__init__()
 
-    name = "ModelFairness"
     required_artifacts = {"model", "data", "sensitive_feature"}
 
     def _setup(self):

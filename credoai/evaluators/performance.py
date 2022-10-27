@@ -44,7 +44,6 @@ class Performance(Evaluator):
         The unthresholded predictions, confidence values or probabilities.
     """
 
-    name = "Performance"
     required_artifacts = {"model", "assessment_data"}
 
     def __init__(self, metrics=None):

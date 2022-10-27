@@ -19,7 +19,6 @@ class SurvivalFairness(Evaluator):
         self.confounds = confounds
         self.stats = []
 
-    name = "SurvivalFairness"
     required_artifacts = ["model", "assessment_data", "sensitive_feature"]
 
     def evaluate(self):
