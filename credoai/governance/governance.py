@@ -157,9 +157,21 @@ class Governance:
                 )
             )
 
+            # Extract unique tags
+            self._unique_tags: List[dict] = []
+            for x in self._evidence_requirements:
+                if x.tags not in self._unique_tags:
+                    self._unique_tags.append(x.tags)
+            self._unique_tags = [x for x in self._unique_tags if x]
+
             global_logger.info(
                 f"Successfully registered with {len(self._evidence_requirements)} evidence requirements"
             )
+
+            if self._unique_tags:
+                global_logger.info(
+                    f"The following tags have being found in the evidence requirements: {self._unique_tags}"
+                )
 
             self.clear_evidence()
 
