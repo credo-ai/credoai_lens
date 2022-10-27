@@ -329,7 +329,7 @@ class Lens:
                 additional_meta["sensitive_feature"] = feat
             if check_data:
                 for dataset_label, dataset in self.get_datasets().items():
-                    additional_meta["dataset"] = dataset_label
+                    additional_meta["dataset_type"] = dataset_label
                     step = deepcopy(pipeline_step)
                     step.metadata.update(additional_meta)
                     evaluator_arguments["data"] = dataset

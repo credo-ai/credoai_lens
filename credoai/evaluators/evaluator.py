@@ -108,7 +108,12 @@ class Evaluator(ABC):
 
     def _get_artifacts(self):
         artifacts = {}
-        save_keys = {"model": "model_name"}
+        save_keys = {
+            "model": "model_name",
+            "data": "data_name",
+            "assessment_data": "assessment_data_name",
+            "training_data": "training_data_name",
+        }
         for k in self.artifact_keys:
             save_key = save_keys.get(k, k)
             try:
