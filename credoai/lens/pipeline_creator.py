@@ -55,10 +55,10 @@ def process_evidence_requirements(evidence_requirements: List[EvidenceRequiremen
 
 
 def extract_metrics(labels):
-    """Extract metrics from a single evidence requirrment"""
+    """Extract metrics from a single evidence requirement"""
     metrics = set()
     if "metric_type" in labels:
-        metrics.add(labels["metric_type"])
+        metrics.add(labels["metric_type"].removesuffix('_parity'))
     elif "metric_types" in labels:
         metrics = metrics.union(labels["metric_types"])
     return metrics
