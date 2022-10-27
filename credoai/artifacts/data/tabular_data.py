@@ -25,8 +25,9 @@ class TabularData(Data):
         Outcome
     sensitive_features : pd.Series, pd.DataFrame, optional
         Sensitive Features, which will be used for disaggregating performance
-        metrics. This can be the columns you want to perform segmentation analysis on, or
-        a feature related to fairness like 'race' or 'gender'
+        metrics. This can be the feature you want to perform segmentation analysis on, or
+        a feature related to fairness like 'race' or 'gender'. Sensitive Features *must*
+        be categorical features.
     sensitive_intersections : bool, list
         Whether to add intersections of sensitive features. If True, add all possible
         intersections. If list, only create intersections from specified sensitive features.

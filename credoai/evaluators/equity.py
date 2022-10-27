@@ -41,7 +41,6 @@ class DataEquity(Evaluator):
         The significance value to evaluate statistical tests
     """
 
-    name = "DataEquity"
     required_artifacts = {"data", "sensitive_feature"}
 
     def __init__(self, p_value=0.01):
@@ -324,7 +323,6 @@ class ModelEquity(DataEquity):
         self.use_predict_proba = use_predict_proba
         super().__init__(p_value)
 
-    name = "ModelEquity"
     required_artifacts = {"model", "assessment_data", "sensitive_feature"}
 
     def _setup(self):

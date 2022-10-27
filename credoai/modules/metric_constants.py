@@ -5,6 +5,8 @@ from credoai.modules.credoai_metrics import (
     false_discovery_rate,
     false_omission_rate,
     ks_statistic,
+    gini_coefficient_discriminatory,
+    population_stability_index,
 )
 from fairlearn import metrics as fl_metrics
 from sklearn import metrics as sk_metrics
@@ -50,6 +52,7 @@ BINARY_CLASSIFICATION_FUNCTIONS = {
     "selection_rate": fl_metrics.selection_rate,
     "overprediction": fl_metrics._mean_overprediction,
     "underprediction": fl_metrics._mean_underprediction,
+    "gini_coefficient": gini_coefficient_discriminatory,
 }
 
 # Define Fairness Metric Name Mapping
@@ -64,7 +67,7 @@ FAIRNESS_FUNCTIONS = {
 
 
 # Define functions that require probabilities ***
-PROBABILITY_FUNCTIONS = {"average_precision_score", "roc_auc_score"}
+PROBABILITY_FUNCTIONS = {"average_precision_score", "roc_auc_score", "gini_coefficient"}
 
 # *** Define Alternative Naming ***
 METRIC_EQUIVALENTS = {
@@ -83,6 +86,12 @@ METRIC_EQUIVALENTS = {
     "mean_squared_error": ["MSE", "MSD", "mean_squared_deviation"],
     "root_mean_squared_error": ["RMSE"],
     "r2_score": ["r_squared", "r2"],
+    "gini_coefficient": [
+        "gini_index",
+        "discriminatory_gini_index",
+        "discriminatory_gini",
+    ],
+    "population_stability_index": ["psi", "PSI"],
 }
 
 # DATASET METRICS
