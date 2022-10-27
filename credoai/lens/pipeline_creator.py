@@ -1,6 +1,5 @@
 import inspect
 from collections import defaultdict
-from cProfile import label
 from typing import List
 
 import credoai.evaluators
