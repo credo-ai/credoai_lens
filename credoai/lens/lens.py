@@ -24,6 +24,9 @@ class PipelineStep:
     def __post_init__(self):
         if self.metadata is None:
             self.metadata = {}
+        # TODO: keeping track of metadata somewhat unnecessarily. Could just add the metadata
+        # directly to pipeline
+        self.evaluator.metadata = self.metadata
         self.metadata["evaluator"] = self.evaluator.name
 
     def check_match(self, metadata):

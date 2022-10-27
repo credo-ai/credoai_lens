@@ -17,6 +17,7 @@ class Evaluator(ABC):
         self._results = None
         self.artifact_keys = []
         self.logger = global_logger
+        self.metadata = {}
 
     @property
     def name(self):
@@ -104,7 +105,11 @@ class Evaluator(ABC):
         return info
 
     def _base_container_info(self):
-        return {"labels": {"evaluator": self.name}, "metadata": self._get_artifacts()}
+        meta = {**self.metadata, **self._get_artifacts()}
+        labels = {"evaluator": self.name}
+        if "dataset_type" in meta:
+            labels["dataset_type"] = meta["dataset_type"]
+        return {"labels": labels, "metadata": meta}
 
     def _get_artifacts(self):
         artifacts = {}
