@@ -1,7 +1,17 @@
 from credoai.evaluators import Evaluator
 
+from typing import List, Optional
+
 from credoai.utils.common import ValidationError
 from credoai.modules.deepchecks_constants import DEFAULT_CHECKS
+from credoai.evaluators.utils.validation import (
+    check_requirements_deepchecks,
+)
+
+from credoai.evidence import DeepchecksContainer
+
+from deepchecks.tabular import Suite, Dataset
+from deepchecks.core import BaseCheck
 
 
 class Deepchecks(Evaluator):
@@ -25,28 +35,56 @@ class Deepchecks(Evaluator):
 
     Parameters
     ----------
+    name : str, optional
+        Name of the supplied deepchecks suite
     checks : List-like, optional
         A list of instantiated deepchecks checks objects (e.g. BoostingOverfit, CalibrationScore)
         #TODO allow list of strings?
     """
 
-    required_artifacts = {"model", "data"}
+    name = "Deepchecks"  ##This is going to go away once we merge with Ian's PR #214
 
-    # TODO always pass core dataframe, note deepchecks data object
-    # Guess we always pass both or just test -- it will do single data set, I guess
+    required_artifacts = {"model", "assessment_data", "training_data"}
+    # all artifacts are OPTIONAL; All that's required is that at least one of these is
+    # provided. The evaluator's custom validation function checks for this.
 
-    def __init__(self, checks=DEFAULT_CHECKS):
+    def __init__(
+        self,
+        suite_name: Optional[str] = "Credo_Deepchecks_Suite",
+        checks: Optional[List[BaseCheck]] = DEFAULT_CHECKS,
+    ):
         super().__init__()
+        self.name = suite_name
         self.checks = checks
 
     def _setup(self):
         # Set artifacts
-        pass
+
+        # All artifacts are optional and thus any could be NoneType
+        # Internal (lens) validation ensures that at least one artifact is valid
+        self.model = self.model
+        self.test_dataset = self.assessment_data
+        self.train_dataset = self.training_data
 
     def _setup_deepchecks(self):
-        # validate deepchecks objects
-        # construct Suite
-        pass
+        if self.test_dataset:
+            self.test_dataset = Dataset(
+                df=self.test_dataset.X, label=self.test_dataset.y
+            )
+
+        if self.train_dataset:
+            self.train_dataset = Dataset(
+                df=self.train_dataset.X, label=self.train_dataset.y
+            )
+
+        if self.model:
+            self.deepchecks_model = self.model.model_like
+
+        self.suite = Suite(name=self.name)
+        for check in self.checks:
+            self.suite.add(check)
+            # doing this as a for-loop list seems to be the only way
+            # deepchecks won't let you pass a whole list of checks, which is...silly?
 
     def evaluate(self):
         """
@@ -58,7 +96,43 @@ class Deepchecks(Evaluator):
         -------
         self
         """
-        # run suite
+        self._setup_deepchecks()
+
+        if self.train_dataset and self.test_dataset:
+            self.results = [
+                DeepchecksContainer(
+                    self.name,
+                    self.suite.run(
+                        train_dataset=self.train_dataset,
+                        test_dataset=self.test_dataset,
+                        model=self.model.model_like,
+                    ),
+                )
+            ]
+
+        elif self.train_dataset:
+            self.results = [
+                DeepchecksContainer(
+                    self.name,
+                    self.suite.run(
+                        train_dataset=self.train_dataset, model=self.model.model_like
+                    ),
+                )
+            ]
+        else:
+            # Deepchecks expects the user to specify a train dataset if only a single
+            # dataset is specified, even if that single dataset is supposed to be a test set
+            # This doesn't really make sense and makes client code (like ours) less readable.
+            # Nevertheless, there's no way around it.
+            self.results = [
+                DeepchecksContainer(
+                    self.name,
+                    self.suite.run(
+                        train_dataset=self.test_dataset, model=self.model.model_like
+                    ),
+                )
+            ]
+
         # convert suite results to json and package into deepchecks evidence
         return self
 
@@ -66,4 +140,4 @@ class Deepchecks(Evaluator):
         """
         Check that basic requirements for the run of an evaluator are met.
         """
-        pass
+        check_requirements_deepchecks(self)

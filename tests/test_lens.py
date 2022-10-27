@@ -18,6 +18,7 @@ from credoai.evaluators import (
     Privacy,
     Security,
     FeatureDrift,
+    Deepchecks,
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
@@ -187,6 +188,18 @@ class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
 
 class TestFeatureDrift(Base_Evaluator_Test):
     evaluator = FeatureDrift(csi_calculation=True)
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
+class TestDeepchecks(Base_Evaluator_Test):
+    evaluator = Deepchecks()
 
     def test_add(self):
         self.pipeline.add(self.evaluator)

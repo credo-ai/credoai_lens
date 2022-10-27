@@ -9,16 +9,19 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from credoai.utils import ValidationError
 
+from deepchecks.core import SuiteResult
+
 from .evidence import (
     MetricEvidence,
     ModelProfilerEvidence,
     ProfilerEvidence,
     TableEvidence,
+    DeepchecksEvidence,
 )
 
 
 class EvidenceContainer(ABC):
-    def __init__(self, evidence_class, df, labels=None, metadata=None):
+    def __init__(self, evidence_class, data, labels=None, metadata=None):
         """Abstract Class defining Evidence Containers
 
         Evidence Containers are light wrappers around dataframes that
@@ -30,7 +33,7 @@ class EvidenceContainer(ABC):
         ----------
         evidence_class : Evidence
             An Evidence class
-        df : pd.DataFrame
+        data : pd.DataFrame
             The dataframe, formatted appropriately for the evidence type
         labels : dict
             Additional labels to pass to underlying evidence
@@ -38,20 +41,23 @@ class EvidenceContainer(ABC):
             Metadata to pass to underlying evidence
         """
         self.evidence_class = evidence_class
-        if not isinstance(df, pd.DataFrame):
-            raise ValidationError("'df' must be a dataframe")
-        self._validate(df)
-        self._df = df
+        self._validate_inputs(data)
+        self._validate(data)
+        self._data = data
         self.labels = labels
         self.metadata = metadata or {}
 
     @property
     def df(self):
-        return self._df
+        return self._data
 
     @abstractmethod
     def to_evidence(self):
         pass
+
+    def _validate_inputs(self, data):
+        if not isinstance(data, pd.DataFrame):
+            raise ValidationError("'df' must be a dataframe")
 
     @abstractmethod
     def _validate(self, df):
@@ -66,7 +72,7 @@ class MetricContainer(EvidenceContainer):
 
     def to_evidence(self, **metadata):
         evidence = []
-        for _, data in self._df.iterrows():
+        for _, data in self._data.iterrows():
             evidence.append(
                 self.evidence_class(
                     additional_labels=self.labels, **data, **self.metadata, **metadata
@@ -90,7 +96,7 @@ class TableContainer(EvidenceContainer):
     def to_evidence(self, **metadata):
         return [
             self.evidence_class(
-                self._df.name, self._df, self.labels, **self.metadata, **metadata
+                self._data.name, self._data, self.labels, **self.metadata, **metadata
             )
         ]
 
@@ -104,11 +110,13 @@ class TableContainer(EvidenceContainer):
 class ProfilerContainer(EvidenceContainer):
     """Container for al profiler type evidence"""
 
-    def __init__(self, data, labels: dict = None, metadata: dict = None):
-        super().__init__(ProfilerEvidence, data, labels)
+    def __init__(self, df, labels: dict = None, metadata: dict = None):
+        super().__init__(ProfilerEvidence, df, labels)
 
     def to_evidence(self, **metadata):
-        return [self.evidence_class(self._df, self.labels, **self.metadata, **metadata)]
+        return [
+            self.evidence_class(self._data, self.labels, **self.metadata, **metadata)
+        ]
 
     def _validate(self, df):
         if list(df.columns) != ["results"]:
@@ -122,7 +130,9 @@ class ModelProfilerContainer(EvidenceContainer):
         super().__init__(ModelProfilerEvidence, df, labels, metadata)
 
     def to_evidence(self, **metadata):
-        return [self.evidence_class(self._df, self.labels, **self.metadata, **metadata)]
+        return [
+            self.evidence_class(self._data, self.labels, **self.metadata, **metadata)
+        ]
 
     def _validate(self, df):
         necessary_index = ["parameters", "feature_names", "model_name"]
@@ -132,3 +142,40 @@ class ModelProfilerContainer(EvidenceContainer):
             )
         if sum(df.index.isin(necessary_index)) != 3:
             raise ValidationError(f"Model profiler data must contain {necessary_index}")
+
+
+class DeepchecksContainer(EvidenceContainer):
+    """Container for all Table type evidence"""
+
+    def __init__(
+        self, name: str, data: SuiteResult, labels: dict = None, metadata: dict = None
+    ):
+        super().__init__(DeepchecksEvidence, data, labels, metadata)
+        self.name = name
+
+    def to_evidence(self, **metadata):
+        checks_2_df = {"Check_Name": list(), "Status": list()}
+        for check in self._data.get_not_passed_checks():
+            checks_2_df["Check_Name"].append(check.header)
+            checks_2_df["Status"].append("Not Passed")
+        for check in self._data.get_passed_checks():
+            checks_2_df["Check_Name"].append(check.header)
+            checks_2_df["Status"].append("Passed")
+        for check in self._data.get_not_ran_checks():
+            checks_2_df["Check_Name"].append(check.header)
+            checks_2_df["Status"].append("Not Run")
+
+        check_results_df = pd.DataFrame.from_dict(checks_2_df, orient="columns")
+        check_results_df.name = "Lens_Deepchecks_SuiteResult"
+        return [
+            TableEvidence(
+                self.name, check_results_df, self.labels, **self.metadata, **metadata
+            )
+        ]
+
+    def _validate_inputs(self, data):
+        if not isinstance(data, SuiteResult):
+            raise ValidationError("'data' must be a deepchecks.core.SuiteResult object")
+
+    def _validate(self, df):
+        pass

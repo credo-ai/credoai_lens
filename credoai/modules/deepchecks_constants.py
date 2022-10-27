@@ -1,8 +1,8 @@
-from deepchecks.checks import *
+from deepchecks.tabular.checks import *
 
 DEFAULT_CHECKS = [
     ConfusionMatrixReport(),
-    SegmentPerformance(),
+    WeakSegmentsPerformance(),
     SimpleModelComparison(),
     CalibrationScore(),
     RegressionSystematicError(),
