@@ -1,4 +1,7 @@
-import uuid
+"""
+Main orchestration module handling running evaluators on AI artifacts
+"""
+
 from copy import deepcopy
 from dataclasses import dataclass
 from inspect import isclass
@@ -8,7 +11,8 @@ from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.governance import Governance
 from credoai.lens.pipeline_creator import PipelineCreator
-from credoai.utils import ValidationError, check_subset, flatten_list, global_logger
+from credoai.utils import (ValidationError, check_subset, flatten_list,
+                           global_logger)
 
 # Custom type
 Pipeline = List[Union[Evaluator, Tuple[Evaluator, str, dict]]]
@@ -25,6 +29,9 @@ class PipelineStep:
     def __post_init__(self):
         if self.metadata is None:
             self.metadata = {}
+        # TODO: keeping track of metadata somewhat unnecessarily. Could just add the metadata
+        # directly to pipeline
+        self.evaluator.metadata = self.metadata
         self.metadata["evaluator"] = self.evaluator.name
 
     def check_match(self, metadata):
@@ -220,10 +227,11 @@ class Lens:
         List of Evidence
         """
         pipeline_subset = self.get_pipeline(evaluator_name, metadata)
-        pipeline_results = [step.evaluator.results for step in pipeline_subset]
-        all_results = flatten_list([x["results"] for x in pipeline_results])
+        pipeline_results = flatten_list(
+            [step.evaluator.results for step in pipeline_subset]
+        )
         evidences = []
-        for result in all_results:
+        for result in pipeline_results:
             evidences += result.to_evidence()
         return evidences
 
@@ -329,7 +337,7 @@ class Lens:
                 additional_meta["sensitive_feature"] = feat
             if check_data:
                 for dataset_label, dataset in self.get_datasets().items():
-                    additional_meta["dataset"] = dataset_label
+                    additional_meta["dataset_type"] = dataset_label
                     step = deepcopy(pipeline_step)
                     step.metadata.update(additional_meta)
                     evaluator_arguments["data"] = dataset

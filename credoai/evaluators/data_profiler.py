@@ -39,14 +39,11 @@ class DataProfiler(Evaluator):
         super().__init__()
 
     def _setup(self):
-        self.data_to_eval = self.data
-
-        self.data = pd.concat([self.data_to_eval.X, self.data_to_eval.y], axis=1)
+        self.data_to_profile = pd.concat([self.data.X, self.data.y], axis=1)
         return self
 
     def _validate_arguments(self):
         check_data_instance(self.data, TabularData)
-
         return self
 
     def get_html_report(self):
@@ -66,4 +63,4 @@ class DataProfiler(Evaluator):
     def _create_reporter(self):
         default_kwargs = {"title": "Dataset", "minimal": True}
         default_kwargs.update(self.profile_kwargs)
-        return ProfileReport(self.data, **default_kwargs)
+        return ProfileReport(self.data_to_profile, **default_kwargs)

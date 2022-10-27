@@ -1,10 +1,14 @@
-from cProfile import label
+"""
+Classes responsible for programatically creating pipelines of evaluators
+"""
+
 import inspect
 from collections import defaultdict
 from typing import List
 
 import credoai.evaluators
 from credoai.evaluators import *
+from credoai.evaluators.utils import name2evaluator
 from credoai.evidence import EvidenceRequirement
 from credoai.governance import Governance
 
@@ -27,34 +31,37 @@ def process_evidence_requirements(evidence_requirements: List[EvidenceRequiremen
     kwargs: dict = defaultdict(dict)
     for e in evidence_requirements:
         labels = e.label
-        evaluator = labels.get("evaluator")
-        if evaluator is None:
+        evaluator_name = labels.get("evaluator")
+        if evaluator_name is None:
             continue
-        evaluators.add(evaluator)
-        # Ugly, must change in the future! If it needs to be hardcoded per evaluator
-        # should make that part of evaluator class, or some helper function
-        if evaluator in ["ModelFairness", "Performance"]:
-            metrics = kwargs[evaluator].get("metrics", set())
-            if "metric_type" in labels:
-                metrics.add(labels["metric_type"])
-            elif "metric_types" in labels:
-                metrics = metrics.union(labels["metric_types"])
-            elif "table_name" in labels:
-                # Accounts for metrics that return tables
-                metrics.add(labels["table_name"])
-            kwargs[evaluator]["metrics"] = metrics
-        if evaluator == "FeatureDrift":
+        evaluators.add(evaluator_name)
+        if evaluator_name in ["ModelFairness", "Performance"]:
+            if "metrics" not in kwargs[evaluator_name]:
+                kwargs[evaluator_name]["metrics"] = extract_metrics(labels)
+            else:
+                kwargs[evaluator_name]["metrics"] |= extract_metrics(labels)
+        if evaluator_name == "FeatureDrift":
             if "table_name" in labels:
                 if labels["table_name"] == "Characteristic Stability Index":
-                    kwargs[evaluator]["csi_calculation"] = True
+                    kwargs[evaluator_name]["csi_calculation"] = True
 
     pipeline = []
-    for evaltr in evaluators:
-        evaltr_class = eval(evaltr)
-        evaltr_kwargs = kwargs.get(evaltr, {})
+    for evaluator_name in evaluators:
+        evaltr_class = name2evaluator(evaluator_name)
+        evaltr_kwargs = kwargs.get(evaluator_name, {})
         initialized_evaltr = evaltr_class(**evaltr_kwargs)
         pipeline.append(initialized_evaltr)
     return pipeline
+
+
+def extract_metrics(labels):
+    """Extract metrics from a single evidence requirrment"""
+    metrics = set()
+    if "metric_type" in labels:
+        metrics.add(labels["metric_type"])
+    elif "metric_types" in labels:
+        metrics = metrics.union(labels["metric_types"])
+    return metrics
 
 
 def build_list_of_evaluators():

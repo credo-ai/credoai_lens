@@ -10,9 +10,9 @@ import pandas as pd
 from credoai.utils import ValidationError
 
 from .evidence import (
+    DataProfilerEvidence,
     MetricEvidence,
     ModelProfilerEvidence,
-    ProfilerEvidence,
     TableEvidence,
 )
 
@@ -105,7 +105,7 @@ class ProfilerContainer(EvidenceContainer):
     """Container for al profiler type evidence"""
 
     def __init__(self, data, labels: dict = None, metadata: dict = None):
-        super().__init__(ProfilerEvidence, data, labels)
+        super().__init__(DataProfilerEvidence, data, labels, metadata)
 
     def to_evidence(self, **metadata):
         return [self.evidence_class(self._df, self.labels, **self.metadata, **metadata)]

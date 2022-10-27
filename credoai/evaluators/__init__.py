@@ -4,7 +4,7 @@ Perform specific evaluations on model and/or dataset
 
 from .evaluator import Evaluator
 from .data_fairness import DataFairness
-from .data_profiling import DataProfiler
+from .data_profiler import DataProfiler
 from .privacy import Privacy
 from .security import Security
 from .equity import DataEquity, ModelEquity
