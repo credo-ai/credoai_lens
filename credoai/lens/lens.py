@@ -1,4 +1,3 @@
-import uuid
 from copy import deepcopy
 from dataclasses import dataclass
 from inspect import isclass
@@ -220,10 +219,11 @@ class Lens:
         List of Evidence
         """
         pipeline_subset = self.get_pipeline(evaluator_name, metadata)
-        pipeline_results = [step.evaluator.results for step in pipeline_subset]
-        all_results = flatten_list([x["results"] for x in pipeline_results])
+        pipeline_results = flatten_list(
+            [step.evaluator.results for step in pipeline_subset]
+        )
         evidences = []
-        for result in all_results:
+        for result in pipeline_results:
             evidences += result.to_evidence()
         return evidences
 

@@ -1,6 +1,6 @@
-from cProfile import label
 import inspect
 from collections import defaultdict
+from cProfile import label
 from typing import List
 
 import credoai.evaluators
@@ -34,15 +34,7 @@ def process_evidence_requirements(evidence_requirements: List[EvidenceRequiremen
         # Ugly, must change in the future! If it needs to be hardcoded per evaluator
         # should make that part of evaluator class, or some helper function
         if evaluator in ["ModelFairness", "Performance"]:
-            metrics = kwargs[evaluator].get("metrics", set())
-            if "metric_type" in labels:
-                metrics.add(labels["metric_type"])
-            elif "metric_types" in labels:
-                metrics = metrics.union(labels["metric_types"])
-            elif "table_name" in labels:
-                # Accounts for metrics that return tables
-                metrics.add(labels["table_name"])
-            kwargs[evaluator]["metrics"] = metrics
+            kwargs[evaluator]["metrics"] = extract_metrics(labels)
         if evaluator == "FeatureDrift":
             if "table_name" in labels:
                 if labels["table_name"] == "Characteristic Stability Index":
@@ -55,6 +47,15 @@ def process_evidence_requirements(evidence_requirements: List[EvidenceRequiremen
         initialized_evaltr = evaltr_class(**evaltr_kwargs)
         pipeline.append(initialized_evaltr)
     return pipeline
+
+
+def extract_metrics(labels):
+    metrics = set()
+    if "metric_type" in labels:
+        metrics.add(labels["metric_type"])
+    elif "metric_types" in labels:
+        metrics = metrics.union(labels["metric_types"])
+    return metrics
 
 
 def build_list_of_evaluators():
