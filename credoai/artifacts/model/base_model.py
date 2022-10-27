@@ -1,6 +1,6 @@
 """Abstract class for model artifacts used by `Lens`"""
 from abc import ABC
-from typing import List
+from typing import List, Optional
 
 from credoai.utils import ValidationError
 from credoai.utils.model_utils import get_model_info
@@ -31,15 +31,27 @@ class Model(ABC):
         necessary_functions: List[str],
         name: str,
         model_like,
+        tags: Optional[dict] = None,
     ):
 
         self.type = type
         self.name = name
         self.model_like = model_like
+        self.tags = tags
         self.model_info = get_model_info(model_like)
         self._validate(necessary_functions)
         self._build(possible_functions)
         self._update_functionality()
+
+    @property
+    def tags(self):
+        return self._tags
+
+    @tags.setter
+    def tags(self, value):
+        if not isinstance(value, dict) and value is not None:
+            raise ValidationError("Tags must be of type dictionary")
+        self._tags = value
 
     def _build(self, function_names: List[str]):
         """
