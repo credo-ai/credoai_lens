@@ -1,13 +1,31 @@
 Metrics
 =======
 
+Lens supports many metrics out-of-the-box. 
+Below are some of the metrics we support. For a comprehensive list, 
+the following can be run in your python environment:
+
+::
+
+   from credoai.modules.metric_utils import list_metrics
+   list_metrics()
+
+
+Other metrics are easily incorporated by using the `Metric` class, which can accommodate 
+any assessment function.
+
+Metric list
+-----------
+
 ``accuracy_score``
 
 Accuracy is the fraction of predictions that a classification model got right. This metric is not robust to class imbalance.
 
 The best value is 1 and the worst value is 0.
 
-:math:`{Accuracy} = \frac{Correct \ Predictions}{Total \ Number \ of \ Examples}`
+.. math::
+
+   \text{Accuracy} = \frac{Correct \ Predictions}{Total \ Number \ of \ Examples}
 
 Dimension: ``performance``
 
@@ -157,7 +175,9 @@ Dimension: ``performance``
 
 Also known as balanced F-score or F-measure, the F1 score can be interpreted as a harmonic mean of the precision and recall, where an F1 score reaches its best value at 1 and worst score at 0. The relative contribution of precision and recall to the F1 score are equal.
 
-:math:`{False Positive Rate} = \frac{2 \times Precision \times Recall}{Precision + Recall}`
+.. math::
+
+   \text{False Positive Rate} = \frac{2 \times Precision \times Recall}{Precision + Recall}
 
 Dimension: ``performance``
 
@@ -171,7 +191,9 @@ False discovery rate is intuitively the rate at which the classifier will be wro
 
 The best value is 0 and the worst value is 1.
 
-:math:`{False Discovery Rate} = \frac{False \ Positives}{False \ Positives + True \ Positives}`
+.. math::
+
+   \text{False Discovery Rate} = \frac{False \ Positives}{False \ Positives + True \ Positives}
 
 Dimension: ``performance``
 
@@ -185,7 +207,9 @@ Equivalents: ``fdr``
 
 False negative rate  is defined as follows:
 
-:math:`{False Negative Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Positives}`
+.. math::
+
+   \text{False Negative Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Positives}
 
 Dimension: ``performance``
 
@@ -201,7 +225,9 @@ The false omission rate is intuitively the rate at which the classifier will be 
 
 The best value is 0 and the worst value is 1.
 
-:math:`{False Omission Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Negatives}`
+.. math::
+
+   \text{False Omission Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Negatives}
 
 Dimension: ``performance``
 
@@ -213,7 +239,9 @@ Dimension: ``performance``
 
 False positive rate is defined as follows:
 
-:math:`{False Positive Rate} = \frac{False \ Positives}{False \ Positives + True \ Negatives}`
+.. math::
+
+   \text{False Positive Rate} = \frac{False \ Positives}{False \ Positives + True \ Negatives}
 
 Dimension: ``performance``
 
@@ -359,7 +387,9 @@ Dimension: ``performance``
 
 Precision is intuitively the ability of the classifier not to label as positive a sample that is negative.
 
-:math:`{Precision} = \frac{True \ Positives}{True \ Positives + False \ Positives}`
+.. math::
+
+   \text{Precision} = \frac{True \ Positives}{True \ Positives + False \ Positives}
 
 Dimension: ``performance``
 
@@ -451,7 +481,9 @@ Dimension: ``performance``
 
 True negative rate (also called specificity or selectivity) refers to the probability of a negative test, conditioned on truly being negative.
 
-:math:`{True Negative Rate} = \frac{True \ Negatives}{True \ Negatives + False \ Positives }`
+.. math::
+
+   \text{True Negative Rate} = \frac{True \ Negatives}{True \ Negatives + False \ Positives }
 
 Dimension: ``performance``
 
