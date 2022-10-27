@@ -1,10 +1,11 @@
 from credoai.evaluators import Evaluator
 
 
-def string2evaluator(str_in):
+def name2evaluator(evaluator_name):
+    """Converts evaluator name to evaluator class"""
     for eval in Evaluator.__subclasses__():
-        if str_in == eval.__name__:
+        if evaluator_name == eval.__name__:
             return eval
     raise Exception(
-        f"<{str_in}> not found in list of Evaluators. Please confirm specified evaluator name is identical to Evaluator class definition."
+        f"<{evaluator_name}> not found in list of Evaluators. Please confirm specified evaluator name is identical to Evaluator class definition."
     )
