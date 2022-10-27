@@ -1,3 +1,7 @@
+"""
+Classes responsible for programatically creating pipelines of evaluators
+"""
+
 import inspect
 from collections import defaultdict
 from typing import List
