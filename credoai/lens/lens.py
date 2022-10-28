@@ -75,13 +75,14 @@ class Lens:
         self.assessment_data = assessment_data
         self.training_data = training_data
         self.assessment_plan: dict = {}
-        self.gov = governance
+        self.gov = None
         self.pipeline: list = []
         self.logger = global_logger
         if self.assessment_data and self.assessment_data.sensitive_features is not None:
             self.sens_feat_names = list(self.assessment_data.sensitive_features)
         else:
             self.sens_feat_names = []
+        self._add_governance(governance)
         self._generate_pipeline(pipeline)
         # Can  pass pipeline directly
         self._validate()
@@ -183,8 +184,6 @@ class Lens:
         """
         evidence = self.get_evidence()
         if self.gov:
-            if self.model:
-                self.gov.set_model(self.model)
             if overwrite_governance:
                 self.gov.set_evidence(evidence)
                 self.logger.info(
@@ -323,6 +322,15 @@ class Lens:
             if "sensitive_feature" in metadata:
                 logger_message += f"Sensitive feature: {metadata['sensitive_feature']}"
         self.logger.info(logger_message)
+
+    def _add_governance(self, governance: Governance = None):
+        if governance is None:
+            return
+        self.gov = governance
+        if self.model:
+            self.gov.set_artifacts(
+                self.model, self.training_dataset, self.assessment_data
+            )
 
     def _cycle_add_through_ds_feat(
         self,

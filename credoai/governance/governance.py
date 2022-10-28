@@ -192,16 +192,32 @@ class Governance:
     def clear_evidence(self):
         self.set_evidence([])
 
-    def get_evidence_requirements(self):
+    def get_evidence_requirements(self, tags: dict = None):
         """
         Returns evidence requirements
 
+        Parameters
+        ----------
+        tags : dict, optional
+            Tags to subset evidence requirements
 
         Returns
         -------
         List[EvidenceRequirement]
         """
-        return self._evidence_requirements
+        if tags:
+            requirements = [
+                e for e in self._evidence_requirements if (not e.tags or e.tags == tags)
+            ]
+        else:
+            requirements = self._evidence_requirements
+        return requirements
+
+    def get_model_tags(self):
+        if self._model:
+            return self._model["tags"]
+        else:
+            return None
 
     def set_evidence(self, evidences: List[Evidence]):
         """
@@ -209,8 +225,13 @@ class Governance:
         """
         self._evidences = evidences
 
-    def set_model(self, model):
+    def set_artifacts(self, model, training_dataset=None, assessment_dataset=None):
+        global_logger.info(f"Adding model ({model.name}) to governance.")
         prepared_model = {"name": model.name, "tags": model.tags}
+        if training_dataset:
+            prepared_model["training_dataset_name"] = training_dataset.name
+        if assessment_dataset:
+            prepared_model["assessment_dataset_name"] = assessment_dataset.name
         self._model = prepared_model
 
     def match_requirements(self):
