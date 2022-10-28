@@ -1,7 +1,9 @@
 """Data artifact for pair-wise-comparison-based identity verification"""
 from copy import deepcopy
+
 import pandas as pd
 from credoai.utils.common import ValidationError
+
 from .base_data import Data
 
 
@@ -17,7 +19,7 @@ class ComparisonData(Data):
         Label of the dataset
     pairs : pd.DataFrame of shape (n_pairs, 4)
         Dataframe where each row represents a data sample pair and associated subjects
-        Type of data sample is decided by the ComparisonModel's compare, which takes
+        Type of data sample is decided by the ComparisonModel's `compare` function, which takes
         data sample pairs and returns their similarity scores. Examples are selfies, fingerprint scans,
         or voices of a person.
         Required columns:

@@ -1,18 +1,19 @@
 import pandas as pd
 from credoai.artifacts import ComparisonData, ComparisonModel
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (
-    check_data_instance,
-    check_model_instance,
-    check_existence,
-)
-from credoai.evidence.containers import MetricContainer, TableContainer
-from credoai.modules.metric_constants import BINARY_CLASSIFICATION_FUNCTIONS as bcf
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
+from credoai.evaluators.utils.validation import (check_data_instance,
+                                                 check_existence,
+                                                 check_model_instance)
+from credoai.evidence.containers import MetricContainer, TableContainer
+from credoai.modules.metric_constants import \
+    BINARY_CLASSIFICATION_FUNCTIONS as bcf
 from credoai.modules.metrics import Metric
 
-
-METRIC_SUBSET = ["false_match_rate-score", "false_non_match_rate-score"]
+METRIC_SUBSET = [
+    'false_match_rate-score',
+    'false_non_match_rate-score'
+    ]
 
 
 class IdentityVerification(Evaluator):
@@ -25,6 +26,9 @@ class IdentityVerification(Evaluator):
     ----------
     pairs : pd.DataFrame of shape (n_pairs, 4)
         Dataframe where each row represents a data sample pair and associated subjects
+        Type of data sample is decided by the ComparisonModel's `compare` function, which takes
+        data sample pairs and returns their similarity scores. Examples are selfies, fingerprint scans,
+        or voices of a person.
         Required columns:
             source-subject-id: unique identifier of the source subject
             source-subject-data-sample: data sample from the source subject
@@ -32,13 +36,13 @@ class IdentityVerification(Evaluator):
             target-subject-data-sample: data sample from the target subject
     subjects_sensitive_features : pd.DataFrame of shape (n_subjects, n_sensitive_feature_names), optional
         Sensitive features of all subjects present in pairs dataframe
-        This will be used for disaggregating performance
-        metrics. This can be the columns you want to perform segmentation analysis on, or
+        If provided, disaggregated performance assessment is also performed.
+        This can be the columns you want to perform segmentation analysis on, or
         a feature related to fairness like 'race' or 'gender'
         Required columns:
-            subject-id: id of subjects
+            subject-id: id of subjects. Must cover all the subjects inlcluded in `pairs` dataframe
             other columns with arbitrary names for sensitive features
-    thresholds : list
+    similarity_thresholds : list
         list of similarity score thresholds
         Similarity equal or greater than a similarity score threshold means match
     comparison_levels : list
@@ -53,11 +57,10 @@ class IdentityVerification(Evaluator):
 
     def __init__(
         self,
-        thresholds: list = [90, 95],
+        similarity_thresholds: list = [90, 95],
         comparison_levels: list = ["sample", "subject"],
     ):
-        self.metrics = ["false_positive_rate", "false_negative_rate"]
-        self.thresholds = thresholds
+        self.similarity_thresholds = similarity_thresholds
         self.comparison_levels = comparison_levels
 
     name = "IdentityVerification"
@@ -180,10 +183,8 @@ class IdentityVerification(Evaluator):
         return pairs_processed, sf_processed
 
     def _assess_overall_performance(self):
-        """Perform overall performance assessment
-        
-        """
-        for threshold in self.thresholds:
+        """Perform overall performance assessment"""
+        for threshold in self.similarity_thresholds:
             for level in self.comparison_levels:
                 cols = ["subject-id", "gender"]
                 sf = self.subjects_sensitive_features[cols]
@@ -223,9 +224,7 @@ class IdentityVerification(Evaluator):
                 )
 
     def _assess_disaggregated_performance(self):
-        """Perform disaggregated performance assessment
-        
-        """
+        """Perform disaggregated performance assessment"""
         performance_metrics = {
             "false_match_rate": Metric(
                 "false_match_rate", "BINARY_CLASSIFICATION", bcf["false_positive_rate"]
@@ -237,7 +236,7 @@ class IdentityVerification(Evaluator):
             ),
         }
         for sf_name in self.sensitive_features_names:
-            for threshold in self.thresholds:
+            for threshold in self.similarity_thresholds:
                 for level in self.comparison_levels:
                     self._assess_disaggregated_performance_one(
                         sf_name, threshold, level, performance_metrics
