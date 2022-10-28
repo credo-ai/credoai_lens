@@ -44,7 +44,6 @@ class Performance(Evaluator):
         The unthresholded predictions, confidence values or probabilities.
     """
 
-    name = "Performance"
     required_artifacts = {"model", "assessment_data"}
 
     def __init__(self, metrics=None):
@@ -82,9 +81,13 @@ class Performance(Evaluator):
             )
         if threshold_metrics is not None:
             for _, threshold_metric in threshold_metrics.iterrows():
-                threshold_metric.value.name = threshold_metric.threshold_metric
+                metric = threshold_metric.threshold_metric
+                threshold_metric.value.name = "threshold_dependent_performance"
                 self._results.append(
-                    TableContainer(threshold_metric.value, **self.get_container_info())
+                    TableContainer(
+                        threshold_metric.value,
+                        **self.get_container_info({"metric_type": metric}),
+                    )
                 )
         return self
 
