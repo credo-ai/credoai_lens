@@ -11,8 +11,7 @@ from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.governance import Governance
 from credoai.lens.pipeline_creator import PipelineCreator
-from credoai.utils import (ValidationError, check_subset, flatten_list,
-                           global_logger)
+from credoai.utils import ValidationError, check_subset, flatten_list, global_logger
 
 # Custom type
 Pipeline = List[Union[Evaluator, Tuple[Evaluator, str, dict]]]
@@ -76,13 +75,14 @@ class Lens:
         self.assessment_data = assessment_data
         self.training_data = training_data
         self.assessment_plan: dict = {}
-        self.gov = governance
+        self.gov = None
         self.pipeline: list = []
         self.logger = global_logger
         if self.assessment_data and self.assessment_data.sensitive_features is not None:
             self.sens_feat_names = list(self.assessment_data.sensitive_features)
         else:
             self.sens_feat_names = []
+        self._add_governance(governance)
         self._generate_pipeline(pipeline)
         # Can  pass pipeline directly
         self._validate()
@@ -323,6 +323,13 @@ class Lens:
                 logger_message += f"Sensitive feature: {metadata['sensitive_feature']}"
         self.logger.info(logger_message)
 
+    def _add_governance(self, governance: Governance = None):
+        if governance is None:
+            return
+        self.gov = governance
+        if self.model:
+            self.gov.set_artifacts(self.model, self.training_data, self.assessment_data)
+
     def _cycle_add_through_ds_feat(
         self,
         pipeline_step,
@@ -373,6 +380,11 @@ class Lens:
             if self.gov:
                 self.logger.info("Empty pipeline: generating from governance.")
                 pipeline = PipelineCreator.generate_from_governance(self.gov)
+                if not pipeline:
+                    self.logger.warning(
+                        "No pipeline created from governance! Check that your"
+                        " model is properly tagged. Try using Governance.tag_model"
+                    )
             else:
                 return
         # Create pipeline from list of steps
@@ -415,6 +427,11 @@ class Lens:
                     raise ValidationError(
                         "Sensitive features should have the same shape across assessment and training data"
                     )
+
+        if self.model is not None and self.gov is not None:
+            if self.model.tags not in self.gov._unique_tags:
+                mes = f"Model tags: {self.model.tags} are not among the once found in the governance object: {self.gov._unique_tags}"
+                self.logger.warning(mes)
 
     @staticmethod
     def _consume_pipeline_step(step):

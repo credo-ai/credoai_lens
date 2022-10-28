@@ -70,7 +70,6 @@ class TestCredoApi:
             "evidences": evidences,
             "$type": "assessments",
         }
-        api.create_assessment(use_case_id, policy_pack_id, evidences)
+        api.create_assessment(use_case_id, body)
 
         client.post.assert_called_with(f"use_cases/{use_case_id}/assessments", body)
-

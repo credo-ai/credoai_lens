@@ -20,14 +20,8 @@ class RegressionModel(Model):
             the class labels probabilities for each sample.
     """
 
-    def __init__(self, name: str, model_like=None):
-        super().__init__(
-            "Regression",
-            ["predict"],
-            ["predict"],
-            name,
-            model_like,
-        )
+    def __init__(self, name: str, model_like=None, tags=None):
+        super().__init__("Regression", ["predict"], ["predict"], name, model_like, tags)
 
 
 class DummyRegression:
