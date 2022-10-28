@@ -2,7 +2,6 @@
 from copy import deepcopy
 import pandas as pd
 from credoai.utils.common import ValidationError
-
 from .base_data import Data
 
 
@@ -18,6 +17,9 @@ class ComparisonData(Data):
         Label of the dataset
     pairs : pd.DataFrame of shape (n_pairs, 4)
         Dataframe where each row represents a data sample pair and associated subjects
+        Type of data sample is decided by the ComparisonModel's compare, which takes
+        data sample pairs and returns their similarity scores. Examples are selfies, fingerprint scans,
+        or voices of a person.
         Required columns:
             source-subject-id: unique identifier of the source subject
             source-subject-data-sample: data sample from the source subject
@@ -25,11 +27,11 @@ class ComparisonData(Data):
             target-subject-data-sample: data sample from the target subject
     subjects_sensitive_features : pd.DataFrame of shape (n_subjects, n_sensitive_feature_names), optional
         Sensitive features of all subjects present in pairs dataframe
-        This will be used for disaggregating performance
-        metrics. This can be the columns you want to perform segmentation analysis on, or
+        If provided, disaggregated performance assessment is also performed.
+        This can be the columns you want to perform segmentation analysis on, or
         a feature related to fairness like 'race' or 'gender'
         Required columns:
-            subject-id: id of subjects
+            subject-id: id of subjects. Must cover all the subjects inlcluded in `pairs` dataframe
             other columns with arbitrary names for sensitive features
     """
 
@@ -39,12 +41,14 @@ class ComparisonData(Data):
         self.subjects_sensitive_features = subjects_sensitive_features
         self._validate_pairs()
         self._validate_subjects_sensitive_features()
+        self._preprocess_subjects_sensitive_features()
 
     def copy(self):
         """Returns a deepcopy of the instantiated class"""
         return deepcopy(self)
 
     def _validate_pairs(self):
+        """Validate the input `pairs` object"""
         if self.pairs is not None:
             """Basic validation for pairs"""
             if not isinstance(self.pairs, (pd.DataFrame)):
@@ -59,10 +63,11 @@ class ComparisonData(Data):
             for c in required_columns:
                 if c not in available_columns:
                     raise ValidationError(
-                        f"pairs does not contain the required column '{c}'"
+                        f"pairs dataframe does not contain the required column '{c}'"
                     )
 
     def _validate_subjects_sensitive_features(self):
+        """Validate the input `subjects_sensitive_features` object"""
         if self.subjects_sensitive_features is not None:
             """Basic validation for subjects_sensitive_features"""
             if not isinstance(self.subjects_sensitive_features, (pd.DataFrame)):
@@ -72,8 +77,21 @@ class ComparisonData(Data):
             available_columns = self.subjects_sensitive_features.columns
             if "subject-id" not in available_columns:
                 raise ValidationError(
-                    "subjects_sensitive_features pandas dataframe does not contain the required column 'subject-id'"
+                    "subjects_sensitive_features dataframe does not contain the required column 'subject-id'"
                 )
+            if len(available_columns) < 2:
+                raise ValidationError(
+                    "subjects_sensitive_features dataframe includes 'subject-id' column only. It must include at least one sensitive feature column too."
+                )
+
+    def _preprocess_subjects_sensitive_features(self):
+        """Preprocess the input `subjects_sensitive_features` object"""
+        sensitive_features_names = list(self.subjects_sensitive_features.columns)
+        sensitive_features_names.remove("subject-id")
+        for sf_name in sensitive_features_names:
+            self.subjects_sensitive_features[
+                sf_name
+            ] = self.subjects_sensitive_features[sf_name].astype(str)
 
     def _validate_X(self):
         pass
