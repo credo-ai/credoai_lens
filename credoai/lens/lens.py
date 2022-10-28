@@ -380,6 +380,11 @@ class Lens:
             if self.gov:
                 self.logger.info("Empty pipeline: generating from governance.")
                 pipeline = PipelineCreator.generate_from_governance(self.gov)
+                if not pipeline:
+                    self.logger.warning(
+                        "No pipeline created from governance! Check that your"
+                        " model is properly tagged. Try using Governance.tag_model"
+                    )
             else:
                 return
         # Create pipeline from list of steps

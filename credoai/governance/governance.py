@@ -73,6 +73,7 @@ class Governance:
         self._evidences: List[Evidence] = []
         self._model = None
         self._plan: Optional[dict] = None
+        self._unique_tags: List[dict] = []
 
         if credo_api_client:
             client = credo_api_client
@@ -159,7 +160,6 @@ class Governance:
             )
 
             # Extract unique tags
-            self._unique_tags: List[dict] = []
             for x in self._evidence_requirements:
                 if x.tags not in self._unique_tags:
                     self._unique_tags.append(x.tags)
@@ -192,6 +192,34 @@ class Governance:
     def clear_evidence(self):
         self.set_evidence([])
 
+    def export(self, filename=None):
+        """
+        Upload evidences to CredoAI Governance(Report) App
+
+        Returns
+        -------
+        True
+            When uploading is successful with all evidence
+        False
+            When it is not registered yet, or evidence is insufficient
+        """
+        if not self._validate_export():
+            return False
+        to_return = self._match_requirements()
+
+        if filename is None:
+            self._api_export()
+        else:
+            self._file_export(filename)
+
+        if to_return:
+            export_status = "All requirements were matched."
+        else:
+            export_status = "Partial match of requirements."
+
+        global_logger.info(export_status)
+        return to_return
+
     def get_evidence_requirements(self, tags: dict = None):
         """
         Returns evidence requirements. Each evidence requirement can have optional tags
@@ -216,17 +244,16 @@ class Governance:
         ]
         return reqs
 
+    def get_evidence_tags(self):
+        """Return the unique tags used for all evidence requirements"""
+        return self._unique_tags
+
     def get_model_tags(self):
+        """Get the tags for the associated model"""
         if self._model:
             return self._model["tags"]
         else:
             return None
-
-    def set_evidence(self, evidences: List[Evidence]):
-        """
-        Update evidences
-        """
-        self._evidences = evidences
 
     def set_artifacts(self, model, training_dataset=None, assessment_dataset=None):
         global_logger.info(
@@ -239,45 +266,27 @@ class Governance:
             prepared_model["assessment_dataset_name"] = assessment_dataset.name
         self._model = prepared_model
 
-    def match_requirements(self):
-        missing = []
-        required_labels = [e.label for e in self.get_evidence_requirements()]
-        for label in required_labels:
-            matching_evidence = self._check_inclusion(label, self._evidences)
-            if not matching_evidence:
-                missing.append(label)
-                global_logger.info(f"Missing required evidence with label ({label}).")
-            else:
-                matching_evidence[0].label = label
-        return not bool(missing)
-
-    def export(self, filename=None):
+    def set_evidence(self, evidences: List[Evidence]):
         """
-        Upload evidences to CredoAI Governance(Report) App
-
-        Returns
-        -------
-        True
-            When uploading is successful with all evidence
-        False
-            When it is not registered yet, or evidence is insufficient
+        Update evidences
         """
-        if not self._validate_export():
-            return False
-        to_return = self.match_requirements()
+        self._evidences = evidences
 
-        if filename is None:
-            self._api_export()
+    def tag_model(self, model):
+        tags = self.get_evidence_tags()
+        print(f"Select tag from assessment plan to associated with model:")
+        print("0: No tags")
+        for number, tag in enumerate(tags):
+            print(f"{number+1}: {tag}")
+        selection = int(input("Number of tag to associate: "))
+        if selection == 0:
+            selected_tag = None
         else:
-            self._file_export(filename)
-
-        if to_return:
-            export_status = "All requirements were matched."
-        else:
-            export_status = "Partial match of requirements."
-
-        global_logger.info(export_status)
-        return to_return
+            selected_tag = tags[selection - 1]
+        print(f"Selected tag = {selected_tag}. Applying to model...")
+        model.tags = selected_tag
+        if self._model:
+            self._model["tags"] = selected_tag
 
     def _api_export(self):
         global_logger.info(
@@ -308,6 +317,18 @@ class Governance:
         data = json_dumps(serialize(data=data, meta=meta))
         with open(filename, "w") as f:
             f.write(data)
+
+    def _match_requirements(self):
+        missing = []
+        required_labels = [e.label for e in self.get_evidence_requirements()]
+        for label in required_labels:
+            matching_evidence = self._check_inclusion(label, self._evidences)
+            if not matching_evidence:
+                missing.append(label)
+                global_logger.info(f"Missing required evidence with label ({label}).")
+            else:
+                matching_evidence[0].label = label
+        return not bool(missing)
 
     def _prepare_export_data(self):
         evidences = self._prepare_evidences()
