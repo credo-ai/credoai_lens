@@ -71,6 +71,7 @@ class Governance:
         self._policy_pack_id: Optional[str] = None
         self._evidence_requirements: List[EvidenceRequirement] = []
         self._evidences: List[Evidence] = []
+        self._model = None
         self._plan: Optional[dict] = None
 
         if credo_api_client:
@@ -182,6 +183,15 @@ class Governance:
     def registered(self):
         return bool(self._plan)
 
+    def add_evidence(self, evidences: Union[Evidence, List[Evidence]]):
+        """
+        Add evidences
+        """
+        self._evidences += wrap_list(evidences)
+
+    def clear_evidence(self):
+        self.set_evidence([])
+
     def get_evidence_requirements(self):
         """
         Returns evidence requirements
@@ -193,20 +203,15 @@ class Governance:
         """
         return self._evidence_requirements
 
-    def clear_evidence(self):
-        self.set_evidence([])
-
     def set_evidence(self, evidences: List[Evidence]):
         """
         Update evidences
         """
         self._evidences = evidences
 
-    def add_evidence(self, evidences: Union[Evidence, List[Evidence]]):
-        """
-        Add evidences
-        """
-        self._evidences += wrap_list(evidences)
+    def set_model(self, model):
+        prepared_model = {"name": model.name, "tags": model.tags}
+        self._model = prepared_model
 
     def match_requirements(self):
         missing = []
@@ -235,12 +240,10 @@ class Governance:
             return False
         to_return = self.match_requirements()
 
-        evidences = self._prepare_evidences()
-
         if filename is None:
-            self._api_export(evidences)
+            self._api_export()
         else:
-            self._file_export(evidences, filename)
+            self._file_export(filename)
 
         if to_return:
             export_status = "All requirements were matched."
@@ -250,11 +253,11 @@ class Governance:
         global_logger.info(export_status)
         return to_return
 
-    def _api_export(self, evidences):
+    def _api_export(self):
         global_logger.info(
-            f"Uploading {len(evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
+            f"Uploading {len(self._evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
         )
-        self._api.create_assessment(self._use_case_id, self._policy_pack_id, evidences)
+        self._api.create_assessment(self._use_case_id, self._prepare_export_data())
 
     def _check_inclusion(self, label, evidence):
         matching_evidence = []
@@ -270,19 +273,25 @@ class Governance:
             return False
         return matching_evidence
 
-    def _file_export(self, evidences, filename):
+    def _file_export(self, filename):
         global_logger.info(
-            f"Saving {len(evidences)} evidences to {filename}.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id} "
+            f"Saving {len(self._evidences)} evidences to {filename}.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id} "
         )
-        data = {
-            "policy_pack_id": self._policy_pack_id,
-            "evidences": evidences,
-            "$type": "assessments",
-        }
+        data = self._prepare_export_data()
         meta = {"client": "Credo AI Lens", "version": __version__}
         data = json_dumps(serialize(data=data, meta=meta))
         with open(filename, "w") as f:
             f.write(data)
+
+    def _prepare_export_data(self):
+        evidences = self._prepare_evidences()
+        data = {
+            "policy_pack_id": self._policy_pack_id,
+            "models": [self._model] if self._model else None,
+            "evidences": evidences,
+            "$type": "assessments",
+        }
+        return data
 
     def _prepare_evidences(self):
         evidences = list(map(lambda e: e.struct(), self._evidences))
