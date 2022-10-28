@@ -33,7 +33,6 @@ class Model(ABC):
         model_like,
         tags: Optional[dict] = None,
     ):
-
         self.type = type
         self.name = name
         self.model_like = model_like
