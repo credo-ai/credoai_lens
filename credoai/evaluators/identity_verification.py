@@ -120,10 +120,10 @@ class IdentityVerification(Evaluator):
 
         return self
 
-    def _preprocess_data(
+    def _process_data(
         self, pairs_processed, threshold=90, comparison_level="sample", sf=None
     ):
-        """Preprocess the pairs and sensitive features dataframes
+        """Process the pairs and sensitive features dataframes
 
         Parameters
         ----------
@@ -146,7 +146,7 @@ class IdentityVerification(Evaluator):
         Returns
         -------
         pd.DataFrame, pd.DataFrame
-            processed pairs and sensitive features dataframes
+            processeded pairs and sensitive features dataframes
         """
         pairs_processed["match_prediction"] = pairs_processed.apply(
             lambda x: 1 if x["similarity_score"] >= threshold else 0, axis=1
@@ -158,6 +158,9 @@ class IdentityVerification(Evaluator):
 
         sf_processed = None
         if sf is not None:
+            # Process the data for disaggregated assessment
+            #  Filter out the pairs with non-matching sensitive feature groups
+            #  and create the sensitive feature vector
             sf_name = list(sf.columns)
             sf_name.remove("subject-id")
             sf_name = sf_name[0]
@@ -188,7 +191,7 @@ class IdentityVerification(Evaluator):
             for level in self.comparison_levels:
                 cols = ["subject-id", "gender"]
                 sf = self.subjects_sensitive_features[cols]
-                pairs_processed, sf_processed = self._preprocess_data(
+                pairs_processed, sf_processed = self._process_data(
                     self.pairs.copy(),
                     threshold=threshold,
                     comparison_level=level,
@@ -245,7 +248,9 @@ class IdentityVerification(Evaluator):
     def _assess_disaggregated_performance_one(
         self, sf_name, threshold, level, performance_metrics
     ):
-        """Perform disaggregated performance assessment for one combination
+        """Perform disaggregated performance assessment for one combination 
+        
+        One combination of similarity threshold, comparision level, and sensitive feature
 
         Parameters
         ----------
@@ -260,7 +265,7 @@ class IdentityVerification(Evaluator):
         """
         cols = ["subject-id", sf_name]
         sf = self.subjects_sensitive_features[cols]
-        pairs_processed, sf_processed = self._preprocess_data(
+        pairs_processed, sf_processed = self._process_data(
             self.pairs.copy(),
             threshold=threshold,
             comparison_level=level,
