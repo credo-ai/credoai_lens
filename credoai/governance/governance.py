@@ -223,7 +223,8 @@ class Governance:
     def get_evidence_requirements(self, tags: dict = None):
         """
         Returns evidence requirements. Each evidence requirement can have optional tags
-        (a dictionary).
+        (a dictionary). Only returns requirements that have tags that match the model
+        (if provided), which are tags with the same tags as the model, or no tags.
 
         Parameters
         ----------
@@ -256,6 +257,7 @@ class Governance:
             return None
 
     def set_artifacts(self, model, training_dataset=None, assessment_dataset=None):
+        """Sets up internal knowledge of model and datasets to send to Credo AI Platform"""
         global_logger.info(
             f"Adding model ({model.name}) to governance. Model has tags: {model.tags}"
         )
@@ -273,6 +275,7 @@ class Governance:
         self._evidences = evidences
 
     def tag_model(self, model):
+        """Interactive utility to tag a model tags from assessment plan"""
         tags = self.get_evidence_tags()
         print(f"Select tag from assessment plan to associated with model:")
         print("0: No tags")
