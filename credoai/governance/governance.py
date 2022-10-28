@@ -194,24 +194,27 @@ class Governance:
 
     def get_evidence_requirements(self, tags: dict = None):
         """
-        Returns evidence requirements
+        Returns evidence requirements. Each evidence requirement can have optional tags
+        (a dictionary).
 
         Parameters
         ----------
         tags : dict, optional
-            Tags to subset evidence requirements
+            Tags to subset evidence requirements. If a model has been set, will default
+            to the model's tags. Evidence requirements will be returned that have no
+            tags or have the same tag as provided.
 
         Returns
         -------
         List[EvidenceRequirement]
         """
-        if tags:
-            requirements = [
-                e for e in self._evidence_requirements if (not e.tags or e.tags == tags)
-            ]
-        else:
-            requirements = self._evidence_requirements
-        return requirements
+        if tags is None:
+            tags = self.get_model_tags()
+
+        reqs = [
+            e for e in self._evidence_requirements if (not e.tags or e.tags == tags)
+        ]
+        return reqs
 
     def get_model_tags(self):
         if self._model:
@@ -226,7 +229,9 @@ class Governance:
         self._evidences = evidences
 
     def set_artifacts(self, model, training_dataset=None, assessment_dataset=None):
-        global_logger.info(f"Adding model ({model.name}) to governance.")
+        global_logger.info(
+            f"Adding model ({model.name}) to governance. Model has tags: {model.tags}"
+        )
         prepared_model = {"name": model.name, "tags": model.tags}
         if training_dataset:
             prepared_model["training_dataset_name"] = training_dataset.name
