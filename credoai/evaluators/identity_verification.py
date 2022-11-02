@@ -63,9 +63,9 @@ class IdentityVerification(Evaluator):
     ):
         self.similarity_thresholds = similarity_thresholds
         self.comparison_levels = comparison_levels
+        super().__init__()
 
-    name = "IdentityVerification"
-    required_artifacts = ["model", "assessment_data"]
+    required_artifacts = {"model", "assessment_data"}
 
     def _setup(self):
         self.pairs = self.assessment_data.pairs
@@ -94,8 +94,6 @@ class IdentityVerification(Evaluator):
             axis=1,
         )
 
-        self.results = list()
-
         return self
 
     def _validate_arguments(self):
@@ -114,7 +112,7 @@ class IdentityVerification(Evaluator):
             Values: detailed results associated with each category
         """
 
-        self._assess_overall_performance()
+        self.results = self._assess_overall_performance()
 
         if self.subjects_sensitive_features is not None:
             self._assess_disaggregated_performance()
@@ -188,6 +186,7 @@ class IdentityVerification(Evaluator):
 
     def _assess_overall_performance(self):
         """Perform overall performance assessment"""
+        overall_performance_res = []
         for threshold in self.similarity_thresholds:
             for level in self.comparison_levels:
                 cols = ["subject-id", "gender"]
@@ -221,11 +220,13 @@ class IdentityVerification(Evaluator):
                     "similarity_threshold": threshold,
                     "comparison_level": level,
                 }
-                self._results.append(
+                overall_performance_res.append(
                     MetricContainer(
                         res, **self.get_container_info(labels={**parameters_label})
                     )
                 )
+            
+            return overall_performance_res
 
     def _assess_disaggregated_performance(self):
         """Perform disaggregated performance assessment"""
