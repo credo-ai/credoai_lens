@@ -71,7 +71,9 @@ class Governance:
         self._policy_pack_id: Optional[str] = None
         self._evidence_requirements: List[EvidenceRequirement] = []
         self._evidences: List[Evidence] = []
+        self._model = None
         self._plan: Optional[dict] = None
+        self._unique_tags: List[dict] = []
 
         if credo_api_client:
             client = credo_api_client
@@ -157,9 +159,20 @@ class Governance:
                 )
             )
 
+            # Extract unique tags
+            for x in self._evidence_requirements:
+                if x.tags not in self._unique_tags:
+                    self._unique_tags.append(x.tags)
+            self._unique_tags = [x for x in self._unique_tags if x]
+
             global_logger.info(
                 f"Successfully registered with {len(self._evidence_requirements)} evidence requirements"
             )
+
+            if self._unique_tags:
+                global_logger.info(
+                    f"The following tags have being found in the evidence requirements: {self._unique_tags}"
+                )
 
             self.clear_evidence()
 
@@ -170,43 +183,14 @@ class Governance:
     def registered(self):
         return bool(self._plan)
 
-    def get_evidence_requirements(self):
-        """
-        Returns evidence requirements
-
-
-        Returns
-        -------
-        List[EvidenceRequirement]
-        """
-        return self._evidence_requirements
-
-    def clear_evidence(self):
-        self.set_evidence([])
-
-    def set_evidence(self, evidences: List[Evidence]):
-        """
-        Update evidences
-        """
-        self._evidences = evidences
-
     def add_evidence(self, evidences: Union[Evidence, List[Evidence]]):
         """
         Add evidences
         """
         self._evidences += wrap_list(evidences)
 
-    def match_requirements(self):
-        missing = []
-        required_labels = [e.label for e in self.get_evidence_requirements()]
-        for label in required_labels:
-            matching_evidence = self._check_inclusion(label, self._evidences)
-            if not matching_evidence:
-                missing.append(label)
-                global_logger.info(f"Missing required evidence with label ({label}).")
-            else:
-                matching_evidence[0].label = label
-        return not bool(missing)
+    def clear_evidence(self):
+        self.set_evidence([])
 
     def export(self, filename=None):
         """
@@ -221,14 +205,12 @@ class Governance:
         """
         if not self._validate_export():
             return False
-        to_return = self.match_requirements()
-
-        evidences = self._prepare_evidences()
+        to_return = self._match_requirements()
 
         if filename is None:
-            self._api_export(evidences)
+            self._api_export()
         else:
-            self._file_export(evidences, filename)
+            self._file_export(filename)
 
         if to_return:
             export_status = "All requirements were matched."
@@ -238,11 +220,82 @@ class Governance:
         global_logger.info(export_status)
         return to_return
 
-    def _api_export(self, evidences):
+    def get_evidence_requirements(self, tags: dict = None):
+        """
+        Returns evidence requirements. Each evidence requirement can have optional tags
+        (a dictionary). Only returns requirements that have tags that match the model
+        (if provided), which are tags with the same tags as the model, or no tags.
+
+        Parameters
+        ----------
+        tags : dict, optional
+            Tags to subset evidence requirements. If a model has been set, will default
+            to the model's tags. Evidence requirements will be returned that have no
+            tags or have the same tag as provided.
+
+        Returns
+        -------
+        List[EvidenceRequirement]
+        """
+        if tags is None:
+            tags = self.get_model_tags()
+
+        reqs = [
+            e for e in self._evidence_requirements if (not e.tags or e.tags == tags)
+        ]
+        return reqs
+
+    def get_evidence_tags(self):
+        """Return the unique tags used for all evidence requirements"""
+        return self._unique_tags
+
+    def get_model_tags(self):
+        """Get the tags for the associated model"""
+        if self._model:
+            return self._model["tags"]
+        else:
+            return None
+
+    def set_artifacts(self, model, training_dataset=None, assessment_dataset=None):
+        """Sets up internal knowledge of model and datasets to send to Credo AI Platform"""
         global_logger.info(
-            f"Uploading {len(evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
+            f"Adding model ({model.name}) to governance. Model has tags: {model.tags}"
         )
-        self._api.create_assessment(self._use_case_id, self._policy_pack_id, evidences)
+        prepared_model = {"name": model.name, "tags": model.tags}
+        if training_dataset:
+            prepared_model["training_dataset_name"] = training_dataset.name
+        if assessment_dataset:
+            prepared_model["assessment_dataset_name"] = assessment_dataset.name
+        self._model = prepared_model
+
+    def set_evidence(self, evidences: List[Evidence]):
+        """
+        Update evidences
+        """
+        self._evidences = evidences
+
+    def tag_model(self, model):
+        """Interactive utility to tag a model tags from assessment plan"""
+        tags = self.get_evidence_tags()
+        print(f"Select tag from assessment plan to associated with model:")
+        print("0: No tags")
+        for number, tag in enumerate(tags):
+            print(f"{number+1}: {tag}")
+        selection = int(input("Number of tag to associate: "))
+        if selection == 0:
+            selected_tag = None
+        else:
+            selected_tag = tags[selection - 1]
+        print(f"Selected tag = {selected_tag}. Applying to model...")
+        model.tags = selected_tag
+        if self._model:
+            self._model["tags"] = selected_tag
+
+    def _api_export(self):
+        global_logger.info(
+            f"Uploading {len(self._evidences)} evidences.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id}"
+        )
+        self._api.create_assessment(self._use_case_id, self._prepare_export_data())
 
     def _check_inclusion(self, label, evidence):
         matching_evidence = []
@@ -258,19 +311,37 @@ class Governance:
             return False
         return matching_evidence
 
-    def _file_export(self, evidences, filename):
+    def _file_export(self, filename):
         global_logger.info(
-            f"Saving {len(evidences)} evidences to {filename}.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id} "
+            f"Saving {len(self._evidences)} evidences to {filename}.. for use_case_id={self._use_case_id} policy_pack_id={self._policy_pack_id} "
         )
-        data = {
-            "policy_pack_id": self._policy_pack_id,
-            "evidences": evidences,
-            "$type": "assessments",
-        }
+        data = self._prepare_export_data()
         meta = {"client": "Credo AI Lens", "version": __version__}
         data = json_dumps(serialize(data=data, meta=meta))
         with open(filename, "w") as f:
             f.write(data)
+
+    def _match_requirements(self):
+        missing = []
+        required_labels = [e.label for e in self.get_evidence_requirements()]
+        for label in required_labels:
+            matching_evidence = self._check_inclusion(label, self._evidences)
+            if not matching_evidence:
+                missing.append(label)
+                global_logger.info(f"Missing required evidence with label ({label}).")
+            else:
+                matching_evidence[0].label = label
+        return not bool(missing)
+
+    def _prepare_export_data(self):
+        evidences = self._prepare_evidences()
+        data = {
+            "policy_pack_id": self._policy_pack_id,
+            "models": [self._model] if self._model else None,
+            "evidences": evidences,
+            "$type": "assessments",
+        }
+        return data
 
     def _prepare_evidences(self):
         evidences = list(map(lambda e: e.struct(), self._evidences))

@@ -20,13 +20,14 @@ class ClassificationModel(Model):
             the class labels probabilities for each sample.
     """
 
-    def __init__(self, name: str, model_like=None):
+    def __init__(self, name: str, model_like=None, tags=None):
         super().__init__(
             "Classification",
             ["predict", "predict_proba"],
             ["predict"],
             name,
             model_like,
+            tags,
         )
 
     def _update_functionality(self):
