@@ -62,7 +62,6 @@ class ModelFairness(Evaluator):
         self.fairness_prob_metrics = None
         super().__init__()
 
-    name = "ModelFairness"
     required_artifacts = {"model", "data", "sensitive_feature"}
 
     def _setup(self):
@@ -105,11 +104,9 @@ class ModelFairness(Evaluator):
 
         if disaggregated_thresh_results is not None:
             for key, df in disaggregated_thresh_results.items():
-                df.name = key
+                labels = {**sens_feat_label, **{"metric_type": key}}
                 self._results.append(
-                    TableContainer(
-                        df, **self.get_container_info(labels=sens_feat_label)
-                    )
+                    TableContainer(df, **self.get_container_info(labels=labels))
                 )
 
         return self
@@ -198,12 +195,15 @@ class ModelFairness(Evaluator):
             var_name="type",
         )
 
-        to_return = defaultdict(pd.DataFrame)
+        to_return = defaultdict(list)
         for i, row in df.iterrows():
-            label = f'{row["type"]}_disaggregated_performance'
             tmp_df = row["value"]
             tmp_df = tmp_df.assign(**row.drop("value"))
-            to_return[label] = pd.concat([to_return[label], tmp_df])
+            to_return[row["type"]].append(tmp_df)
+        for key in to_return.keys():
+            df = pd.concat(to_return[key])
+            df.name = "threshold_dependent_disaggregated_performance"
+            to_return[key] = df
         return to_return
 
     def get_fairness_results(self):

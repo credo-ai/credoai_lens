@@ -7,9 +7,8 @@ from abc import ABC, abstractproperty
 from datetime import datetime
 from typing import Tuple
 
-from pandas import DataFrame, Series
-
 from credoai.utils import ValidationError
+from pandas import DataFrame, Series
 
 
 class Evidence(ABC):
@@ -151,7 +150,7 @@ class TableEvidence(Evidence):
         return label
 
 
-class ProfilerEvidence(Evidence):
+class DataProfilerEvidence(Evidence):
     """
     Evidence for the result of pandas profiler"""
 

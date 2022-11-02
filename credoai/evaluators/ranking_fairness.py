@@ -5,12 +5,10 @@ import numpy as np
 import pandas as pd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
-    check_data_instance,
-    check_existence,
-    check_feature_presence,
-)
+from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
+                                                 check_data_instance,
+                                                 check_existence,
+                                                 check_feature_presence)
 from credoai.evidence.containers import MetricContainer
 from credoai.utils.common import NotRunError
 
@@ -45,7 +43,6 @@ class RankingFairness(Evaluator):
         self.desired_proportions = (desired_proportions,)
         self.skew_log = skew_log
 
-    name = "RankingFairness"
     required_artifacts = ["data", "sensitive_feature"]
 
     def _setup(self):

@@ -63,7 +63,6 @@ class ModelProfiler(Evaluator):
 
     """
 
-    name = "ModelProfiler"
     required_artifacts = {"model", "assessment_data"}
 
     def __init__(self, model_info: Optional[dict] = None):

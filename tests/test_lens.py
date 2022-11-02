@@ -4,20 +4,20 @@ Testing protocols for the Lens package. Tested functionalities:
     2. Individual evaluator runs
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import pytest
 from credoai.artifacts import TabularData
 from credoai.evaluators import (
     DataEquity,
     DataFairness,
-    DataProfiling,
+    DataProfiler,
+    FeatureDrift,
     ModelEquity,
     ModelFairness,
     Performance,
     Privacy,
     Security,
-    FeatureDrift,
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
@@ -66,15 +66,22 @@ class Base_Evaluator_Test(ABC):
     ...
 
 
-class TestModelFairness(Base_Evaluator_Test):
-    @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
-    def test_full_run(self, metrics):
-        evaluator = ModelFairness(metrics)
-        self.pipeline.add(evaluator)
-        self.pipeline.run()
-        assert len(self.pipeline.pipeline) == 4
-        assert self.pipeline.get_results()
-        self.pipeline.pipeline = {}
+@pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
+def test_model_fairness(
+    classification_model,
+    classification_assessment_data,
+    classification_train_data,
+    metrics,
+):
+    lens = Lens(
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
+    )
+    evaluator = ModelFairness(metrics)
+    lens.add(evaluator)
+    lens.run()
+    assert lens.get_results()
 
 
 def test_privacy(
@@ -98,18 +105,20 @@ class TestDataFairness(Base_Evaluator_Test):
         assert len(self.pipeline.pipeline) == 4
 
     def test_run(self):
+        self.pipeline.run()
         self.pipeline.get_results()
         assert True
 
 
-class TestDataProfiling(Base_Evaluator_Test):
-    evaluator = DataProfiling()
+class TestDataProfiler(Base_Evaluator_Test):
+    evaluator = DataProfiler()
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
         assert len(self.pipeline.pipeline) == 2
 
     def test_run(self):
+        self.pipeline.run()
         self.pipeline.get_results()
         assert True
 
@@ -150,15 +159,19 @@ class TestSecurity(Base_Evaluator_Test):
         assert self.pipeline.get_results()
 
 
-class TestPerformance(Base_Evaluator_Test):
-    @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
-    def test_full_run(self, metrics):
-        evaluator = Performance(metrics)
-        self.pipeline.add(evaluator)
-        self.pipeline.run()
-        assert len(self.pipeline.pipeline) == 1
-        assert self.pipeline.get_results()
-        self.pipeline.pipeline = {}
+@pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
+def test_performance(
+    credit_classification_model, credit_assessment_data, credit_training_data, metrics
+):
+    lens = Lens(
+        model=credit_classification_model,
+        assessment_data=credit_assessment_data,
+        training_data=credit_training_data,
+    )
+    evaluator = Performance(metrics)
+    lens.add(evaluator)
+    lens.run()
+    assert lens.get_results()
 
 
 class TestThresholdPerformance(Base_Evaluator_Test):
@@ -219,7 +232,7 @@ class TestRankingFairnes:
     pipeline = Lens(assessment_data=data)
 
     def test_add(self):
-        self.pipeline.add(self.evaluator, "dummy")
+        self.pipeline.add(self.evaluator)
         assert len(self.pipeline.pipeline) == 1
 
     def test_run(self):
@@ -227,7 +240,7 @@ class TestRankingFairnes:
         assert self.pipeline.get_results()
 
     def test_results(self):
-        results = self.pipeline.get_results()["dummy"][0].round(2)
+        results = self.pipeline.get_results()[0]["results"][0].round(2)
         results = results.reset_index(drop=True)
         assert results.equals(self.expected_results)
 
@@ -240,9 +253,9 @@ def test_bulk_pipeline_run(
     and the pipeline is running.
     """
     pipe_structure = [
-        (Security(), "Security assessment"),
-        (DataProfiling(), "Profiling test data"),
-        (DataFairness(), "Test data Fairness"),
+        Security(),
+        DataProfiler(),
+        DataFairness(),
     ]
     my_pipeline = Lens(
         model=classification_model,

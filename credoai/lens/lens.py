@@ -1,5 +1,9 @@
-import uuid
+"""
+Main orchestration module handling running evaluators on AI artifacts
+"""
+
 from copy import deepcopy
+from dataclasses import dataclass
 from inspect import isclass
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -7,13 +11,31 @@ from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
 from credoai.governance import Governance
 from credoai.lens.pipeline_creator import PipelineCreator
-from credoai.utils import ValidationError, flatten_list, global_logger
+from credoai.utils import ValidationError, check_subset, flatten_list, global_logger
 
 # Custom type
 Pipeline = List[Union[Evaluator, Tuple[Evaluator, str, dict]]]
 
 
 ## TODO: Decide Metadata policy, connected to governance and evidence creation!
+
+
+@dataclass
+class PipelineStep:
+    evaluator: Evaluator
+    metadata: Optional[dict] = None
+
+    def __post_init__(self):
+        if self.metadata is None:
+            self.metadata = {}
+        # TODO: keeping track of metadata somewhat unnecessarily. Could just add the metadata
+        # directly to pipeline
+        self.evaluator.metadata = self.metadata
+        self.metadata["evaluator"] = self.evaluator.name
+
+    def check_match(self, metadata):
+        """Return true if metadata is a subset of pipeline step's metadata"""
+        return check_subset(metadata, self.metadata)
 
 
 class Lens:
@@ -39,9 +61,8 @@ class Lens:
             Training data, extra dataset used by some of the evaluators, by default None
         pipeline : Pipeline_type, optional, default None
             User can add a pipeline using a list of steps. Steps can be in 2 formats:
-            - tuple: max length = 3. First element is the instantiated evaluator,
-            second element is the step id (optional), third element (optional) is metadata (dict)
-            associated to the step.
+            - tuple: max length = 2. First element is the instantiated evaluator,
+             second element (optional) is metadata (dict) associated to the step.
             - Evaluator. If the user does not intend to specify id or metadata, instantiated
             evaluators can be put directly in the list.
         governance : Governance, optional
@@ -54,27 +75,23 @@ class Lens:
         self.assessment_data = assessment_data
         self.training_data = training_data
         self.assessment_plan: dict = {}
-        self.gov = governance
-        self.pipeline: dict = {}
-        self.command_list: list = []
+        self.gov = None
+        self.pipeline: list = []
         self.logger = global_logger
-        self.pipeline_results: list = []
         if self.assessment_data and self.assessment_data.sensitive_features is not None:
             self.sens_feat_names = list(self.assessment_data.sensitive_features)
         else:
             self.sens_feat_names = []
+        self._add_governance(governance)
         self._generate_pipeline(pipeline)
         # Can  pass pipeline directly
         self._validate()
 
-    def __getitem__(self, stepname):
-        return self.pipeline[stepname]
-
-    def add(self, evaluator: Evaluator, id: str = None, metadata: dict = None):
+    def add(self, evaluator: Evaluator, metadata: dict = None):
         """
         Add a single step to the pipeline.
 
-        The function also passess extra arguments to the instantiated evaluator via
+        The function also passes extra arguments to the instantiated evaluator via
         a call to the __call__ method of the evaluator. Only the arguments required
         by the evaluator are provided.
 
@@ -82,9 +99,6 @@ class Lens:
         ----------
         evaluator : Evaluator
             Instantiated Credo Evaluator.
-        id : str, optional
-            A string to identify the step. If not provided one is randomly
-            generated, by default None
         metadata : dict, optional
             Any metadata associated to the step the user wants to add, by default None
 
@@ -95,19 +109,16 @@ class Lens:
         TypeError
             The first object passed to the add method needs to be a Credo Evaluator.
         """
-        ## Validate same identifier doesn't exist already
-        if id in self.pipeline:
-            raise ValueError(
-                f"An evaluator with id: {id} is already in the pipeline. Id has to be unique"
-            )
-        eval_reqrd_params = evaluator.required_artifacts
+        step = PipelineStep(evaluator, metadata)
+
+        eval_reqrd_params = step.evaluator.required_artifacts
         check_sens_feat = "sensitive_feature" in eval_reqrd_params
         check_data = "data" in eval_reqrd_params
 
         ## Validate basic requirements
         if check_sens_feat and not self.sens_feat_names:
             raise ValidationError(
-                f"Evaluator {evaluator.name} requires sensitive features"
+                f"Evaluator {step.evaluator.name} requires sensitive features"
             )
 
         ## Define necessary arguments for evaluator
@@ -118,7 +129,7 @@ class Lens:
         ## Basic case: eval depends on specific datasets and not on sens feat
         try:
             if not check_data and not check_sens_feat:
-                self._add(evaluator, id, metadata, evaluator_arguments)
+                self._add(step, evaluator_arguments)
                 return self
 
             if check_sens_feat:
@@ -127,8 +138,7 @@ class Lens:
                 features_to_eval = [self.sens_feat_names[0]]  # Cycle only once
 
             self._cycle_add_through_ds_feat(
-                evaluator,
-                id,
+                step,
                 check_sens_feat,
                 check_data,
                 evaluator_arguments,
@@ -136,36 +146,32 @@ class Lens:
             )
         except ValidationError as e:
             self.logger.info(
-                f"Evaluator {evaluator.name} NOT added to the pipeline: {e}"
+                f"Evaluator {step.evaluator.name} NOT added to the pipeline: {e}"
             )
         return self
 
-    def remove(self, id: str):
+    def remove(self, index: int):
         """
         Remove a step from the pipeline based on the id.
 
         Parameters
         ----------
-        id : str
-            Id of the step to remove
+        index : int
+            Index of the step to remove
         """
         # Find position
-        del self.pipeline[id]
+        del self.pipeline[index]
         return self
 
     def run(self):
         """
         Run the main loop across all the pipeline steps.
         """
-        if self.pipeline == {}:
+        if self.pipeline == []:
             raise RuntimeError("No evaluators were added to the pipeline.")
-        for step, details in self.pipeline.items():
+        for step in self.pipeline:
             self.logger.info(f"Running evaluation for step: {step}")
-            details["evaluator"].evaluate()
-            # Populate pipeline results
-            self.pipeline_results.append(
-                {"id": step, "results": details["evaluator"].results}
-            )
+            step.evaluator.evaluate()
         return self
 
     def send_to_governance(self, overwrite_governance=False):
@@ -195,37 +201,88 @@ class Lens:
             )
         return self
 
-    def get_evidence(self):
+    def get_datasets(self):
+        return {
+            name: data
+            for name, data in vars(self).items()
+            if "data" in name and data is not None
+        }
+
+    def get_evidence(self, evaluator_name=None, metadata=None):
         """
-        Converts evaluator results to evidence for the platform from the pipeline results.
+        Extract evidence from pipeline steps. Uses get_pipeline to determine to subset
+        of pipeline steps to use
+
+        Parameters
+        ----------
+        evaluator_name : str
+            Name of evaluator to use to filter results. Must match the class name of an evaluator.
+            Passed to `get_pipeline`
+        metadata : dict
+            Dictionary of evaluator metadata to filter results. Will return pipeline results
+            whose metadata is a superset of the passed metadata. Passed to `get_pipeline`
 
         Return
         ------
         List of Evidence
         """
-        all_results = flatten_list([x["results"] for x in self.pipeline_results])
+        pipeline_subset = self.get_pipeline(evaluator_name, metadata)
+        pipeline_results = flatten_list(
+            [step.evaluator.results for step in pipeline_subset]
+        )
         evidences = []
-        for result in all_results:
+        for result in pipeline_results:
             evidences += result.to_evidence()
         return evidences
 
-    def get_results(self) -> Dict:
+    def get_pipeline(self, evaluator_name=None, metadata=None):
+        """Returns pipeline or subset of pipeline steps
+
+        Parameters
+        ----------
+        evaluator_name : str
+            Name of evaluator to use to filter results. Must match the class name of an evaluator.
+        metadata : dict
+            Dictionary of evaluator metadata to filter results. Will return pipeline results
+            whose metadata is a superset of the passed metadata
+
+        Returns
+        -------
+        List of PipelineSteps
         """
-        Extract results from the pipeline output.
+        to_check = metadata or {}
+        if evaluator_name:
+            to_check["evaluator"] = evaluator_name
+        return [p for p in self.pipeline if p.check_match(to_check)]
+
+    def get_results(self, evaluator_name=None, metadata=None) -> List[Dict]:
+        """
+        Extract results from pipeline steps. Uses get_pipeline to determine to subset
+        of pipeline steps to use
+
+        Parameters
+        ----------
+        evaluator_name : str
+            Name of evaluator to use to filter results. Must match the class name of an evaluator.
+            Passed to `get_pipeline`
+        metadata : dict
+            Dictionary of evaluator metadata to filter results. Will return pipeline results
+            whose metadata is a superset of the passed metadata. Passed to `get_pipeline`
 
         Returns
         -------
         Dict
             The format of the dictionary is Pipeline step id: results
         """
-        res = {x["id"]: [i.df for i in x["results"]] for x in self.pipeline_results}
-        return res
-
-    def get_command_list(self):
-        return print("\n".join(self.command_list))
-
-    def get_evaluators(self):
-        return [i["evaluator"] for i in self.pipeline.values()]
+        pipeline_subset = self.get_pipeline(evaluator_name, metadata)
+        pipeline_results = [
+            {
+                "metadata": step.metadata,
+                "results": [r.df for r in step.evaluator.results],
+            }
+            for step in pipeline_subset
+        ]
+        return pipeline_results
 
     def print_results(self):
         results = self.get_results()
@@ -241,9 +298,7 @@ class Lens:
 
     def _add(
         self,
-        evaluator: Evaluator,
-        id: Optional[str],
-        metadata: Optional[dict],
+        pipeline_step: PipelineStep,
         evaluator_arguments: dict,
     ):
         """
@@ -251,27 +306,16 @@ class Lens:
 
         Parameters
         ----------
-        evaluator : Evaluator
-            Instantiated evaluator
-        id : str
-            Step identifier
-        evaluator_arguments : dict
-            Arguments needed for the specific evaluator
-        metadata : dict, optional
-            Any Metadata to associate to the evaluator, by default None
+        pipeline_step : PipelineStep
+            An instance of a PipelineStep
         """
-        if id is None:
-            id = f"{evaluator.name}_{str(uuid.uuid4())[0:6]}"
-
+        pipeline_step.evaluator = pipeline_step.evaluator(**evaluator_arguments)
         ## Attempt pipe addition
-
-        self.pipeline[id] = {
-            "evaluator": evaluator(**evaluator_arguments),
-            "meta": metadata,
-        }
+        self.pipeline.append(pipeline_step)
 
         # Create logging message
-        logger_message = f"Evaluator {evaluator.name} added to pipeline. "
+        logger_message = f"Evaluator {pipeline_step.evaluator.name} added to pipeline. "
+        metadata = pipeline_step.metadata
         if metadata is not None:
             if "dataset" in metadata:
                 logger_message += f"Dataset used: {metadata['dataset']}. "
@@ -279,32 +323,39 @@ class Lens:
                 logger_message += f"Sensitive feature: {metadata['sensitive_feature']}"
         self.logger.info(logger_message)
 
+    def _add_governance(self, governance: Governance = None):
+        if governance is None:
+            return
+        self.gov = governance
+        if self.model:
+            self.gov.set_artifacts(self.model, self.training_data, self.assessment_data)
+
     def _cycle_add_through_ds_feat(
         self,
-        evaluator,
-        id,
+        pipeline_step,
         check_sens_feat,
         check_data,
         evaluator_arguments,
         features_to_eval,
     ):
         for feat in features_to_eval:
+            additional_meta = {}
+            if check_sens_feat:
+                additional_meta["sensitive_feature"] = feat
             if check_data:
-                available_datasets = [
-                    n for n, a in vars(self).items() if "data" in n if a
-                ]
-                for dataset in available_datasets:
-                    labels = {"sensitive_feature": feat} if check_sens_feat else {}
-                    labels["dataset"] = dataset
-                    evaluator_arguments["data"] = vars(self)[dataset]
+                for dataset_label, dataset in self.get_datasets().items():
+                    additional_meta["dataset_type"] = dataset_label
+                    step = deepcopy(pipeline_step)
+                    step.metadata.update(additional_meta)
+                    evaluator_arguments["data"] = dataset
                     self.change_sens_feat_view(evaluator_arguments, feat)
-                    self._add(deepcopy(evaluator), id, labels, evaluator_arguments)
+                    self._add(step, evaluator_arguments)
             else:
                 self.change_sens_feat_view(evaluator_arguments, feat)
+                step = deepcopy(pipeline_step)
+                step.metadata.update(additional_meta)
                 self._add(
-                    deepcopy(evaluator),
-                    id,
-                    {"sensitive_feature": feat},
+                    step,
                     evaluator_arguments,
                 )
         return self
@@ -329,20 +380,23 @@ class Lens:
             if self.gov:
                 self.logger.info("Empty pipeline: generating from governance.")
                 pipeline = PipelineCreator.generate_from_governance(self.gov)
+                if not pipeline:
+                    self.logger.warning(
+                        "No pipeline created from governance! Check that your"
+                        " model is properly tagged. Try using Governance.tag_model"
+                    )
             else:
                 return
         # Create pipeline from list of steps
         for step in pipeline:
             if not isinstance(step, tuple):
                 step = (step,)
-            evaltr, id, meta = self._consume_pipeline_step(step)
+            evaltr, meta = self._consume_pipeline_step(step)
             if isclass(evaltr):
                 raise ValidationError(
                     f"Evaluator in step {step} needs to be instantiated"
                 )
-            if not (isinstance(id, str) or id is None):
-                raise ValueError(f"Id in step {step} must be a string, received {id}")
-            self.add(evaltr, id, meta)
+            self.add(evaltr, meta)
         return self
 
     def _validate(self):
@@ -374,15 +428,19 @@ class Lens:
                         "Sensitive features should have the same shape across assessment and training data"
                     )
 
+        if self.model is not None and self.gov is not None:
+            if self.model.tags not in self.gov._unique_tags:
+                mes = f"Model tags: {self.model.tags} are not among the once found in the governance object: {self.gov._unique_tags}"
+                self.logger.warning(mes)
+
     @staticmethod
     def _consume_pipeline_step(step):
         def safe_get(step, index):
             return (step[index : index + 1] or [None])[0]
 
         evaltr = safe_get(step, 0)
-        id = safe_get(step, 1)
-        meta = safe_get(step, 2)
-        return evaltr, id, meta
+        meta = safe_get(step, 1)
+        return evaltr, meta
 
     @staticmethod
     def change_sens_feat_view(evaluator_arguments: Dict[str, Data], feat: str):

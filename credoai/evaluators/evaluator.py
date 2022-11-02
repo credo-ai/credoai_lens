@@ -17,6 +17,11 @@ class Evaluator(ABC):
         self._results = None
         self.artifact_keys = []
         self.logger = global_logger
+        self.metadata = {}
+
+    @property
+    def name(self):
+        return self.__class__.__name__
 
     @property
     def results(self):
@@ -35,12 +40,6 @@ class Evaluator(ABC):
             if not isinstance(result, EvidenceContainer):
                 raise ValidationError("All results must be EvidenceContainers")
         self._results = results
-
-    @property
-    @abstractmethod
-    def name(self):
-        """Used to define a unique identifier for the specific evaluator"""
-        pass
 
     @property
     @abstractmethod
@@ -106,11 +105,20 @@ class Evaluator(ABC):
         return info
 
     def _base_container_info(self):
-        return {"labels": {"evaluator": self.name}, "metadata": self._get_artifacts()}
+        meta = {**self.metadata, **self._get_artifacts()}
+        labels = {"evaluator": self.name}
+        if "dataset_type" in meta:
+            labels["dataset_type"] = meta["dataset_type"]
+        return {"labels": labels, "metadata": meta}
 
     def _get_artifacts(self):
         artifacts = {}
-        save_keys = {"model": "model_name"}
+        save_keys = {
+            "model": "model_name",
+            "data": "dataset_name",
+            "assessment_data": "assessment_dataset_name",
+            "training_data": "training_dataset_name",
+        }
         for k in self.artifact_keys:
             save_key = save_keys.get(k, k)
             try:
