@@ -97,44 +97,32 @@ class Deepchecks(Evaluator):
         self
         """
         self._setup_deepchecks()
+        self.run_suite()
 
+        self.results = [DeepchecksContainer(self.name, self.suite_results)]
+
+        return self
+
+    def run_suite(self):
         if self.train_dataset and self.test_dataset:
-            self.results = [
-                DeepchecksContainer(
-                    self.name,
-                    self.suite.run(
-                        train_dataset=self.train_dataset,
-                        test_dataset=self.test_dataset,
-                        model=self.model.model_like,
-                    ),
-                )
-            ]
+            self.suite_results = self.suite.run(
+                train_dataset=self.train_dataset,
+                test_dataset=self.test_dataset,
+                model=self.model.model_like,
+            )
 
         elif self.train_dataset:
-            self.results = [
-                DeepchecksContainer(
-                    self.name,
-                    self.suite.run(
-                        train_dataset=self.train_dataset, model=self.model.model_like
-                    ),
-                )
-            ]
+            self.suite_results = self.suite.run(
+                train_dataset=self.train_dataset, model=self.model.model_like
+            )
         else:
             # Deepchecks expects the user to specify a train dataset if only a single
             # dataset is specified, even if that single dataset is supposed to be a test set
             # This doesn't really make sense and makes client code (like ours) less readable.
             # Nevertheless, there's no way around it.
-            self.results = [
-                DeepchecksContainer(
-                    self.name,
-                    self.suite.run(
-                        train_dataset=self.test_dataset, model=self.model.model_like
-                    ),
-                )
-            ]
-
-        # convert suite results to json and package into deepchecks evidence
-        return self
+            self.suite_results = self.suite.run(
+                train_dataset=self.test_dataset, model=self.model.model_like
+            )
 
     def _validate_arguments(self):
         """
