@@ -153,7 +153,7 @@ class TableEvidence(Evidence):
         return label
 
 
-class ProfilerEvidence(Evidence):
+class DataProfilerEvidence(Evidence):
     """
     Evidence for the result of pandas profiler"""
 

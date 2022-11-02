@@ -15,7 +15,7 @@ from pandas_profiling import ProfileReport
 matplotlib.use(backend)
 
 
-class DataProfiling(Evaluator):
+class DataProfiler(Evaluator):
     """Data profiling module for Credo AI.
 
     This evaluator runs the pandas profiler on a data. Pandas profiler calculates a number
@@ -31,7 +31,6 @@ class DataProfiling(Evaluator):
         Passed to pandas_profiling.ProfileReport
     """
 
-    name = "DataProfiler"
     required_artifacts = {"data"}
 
     def __init__(self, dataset_name=None, **profile_kwargs):
@@ -40,14 +39,11 @@ class DataProfiling(Evaluator):
         super().__init__()
 
     def _setup(self):
-        self.data_to_eval = self.data
-
-        self.data = pd.concat([self.data_to_eval.X, self.data_to_eval.y], axis=1)
+        self.data_to_profile = pd.concat([self.data.X, self.data.y], axis=1)
         return self
 
     def _validate_arguments(self):
         check_data_instance(self.data, TabularData)
-
         return self
 
     def get_html_report(self):
@@ -67,4 +63,4 @@ class DataProfiling(Evaluator):
     def _create_reporter(self):
         default_kwargs = {"title": "Dataset", "minimal": True}
         default_kwargs.update(self.profile_kwargs)
-        return ProfileReport(self.data, **default_kwargs)
+        return ProfileReport(self.data_to_profile, **default_kwargs)

@@ -12,9 +12,9 @@ from credoai.utils import ValidationError
 from deepchecks.core import SuiteResult
 
 from .evidence import (
+    DataProfilerEvidence,
     MetricEvidence,
     ModelProfilerEvidence,
-    ProfilerEvidence,
     TableEvidence,
     DeepchecksEvidence,
 )
@@ -117,7 +117,7 @@ class ProfilerContainer(EvidenceContainer):
     """Container for all profiler type evidence"""
 
     def __init__(self, data, labels: dict = None, metadata: dict = None):
-        super().__init__(ProfilerEvidence, data, labels)
+        super().__init__(DataProfilerEvidence, data, labels, metadata)
 
     def to_evidence(self, **metadata):
         return [

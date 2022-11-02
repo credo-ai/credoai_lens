@@ -1,13 +1,14 @@
+import enum
 from typing import Dict, List, Optional, Union
 
-from numpy import abs, mean
-from pandas import DataFrame, concat
-from shap import Explainer, Explanation, kmeans
-
+import numpy as np
+import pandas as pd
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
 from credoai.evidence import TableContainer
 from credoai.utils.common import ValidationError
+
+from shap import Explainer, Explanation, kmeans
 
 
 class ShapExplainer(Evaluator):
@@ -72,7 +73,6 @@ class ShapExplainer(Evaluator):
         background_kmeans: Union[bool, int] = False,
     ):
         """
-        _summary_
 
         Parameters
         ----------
@@ -89,8 +89,8 @@ class ShapExplainer(Evaluator):
         self._validate_samples_ind()
         self.background_samples = background_samples
         self.background_kmeans = background_kmeans
+        self.classes = [None]
 
-    name = "Shap"
     required_artifacts = ["assessment_data", "model"]
 
     def _setup(self):
@@ -104,16 +104,16 @@ class ShapExplainer(Evaluator):
     def evaluate(self):
         ## Overall stats
         self._setup_shap()
-        res = self._get_overall_shap_contributions()
-        self.results = [TableContainer(res, **self.get_container_info())]
+        self.results = [
+            TableContainer(
+                self._get_overall_shap_contributions(), **self.get_container_info()
+            )
+        ]
 
         ## Sample specific results
         if self.samples_ind:
-            labels = {"ordered_feature_names": self.shap_values.feature_names}
             ind_res = self._get_mult_sample_shapley_values()
-            self.results += [
-                TableContainer(ind_res, **self.get_container_info(labels=labels))
-            ]
+            self.results += [TableContainer(ind_res, **self.get_container_info())]
         return self
 
     def _setup_shap(self):
@@ -136,9 +136,25 @@ class ShapExplainer(Evaluator):
             explainer = Explainer(self.model.predict, data_summary)
         # Generating the actual values calling the specific Shap function
         self.shap_values = explainer(self.X)
+
+        # Define values dataframes and classes variables depending on
+        # the shape of the returned values. This accounts for multi class
+        # classification
+        s_values = self.shap_values.values
+        if len(s_values.shape) == 2:
+            self.values_df = [pd.DataFrame(s_values)]
+        elif len(s_values.shape) == 3:
+            self.values_df = [
+                pd.DataFrame(s_values[:, :, i]) for i in range(s_values.shape[2])
+            ]
+            self.classes = self.model.model_like.classes_
+        else:
+            raise RuntimeError(
+                f"Shap vales have unsupported format. Detected shape {s_values.shape}"
+            )
         return self
 
-    def _get_overall_shap_contributions(self) -> DataFrame:
+    def _get_overall_shap_contributions(self) -> pd.DataFrame:
         """
         Calculate overall SHAP contributions for a dataset.
 
@@ -151,27 +167,61 @@ class ShapExplainer(Evaluator):
 
         Returns
         -------
-        DataFrame
+        pd.DataFrame
             Summary of the Shapley values across the full dataset.
         """
-        values_df = DataFrame(self.shap_values.values)
-        values_df.columns = self.shap_values.feature_names
-        shap_means = values_df.apply(["mean"]).T
-        shap_abs_means = values_df.apply(lambda x: mean(abs(x)))
-        shap_abs_means.name = "mean(|x|)"
-        final = concat([shap_means, shap_abs_means], axis=1)
-        final = final.sort_values("mean(|x|)", ascending=False)
-        final.name = "Summary of Shap statistics"
 
+        shap_summaries = [
+            self._summarize_shap_values(frame) for frame in self.values_df
+        ]
+        if len(self.classes) > 1:
+            for label, df in zip(self.classes, shap_summaries):
+                df.assign(class_label=label)
+        # fmt: off
+        shap_summary = (
+            pd.concat(shap_summaries)
+            .reset_index()
+            .rename({"index": "feature_name"}, axis=1)
+        )
+        # fmt: on
+        shap_summary.name = "Summary of Shap statistics"
+        return shap_summary
+
+    def _summarize_shap_values(self, shap_val: pd.DataFrame) -> pd.DataFrame:
+        """
+        Summarize Shape values at a Dataset level.
+
+        Parameters
+        ----------
+        shap_val : pd.DataFrame
+            Table containing shap values, if the model output is multiclass,
+            the table corresponds to the values for a single class.
+
+        Returns
+        -------
+        pd.DataFrame
+            Summarized shap values.
+        """
+        shap_val.columns = self.shap_values.feature_names
+        summaries = {"mean": np.mean, "mean(|x|)": lambda x: np.mean(np.abs(x))}
+        results = map(lambda func: shap_val.apply(func), summaries.values())
+        # fmt: off
+        final = (
+            pd.concat(results, axis=1) 
+            .set_axis(summaries.keys(), axis=1)
+            .sort_values("mean(|x|)", ascending=False)
+        )
+        # fmt: on
+        final.name = "Summary of Shap statistics"
         return final
 
-    def _get_mult_sample_shapley_values(self) -> DataFrame:
+    def _get_mult_sample_shapley_values(self) -> pd.DataFrame:
         """
         Return shapley values for multiple samples from the dataset.
 
         Returns
         -------
-        DataFrame
+        pd.DataFrame
             Columns:
                 values -> shap values
                 ref_value -> Reference value for the shap values
@@ -180,13 +230,11 @@ class ShapExplainer(Evaluator):
         """
         all_sample_shaps = []
         for ind in self.samples_ind:
-            all_sample_shaps.append(
-                {
-                    **self._get_single_sample_values(self.shap_values[ind]),
-                    **{"sample_pos": ind},
-                }
-            )
-        res = DataFrame(all_sample_shaps)
+            sample_results = self._get_single_sample_values(self.shap_values[ind])
+            sample_results = sample_results.assign(sample_pos=ind)
+            all_sample_shaps.append(sample_results)
+
+        res = pd.concat(all_sample_shaps)
         res.name = "Shap values for specific samples"
         return res
 
@@ -213,8 +261,7 @@ class ShapExplainer(Evaluator):
                 message = "The maximum amount of individual samples_ind allowed is 5."
                 raise ValidationError(message)
 
-    @staticmethod
-    def _get_single_sample_values(sample_shap: Explanation) -> Dict:
+    def _get_single_sample_values(self, sample_shap: Explanation) -> pd.DataFrame:
         """
         Returns shapley values for a specific sample in the dataset
 
@@ -234,7 +281,20 @@ class ShapExplainer(Evaluator):
             The model prediction for the sample is equal to: ref_value + sum(values)
         """
 
-        return {
-            "values": sample_shap.values,
-            "ref_value": sample_shap.base_values,
-        }
+        class_values = []
+
+        if len(self.classes) == 1:
+            return pd.DataFrame({"values": sample_shap.values}).assign(
+                ref_value=sample_shap.base_values,
+                column_names=self.shap_values.feature_names,
+            )
+
+        for label, cls in enumerate(self.classes):
+            class_values.append(
+                pd.DataFrame({"values": sample_shap.values[:, label]}).assign(
+                    class_label=cls,
+                    ref_value=sample_shap.base_values[label],
+                    column_names=self.shap_values.feature_names,
+                )
+            )
+        return pd.concat(class_values)

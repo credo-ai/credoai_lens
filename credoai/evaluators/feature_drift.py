@@ -1,12 +1,11 @@
 """Feature Drift evaluator"""
-from pandas import DataFrame, Series
-
 from credoai.artifacts import ClassificationModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
 from credoai.evidence import MetricContainer
 from credoai.evidence.containers import TableContainer
 from credoai.modules.credoai_metrics import population_stability_index
+from pandas import DataFrame, Series
 
 
 class FeatureDrift(Evaluator):
@@ -50,8 +49,6 @@ class FeatureDrift(Evaluator):
         self.percentage = False
         super().__init__()
 
-    name = "Feature Drift"
-
     required_artifacts = {"model", "assessment_data", "training_data"}
 
     def _validate_arguments(self):
@@ -81,10 +78,10 @@ class FeatureDrift(Evaluator):
 
     def evaluate(self):
         prediction_psi = self._calculate_psi_on_prediction()
-        self.results = [MetricContainer(prediction_psi, self.get_container_info())]
+        self.results = [MetricContainer(prediction_psi, **self.get_container_info())]
         if self.csi_calculation:
             csi = self._calculate_csi()
-            self.results.append(TableContainer(csi, self.get_container_info()))
+            self.results.append(TableContainer(csi, **self.get_container_info()))
         return self
 
     def _calculate_psi_on_prediction(self) -> DataFrame:
@@ -126,7 +123,8 @@ class FeatureDrift(Evaluator):
             else:
                 psis[col_name] = population_stability_index(train_data, assess_data)
         psis = DataFrame.from_dict(psis, orient="index")
-        psis.columns = ["value"]
+        psis = psis.reset_index()
+        psis.columns = ["feature_names", "value"]
         psis.name = "Characteristic Stability Index"
         return psis
 
