@@ -83,8 +83,8 @@ class TestQuickstart(Base_Evaluator_Test):
 
         # initialize the evaluator and add it to Lens
         metrics = ["precision_score", "recall_score", "equal_opportunity"]
-        lens.add(ModelFairness(metrics=metrics), id="MyModelFairness")
-        lens.add(Performance(metrics=metrics), id="MyModelPerformance")
+        lens.add(ModelFairness(metrics=metrics))
+        lens.add(Performance(metrics=metrics))
 
         # run Lens
         lens.run()
@@ -92,8 +92,8 @@ class TestQuickstart(Base_Evaluator_Test):
         assert lens.get_results()
 
         pipeline = [
-            (ModelFairness(metrics), "MyModelFairness"),
-            (Performance(metrics), "MyModelPerformance"),
+            (ModelFairness(metrics)),
+            (Performance(metrics)),
         ]
         lens = Lens(model=credo_model, assessment_data=credo_data, pipeline=pipeline)
 
@@ -119,7 +119,7 @@ class TestQuickstart(Base_Evaluator_Test):
 
         lens = Lens(model=credo_model, assessment_data=credo_data)
         metrics = ["precision_score", "recall_score", "equal_opportunity"]
-        lens.add(ModelFairness(metrics=metrics), id="MyModelFairness")
+        lens.add(ModelFairness(metrics=metrics))
         lens.run()
 
         assert lens.get_results()
