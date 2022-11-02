@@ -3,8 +3,6 @@ from credoai.datasets import fetch_creditdefault
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
-from abc import ABC
-
 from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import (
     ModelFairness,
@@ -45,18 +43,7 @@ def setup_artifacts():
     )
 
 
-class Base_Evaluator_Test(ABC):
-    """
-    Base evaluator class
-
-    This takes in the initialized lens fixture and defines standardized tests
-    for each evaluator.
-    """
-
-    ...
-
-
-class TestQuickstart(Base_Evaluator_Test):
+class TestQuickstart:
     (
         X_train,
         y_train,
