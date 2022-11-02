@@ -1,3 +1,4 @@
+"""Identity Verification evaluator"""
 import pandas as pd
 from credoai.artifacts import ComparisonData, ComparisonModel
 from credoai.evaluators import Evaluator
