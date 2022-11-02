@@ -57,7 +57,7 @@ class EvidenceContainer(ABC):
 
     def _validate_inputs(self, data):
         if not isinstance(data, pd.DataFrame):
-            raise ValidationError("'df' must be a dataframe")
+            raise ValidationError("'data' must be a dataframe")
 
     @abstractmethod
     def _validate(self, df):
