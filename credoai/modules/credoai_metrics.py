@@ -233,8 +233,11 @@ def ks_statistic(y_true, y_pred) -> float:
     return ks_stat
 
 
-def interpolate_increasing_thresholds(lib_thresholds, *series, quantization=0.01):
+def interpolate_increasing_thresholds(lib_thresholds, *series):
     out = [list() for i in series]
+    quantization = 1 / (
+        len(lib_thresholds) * (max(lib_thresholds) - min(lib_thresholds))
+    )
     interpolated_thresholds = np.arange(
         min(lib_thresholds), max(lib_thresholds), quantization
     )
@@ -250,8 +253,11 @@ def interpolate_increasing_thresholds(lib_thresholds, *series, quantization=0.01
     return out + [interpolated_thresholds]
 
 
-def interpolate_decreasing_thresholds(lib_thresholds, *series, quantization=-0.01):
+def interpolate_decreasing_thresholds(lib_thresholds, *series):
     out = [list() for i in series]
+    quantization = -1 / (
+        len(lib_thresholds) * (max(lib_thresholds) - min(lib_thresholds))
+    )
     interpolated_thresholds = np.arange(
         max(lib_thresholds), min(lib_thresholds), quantization
     )
