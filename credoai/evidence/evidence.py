@@ -5,7 +5,6 @@ import json
 import pprint
 from abc import ABC, abstractproperty
 from datetime import datetime
-from symbol import parameters
 from typing import Tuple
 
 from credoai.utils import ValidationError

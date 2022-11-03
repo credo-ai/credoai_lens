@@ -5,7 +5,7 @@ Lens supports many metrics out-of-the-box.
 Below are some of the metrics we support. For a comprehensive list, 
 the following can be run in your python environment:
 
-::
+.. exec_code::
 
    from credoai.modules.metric_utils import list_metrics
    list_metrics()
@@ -13,6 +13,8 @@ the following can be run in your python environment:
 
 Other metrics are easily incorporated by using the `Metric` class, which can accommodate 
 any assessment function.
+
+
 
 Metric list
 -----------
