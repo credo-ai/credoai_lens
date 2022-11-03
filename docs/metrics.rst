@@ -2,24 +2,16 @@ Metrics
 =======
 
 Lens supports many metrics out-of-the-box. 
-Below are some of the metrics we support. For a comprehensive list, 
-the following can be run in your python environment:
+The following gives a comprehensive list, which you can also generate in your python environment:
 
 .. exec_code::
 
    from credoai.modules.metric_utils import list_metrics
    list_metrics()
 
+Below we provide details for a selection of these supported metrics. 
 
-Other metrics are easily incorporated by using the `Metric` class, which can accommodate 
-any assessment function.
-
-.. exec_code::
-
-   from credoai.modules.metric_constants import BINARY_CLASSIFICATION_FUNCTIONS
-   for key, value in BINARY_CLASSIFICATION_FUNCTIONS.items():
-      print(key)
-      print(value.__doc__)
+Custom metrics are supported by using the `Metric` class, which can be used to wrap any assessment function.
 
 
 Metric list
@@ -525,4 +517,8 @@ Dimension: ``performance``
 
 ------------
 
-**Note**: all the metrics tagged with ``performance`` dimension would have ``fairness`` dimension too in the presence of sensitive features as it makes disaggregated parity assessment possible.
+**Note**: All the metrics above with the ``performance`` tag can be evaluated using 
+the `Performance evaluator <https://credoai-lens.readthedocs.io/en/latest/evaluators.html>`__.
+These can also be used to evaluate a model's fairness, using 
+the `ModelFairness <https://credoai-lens.readthedocs.io/en/latest/evaluators.html>`__ evaluator when a sensitive feature
+is present and specified in the dataset. This will disaggregate metrics by group and assess parity for each metric.
