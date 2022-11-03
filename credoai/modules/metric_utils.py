@@ -13,9 +13,6 @@ from sklearn.utils import resample
 
 
 def list_metrics(verbose=True):
-    """
-    Test docstring for documentation??
-    """
     metrics = defaultdict(set)
     for metric in ALL_METRICS:
         if metric.metric_category in MODEL_METRIC_CATEGORIES:

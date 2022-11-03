@@ -14,6 +14,12 @@ the following can be run in your python environment:
 Other metrics are easily incorporated by using the `Metric` class, which can accommodate 
 any assessment function.
 
+.. exec_code::
+
+   from credoai.modules.metric_constants import BINARY_CLASSIFICATION_FUNCTIONS
+   for key, value in BINARY_CLASSIFICATION_FUNCTIONS.items():
+      print(key)
+      print(value.__doc__)
 
 
 Metric list

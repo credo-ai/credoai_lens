@@ -28,8 +28,6 @@ release = credoai.__version__
 autodoc_mock_imports = ["bs4", "requests"]
 exec_code_source_folders = [os.path.abspath("..")]
 
-print(exec_code_source_folders)
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
