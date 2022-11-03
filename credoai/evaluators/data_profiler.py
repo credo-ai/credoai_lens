@@ -2,11 +2,10 @@
 
 import matplotlib
 import pandas as pd
+from connect.evidence.lens_evidence import DataProfilerContainer
 from credoai.artifacts.data.tabular_data import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_data_instance
-from credoai.evidence import ProfilerContainer
-from credoai.utils.common import ValidationError
 
 backend = matplotlib.get_backend()
 # load pands profiler, which sets backend to Agg
@@ -56,7 +55,7 @@ class DataProfiler(Evaluator):
         """Generates data profile reports"""
         results = self._create_reporter().get_description()
         results = pd.DataFrame({"results": results})
-        results = ProfilerContainer(results, **self.get_container_info())
+        results = DataProfilerContainer(results, **self.get_container_info())
         self.results = [results]
         return self
 

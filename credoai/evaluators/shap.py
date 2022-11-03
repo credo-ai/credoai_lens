@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
-from credoai.evidence import TableContainer
+from connect.evidence import TableContainer
 from credoai.utils.common import ValidationError
 
 from shap import Explainer, Explanation, kmeans

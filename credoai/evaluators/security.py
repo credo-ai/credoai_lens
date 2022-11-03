@@ -9,11 +9,13 @@ from art.estimators.classification import BlackBoxClassifier, KerasClassifier
 from credoai.artifacts.data.tabular_data import TabularData
 from credoai.artifacts.model.classification_model import ClassificationModel
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
-                                                 check_data_instance,
-                                                 check_model_instance,
-                                                 check_requirements_existence)
-from credoai.evidence import MetricContainer
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_model_instance,
+    check_requirements_existence,
+)
+from connect.evidence import MetricContainer
 from credoai.utils.common import NotRunError
 from keras.layers import Dense
 from keras.models import Sequential

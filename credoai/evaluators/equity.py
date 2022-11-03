@@ -11,7 +11,7 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from credoai.evidence import MetricContainer, TableContainer
+from connect.evidence import MetricContainer, TableContainer
 from credoai.utils import NotRunError
 from credoai.utils.model_utils import type_of_target
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
