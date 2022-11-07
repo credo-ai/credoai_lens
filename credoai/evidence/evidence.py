@@ -5,7 +5,6 @@ import json
 import pprint
 from abc import ABC, abstractproperty
 from datetime import datetime
-from symbol import parameters
 from typing import Tuple
 
 from credoai.utils import ValidationError
@@ -157,7 +156,7 @@ class DataProfilerEvidence(Evidence):
 
     def __init__(self, data: dict, additional_labels: dict = None, **metadata):
         self._data = data
-        super().__init__("profiler", additional_labels, **metadata)
+        super().__init__("dataset_profiler", additional_labels, **metadata)
 
     @property
     def data(self):
