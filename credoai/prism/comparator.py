@@ -1,7 +1,7 @@
 from abc import ABC
 
 
-#Utility for EvidenceType -> ComparatorType
+# Utility for EvidenceType -> ComparatorType
 
 
 class Comparator(ABC):
@@ -19,27 +19,18 @@ class Comparator(ABC):
     Different Comparator will exist for each possible EvidenceContainer input.
     """
 
-   
     def __init__(self, **EvidenceContainers):
         # attributes all comparators will need
         self.EvidenceContainers = EvidenceContainers
-        self.evaluations = []
+        self.evaluations = []  # to contain all evaluations run, e.g. each metric
+        self.comparisons = []  # internal container for tracking results of comparisons
         self._setup()
         self._validate()
 
     def _setup(self):
-        ##Evaluations are akin to metrics. 
-        # Eg. MetricContainer contains a df with results for various metrics
-        # We want a list of all metrics run across all EvidenceContainers supplied to the Comparator
-        for container in self.EvidenceContainers:
-            for evaluation in container:
-                self.evaluations.append(evaluation.name)
-
-        self.comparisons = []
-        #internal container for tracking the results of comparisons
-
-`       #some metadata...?
-        #labels?
+        pass
+        # some metadata...?
+        # labels?
 
     def _validate(self):
         """
@@ -51,22 +42,18 @@ class Comparator(ABC):
     def to_output_container(self):
         """
         Converts self.comparisons results to PrismContainer object which can then be passed (through some more abstraction)
-        to the Credo AI Governance platform 
+        to the Credo AI Governance platform
         """
         pass
 
-    def compare(self):
-        #Driver that calls a bunch of comparison functions
-        pass
-
-    
-    #Comparison types (Not clear if these need to be defined in the base class since they won't all apply broadly)
-    def scalar_difference(self):
+    # Comparison types (Not clear if these need to be defined in the base class since they won't all apply broadly)
+    def scalar_difference(self, abs=True):
         """
         Outputs: len(self.EvidenceContainers) DataFrames each with shape = (len(self.EvidenceContainers), len(self.evaluations))
-        DataFrame i contains comparisons between self.EvidenceContainers[i] and each container in self.EvidenceContainers (self-comparison; whatever) 
+        DataFrame i contains comparisons between self.EvidenceContainers[i] and each container in
+        self.EvidenceContainers (self-comparison; whatever)
         Entry j,k in DataFrame i = self.EvidenceContainers[i][self.evaluations[k]] - EvidenceContainers[j][self.evaluations[k]])
-        If self.evaluations[k] is null for one or both EvidenceContainers, output None 
+        If self.evaluations[k] is null for one or both EvidenceContainers, output None
 
 
         #switch to 1 DF per metric and each df is differences between all models
@@ -77,7 +64,7 @@ class Comparator(ABC):
         """
         Same idea as above except subtracting dataframe outputs (e.g. output of ModelFairness for same metric and sensitive features sets)
         Need to check (validate) that dataframes have the same size
-        
+
 
         Need validation to confirm sensitive features and evals are identical
         """
