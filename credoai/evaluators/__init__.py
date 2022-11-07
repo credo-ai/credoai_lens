@@ -15,4 +15,5 @@ from .survival_fairness import SurvivalFairness
 from .shap import ShapExplainer
 from .model_profiler import ModelProfiler
 from .feature_drift import FeatureDrift
+from .deepchecks import Deepchecks
 from .identity_verification import IdentityVerification

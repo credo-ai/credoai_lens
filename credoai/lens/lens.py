@@ -34,7 +34,9 @@ class PipelineStep:
         self.metadata["evaluator"] = self.evaluator.name
 
     def check_match(self, metadata):
-        """Return true if metadata is a subset of pipeline step's metadata"""
+        """
+        Return true if metadata is a subset of pipeline step's metadata
+        """
         return check_subset(metadata, self.metadata)
 
 
