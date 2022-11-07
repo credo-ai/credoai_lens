@@ -8,6 +8,7 @@
    Developer Guide <developer_guide>
    Evaluators <evaluators>
    Metrics <metrics>
+   Alternative Metrics <metrics_v2>
    API reference <_autosummary/credoai>
 
 
