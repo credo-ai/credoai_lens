@@ -71,12 +71,12 @@ class ComparisonData(Data):
 
             if len(available_columns) != 4:
                 raise ValidationError(
-                    f"pairs dataframe has '{len(available_columns)}' columns. I must have 4."
+                    f"pairs dataframe has '{len(available_columns)}' columns. It must have 4."
                 )
             
             if self.pairs.isnull().values.any():
                 raise ValidationError(
-                    "pairs dataframe contains NaN values. It should not."
+                    "pairs dataframe contains NaN values. It must not have any."
                 )
 
     def _validate_subjects_sensitive_features(self):
@@ -100,7 +100,7 @@ class ComparisonData(Data):
             
             if self.subjects_sensitive_features.isnull().values.any():
                 raise ValidationError(
-                    "subjects_sensitive_features dataframe contains NaN values. It should not."
+                    "subjects_sensitive_features dataframe contains NaN values. It must not have any."
                 )
             
             sensitive_features_names = list(self.subjects_sensitive_features.columns)
