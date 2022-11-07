@@ -1,15 +1,13 @@
 import textwrap
 from collections import defaultdict
 
-import numpy as np
 from credoai.modules.metrics import (
     ALL_METRICS,
     METRIC_CATEGORIES,
     METRIC_NAMES,
     MODEL_METRIC_CATEGORIES,
 )
-from scipy.stats import norm
-from sklearn.utils import resample
+from pandas import DataFrame
 
 
 def list_metrics(verbose=True):
@@ -29,3 +27,29 @@ def list_metrics(verbose=True):
             print(metric_str)
             print("")
     return metrics
+
+
+def table_metrics():
+    output = DataFrame(
+        [
+            [
+                metric.name,
+                metric.metric_category,
+                list(metric.equivalent_names),
+                metric.get_fun_doc,
+            ]
+            for metric in ALL_METRICS
+        ],
+        columns=["metric_name", "metric_category", "synonyms", "doc"],
+    )
+
+    def remove(list1, str1):
+        list1 = [x for x in list1 if x != str1]
+        return list1
+
+    output["synonyms"] = output.apply(
+        lambda row: remove(row.synonyms, row.metric_name), axis=1
+    )
+    output["synonyms"] = output.synonyms.apply(lambda x: ", ".join(x))
+
+    return output
