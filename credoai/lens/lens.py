@@ -398,7 +398,7 @@ class Lens:
                 raise ValidationError(
                     f"Evaluator in step {step} needs to be instantiated"
                 )
-            self.add(evaltr, meta)
+            self.add(deepcopy(evaltr), meta)
         return self
 
     def _validate(self):
