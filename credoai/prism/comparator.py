@@ -49,14 +49,9 @@ class Comparator(ABC):
     # Comparison types (Not clear if these need to be defined in the base class since they won't all apply broadly)
     def scalar_difference(self, abs=True):
         """
-        Outputs: len(self.EvidenceContainers) DataFrames each with shape = (len(self.EvidenceContainers), len(self.evaluations))
-        DataFrame i contains comparisons between self.EvidenceContainers[i] and each container in
-        self.EvidenceContainers (self-comparison; whatever)
-        Entry j,k in DataFrame i = self.EvidenceContainers[i][self.evaluations[k]] - EvidenceContainers[j][self.evaluations[k]])
-        If self.evaluations[k] is null for one or both EvidenceContainers, output None
-
-
-        #switch to 1 DF per metric and each df is differences between all models
+        Outputs: len(self.evaluations) DataFrames each with shape = (len(self.EvidenceContainers), len(self.EvidenceContainers))
+        DataFrame i contains pairwise comparisons for evaluation i between each pair of EvidenceContainers j and k
+        If self.evaluations[j] or self.evaluations[k] is null, output None
         """
         pass
 
