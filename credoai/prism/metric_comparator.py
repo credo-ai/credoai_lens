@@ -3,6 +3,9 @@ from credoai.evaluators.utils.validation import check_instance
 from credoai.evidence import MetricContainer
 from credoai.utils.common import ValidationError
 
+import pandas as pd
+import numpy as np
+
 
 # Utility for EvidenceType -> ComparatorType
 
@@ -33,8 +36,8 @@ class MetricComparator(Comparator):
         # Eg. MetricContainer contains a df with results for various metrics
         # We want a list of all metrics run across all EvidenceContainers supplied to the Comparator
         for container in self.EvidenceContainers:
-            for evaluation in container:
-                self.evaluations.append(evaluation.name)
+            for metric in container:
+                self.evaluations.append(metric.name)
 
         self.comparisons = []
         # internal container for tracking the results of comparisons
@@ -63,15 +66,34 @@ class MetricComparator(Comparator):
     # Comparison types (Not clear if these need to be defined in the base class since they won't all apply broadly)
     def scalar_difference(self, abs=False):
         """
-        Outputs: len(self.EvidenceContainers) DataFrames each with shape = (len(self.EvidenceContainers), len(self.evaluations))
-        DataFrame i contains comparisons between self.EvidenceContainers[i] and each container in self.EvidenceContainers (self-comparison; whatever)
-        Entry j,k in DataFrame i = self.EvidenceContainers[i][self.evaluations[k]] - EvidenceContainers[j][self.evaluations[k]])
-        If self.evaluations[k] is null for one or both EvidenceContainers, output None
+        Outputs: len(self.evaluations) DataFrames each with shape = (len(self.EvidenceContainers), len(self.EvidenceContainers))
+        DataFrame i contains pairwise difference between MetricContainers j and k for evaluation (metric) i
+        If self.evaluations[j] or self.evaluations[k] is null, output None
 
-
-        #switch to 1 DF per metric and each df is differences between all models
+        If abs == True, return the abolute difference between metrics results
         """
-        pass
+        for metric in self.evaluations:
+            comparison_df = pd.DataFrame()
+            for metric_ev1 in self.EvidenceContainers:
+                comparisons = []
+                if metric not in metric_ev1.df.index:
+                    comparisons = [None] * len(self.EvidenceContainers)
+                else:
+                    for metric_ev2 in self.EvidenceContainers:
+                        comparisons.append(
+                            metric_ev1.df[metric] - metric_ev2.df[metric]
+                        )
+                        if abs:
+                            comparisons[-1] = np.abs(comparisons[-1])
+
+                comparison_df = pd.concat(
+                    comparison_df,
+                    pd.Series(
+                        comparisons, index=self.EvidenceContainers, name=metric_ev1
+                    ),
+                )
+
+            self.comparisons.append(comparison_df)
 
     def highest_eval(self):
         """
