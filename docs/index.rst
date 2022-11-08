@@ -34,7 +34,7 @@ Check out the :ref:`quickstart tutorial <quickstart>` to get started.
 
 Check out the :ref:`FAQ <lens faq>` for answers to common questions.
 
-To connect with the Credo AI Governance Platform, see the :ref:`governance integration tutorial <Connecting with the Credo AI Governance App>`.
+To connect with the Credo AI Governance Platform, see the :ref:`governance integration tutorial <credo governance integration>`.
 
 
 Overview
