@@ -51,5 +51,4 @@ def table_metrics():
         lambda row: remove(row.synonyms, row.metric_name), axis=1
     )
     output["synonyms"] = output.synonyms.apply(lambda x: ", ".join(x))
-
     return output
