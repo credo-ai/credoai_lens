@@ -24,7 +24,7 @@ def get_generic_classifier():
 
 def get_model_info(model):
     try:
-        framework = model.__class__.__module__.split(".")[0]
+        framework = model.__class__.__module__
     except AttributeError:
         framework = None
     return {"framework": framework}

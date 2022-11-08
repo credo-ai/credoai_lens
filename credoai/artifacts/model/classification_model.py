@@ -32,7 +32,7 @@ class ClassificationModel(Model):
 
     def _update_functionality(self):
         """Conditionally updates functionality based on framework"""
-        if self.model_info["framework"] == "sklearn":
+        if "sklearn" in self.model_info["framework"]:
             func = getattr(self, "predict_proba", None)
             if func and len(self.model_like.classes_) == 2:
                 self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
