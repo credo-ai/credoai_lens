@@ -393,12 +393,12 @@ class Lens:
         for step in pipeline:
             if not isinstance(step, tuple):
                 step = (step,)
-            evaltr, meta = self._consume_pipeline_step(step)
+            evaltr, meta = self._consume_pipeline_step(deepcopy(step))
             if isclass(evaltr):
                 raise ValidationError(
                     f"Evaluator in step {step} needs to be instantiated"
                 )
-            self.add(deepcopy(evaltr), meta)
+            self.add(evaltr, meta)
         return self
 
     def _validate(self):
