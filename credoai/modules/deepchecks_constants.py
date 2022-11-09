@@ -1,13 +1,13 @@
-from deepchecks.tabular.checks import *
+from deepchecks.tabular import checks
 
 DEFAULT_CHECKS = [
-    ConfusionMatrixReport(),
-    WeakSegmentsPerformance(),
-    SimpleModelComparison(),
-    CalibrationScore(),
-    RegressionSystematicError(),
-    RegressionErrorDistribution(),
-    UnusedFeatures(),
-    BoostingOverfit(),
-    ModelInferenceTime(),
+    checks.ConfusionMatrixReport(),
+    checks.WeakSegmentsPerformance(),
+    checks.SimpleModelComparison(),
+    checks.CalibrationScore(),
+    checks.RegressionSystematicError(),
+    checks.RegressionErrorDistribution(),
+    checks.UnusedFeatures(),
+    checks.BoostingOverfit(),
+    checks.ModelInferenceTime(),
 ]

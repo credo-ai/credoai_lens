@@ -226,7 +226,7 @@ class IdentityVerification(Evaluator):
                     )
                 )
             
-            return overall_performance_res
+        return overall_performance_res
 
     def _assess_disaggregated_performance(self):
         """Perform disaggregated performance assessment"""
