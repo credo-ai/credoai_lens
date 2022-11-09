@@ -20,7 +20,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 
 
 def create_metric_recap(row):
-    parts = [create_title(row.metric_name, "section", True), row.description]
+    parts = [create_title(row.metric_name, "section", False), row.description]
     if row.url:
         parts += [f"\n**Source**: `click here <{row.url}>`__"]
     if row.synonyms:
@@ -37,6 +37,7 @@ if __name__ == "__main__":
         "/Users/fabriziopuletti/credoai_lens/docs/metrics_info_manual.json"
     )
     df = df.merge(manual_info)
+    df = df.loc[~df.metric_name.duplicated()]
 
     # Create table of metrics
     df["Metric Name"] = ":ref:`" + df.metric_name + "<" + df.metric_name + ">`"
