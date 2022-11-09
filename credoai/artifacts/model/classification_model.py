@@ -1,6 +1,8 @@
 """Model artifact wrapping any classification model"""
 from .base_model import Model
 
+PREDICT_PROBA_FRAMEWORKS = ["sklearn", "xgboost"]
+
 
 class ClassificationModel(Model):
     """Class wrapper around classification model to be assessed
@@ -32,7 +34,7 @@ class ClassificationModel(Model):
 
     def _update_functionality(self):
         """Conditionally updates functionality based on framework"""
-        if "sklearn" in self.model_info["framework"]:
+        if self.model_info["framework"] in PREDICT_PROBA_FRAMEWORKS:
             func = getattr(self, "predict_proba", None)
             if func and len(self.model_like.classes_) == 2:
                 self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
