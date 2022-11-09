@@ -111,13 +111,23 @@ class MetricComparator(Comparator):
             )
             self.comparisons["scalar_difference"][metric] = comparison_df
 
+    def superlative_eval(self, superlative, superlative_name):
+        self.comparisons[superlative_name] = {}
+        for metric in self.evaluations:
+            self.comparisons[superlative_name][metric] = superlative(
+                [
+                    ev.df[ev.df["type"] == metric].value.iloc[0]
+                    for ev in self.EvidenceContainers.values()
+                ]
+            )
+
     def highest_eval(self):
         """
         Outputs: dictionary of values signifying the maximal value for each self.evaluation
         Useful for upper-bounding metrics; E.g. want to get upper bound on parity gaps across models
         e.g. returns {'precision_score_parity_gap': .6, 'precision_score_parity_ratio': .3, ...}
         """
-        pass
+        self.superlative_eval(max, "highest_eval")
 
     def lowest_eval(self):
         """
@@ -125,4 +135,4 @@ class MetricComparator(Comparator):
         Useful for lower-bounding metrics; E.g., want to get a lower bound on performance
         e.g. returns {'precision_score': .4, 'accuracy_score': .53, ...}
         """
-        pass
+        self.superlative_eval(min, "lowest_eval")
