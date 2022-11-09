@@ -225,22 +225,33 @@ class TestDeepchecks(Base_Evaluator_Test):
 
 
 class TestRankingFairnes:
-    evaluator = RankingFairness()
+    evaluator = RankingFairness(k=5)
 
     df = DataFrame(
         {
-            "rankings": [1, 2, 3, 4, 5, 6, 7],
-            "sensitive_features": ["f", "f", "m", "m", "f", "m", "f"],
+            "rankings": [1, 2, 3, 4, 5, 6, 7, 8],
+            "scores": [10, 8, 7, 6, 2, 2, 1, 1],
+            "sensitive_features": ["f", "f", "m", "m", "f", "m", "f", "f"],
         }
     )
     data = TabularData(
-        name="ranks", y=df[["rankings"]], sensitive_features=df[["sensitive_features"]]
+        name="ranks",
+        y=df[["rankings", "scores"]],
+        sensitive_features=df[["sensitive_features"]],
     )
     expected_results = DataFrame(
         {
-            "value": [0.86, 1.14, 0.32],
-            "type": ["minimum_skew", "maximum_skew", "NDKL"],
-            "subtype": ["score"] * 3,
+            "value": [0.11, 0.20, 0.90, 0.67, 0.98, 0.65, 0.59],
+            "type": [
+                "skew",
+                "ndkl",
+                "parity",
+                "balance",
+                "score_parity",
+                "score_balance",
+                "relevance_parity",
+            ],
+            "subtype": ["score"] * 7,
         }
     )
     pipeline = Lens(assessment_data=data)
