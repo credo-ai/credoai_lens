@@ -5,6 +5,7 @@ from credoai.utils.common import ValidationError
 
 import pandas as pd
 import numpy as np
+from copy import deepcopy
 
 
 # Utility for EvidenceType -> ComparatorType
@@ -14,20 +15,21 @@ class MetricComparator(Comparator):
     """
     Class for comparing metric evidence objects
 
-    User specifies MetricContainer objects as input.
-
     Supported comparisons for Metrics include difference, maximal values for each metric,
     and minimal values for each metric. Comparisons are evaluated on intersection of the
     metrics represented in the two provided MetricContainer objects. Comparison values for
     non-intersecting metrics will be NoneType wrapped in output container.
 
+    Inputs:
+        EvidenceContainers: dictionary of {name_of_model: MetricContainer} key-value pairs
+
     Output, stored in a LensComparison object, is result of comparisons.
     """
 
-    def __init__(self, **EvidenceContainers):
+    def __init__(self, EvidenceContainers):
         # attributes all comparators will need
         self.EvidenceContainers = EvidenceContainers
-        self.evaluations = []
+        self.evaluations = set()
         self._setup()
         self._validate()
 
@@ -35,11 +37,11 @@ class MetricComparator(Comparator):
         ##Evaluations are akin to metrics.
         # Eg. MetricContainer contains a df with results for various metrics
         # We want a list of all metrics run across all EvidenceContainers supplied to the Comparator
-        for container in self.EvidenceContainers:
-            for metric in container:
-                self.evaluations.append(metric.name)
+        for container in self.EvidenceContainers.values():
+            for metric in container.df.type:
+                self.evaluations.add(metric)
 
-        self.comparisons = []
+        self.comparisons = {}
         # internal container for tracking the results of comparisons
 
         # some metadata...?
@@ -50,7 +52,7 @@ class MetricComparator(Comparator):
         Check that provided containers are all MetricContainer type
         Check that len >= 2
         """
-        for container in self.EvidenceContainers:
+        for container in self.EvidenceContainers.values():
             check_instance(container, MetricContainer)
 
         if len(self.EvidenceContainers) < 2:
@@ -66,34 +68,48 @@ class MetricComparator(Comparator):
     # Comparison types (Not clear if these need to be defined in the base class since they won't all apply broadly)
     def scalar_difference(self, abs=False):
         """
-        Outputs: len(self.evaluations) DataFrames each with shape = (len(self.EvidenceContainers), len(self.EvidenceContainers))
-        DataFrame i contains pairwise difference between MetricContainers j and k for evaluation (metric) i
-        If self.evaluations[j] or self.evaluations[k] is null, output None
-
-        If abs == True, return the abolute difference between metrics results
+        Outputs: N/A
+            Adds an output dictionary to self.comparisons:
+                Dict structure:
+                    Keys: metric names
+                    Values: pd.DataFrame objects, each with shape len(self.EvidenceContainers), len(self.EvidenceContainers)
+                    DataFrame i contains results for metric i:
+                        Pairwise difference between MetricContainers j and k
+                        If abs == True, return the abolute difference between metrics results
+                        If metric is not measured for Container j or k, DataFrame[j, k] is None
         """
+        self.comparisons["scalar_difference"] = {}
         for metric in self.evaluations:
-            comparison_df = pd.DataFrame()
-            for metric_ev1 in self.EvidenceContainers:
+            comparison_dict = {}
+            for model_1, metric_ev1 in self.EvidenceContainers.items():
                 comparisons = []
-                if metric not in metric_ev1.df.index:
+                if metric not in metric_ev1.df.type.values:
+                    # Needing to assume the underlying dataframe will have column "type"
+                    # seems a little brittle
                     comparisons = [None] * len(self.EvidenceContainers)
                 else:
-                    for metric_ev2 in self.EvidenceContainers:
-                        comparisons.append(
-                            metric_ev1.df[metric] - metric_ev2.df[metric]
-                        )
-                        if abs:
-                            comparisons[-1] = np.abs(comparisons[-1])
+                    for metric_ev2 in self.EvidenceContainers.values():
+                        if metric in metric_ev2.df.type.values:
+                            # Assuming the column with the value will be named "value" is
+                            # brittle. As is needing to check the 0-index to get the metric result
+                            comparisons.append(
+                                metric_ev1.df[
+                                    metric_ev1.df["type"] == metric
+                                ].value.iloc[0]
+                                - metric_ev2.df[
+                                    metric_ev2.df["type"] == metric
+                                ].value.iloc[0]
+                            )
+                            if abs:
+                                comparisons[-1] = np.abs(comparisons[-1])
+                        else:
+                            comparisons.append(None)
 
-                comparison_df = pd.concat(
-                    comparison_df,
-                    pd.Series(
-                        comparisons, index=self.EvidenceContainers, name=metric_ev1
-                    ),
-                )
-
-            self.comparisons.append(comparison_df)
+                comparison_dict[model_1] = comparisons
+            comparison_df = pd.DataFrame.from_dict(
+                comparison_dict, orient="index", columns=self.EvidenceContainers.keys()
+            )
+            self.comparisons["scalar_difference"][metric] = comparison_df
 
     def highest_eval(self):
         """

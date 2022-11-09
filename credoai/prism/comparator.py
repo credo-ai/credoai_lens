@@ -12,14 +12,17 @@ class Comparator(ABC):
     across datasets, models, etc. Some differences will be numeric while others will be
     "change tracking" (a la 'diff').
 
-    User will specify EvidenceContainer objects as input. Comparators output will be in
+    Inputs:
+        EvidenceContainers: Iterable of EvidenceContainer objects
+
+    Comparators output will be in
     a custom-crafted data type and will depend on user input (e.g. output difference vs.
     pointer to model with higher performance).
 
     Different Comparator will exist for each possible EvidenceContainer input.
     """
 
-    def __init__(self, **EvidenceContainers):
+    def __init__(self, EvidenceContainers):
         # attributes all comparators will need
         self.EvidenceContainers = EvidenceContainers
         self.evaluations = []  # to contain all evaluations run, e.g. each metric
