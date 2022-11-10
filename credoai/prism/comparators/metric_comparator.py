@@ -1,3 +1,4 @@
+"""Comparators for metric type containers"""
 from typing import Callable
 from credoai.prism import Comparator
 from credoai.evaluators.utils.validation import check_instance
@@ -7,9 +8,6 @@ from credoai.utils.common import ValidationError
 import pandas as pd
 import numpy as np
 from copy import deepcopy
-
-
-# Utility for EvidenceType -> ComparatorType
 
 
 class MetricComparator(Comparator):
@@ -62,16 +60,6 @@ class MetricComparator(Comparator):
         """
         Calculates the scalar difference across all results for a specific metric.
 
-        Outputs: N/A
-            Adds an output dictionary to self.comparisons:
-                Dict structure:
-                    Keys: metric names
-                    Values: pd.DataFrame objects, each with shape len(self.EvidenceContainers), len(self.EvidenceContainers)
-                    DataFrame i contains results for metric i:
-                        Pairwise difference between MetricContainers j and k
-                        If abs == True, return the absolute difference between metrics results
-                        If metric is not measured for Container j or k, DataFrame[j, k] is None
-
         Parameters
         ----------
         abs : bool, optional
@@ -79,15 +67,17 @@ class MetricComparator(Comparator):
 
         Returns
         -------
-        Adds an output dictionary to self.comparisons:
+        Adds an output dictionary to self.comparisons.
         Dict structure:
 
             Keys: metric names
             Values: pd.DataFrame objects, each with shape len(self.EvidenceContainers), len(self.EvidenceContainers)
-            DataFrame i contains results for metric i:
-                Pairwise difference between MetricContainers j and k
-                If abs == True, return the absolute difference between metrics results
-                If metric is not measured for Container j or k, DataFrame[j, k] is None
+
+        DataFrame i contains results for metric i:
+
+            Pairwise difference between MetricContainers j and k
+            If abs == True, return the absolute difference between metrics results
+            If metric is not measured for Container j or k, DataFrame[j, k] is None
 
         """
 

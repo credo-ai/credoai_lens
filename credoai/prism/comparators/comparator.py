@@ -27,13 +27,13 @@ class Comparator(ABC):
         self.EvidenceContainers = EvidenceContainers
         self.evaluations = set()  # to contain all evaluations run, e.g. each metric
         self.comparisons = {}  # internal container for tracking results of comparisons
-        self._setup()
         self._validate()
+        self._setup()
 
     @abstractclassmethod
     def _setup(self):
         """"""
-        pass
+        ...
 
     @abstractclassmethod
     def _validate(self):
@@ -41,7 +41,7 @@ class Comparator(ABC):
         Check that provided EvidenceContainers are all the same type
         Check that len >= 2
         """
-        pass
+        ...
 
     @abstractclassmethod
     def compare(self):
