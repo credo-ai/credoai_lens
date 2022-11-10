@@ -83,6 +83,7 @@ autodoc_mock_imports += [
     "dotenv",
     "fairlearn",
     "fairlearn.metrics",
+    "finsfairauditing",
     "googleapiclient",
     "ipywidgets",
     "joblib",
