@@ -244,13 +244,13 @@ class TestRankingFairnes:
         {
             "value": [0.11, 0.20, 0.90, 0.67, 0.98, 0.65, 0.59],
             "type": [
-                "skew",
+                "skew_parity_difference",
                 "ndkl",
-                "parity",
-                "balance",
-                "score_parity",
-                "score_balance",
-                "relevance_parity",
+                "demographic_parity_ratio",
+                "balance_ratio",
+                "score_parity_ratio",
+                "score_balance_ratio",
+                "relevance_parity_ratio",
             ],
             "subtype": ["score"] * 7,
         }
