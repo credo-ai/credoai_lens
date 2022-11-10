@@ -1,6 +1,6 @@
 from pandas import read_json
 from credoai.modules.metric_utils import table_metrics
-from autogeneration.formatter import (
+from docs.autogeneration.formatter import (
     convert_df_to_table,
     create_table,
     create_title,
@@ -55,5 +55,5 @@ if __name__ == "__main__":
     page = create_page_area([INTRO, metrics_table, metric_info])
 
     # Create the page
-    with open("./metrics_v2.rst", "w") as text_file:
+    with open("./metrics.rst", "w") as text_file:
         text_file.write(page)
