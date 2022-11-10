@@ -12,36 +12,79 @@ from credoai.evaluators.utils.validation import (
     check_existence,
     check_feature_presence,
 )
-from credoai.evidence.containers import MetricContainer
+from credoai.evidence.containers import MetricContainer, TableContainer
 from credoai.utils.common import ValidationError
+from credoai.utils.dataset_utils import empirical_distribution_curve
 from finsfairauditing import fins
 
 EPSILON = 1e-12
 METRIC_SUBSET = [
-    "skew-score",
+    "skew_parity_difference-score",
     "ndkl-score",
-    "parity-score",
-    "balance-score",
-    "qualified_parity-score",
-    "qualified_balance-score",
-    "calibrated_parity-score",
-    "calibrated_balance-score",
-    "relevance_parity-score",
-    "score_parity-score",
-    "score_balance-score",
+    "demographic_parity_ratio-score",
+    "balance_ratio-score",
+    "qualified_demographic_parity_ratio-score",
+    "qualified_balance_ratio-score",
+    "calibrated_demographic_parity_ratio-score",
+    "calibrated_balance_ratio-score",
+    "relevance_parity_ratio-score",
+    "score_parity_ratio-score",
+    "score_balance_ratio-score",
 ]
 
 
 class RankingFairness(Evaluator):
     """Ranking fairness evaluator for Credo AI
 
-    This module takes in ranking results and
-        provides functionality to perform fairness assessment
+    This module takes in ranking results and provides functionality to perform fairness assessment
+        The results should include rankings, sensitive features, and optionally, scores.
+
+    skew_parity_difference: max_skew - min_skew, where skew is the proportion of the selected
+        items from a group over the desired proportion for that group.
+        It ranges from 0 to inf and the ideal value is 0.
+    ndkl: is a metric that accounts for increasing ranks. It is non-negative, with larger values
+        indicating a greater divergence between the desired and actual distributions of
+        sensitive attribute labels.
+        It ranges from 0 to inf and the ideal value is 0.
+    demographic_parity_ratio: min_selection_rate / max_selection_rate, where selection rate
+        is the proportion of the selected items from a group over the number of items for
+        that group in the pool.
+        It ranges from 0 to 1 and ideal value is 1.
+    balance_ratio: min_presence / max_presence, where presence is the number of the selected items
+        from a group.
+        It ranges from 0 to 1 and ideal value is 1.
+    qualified_demographic_parity_ratio: demographic_parity_ratio but with a qualified (i.e., score
+        greater than or equal to q) filter applied to the items.
+        It ranges from 0 to 1 and ideal value is 1.
+    qualified_balance_ratio: balance_ratio but with a qualified (i.e., score greater than or equal
+        to q) filter applied to the items.
+        It ranges from 0 to 1 and ideal value is 1.
+    calibrated_demographic_parity_ratio: demographic_parity_ratio but with the selected set from
+        specified score bins. This is to audit if items with similiar scores are are treated similarly
+        (via proportional presence) regardless of group membership.
+        It ranges from 0 to 1 and ideal value is 1.
+    calibrated_balance_ratio: balance_ratio but with the selected set from
+        specified score bins. This is to audit if items with similiar scores are are treated similarly
+        (via equal presence) regardless of group membership.
+        It ranges from 0 to 1 and ideal value is 1.
+    relevance_parity_ratio: to audit if groups are represented proportional to their average score
+        (i.e., score-based relevance)
+        It ranges from 0 to 1 and ideal value is 1.
+    score_parity_ratio:  min_average_Score / max_average_Score, where average score
+        is the average score of the selected items from a group.
+        It ranges from 0 to 1 and ideal value is 1.
+    score_balance_ratio: min_total_Score / max_total_Score, where total score
+        is the total score of the selected items from a group.
+        It ranges from 0 to 1 and ideal value is 1.
+    score_empirical_distribution: score empirical distributions for each demographic group as tables
+        The x axis is scores and the y axis is cumulative probabilities (ranges from 0 to 1)
+        It is useful for a visual examination of the distribution of scores for the different groups.
 
     Parameters
     ----------
     sensitive_features : pandas.Series
-        A series of the sensitive feature labels (e.g., "male", "female") which should be used to create subgroups
+        A series of the sensitive feature labels (e.g., "male", "female") which should
+        be used to create subgroups
     rankings : pandas.Series of type int
         The computed ranks
         It should be passed to TabularData's y argument with the column name `rankings`
@@ -50,19 +93,25 @@ class RankingFairness(Evaluator):
         It should be passed to TabularData's y argument with the column name `scores`
     k: int, Optional
         The top k items are considered as the selected subset
-        If not provided, all items are considered as selected
+        If not provided, the top 50% of the items are considered as selected
     q: float, Optional
         The relevance score for which items in the pool that have score >= q are "relevant".
-        These two metrics require this to be provided: `qualified_parity` and `qualified_balance`
+        These two metrics require this to be provided: `qualified_demographic_parity_ratio`
+        and `qualified_balance_ratio`
     lb_bin: numpy array of shape = (n_bins), Optional
         The lower bound scores for each bin (bin is greater than or equal to lower bound).
-        These two metrics require this to be provided: `calibrated_parity` and `qualified_balance`
+        These two metrics require this to be provided: `calibrated_demographic_parity_ratio`
+        and `calibrated_balance_ratio`
     ub_bin: numpy array of shape = (n_bins), Optional
         The upper bound scores for each bin (bin is less than upper bound).
-        These two metrics require this to be provided: `calibrated_parity` and `calibrated_balance`
+        These two metrics require this to be provided: `calibrated_demographic_parity_ratio`
+        and `calibrated_balance_ratio`
     desired_proportions: dict, Optional
         The desired proportion for each subgroups (e.g., {"male":0.4, "female":0.6})
         If not provided, equal proportions are used for calculation of `skew` score
+    down_sampling_step : int, optional
+        down-sampling step for scores empirical distribution curve
+        If not provided, down-sampling is done such that the curve length be nearly 100
     """
 
     def __init__(
@@ -72,10 +121,12 @@ class RankingFairness(Evaluator):
         lb_bin: list = None,
         ub_bin: list = None,
         desired_proportions: dict = None,
+        down_sampling_step: int = None,
     ):
         self.desired_proportions = (desired_proportions,)
         self.k = k
         self.q = q
+        self.down_sampling_step = down_sampling_step
         if lb_bin is not None and ub_bin is not None:
             self.lb_bin = np.array(lb_bin)
             self.ub_bin = np.array(ub_bin)
@@ -88,8 +139,12 @@ class RankingFairness(Evaluator):
     def _setup(self):
         self.pool_rankings = np.array(self.data.y.rankings)
         self.pool_sensitive_features = np.array(self.data.sensitive_feature)
+        self.sf_name = self.data.sensitive_feature.name
         if self.k is None:
-            self.k = len(self.pool_rankings)
+            self.k = int(len(self.pool_rankings) / 2)
+
+        if self.down_sampling_step is None:
+            self.down_sampling_step = int(len(self.pool_rankings) / 100)
 
         # Sort ascending in parallel in case not already sorted
         p = self.pool_rankings.argsort()
@@ -157,6 +212,10 @@ class RankingFairness(Evaluator):
         res.drop("metric_type", axis=1, inplace=True)
 
         self.results = [MetricContainer(res, **self.get_container_info())]
+
+        if self.pool_scores is not None:
+            self._score_distribution()
+
         return self
 
     def _skew(self):
@@ -164,18 +223,11 @@ class RankingFairness(Evaluator):
 
         For every group, skew is the proportion of the selected candidates
             from that group over the desired proportion for that group.
-            Skew is sensitive to the number of top candidates included (k).
-            Ideal skew parity is 0.
 
         Returns
         -------
         dict
-            skew parity: max_skew - min_skew
-                where,
-                min_skew signifies the worst disadvantage in representation given to candidates
-                    from a specific group.
-                max_skew signifies the largest unfair advantage provided to candidates from
-                    a specific group.
+            skew parity difference
         """
         uniques, counts = np.unique(self.subset_sensitive_features, return_counts=True)
         subset_proportions = dict(zip(uniques, counts / self.k))
@@ -187,7 +239,11 @@ class RankingFairness(Evaluator):
             )
             skew[g] = sk
 
-        skew = {"skew-score": [{"value": max(skew.values()) - min(skew.values())}]}
+        skew = {
+            "skew_parity_difference-score": [
+                {"value": max(skew.values()) - min(skew.values())}
+            ]
+        }
 
         return skew
 
@@ -223,11 +279,7 @@ class RankingFairness(Evaluator):
         Returns
         -------
         dict
-            ndkl: is bias measure that accounts for ranks. It is non-negative, with larger values
-                indicating a greater divergence between the desired and actual distributions of
-                sensitive attribute labels. NDKL equals 0 in the ideal fairness case of the two
-                distributions being identical.
-                Ideal value is 0.
+            normalized discounted cumulative KL-divergence (ndkl)
         """
         Z = np.sum(1 / (np.log2(np.arange(1, self.num_items + 1) + 1)))
 
@@ -256,16 +308,7 @@ class RankingFairness(Evaluator):
         Returns
         -------
         dict
-            fianress metrics:
-                parity: statistical parity (proportional presence) group fairness of the selected set. To audit if the selected set contains a proportional number of items from each group.
-                balance: equal presence group fairness of the selected set. To audit if the selected set contains an equal number of items from each group.
-                qualified_parity: statistical parity (proportional presence) group fairness of the selected set for items deemed qualified (i.e., score greater than or equal to q). To audit if the selected set contain a proportional presence of qualified items from each group.
-                qualified_balance: equal presence group fairness of the selected set (i.e., score greater than or equal to q). To audit if the selected set contain an equal number of qualified items from each group.
-                calibrated_parity: statistical parity (proportional presence) group fairness of the selected set from specified score bins. To audit if items with similiar scores are if items with similar scores are treated similarly (via proportional presence) regardless of group membership.
-                calibrated_balance: equal presence group fairness of the selected set. To audit if items with similiar scores are if items with similar scores are treated similarly (via equal presence) regardless of group membership.
-                relevance_parity: To audit if groups are represented proportional to their average score (i.e., score-based relevance).
-                score_parity: To audit if the group-total score of the selected set is proportional to the number of items per group in the set.
-                score_balance: To audit if each groups receive and equal share of the selected set's total score.
+            fianress metrics
         """
         fins_metrics = {}
 
@@ -280,24 +323,24 @@ class RankingFairness(Evaluator):
         selectRt, parity_score = fins.parity(
             self.pool_items, pool_sf_int, self.subset_items, subset_sf_int
         )
-        fins_metrics["parity-score"] = [{"value": parity_score}]
+        fins_metrics["demographic_parity_ratio-score"] = [{"value": parity_score}]
 
         propOfS, balance_score = fins.balance(
             pool_sf_int, self.subset_items, subset_sf_int
         )
-        fins_metrics["balance-score"] = [{"value": balance_score}]
+        fins_metrics["balance_ratio-score"] = [{"value": balance_score}]
 
         # Score-dependant metrics
         if self.subset_scores is not None:
             AvgScore, score_parity_score = fins.score_parity(
                 self.subset_items, self.subset_scores, subset_sf_int
             )
-            fins_metrics["score_parity-score"] = [{"value": score_parity_score}]
+            fins_metrics["score_parity_ratio-score"] = [{"value": score_parity_score}]
 
             TotalScore, score_balance_score = fins.score_balance(
                 self.subset_items, self.subset_scores, subset_sf_int
             )
-            fins_metrics["score_balance-score"] = [{"value": score_balance_score}]
+            fins_metrics["score_balance_ratio-score"] = [{"value": score_balance_score}]
 
             if self.pool_scores is not None:
                 RselectRt, relevance_parity_score = fins.relevance_parity(
@@ -308,7 +351,7 @@ class RankingFairness(Evaluator):
                     self.subset_scores,
                     subset_sf_int,
                 )
-                fins_metrics["relevance_parity-score"] = [
+                fins_metrics["relevance_parity_ratio-score"] = [
                     {"value": relevance_parity_score}
                 ]
 
@@ -322,7 +365,7 @@ class RankingFairness(Evaluator):
                         subset_sf_int,
                         self.q,
                     )
-                    fins_metrics["qualified_parity-score"] = [
+                    fins_metrics["qualified_demographic_parity_ratio-score"] = [
                         {"value": qualififed_parity_score}
                     ]
 
@@ -335,13 +378,11 @@ class RankingFairness(Evaluator):
                         subset_sf_int,
                         self.q,
                     )
-                    fins_metrics["qualified_balance-score"] = [
+                    fins_metrics["qualified_balance_ratio-score"] = [
                         {"value": qualififed_balance_score}
                     ]
 
                 if self.lb_bin is not None and self.ub_bin is not None:
-                    print(self.lb_bin)
-                    1 / 0
                     (
                         bin_group_selection_proportions,
                         calibrated_parity_score,
@@ -355,7 +396,7 @@ class RankingFairness(Evaluator):
                         self.lb_bin,
                         self.ub_bin,
                     )
-                    fins_metrics["calibrated_parity-score"] = [
+                    fins_metrics["calibrated_demographic_parity_ratio-score"] = [
                         {"value": calibrated_parity_score}
                     ]
 
@@ -372,8 +413,28 @@ class RankingFairness(Evaluator):
                         self.lb_bin,
                         self.ub_bin,
                     )
-                    fins_metrics["calibrated_balance-score"] = [
+                    fins_metrics["calibrated_balance_ratio-score"] = [
                         {"value": calibrated_balance_score}
                     ]
 
         return fins_metrics
+
+    def _score_distribution(self):
+        """Calculates scores empirical distribution curve for each demographic group"""
+
+        groups = np.unique(self.pool_sensitive_features)
+        for group in groups:
+            ind = np.where(self.pool_sensitive_features == group)
+            group_scores = self.pool_scores[ind]
+            emp_dist_df = empirical_distribution_curve(
+                group_scores, self.down_sampling_step, variable_name="scores"
+            )
+            emp_dist_df.name = "score_empirical_distribution"
+
+            labels = {"sensitive_feature": self.sf_name, "group": group}
+
+            e = TableContainer(
+                emp_dist_df,
+                **self.get_container_info(labels=labels),
+            )
+            self._results.append(e)
