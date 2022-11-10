@@ -56,8 +56,7 @@ def create_metrics_page():
     page = create_page_area([INTRO, metrics_table, metric_info])
 
     # Create the page
-    print(Path.cwd())  # debug
-    with open("./docs/metrics.rst", "w") as text_file:
+    with open("./metrics.rst", "w") as text_file:
         text_file.write(page)
 
 
