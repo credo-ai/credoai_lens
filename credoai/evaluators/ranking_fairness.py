@@ -144,7 +144,7 @@ class RankingFairness(Evaluator):
             self.k = int(len(self.pool_rankings) / 2)
 
         if self.down_sampling_step is None:
-            self.down_sampling_step = int(len(self.pool_rankings) / 100)
+            self.down_sampling_step = max(int(len(self.pool_rankings) / 100), 1)
 
         # Sort ascending in parallel in case not already sorted
         p = self.pool_rankings.argsort()
