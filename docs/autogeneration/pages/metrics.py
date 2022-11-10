@@ -33,9 +33,7 @@ if __name__ == "__main__":
 
     # Mix auto-generated with manual metrics info
     df = table_metrics()
-    manual_info = read_json(
-        "/Users/fabriziopuletti/credoai_lens/docs/metrics_info_manual.json"
-    )
+    manual_info = read_json("./metrics_info_manual.json")
     df = df.merge(manual_info)
     df = df.loc[~df.metric_name.duplicated()]
 
