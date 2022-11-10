@@ -1,3 +1,4 @@
+from typing import Callable
 from credoai.prism import Comparator
 from credoai.evaluators.utils.validation import check_instance
 from credoai.evidence import MetricContainer
@@ -28,24 +29,13 @@ class MetricComparator(Comparator):
 
     def __init__(self, EvidenceContainers):
         # attributes all comparators will need
-        self.EvidenceContainers = EvidenceContainers
-        self.evaluations = set()
-        self._setup()
-        self._validate()
+        super().__init__(EvidenceContainers)
 
     def _setup(self):
-        ##Evaluations are akin to metrics.
-        # Eg. MetricContainer contains a df with results for various metrics
-        # We want a list of all metrics run across all EvidenceContainers supplied to the Comparator
+        """Extracts all the results from the result containers"""
         for container in self.EvidenceContainers.values():
             for metric in container.df.type:
                 self.evaluations.add(metric)
-
-        self.comparisons = {}
-        # internal container for tracking the results of comparisons
-
-        # some metadata...?
-        # labels?
 
     def _validate(self):
         """
@@ -58,16 +48,20 @@ class MetricComparator(Comparator):
         if len(self.EvidenceContainers) < 2:
             raise ValidationError("Expected multiple evidence objects to compare.")
 
-    def to_output_container(self):
+    def compare(self):
         """
-        Converts self.comparisons results to PrismContainer object which can then be passed (through some more abstraction)
-        to the Credo AI Governance platform
+        Runs all comparisons
         """
-        pass
+        # Calculate scalar differences across all the metrics
+        self._scalar_difference()
+        # Calculate overall stats for a metric result
+        self._run_superlative()
+        return self
 
-    # Comparison types (Not clear if these need to be defined in the base class since they won't all apply broadly)
-    def scalar_difference(self, abs=False):
+    def _scalar_difference(self, abs=False):
         """
+        Calculates the scalar difference across all results for a specific metric.
+
         Outputs: N/A
             Adds an output dictionary to self.comparisons:
                 Dict structure:
@@ -75,9 +69,28 @@ class MetricComparator(Comparator):
                     Values: pd.DataFrame objects, each with shape len(self.EvidenceContainers), len(self.EvidenceContainers)
                     DataFrame i contains results for metric i:
                         Pairwise difference between MetricContainers j and k
-                        If abs == True, return the abolute difference between metrics results
+                        If abs == True, return the absolute difference between metrics results
                         If metric is not measured for Container j or k, DataFrame[j, k] is None
+
+        Parameters
+        ----------
+        abs : bool, optional
+            If true calculates absolute difference, by default False
+
+        Returns
+        -------
+        Adds an output dictionary to self.comparisons:
+        Dict structure:
+
+            Keys: metric names
+            Values: pd.DataFrame objects, each with shape len(self.EvidenceContainers), len(self.EvidenceContainers)
+            DataFrame i contains results for metric i:
+                Pairwise difference between MetricContainers j and k
+                If abs == True, return the absolute difference between metrics results
+                If metric is not measured for Container j or k, DataFrame[j, k] is None
+
         """
+
         self.comparisons["scalar_difference"] = {}
         for metric in self.evaluations:
             comparison_dict = {}
@@ -111,7 +124,17 @@ class MetricComparator(Comparator):
             )
             self.comparisons["scalar_difference"][metric] = comparison_df
 
-    def superlative_eval(self, superlative, superlative_name):
+    def _superlative_eval(self, superlative: Callable, superlative_name: str):
+        """
+        Calculate maximals in results distribution.
+
+        Parameters
+        ----------
+        superlative : Callable
+            Function to apply to the results metrics
+        superlative_name : str
+            Identifier of the operation applied to the list.
+        """
         self.comparisons[superlative_name] = {}
         for metric in self.evaluations:
             self.comparisons[superlative_name][metric] = superlative(
@@ -121,18 +144,14 @@ class MetricComparator(Comparator):
                 ]
             )
 
-    def highest_eval(self):
+    def _run_superlative(self):
         """
-        Outputs: dictionary of values signifying the maximal value for each self.evaluation
-        Useful for upper-bounding metrics; E.g. want to get upper bound on parity gaps across models
-        e.g. returns {'precision_score_parity_gap': .6, 'precision_score_parity_ratio': .3, ...}
-        """
-        self.superlative_eval(max, "highest_eval")
+        Runs calculation for min, max, and mean values for each self.evaluation
 
-    def lowest_eval(self):
+        Useful to find overall summary stats metrics; E.g. want to get upper bound on parity gaps across models
+
         """
-        Outputs: dictionary of values signifying the minimal value for each self.evaluation
-        Useful for lower-bounding metrics; E.g., want to get a lower bound on performance
-        e.g. returns {'precision_score': .4, 'accuracy_score': .53, ...}
-        """
-        self.superlative_eval(min, "lowest_eval")
+        eval_to_run = {"highest": max, "lowest": min, "mean": np.mean}
+
+        for eval_name, eval in eval_to_run.items():
+            self._superlative_eval(eval, eval_name)
