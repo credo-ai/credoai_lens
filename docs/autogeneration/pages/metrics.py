@@ -6,6 +6,7 @@ from docs.autogeneration.formatter import (
     create_title,
     create_page_area,
 )
+from pathlib import Path
 
 INTRO = """Metrics new auto version
 ========================
@@ -33,9 +34,12 @@ if __name__ == "__main__":
 
     # Mix auto-generated with manual metrics info
     df = table_metrics()
-    manual_info = read_json("./metrics_info_manual.json")
-    df = df.merge(manual_info)
+    manual_info_path = Path(__file__).parent.resolve() / "metrics_info_manual.json"
+    manual_info = read_json(manual_info_path)
+
+    df = df.merge(manual_info, how="left")
     df = df.loc[~df.metric_name.duplicated()]
+    df = df.fillna("")
 
     # Create table of metrics
     df["Metric Name"] = ":ref:`" + df.metric_name + "<" + df.metric_name + ">`"
@@ -53,5 +57,5 @@ if __name__ == "__main__":
     page = create_page_area([INTRO, metrics_table, metric_info])
 
     # Create the page
-    with open("./metrics.rst", "w") as text_file:
+    with open("./docs/metrics.rst", "w") as text_file:
         text_file.write(page)
