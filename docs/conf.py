@@ -144,3 +144,16 @@ html_static_path = ["_static"]
 html_css_files = [
     "css/custom.css",
 ]
+
+# -- Generating pages ---------------------------------------------------
+
+
+from docs.autogeneration.pages.metrics import create_metrics_page
+
+
+def create_custom_pages(app):
+    create_metrics_page()
+
+
+def setup(app):
+    app.connect("builder-inited", create_custom_pages)

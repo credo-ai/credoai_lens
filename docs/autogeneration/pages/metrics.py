@@ -30,8 +30,7 @@ def create_metric_recap(row):
     return info
 
 
-if __name__ == "__main__":
-
+def create_metrics_page():
     # Mix auto-generated with manual metrics info
     df = table_metrics()
     manual_info_path = Path(__file__).parent.resolve() / "metrics_info_manual.json"
@@ -59,3 +58,7 @@ if __name__ == "__main__":
     # Create the page
     with open("./docs/metrics.rst", "w") as text_file:
         text_file.write(page)
+
+
+if __name__ == "__main__":
+    create_metrics_page()
