@@ -9,6 +9,9 @@ build:
   os: ubuntu-20.04
   tools:
     python: "3.8"
+  jobs:
+    pre_build:
+      - ls docs/autogeneration/pages/*.py|xargs -n 1 -P 2 python
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
