@@ -42,6 +42,8 @@ def create_metrics_page():
 
     # Create table of metrics
     df["Metric Name"] = ":ref:`" + df.metric_name + "<" + df.metric_name + ">`"
+    df = df.sort_values(by=["Metric Name"])
+
     metrics_table = create_table(
         convert_df_to_table(df, ["Metric Name", "rai_dimension", "synonyms"]),
         title="List of all metrics",
