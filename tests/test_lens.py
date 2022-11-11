@@ -7,7 +7,7 @@ Testing protocols for the Lens package. Tested functionalities:
 from abc import ABC
 
 import pytest
-from credoai.artifacts import TabularData
+from credoai.artifacts import TabularData, ComparisonData, ComparisonModel
 from credoai.evaluators import (
     DataEquity,
     DataFairness,
@@ -18,6 +18,9 @@ from credoai.evaluators import (
     Performance,
     Privacy,
     Security,
+    FeatureDrift,
+    Deepchecks,
+    IdentityVerification
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
@@ -210,23 +213,46 @@ class TestFeatureDrift(Base_Evaluator_Test):
         assert self.pipeline.get_results()
 
 
+class TestDeepchecks(Base_Evaluator_Test):
+    evaluator = Deepchecks()
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+
 class TestRankingFairnes:
-    evaluator = RankingFairness()
+    evaluator = RankingFairness(k=5)
 
     df = DataFrame(
         {
-            "rankings": [1, 2, 3, 4, 5, 6, 7],
-            "sensitive_features": ["f", "f", "m", "m", "f", "m", "f"],
+            "rankings": [1, 2, 3, 4, 5, 6, 7, 8],
+            "scores": [10, 8, 7, 6, 2, 2, 1, 1],
+            "sensitive_features": ["f", "f", "m", "m", "f", "m", "f", "f"],
         }
     )
     data = TabularData(
-        name="ranks", y=df[["rankings"]], sensitive_features=df[["sensitive_features"]]
+        name="ranks",
+        y=df[["rankings", "scores"]],
+        sensitive_features=df[["sensitive_features"]],
     )
     expected_results = DataFrame(
         {
-            "value": [0.86, 1.14, 0.32],
-            "type": ["minimum_skew", "maximum_skew", "NDKL"],
-            "subtype": ["score"] * 3,
+            "value": [0.11, 0.20, 0.90, 0.67, 0.98, 0.65, 0.59],
+            "type": [
+                "skew_parity_difference",
+                "ndkl",
+                "demographic_parity_ratio",
+                "balance_ratio",
+                "score_parity_ratio",
+                "score_balance_ratio",
+                "relevance_parity_ratio",
+            ],
+            "subtype": ["score"] * 7,
         }
     )
     pipeline = Lens(assessment_data=data)
@@ -243,6 +269,81 @@ class TestRankingFairnes:
         results = self.pipeline.get_results()[0]["results"][0].round(2)
         results = results.reset_index(drop=True)
         assert results.equals(self.expected_results)
+
+
+class TestIdentityVerification:
+    evaluator = IdentityVerification(similarity_thresholds=[60, 99])
+
+    pairs = DataFrame({
+        'source-subject-id': ['s0', 's0', 's0', 's0', 's1', 's1', 's1', 's1', 's1', 's2'],
+        'source-subject-data-sample': ['s00', 's00', 's00', 's00', 's10', 's10', 's10', 's11', 's11', 's20'],
+        'target-subject-id': ['s1', 's1', 's2', 's3', 's1', 's2', 's3', 's2', 's3', 's3'],
+        'target-subject-data-sample': ['s10', 's11', 's20', 's30', 's11', 's20', 's30', 's20', 's30', 's30']
+    })
+
+    subjects_sensitive_features = DataFrame({
+        'subject-id': ['s0', 's1', 's2', 's3'],
+        'gender': ['female', 'male', 'female', 'female']
+    })
+
+    expected_results_perf = DataFrame(
+        {
+            "value": [0.33, 1.00],
+            "type": ["false_match_rate", "false_non_match_rate"],
+            "subtype": ["score"] * 2,
+        }
+    )
+
+    expected_results_fair = DataFrame(
+        {
+            "gender": ["female", "male", "female", "male"],
+            "type": ["false_match_rate", "false_match_rate", "false_non_match_rate", "false_non_match_rate"],
+            "value": [0, 0, 0, 1],
+        }
+    )
+
+    class FaceCompare:
+        def compare(self, pairs):
+            similarity_scores = [31.5, 16.7, 20.8, 84.4, 12.0, 15.2, 45.8, 23.5, 28.5, 44.5]
+            return similarity_scores
+
+    face_compare = FaceCompare()
+
+    credo_data = ComparisonData(
+        name="face-data",
+        pairs=pairs,
+        subjects_sensitive_features=subjects_sensitive_features
+        )
+
+    credo_model = ComparisonModel(
+        name="face-compare", 
+        model_like=face_compare
+        )
+
+    pipeline = Lens(model=credo_model, assessment_data=credo_data)
+
+    def test_add(self):
+        self.pipeline.add(self.evaluator)
+        assert len(self.pipeline.pipeline) == 1
+
+    def test_run(self):
+        self.pipeline.run()
+        assert self.pipeline.get_results()
+
+    def test_get_results(self):
+        results = self.pipeline.get_results()[0]['results']
+        assert len(results) == 8
+
+    def test_results_performance(self):
+        results_perf = self.pipeline.get_results()[0]['results'][0].round(2)
+        results_perf = results_perf.reset_index(drop=True)
+        assert results_perf.equals(self.expected_results_perf)
+
+    def test_results_fairness(self):
+        results_fair = self.pipeline.get_results()[0]['results'][-1]
+        results_fair['value'] = results_fair['value'].astype(int)
+        results_fair = results_fair.reset_index(drop=True)
+        assert results_fair.equals(self.expected_results_fair)
 
 
 def test_bulk_pipeline_run(

@@ -17,6 +17,7 @@ import furo
 
 sys.path.insert(0, os.path.abspath(".."))
 import credoai
+from credoai.modules.metric_utils import list_metrics
 
 # -- Project information -----------------------------------------------------
 
@@ -24,6 +25,8 @@ project = "Credo AI | Lens"
 copyright = "2021, Credo AI Development Team"
 author = "Credo AI Development Team"
 release = credoai.__version__
+autodoc_mock_imports = ["bs4", "requests"]
+exec_code_source_folders = [os.path.abspath("..")]
 
 # -- General configuration ---------------------------------------------------
 
@@ -42,6 +45,7 @@ extensions = [
     "sphinx_autodoc_typehints",  # needs to be AFTER napoleon
     "sphinx_rtd_theme",
     "nbsphinx",
+    "sphinx_exec_code",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -63,7 +67,7 @@ set_type_checking_flag = True
 nbsphinx_allow_errors = True  # Continue through Jupyter errors
 nbsphinx_execute = "never"  # do not execute jupyter notebooks
 
-autodoc_mock_imports = [
+autodoc_mock_imports += [
     "absl",
     "art",
     "art.attacks.evasion",
@@ -73,9 +77,13 @@ autodoc_mock_imports = [
     "art.estimators.classification",
     "art.estimators.classification.scikitlearn",
     "cloudpickle",
+    "deepchecks",
+    "deepchecks.core",
+    "deepchecks.tabular",
     "dotenv",
     "fairlearn",
     "fairlearn.metrics",
+    "finsfairauditing",
     "googleapiclient",
     "ipywidgets",
     "joblib",

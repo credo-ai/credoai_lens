@@ -25,7 +25,7 @@ class Evaluator(ABC):
 
     @property
     def results(self):
-        if self._results:
+        if self._results is not None:
             return self._results
         else:
             raise NotRunError(

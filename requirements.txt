@@ -11,29 +11,36 @@ scikit-learn>=0.24
 scipy>=1.8.1
 tensorflow-macos==2.10.0; sys_platform == 'darwin'
 tensorflow==2.10.0; sys_platform != 'darwin'
-# Required for reporting
+
+# required for reporting
 pandas_profiling==3.3.0
 
-# required for NLP modules
-# joblib>=0.14.1
-# sentence-transformers>=2.1.0
-# transformers>=4.0.0
-# google-api-python-client>=1.12.8
-
-# required for privacy and security module
+# required for Privacy and Security evaluators
 adversarial-robustness-toolbox>=1.10.1
 torch>=1.12.1
 
-# required for survival
+# required for SurvivalFairness evaluator
 lifelines>=0.27.3
 
-# required for shap module
+# required for ShapExplainer evaluator
 shap>=0.41.0
 
-# for dev
+# required for Deepchecks evaluator
+deepchecks>=0.9.1
+
+# required for RankingFairness evaluator
+finsfairauditing>=0.0.2
+
+# required for dev
 pytest>=6.2.5
 pytest-cov>=3.0.0
 pytest-watch>=4.2
 responses>=0.21.0
 pytest-mock>=3.8
+
+# required for NLP evaluator
+# joblib>=0.14.1
+# sentence-transformers>=2.1.0
+# transformers>=4.0.0
+# google-api-python-client>=1.12.8
 

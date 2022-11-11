@@ -4,3 +4,5 @@
    :recursive:
 
    credoai
+
+automodule: credoai_lens
