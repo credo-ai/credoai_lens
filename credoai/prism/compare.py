@@ -3,6 +3,8 @@ from typing import List
 from comparators.metric_comparator import MetricComparator
 from credoai.evidence.containers import EvidenceContainer, MetricContainer
 
+from credoai.utils import ValidationError
+
 
 class ComparePairs:
     def __init__(
@@ -31,6 +33,19 @@ class ComparePairs:
         self._validate()
 
     def _validate(self):
+        # Assumption on the shape of the list of containers.
+        # TODO: relax the assumptions in future iterations
+        # 1. They are the same length
+        if len(self.results_primary) != len(self.results_secondary):
+            raise ValidationError("List of results have different length")
+        # 2. They have the same type of containers
+        if [type(x) for x in self.results_primary] != [
+            type(x) for x in self.results_secondary
+        ]:
+            raise ValidationError(
+                "Containers type are different across the lists of results"
+            )
+
         """Remove the unsupported type of containers."""
         self.results_primary = [
             x for x in self.results_primary if type(x) in self.supported_containers
@@ -38,10 +53,8 @@ class ComparePairs:
         self.results_secondary = [
             x for x in self.results_secondary if type(x) in self.supported_containers
         ]
-        # Assumption on the shape of the list of containers.
-        # TODO: relax the assumptions in future iterations
-        # 1.
 
-    def _form_pairs(self):
+    def _create_pairs(self):
+        """Create a list of results pair"""
         print("stuff")
         pass
