@@ -34,7 +34,9 @@ class PipelineStep:
         self.metadata["evaluator"] = self.evaluator.name
 
     def check_match(self, metadata):
-        """Return true if metadata is a subset of pipeline step's metadata"""
+        """
+        Return true if metadata is a subset of pipeline step's metadata
+        """
         return check_subset(metadata, self.metadata)
 
 
@@ -391,7 +393,7 @@ class Lens:
         for step in pipeline:
             if not isinstance(step, tuple):
                 step = (step,)
-            evaltr, meta = self._consume_pipeline_step(step)
+            evaltr, meta = self._consume_pipeline_step(deepcopy(step))
             if isclass(evaltr):
                 raise ValidationError(
                     f"Evaluator in step {step} needs to be instantiated"

@@ -1,6 +1,9 @@
 ############# Validation related functionality ##################
 
 from email import message
+from credoai.artifacts.model.classification_model import ClassificationModel
+from credoai.artifacts.model.base_model import Model
+from credoai.artifacts.data.tabular_data import TabularData
 from credoai.utils.common import ValidationError
 from pandas import Series, DataFrame
 
@@ -47,6 +50,42 @@ def check_existence(obj, name=None):
 def check_requirements_existence(self):
     for required_name in self.required_artifacts:
         check_existence(vars(self)[required_name], required_name)
+
+
+def check_requirements_deepchecks(self):
+    # For case when we require at least one dataset
+    # All supplied datasets must be of correct form
+    at_least_one_artifact = False
+    for required_name in self.required_artifacts:
+        if "data" in required_name:
+            try:
+                check_data_instance(vars(self)[required_name], TabularData)
+                at_least_one_artifact = True
+            except ValidationError as e:
+                if vars(self)[required_name]:
+                    # Check if the artifact actually contains anything
+                    # If so, raise the same error
+                    raise ValidationError(e)
+                else:
+                    # Do nothing. We're simply not going to have this optional artifact
+                    pass
+        else:
+            # Check model
+            try:
+                check_model_instance(vars(self)[required_name], Model)
+                at_least_one_artifact = True
+            except ValidationError as e:
+                if vars(self)[required_name]:
+                    # Check if model is NoneType
+                    raise ValidationError(e)
+                else:
+                    # Model is NoneType but model is optional for deepchecks
+                    pass
+
+    if not at_least_one_artifact:
+        raise ValidationError(
+            "Expected at least one valid artifact. None provided or all objects passed are otherwise invalid"
+        )
 
 
 def check_for_nulls(obj, name):
