@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import pandas as pd
+
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames

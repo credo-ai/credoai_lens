@@ -1,17 +1,13 @@
-from credoai.evaluators import Evaluator
-
 from typing import List, Optional
 
-from credoai.utils.common import ValidationError
-from credoai.modules.deepchecks_constants import DEFAULT_CHECKS
-from credoai.evaluators.utils.validation import (
-    check_requirements_deepchecks,
-)
-
-from credoai.evidence import DeepchecksContainer
-
-from deepchecks.tabular import Suite, Dataset
 from deepchecks.core import BaseCheck
+from deepchecks.tabular import Dataset, Suite
+
+from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.validation import check_requirements_deepchecks
+from credoai.evidence import DeepchecksContainer
+from credoai.modules.deepchecks_constants import DEFAULT_CHECKS
+from credoai.utils.common import ValidationError
 
 
 class Deepchecks(Evaluator):

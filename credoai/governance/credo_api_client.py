@@ -4,13 +4,15 @@ Defines Credo API client
 
 import os
 from typing import Dict
+
 import requests
 from dotenv import dotenv_values
 from json_api_doc import deserialize, serialize
+
+from credoai import __version__
 from credoai.utils import global_logger
 from credoai.utils.common import json_dumps
 from credoai.utils.constants import CREDO_URL
-from credoai import __version__
 
 
 class CredoApiConfig:

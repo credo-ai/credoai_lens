@@ -7,6 +7,8 @@ Testing protocols for the Lens package. Tested functionalities:
 from abc import ABC, abstractmethod
 
 import pytest
+from pandas import DataFrame
+
 from credoai.artifacts import TabularData
 from credoai.evaluators import (
     DataEquity,
@@ -16,7 +18,6 @@ from credoai.evaluators import (
     Performance,
 )
 from credoai.lens import Lens
-from pandas import DataFrame
 
 TEST_METRICS = [["r2_score"]]
 TEST_METRICS_IDS = ["regression_metric"]

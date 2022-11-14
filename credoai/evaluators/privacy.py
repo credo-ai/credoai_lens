@@ -3,22 +3,29 @@ from warnings import filterwarnings
 
 import numpy as np
 from art.attacks.inference.attribute_inference import (
-    AttributeInferenceBaseline, AttributeInferenceBlackBox)
+    AttributeInferenceBaseline,
+    AttributeInferenceBlackBox,
+)
 from art.attacks.inference.membership_inference import (
-    MembershipInferenceBlackBox, MembershipInferenceBlackBoxRuleBased)
+    MembershipInferenceBlackBox,
+    MembershipInferenceBlackBoxRuleBased,
+)
 from art.estimators.classification import BlackBoxClassifier
-from credoai.artifacts import ClassificationModel, TabularData
-from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
-                                                 check_data_instance,
-                                                 check_feature_presence,
-                                                 check_model_instance,
-                                                 check_requirements_existence)
-from credoai.evidence import MetricContainer
-from credoai.utils.common import ValidationError
 from pandas import DataFrame
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+
+from credoai.artifacts import ClassificationModel, TabularData
+from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.validation import (
+    check_artifact_for_nulls,
+    check_data_instance,
+    check_feature_presence,
+    check_model_instance,
+    check_requirements_existence,
+)
+from credoai.evidence import MetricContainer
+from credoai.utils.common import ValidationError
 
 filterwarnings("ignore")
 

@@ -1,7 +1,8 @@
 # imports for example data and model training
-from credoai.datasets import fetch_creditdefault
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+
+from credoai.datasets import fetch_creditdefault
 
 data = fetch_creditdefault()
 df = data["data"]

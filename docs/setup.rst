@@ -22,6 +22,14 @@ The latest development version can also be installed directly from github.
 
    pip install git+https://github.com/credo-ai/credoai_lens#develop
 
+If you are interested in contributing to the development of Lens and
+would like to install requirements for testing and formatting, you'll
+have to install the dev requirements.
+
+::
+
+   pip install credoai-lens[dev]
+
 **Conda**
 
 Lens is not on conda-forge. However, you can create a working

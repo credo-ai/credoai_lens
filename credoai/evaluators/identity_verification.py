@@ -1,20 +1,19 @@
 """Identity Verification evaluator"""
 import pandas as pd
+
 from credoai.artifacts import ComparisonData, ComparisonModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
-from credoai.evaluators.utils.validation import (check_data_instance,
-                                                 check_existence,
-                                                 check_model_instance)
+from credoai.evaluators.utils.validation import (
+    check_data_instance,
+    check_existence,
+    check_model_instance,
+)
 from credoai.evidence.containers import MetricContainer, TableContainer
-from credoai.modules.metric_constants import \
-    BINARY_CLASSIFICATION_FUNCTIONS as bcf
+from credoai.modules.metric_constants import BINARY_CLASSIFICATION_FUNCTIONS as bcf
 from credoai.modules.metrics import Metric
 
-METRIC_SUBSET = [
-    'false_match_rate-score',
-    'false_non_match_rate-score'
-    ]
+METRIC_SUBSET = ["false_match_rate-score", "false_non_match_rate-score"]
 
 
 class IdentityVerification(Evaluator):
@@ -225,7 +224,7 @@ class IdentityVerification(Evaluator):
                         res, **self.get_container_info(labels={**parameters_label})
                     )
                 )
-            
+
         return overall_performance_res
 
     def _assess_disaggregated_performance(self):
@@ -250,8 +249,8 @@ class IdentityVerification(Evaluator):
     def _assess_disaggregated_performance_one(
         self, sf_name, threshold, level, performance_metrics
     ):
-        """Perform disaggregated performance assessment for one combination 
-        
+        """Perform disaggregated performance assessment for one combination
+
         One combination of similarity threshold, comparision level, and sensitive feature
 
         Parameters

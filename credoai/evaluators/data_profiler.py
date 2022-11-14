@@ -2,6 +2,7 @@
 
 import matplotlib
 import pandas as pd
+
 from credoai.artifacts.data.tabular_data import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_data_instance

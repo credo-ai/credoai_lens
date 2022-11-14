@@ -24,10 +24,13 @@ with open("requirements.txt") as f:
     INSTALL_REQUIRES = [line.strip() for line in f]
 
 # Fetch dev requirements files (including documentation)
+with open("requirements-dev.txt") as f:
+    dev_requirements = [line.strip() for line in f]
+
 with open("docs/requirements.txt") as f:
     doc_requirements = [line.strip() for line in f]
 
-dev_requirements = doc_requirements
+dev_requirements += doc_requirements
 
 EXTRAS_REQUIRES = {"dev": dev_requirements}
 
