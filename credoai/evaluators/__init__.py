@@ -2,6 +2,7 @@
 Perform specific evaluations on model and/or dataset
 """
 # fmt: off
+# this needs to be imported first to avoid circular import failures
 from .evaluator import Evaluator
 # fmt: on
 
