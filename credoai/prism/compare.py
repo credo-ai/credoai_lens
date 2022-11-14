@@ -1,16 +1,22 @@
 """Performs comparison between 2 pipelines"""
-from typing import List
-from comparators.metric_comparator import MetricComparator
-from credoai.evidence.containers import EvidenceContainer, MetricContainer
+from typing import List, Literal, Optional
+from credoai.evaluators.utils.validation import check_instance
+from credoai.evidence.containers import MetricContainer
+from credoai.lens import Lens
 
-from credoai.utils import ValidationError
+from credoai.utils import flatten_list
+from credoai.prism.comparators.metric_comparator import MetricComparator
 
 
-class ComparePairs:
+class Compare:
+    SUPPORTED_CONTAINERS = [MetricContainer]
+
     def __init__(
         self,
-        results_primary: List[EvidenceContainer],
-        results_secondary: List[EvidenceContainer],
+        pipelines: List[Lens],
+        ref: Optional[str] = None,
+        operation: Literal["diff", "ratio"] = "diff",
+        abs: bool = False,
     ):
         """
         Compare results between 2 different Lens runs.
@@ -26,35 +32,29 @@ class ComparePairs:
         results_secondary : List[EvidenceContainer]
             List of results from a Lens run
         """
-        self.results_primary = results_primary
-        self.results_secondary = results_secondary
-        self.supported_containers = [MetricContainer]
-        self.primary_evaluators = self
+        self.pipelines = pipelines
+        self.ref = ref
+        self.operation = operation
+        self.abs = abs
         self._validate()
+        self._extract_results_containers()
 
     def _validate(self):
-        # Assumption on the shape of the list of containers.
-        # TODO: relax the assumptions in future iterations
-        # 1. They are the same length
-        if len(self.results_primary) != len(self.results_secondary):
-            raise ValidationError("List of results have different length")
-        # 2. They have the same type of containers
-        if [type(x) for x in self.results_primary] != [
-            type(x) for x in self.results_secondary
-        ]:
-            raise ValidationError(
-                "Containers type are different across the lists of results"
-            )
+        for evaluator in self.pipelines:
+            check_instance(evaluator, Lens)
 
-        """Remove the unsupported type of containers."""
-        self.results_primary = [
-            x for x in self.results_primary if type(x) in self.supported_containers
-        ]
-        self.results_secondary = [
-            x for x in self.results_secondary if type(x) in self.supported_containers
+    def _extract_results_containers(self):
+        self.containers = flatten_list([x.pipeline for x in self.pipelines])
+        self.containers = flatten_list([x.evaluator.results for x in self.containers])
+        # Remove unsupported containers
+        self.supported_results = [
+            x for x in self.containers if type(x) in self.SUPPORTED_CONTAINERS
         ]
 
-    def _create_pairs(self):
-        """Create a list of results pair"""
-        print("stuff")
-        pass
+    def run(self):
+        # TODO: Add a splitter for different type of containers
+        # When we have other comparators we can use the suitable ones depending
+        # on container type. Potentially also dependent on evaluator
+        self.results = MetricComparator(
+            self.supported_results, self.ref, self.operation, self.abs
+        ).compare()

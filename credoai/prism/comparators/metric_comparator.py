@@ -1,5 +1,5 @@
 """Comparators for metric type containers"""
-from typing import Callable, Literal, Optional
+from typing import Callable, List, Literal, Optional
 
 import numpy as np
 from pandas import DataFrame, concat
@@ -34,7 +34,7 @@ class MetricComparator(Comparator):
 
     def __init__(
         self,
-        EvidenceContainers,
+        EvidenceContainers: List[MetricContainer],
         ref: Optional[str] = None,
         operation: Literal["diff", "ratio"] = "diff",
         abs: bool = False,
@@ -66,8 +66,6 @@ class MetricComparator(Comparator):
         """
         # Calculate scalar differences across all the metrics
         self._scalar_operation()
-        # Calculate overall stats for a metric result
-        self._run_superlative()
         return self
 
     def _extract_results_from_containers(self):
@@ -106,35 +104,3 @@ class MetricComparator(Comparator):
         if self.abs:
             output["comparison"] = output.comparison.abs()
         self.comparisons["scalar_comparison"] = output
-
-    def _superlative_eval(self, superlative: Callable, superlative_name: str):
-        """
-        Calculate maximals in results distribution.
-
-        Parameters
-        ----------
-        superlative : Callable
-            Function to apply to the results metrics
-        superlative_name : str
-            Identifier of the operation applied to the list.
-        """
-        self.comparisons[superlative_name] = {}
-        for metric in self.evaluations:
-            self.comparisons[superlative_name][metric] = superlative(
-                [
-                    ev.df[ev.df["type"] == metric].value.iloc[0]
-                    for ev in self.EvidenceContainers.values()
-                ]
-            )
-
-    def _run_superlative(self):
-        """
-        Runs calculation for min, max, and mean values for each self.evaluation
-
-        Useful to find overall summary stats metrics; E.g. want to get upper bound on parity gaps across models
-
-        """
-        eval_to_run = {"highest": max, "lowest": min, "mean": np.mean}
-
-        for eval_name, eval in eval_to_run.items():
-            self._superlative_eval(eval, eval_name)

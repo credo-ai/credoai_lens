@@ -10,7 +10,7 @@ from pandas import Series, DataFrame
 
 def check_instance(obj, inst_type, message=None):
     if not message:
-        f"Object {obj} should be an instance of {inst_type.__name__}"
+        message = f"Object {obj} should be an instance of {inst_type.__name__}"
     if not isinstance(obj, inst_type):
         raise ValidationError(message)
 
