@@ -4,6 +4,8 @@ from collections import Counter
 
 import numpy as np
 import pandas as pd
+from finsfairauditing import fins
+
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
@@ -15,7 +17,6 @@ from credoai.evaluators.utils.validation import (
 from credoai.evidence.containers import MetricContainer, TableContainer
 from credoai.utils.common import ValidationError
 from credoai.utils.dataset_utils import empirical_distribution_curve
-from finsfairauditing import fins
 
 EPSILON = 1e-12
 METRIC_SUBSET = [

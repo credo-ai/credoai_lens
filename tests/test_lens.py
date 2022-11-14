@@ -7,24 +7,24 @@ Testing protocols for the Lens package. Tested functionalities:
 from abc import ABC
 
 import pytest
-from credoai.artifacts import TabularData, ComparisonData, ComparisonModel
+from pandas import DataFrame
+
+from credoai.artifacts import ComparisonData, ComparisonModel, TabularData
 from credoai.evaluators import (
     DataEquity,
     DataFairness,
     DataProfiler,
+    Deepchecks,
     FeatureDrift,
+    IdentityVerification,
     ModelEquity,
     ModelFairness,
     Performance,
     Privacy,
     Security,
-    FeatureDrift,
-    Deepchecks,
-    IdentityVerification
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
-from pandas import DataFrame
 
 TEST_METRICS = [
     ["false_negative_rate"],
@@ -274,17 +274,65 @@ class TestRankingFairnes:
 class TestIdentityVerification:
     evaluator = IdentityVerification(similarity_thresholds=[60, 99])
 
-    pairs = DataFrame({
-        'source-subject-id': ['s0', 's0', 's0', 's0', 's1', 's1', 's1', 's1', 's1', 's2'],
-        'source-subject-data-sample': ['s00', 's00', 's00', 's00', 's10', 's10', 's10', 's11', 's11', 's20'],
-        'target-subject-id': ['s1', 's1', 's2', 's3', 's1', 's2', 's3', 's2', 's3', 's3'],
-        'target-subject-data-sample': ['s10', 's11', 's20', 's30', 's11', 's20', 's30', 's20', 's30', 's30']
-    })
+    pairs = DataFrame(
+        {
+            "source-subject-id": [
+                "s0",
+                "s0",
+                "s0",
+                "s0",
+                "s1",
+                "s1",
+                "s1",
+                "s1",
+                "s1",
+                "s2",
+            ],
+            "source-subject-data-sample": [
+                "s00",
+                "s00",
+                "s00",
+                "s00",
+                "s10",
+                "s10",
+                "s10",
+                "s11",
+                "s11",
+                "s20",
+            ],
+            "target-subject-id": [
+                "s1",
+                "s1",
+                "s2",
+                "s3",
+                "s1",
+                "s2",
+                "s3",
+                "s2",
+                "s3",
+                "s3",
+            ],
+            "target-subject-data-sample": [
+                "s10",
+                "s11",
+                "s20",
+                "s30",
+                "s11",
+                "s20",
+                "s30",
+                "s20",
+                "s30",
+                "s30",
+            ],
+        }
+    )
 
-    subjects_sensitive_features = DataFrame({
-        'subject-id': ['s0', 's1', 's2', 's3'],
-        'gender': ['female', 'male', 'female', 'female']
-    })
+    subjects_sensitive_features = DataFrame(
+        {
+            "subject-id": ["s0", "s1", "s2", "s3"],
+            "gender": ["female", "male", "female", "female"],
+        }
+    )
 
     expected_results_perf = DataFrame(
         {
@@ -297,14 +345,30 @@ class TestIdentityVerification:
     expected_results_fair = DataFrame(
         {
             "gender": ["female", "male", "female", "male"],
-            "type": ["false_match_rate", "false_match_rate", "false_non_match_rate", "false_non_match_rate"],
+            "type": [
+                "false_match_rate",
+                "false_match_rate",
+                "false_non_match_rate",
+                "false_non_match_rate",
+            ],
             "value": [0, 0, 0, 1],
         }
     )
 
     class FaceCompare:
         def compare(self, pairs):
-            similarity_scores = [31.5, 16.7, 20.8, 84.4, 12.0, 15.2, 45.8, 23.5, 28.5, 44.5]
+            similarity_scores = [
+                31.5,
+                16.7,
+                20.8,
+                84.4,
+                12.0,
+                15.2,
+                45.8,
+                23.5,
+                28.5,
+                44.5,
+            ]
             return similarity_scores
 
     face_compare = FaceCompare()
@@ -312,13 +376,10 @@ class TestIdentityVerification:
     credo_data = ComparisonData(
         name="face-data",
         pairs=pairs,
-        subjects_sensitive_features=subjects_sensitive_features
-        )
+        subjects_sensitive_features=subjects_sensitive_features,
+    )
 
-    credo_model = ComparisonModel(
-        name="face-compare", 
-        model_like=face_compare
-        )
+    credo_model = ComparisonModel(name="face-compare", model_like=face_compare)
 
     pipeline = Lens(model=credo_model, assessment_data=credo_data)
 
@@ -331,17 +392,17 @@ class TestIdentityVerification:
         assert self.pipeline.get_results()
 
     def test_get_results(self):
-        results = self.pipeline.get_results()[0]['results']
+        results = self.pipeline.get_results()[0]["results"]
         assert len(results) == 8
 
     def test_results_performance(self):
-        results_perf = self.pipeline.get_results()[0]['results'][0].round(2)
+        results_perf = self.pipeline.get_results()[0]["results"][0].round(2)
         results_perf = results_perf.reset_index(drop=True)
         assert results_perf.equals(self.expected_results_perf)
 
     def test_results_fairness(self):
-        results_fair = self.pipeline.get_results()[0]['results'][-1]
-        results_fair['value'] = results_fair['value'].astype(int)
+        results_fair = self.pipeline.get_results()[0]["results"][-1]
+        results_fair["value"] = results_fair["value"].astype(int)
         results_fair = results_fair.reset_index(drop=True)
         assert results_fair.equals(self.expected_results_fair)
 

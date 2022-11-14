@@ -1,7 +1,6 @@
-from credoai.utils import ValidationError
-from credoai.utils import global_logger
-
 from fairlearn.metrics import MetricFrame
+
+from credoai.utils import ValidationError, global_logger
 
 ########### General functions shared across evaluators ###########
 
@@ -44,7 +43,9 @@ def setup_metric_frames(
                 sensitive_features=sensitive_features,
             )
         else:
-            global_logger.warn(f"Metrics ({list(prob_metrics.keys())}) requested, but no y_prob available")
+            global_logger.warn(
+                f"Metrics ({list(prob_metrics.keys())}) requested, but no y_prob available"
+            )
 
     if thresh_metrics:
         if y_prob is not None:
@@ -55,5 +56,7 @@ def setup_metric_frames(
                 sensitive_features=sensitive_features,
             )
         else:
-            global_logger.warn(f"Metrics ({list(thresh_metrics.keys())}) requested, but no y_prob available")
+            global_logger.warn(
+                f"Metrics ({list(thresh_metrics.keys())}) requested, but no y_prob available"
+            )
     return metric_frames

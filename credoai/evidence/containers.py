@@ -7,16 +7,16 @@ suitable evidences.
 from abc import ABC, abstractmethod
 
 import pandas as pd
-from credoai.utils import ValidationError
-
 from deepchecks.core import SuiteResult
+
+from credoai.utils import ValidationError
 
 from .evidence import (
     DataProfilerEvidence,
+    DeepchecksEvidence,
     MetricEvidence,
     ModelProfilerEvidence,
     TableEvidence,
-    DeepchecksEvidence,
 )
 
 

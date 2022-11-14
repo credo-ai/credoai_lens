@@ -5,6 +5,8 @@ Credo Governance
 import json
 from typing import List, Optional, Union
 
+from json_api_doc import deserialize, serialize
+
 from credoai import __version__
 from credoai.evidence import Evidence, EvidenceRequirement
 from credoai.utils import (
@@ -14,7 +16,6 @@ from credoai.utils import (
     json_dumps,
     wrap_list,
 )
-from json_api_doc import deserialize, serialize
 
 from .credo_api import CredoApi
 from .credo_api_client import CredoApiClient

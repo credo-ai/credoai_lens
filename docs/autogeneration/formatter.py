@@ -4,7 +4,8 @@ Sphinx mkd formatting functinality.
 This library contains all the utility functions necessacry to format
 content in a suitable way for a sphinx rst file.
 """
-from typing import List, Optional, Literal
+from typing import List, Literal, Optional
+
 from pandas import DataFrame, Series, concat
 
 

@@ -7,9 +7,8 @@ from abc import ABC, abstractproperty
 from datetime import datetime
 from typing import Tuple
 
-from pandas import DataFrame, Series
-
 from deepchecks.core import SuiteResult
+from pandas import DataFrame, Series
 
 from credoai.utils import ValidationError
 
@@ -94,7 +93,7 @@ class MetricEvidence(Evidence):
         confidence_interval: Tuple[float, float] = None,
         confidence_level: int = None,
         additional_labels=None,
-        **metadata
+        **metadata,
     ):
         self.metric_type = type
         self.value = value
@@ -224,7 +223,11 @@ class DeepchecksEvidence(Evidence):
     """
 
     def __init__(
-        self, name: str, result: SuiteResult, additional_labels: dict=None, **metadata,
+        self,
+        name: str,
+        result: SuiteResult,
+        additional_labels: dict = None,
+        **metadata,
     ):
         self.name = name
         self._result = result

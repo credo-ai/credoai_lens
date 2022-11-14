@@ -1,19 +1,21 @@
 """
 Perform specific evaluations on model and/or dataset
 """
-
+# fmt: off
 from .evaluator import Evaluator
+# fmt: on
+
 from .data_fairness import DataFairness
 from .data_profiler import DataProfiler
-from .privacy import Privacy
-from .security import Security
-from .equity import DataEquity, ModelEquity
-from .performance import Performance
-from .fairness import ModelFairness
-from .ranking_fairness import RankingFairness
-from .survival_fairness import SurvivalFairness
-from .shap import ShapExplainer
-from .model_profiler import ModelProfiler
-from .feature_drift import FeatureDrift
 from .deepchecks import Deepchecks
+from .equity import DataEquity, ModelEquity
+from .fairness import ModelFairness
+from .feature_drift import FeatureDrift
 from .identity_verification import IdentityVerification
+from .model_profiler import ModelProfiler
+from .performance import Performance
+from .privacy import Privacy
+from .ranking_fairness import RankingFairness
+from .security import Security
+from .shap import ShapExplainer
+from .survival_fairness import SurvivalFairness
