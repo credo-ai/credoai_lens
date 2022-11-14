@@ -1,13 +1,13 @@
 """Comparators for metric type containers"""
-from typing import Callable
-from credoai.prism import Comparator
+from typing import Callable, Literal, Optional
+
+import numpy as np
+from pandas import DataFrame, concat
+
 from credoai.evaluators.utils.validation import check_instance
 from credoai.evidence import MetricContainer
+from credoai.prism.comparators.comparator import Comparator
 from credoai.utils.common import ValidationError
-
-import pandas as pd
-import numpy as np
-from copy import deepcopy
 
 
 class MetricComparator(Comparator):
@@ -25,8 +25,24 @@ class MetricComparator(Comparator):
     Output, stored in a LensComparison object, is result of comparisons.
     """
 
-    def __init__(self, EvidenceContainers):
+    OPERATIONS = {
+        "diff": lambda x, ref: x - ref,
+        "ratio": lambda x, ref: x / ref,
+        "perc": lambda x, ref: x * 100 / ref,
+        "perc_diff": lambda x, ref: ((x - ref) / ref) * 100,
+    }
+
+    def __init__(
+        self,
+        EvidenceContainers,
+        ref: Optional[str] = None,
+        operation: Literal["diff", "ratio"] = "diff",
+        abs: bool = False,
+    ):
         # attributes all comparators will need
+        self.overall_ref = ref
+        self.operation = self.OPERATIONS[operation]
+        self.abs = abs
         super().__init__(EvidenceContainers)
 
     def _setup(self):
@@ -46,73 +62,51 @@ class MetricComparator(Comparator):
         if len(self.EvidenceContainers) < 2:
             raise ValidationError("Expected multiple evidence objects to compare.")
 
+        if self.overall_ref not in self.EvidenceContainers.keys():
+            raise ValidationError("Reference ID not found.")
+
     def compare(self):
         """
         Runs all comparisons
         """
         # Calculate scalar differences across all the metrics
-        self._scalar_difference()
+        self._scalar_operation()
         # Calculate overall stats for a metric result
         self._run_superlative()
         return self
 
-    def _scalar_difference(self, abs=False):
+    def _scalar_operation(self) -> DataFrame:
         """
-        Calculates the scalar difference across all results for a specific metric.
-
-        Parameters
-        ----------
-        abs : bool, optional
-            If true calculates absolute difference, by default False
+        Compares all each metric to a specific reference value
 
         Returns
         -------
-        Adds an output dictionary to self.comparisons.
-        Dict structure:
+        DataFrame
+            Columns:
 
-            Keys: metric names
-            Values: pd.DataFrame objects, each with shape len(self.EvidenceContainers), len(self.EvidenceContainers)
-
-        DataFrame i contains results for metric i:
-
-            Pairwise difference between MetricContainers j and k
-            If abs == True, return the absolute difference between metrics results
-            If metric is not measured for Container j or k, DataFrame[j, k] is None
-
+                type: metric name
+                value: original value of the metric
+                id: Identifier of the origin of the metric
+                comparison: value of the comparison
         """
+        all_res = [
+            res.df.assign(id=ide) for ide, res in self.EvidenceContainers.items()
+        ]
+        all_res = concat(all_res, ignore_index=True)
+        # Group by metrics and calculate comparison
+        output = []
+        for _, results in all_res.groupby("type"):
+            ref_value = results.value.loc[results.id == self.overall_ref].iloc[0]
+            if ref_value:
+                results["comparison"] = self.operation(results.value, ref_value)
+            else:
+                results["comparison"] = None
+            output.append(results)
+        output = concat(output, ignore_index=True)
 
-        self.comparisons["scalar_difference"] = {}
-        for metric in self.evaluations:
-            comparison_dict = {}
-            for model_1, metric_ev1 in self.EvidenceContainers.items():
-                comparisons = []
-                if metric not in metric_ev1.df.type.values:
-                    # Needing to assume the underlying dataframe will have column "type"
-                    # seems a little brittle
-                    comparisons = [None] * len(self.EvidenceContainers)
-                else:
-                    for metric_ev2 in self.EvidenceContainers.values():
-                        if metric in metric_ev2.df.type.values:
-                            # Assuming the column with the value will be named "value" is
-                            # brittle. As is needing to check the 0-index to get the metric result
-                            comparisons.append(
-                                metric_ev1.df[
-                                    metric_ev1.df["type"] == metric
-                                ].value.iloc[0]
-                                - metric_ev2.df[
-                                    metric_ev2.df["type"] == metric
-                                ].value.iloc[0]
-                            )
-                            if abs:
-                                comparisons[-1] = np.abs(comparisons[-1])
-                        else:
-                            comparisons.append(None)
-
-                comparison_dict[model_1] = comparisons
-            comparison_df = pd.DataFrame.from_dict(
-                comparison_dict, orient="index", columns=self.EvidenceContainers.keys()
-            )
-            self.comparisons["scalar_difference"][metric] = comparison_df
+        if self.abs:
+            output["comparison"] = output.comparison.abs()
+        self.comparisons["scalar_comparison"] = output
 
     def _superlative_eval(self, superlative: Callable, superlative_name: str):
         """

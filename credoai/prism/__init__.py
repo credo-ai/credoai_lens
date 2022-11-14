@@ -4,5 +4,5 @@ from .prism import Prism
 Perform specific comparisons between two evidences of the same type
 """
 
-from .comparator import Comparator
-from .metric_comparator import MetricComparator
+from .comparators.comparator import Comparator
+from .comparators.metric_comparator import MetricComparator
