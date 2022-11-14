@@ -1,5 +1,6 @@
 """Identity Verification evaluator"""
 import pandas as pd
+from connect.evidence import MetricContainer, TableContainer
 
 from credoai.artifacts import ComparisonData, ComparisonModel
 from credoai.evaluators import Evaluator
@@ -9,7 +10,6 @@ from credoai.evaluators.utils.validation import (
     check_existence,
     check_model_instance,
 )
-from credoai.evidence.containers import MetricContainer, TableContainer
 from credoai.modules.metric_constants import BINARY_CLASSIFICATION_FUNCTIONS as bcf
 from credoai.modules.metrics import Metric
 

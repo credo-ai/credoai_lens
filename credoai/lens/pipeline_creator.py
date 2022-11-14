@@ -7,10 +7,10 @@ from collections import defaultdict
 from typing import List
 
 import credoai.evaluators
+from connect.evidence import EvidenceRequirement
+from connect.governance import Governance
 from credoai.evaluators import *
 from credoai.evaluators.utils import name2evaluator
-from credoai.evidence import EvidenceRequirement
-from credoai.governance import Governance
 
 
 class PipelineCreator:

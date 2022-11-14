@@ -1,9 +1,9 @@
 """Ranking Fairness evaluator"""
 import math
-from collections import Counter
 
 import numpy as np
 import pandas as pd
+from connect.evidence import MetricContainer, TableContainer
 from finsfairauditing import fins
 
 from credoai.artifacts import TabularData
@@ -14,7 +14,6 @@ from credoai.evaluators.utils.validation import (
     check_existence,
     check_feature_presence,
 )
-from credoai.evidence.containers import MetricContainer, TableContainer
 from credoai.utils.common import ValidationError
 from credoai.utils.dataset_utils import empirical_distribution_curve
 

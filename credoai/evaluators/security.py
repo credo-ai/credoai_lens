@@ -6,6 +6,7 @@ import tensorflow as tf
 from art.attacks.evasion import HopSkipJump
 from art.attacks.extraction import CopycatCNN
 from art.estimators.classification import BlackBoxClassifier, KerasClassifier
+from connect.evidence import MetricContainer
 from keras.layers import Dense
 from keras.models import Sequential
 from keras.utils.np_utils import to_categorical
@@ -22,8 +23,6 @@ from credoai.evaluators.utils.validation import (
     check_model_instance,
     check_requirements_existence,
 )
-from credoai.evidence import MetricContainer
-from credoai.utils.common import NotRunError
 
 tf.compat.v1.disable_eager_execution()
 
