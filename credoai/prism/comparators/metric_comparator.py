@@ -47,23 +47,18 @@ class MetricComparator(Comparator):
 
     def _setup(self):
         """Extracts all the results from the result containers"""
-        for container in self.EvidenceContainers.values():
-            for metric in container.df.type:
-                self.evaluations.add(metric)
+        self._extract_results_from_containers()
 
     def _validate(self):
         """
         Check that provided containers are all MetricContainer type
         Check that len >= 2
         """
-        for container in self.EvidenceContainers.values():
+        for container in self.EvidenceContainers:
             check_instance(container, MetricContainer)
 
         if len(self.EvidenceContainers) < 2:
             raise ValidationError("Expected multiple evidence objects to compare.")
-
-        if self.overall_ref not in self.EvidenceContainers.keys():
-            raise ValidationError("Reference ID not found.")
 
     def compare(self):
         """
@@ -74,6 +69,14 @@ class MetricComparator(Comparator):
         # Calculate overall stats for a metric result
         self._run_superlative()
         return self
+
+    def _extract_results_from_containers(self):
+        # Assign model name as ID
+        self.all_results = [
+            res.df.assign(id=res.metadata["model_name"])
+            for res in self.EvidenceContainers
+        ]
+        self.all_results = concat(self.all_results, ignore_index=True)
 
     def _scalar_operation(self) -> DataFrame:
         """
@@ -89,13 +92,9 @@ class MetricComparator(Comparator):
                 id: Identifier of the origin of the metric
                 comparison: value of the comparison
         """
-        all_res = [
-            res.df.assign(id=ide) for ide, res in self.EvidenceContainers.items()
-        ]
-        all_res = concat(all_res, ignore_index=True)
         # Group by metrics and calculate comparison
         output = []
-        for _, results in all_res.groupby("type"):
+        for _, results in self.all_results.groupby("type"):
             ref_value = results.value.loc[results.id == self.overall_ref].iloc[0]
             if ref_value:
                 results["comparison"] = self.operation(results.value, ref_value)
