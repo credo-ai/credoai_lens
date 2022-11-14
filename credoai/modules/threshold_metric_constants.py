@@ -1,6 +1,10 @@
-from credoai.modules.credoai_metrics import (credo_det_curve, credo_pr_curve,
-                                             credo_roc_curve)
 from sklearn import metrics as sk_metrics
+
+from credoai.modules.credoai_metrics import (
+    credo_det_curve,
+    credo_pr_curve,
+    credo_roc_curve,
+)
 
 """
 Current outputting functionality in evaluators (e.g. Performance) relies on

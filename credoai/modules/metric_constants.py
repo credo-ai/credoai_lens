@@ -1,15 +1,16 @@
 from functools import partial
 
+from fairlearn import metrics as fl_metrics
+from sklearn import metrics as sk_metrics
+
 from credoai.modules.credoai_metrics import (
     equal_opportunity_difference,
     false_discovery_rate,
     false_omission_rate,
-    ks_statistic,
     gini_coefficient_discriminatory,
+    ks_statistic,
     population_stability_index,
 )
-from fairlearn import metrics as fl_metrics
-from sklearn import metrics as sk_metrics
 
 THRESHOLD_METRIC_CATEGORIES = ["BINARY_CLASSIFICATION_THRESHOLD"]
 

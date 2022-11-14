@@ -1,10 +1,10 @@
 """Feature Drift evaluator"""
 from connect.evidence import MetricContainer, TableContainer
+
 from credoai.artifacts import ClassificationModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
 from credoai.modules.credoai_metrics import population_stability_index
-from pandas import DataFrame, Series
 
 
 class FeatureDrift(Evaluator):

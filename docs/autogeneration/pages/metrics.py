@@ -1,12 +1,14 @@
+from pathlib import Path
+
 from pandas import read_json
+
 from credoai.modules.metric_utils import table_metrics
 from docs.autogeneration.formatter import (
     convert_df_to_table,
+    create_page_area,
     create_table,
     create_title,
-    create_page_area,
 )
-from pathlib import Path
 
 INTRO = """Metrics new auto version
 ========================

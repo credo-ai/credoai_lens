@@ -2,6 +2,7 @@
 from copy import deepcopy
 
 import pandas as pd
+
 from credoai.utils.common import ValidationError
 
 from .base_data import Data
@@ -55,7 +56,7 @@ class ComparisonData(Data):
             """Basic validation for pairs"""
             if not isinstance(self.pairs, (pd.DataFrame)):
                 raise ValidationError("pairs must be a pd.DataFrame")
-            
+
             required_columns = [
                 "source-subject-id",
                 "source-subject-data-sample",
@@ -73,7 +74,7 @@ class ComparisonData(Data):
                 raise ValidationError(
                     f"pairs dataframe has '{len(available_columns)}' columns. It must have 4."
                 )
-            
+
             if self.pairs.isnull().values.any():
                 raise ValidationError(
                     "pairs dataframe contains NaN values. It must not have any."
@@ -97,12 +98,12 @@ class ComparisonData(Data):
                 raise ValidationError(
                     "subjects_sensitive_features dataframe includes 'subject-id' column only. It must include at least one sensitive feature column too."
                 )
-            
+
             if self.subjects_sensitive_features.isnull().values.any():
                 raise ValidationError(
                     "subjects_sensitive_features dataframe contains NaN values. It must not have any."
                 )
-            
+
             sensitive_features_names = list(self.subjects_sensitive_features.columns)
             sensitive_features_names.remove("subject-id")
             for sf_name in sensitive_features_names:
@@ -112,7 +113,6 @@ class ComparisonData(Data):
                         f"Sensitive Feature column {sf_name} must have more "
                         f"than one unique value. Only found one value: {unique_values[0]}"
                     )
-
 
     def _preprocess_subjects_sensitive_features(self):
         """Preprocess the input `subjects_sensitive_features` object"""

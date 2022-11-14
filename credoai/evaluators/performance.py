@@ -1,4 +1,5 @@
 import pandas as pd
+
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
@@ -169,7 +170,7 @@ class Performance(Evaluator):
             The overall performance metrics
         """
         # retrieve overall metrics for one of the sensitive features only as they are the same
-        if self.threshold_metrics and 'thresh' in self.metric_frames:
+        if self.threshold_metrics and "thresh" in self.metric_frames:
             threshold_results = (
                 pd.concat([self.metric_frames["thresh"].overall], axis=0)
                 .rename(index="value")

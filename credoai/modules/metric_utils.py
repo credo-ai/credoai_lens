@@ -1,13 +1,14 @@
 import textwrap
 from collections import defaultdict
 
+from pandas import DataFrame
+
 from credoai.modules.metrics import (
     ALL_METRICS,
     METRIC_CATEGORIES,
     METRIC_NAMES,
     MODEL_METRIC_CATEGORIES,
 )
-from pandas import DataFrame
 
 
 def list_metrics(verbose=True):

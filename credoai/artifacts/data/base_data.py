@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Union
 
 import pandas as pd
+
 from credoai.utils.common import ValidationError
 from credoai.utils.model_utils import type_of_target
 
