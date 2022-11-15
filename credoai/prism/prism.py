@@ -1,27 +1,30 @@
-from typing import List, Optional, Union
+from typing import List
 from credoai.lens import Lens
 from credoai.utils import ValidationError, global_logger
 from credoai.utils.common import NotRunError
+from credoai.prism.compare import Compare
 
 
 class Prism:
-    def __init__(
-        self,
-        network: Optional[List[Lens]] = None,
-        comparisons: Union[list, dict] = None,
-    ):
+    SUPPORTED_TASKS = {"compare": Compare}
+
+    def __init__(self, network: List[Lens], tasks: dict):
         self.network = network
-        self.comparisons = comparisons
+        self.tasks = tasks
+        self.supported_tasks = {
+            k: v for k, v in tasks.items() if k in self.SUPPORTED_TASKS
+        }
         self._validate_pipeline()
         self.run_flag = False
         self.compare_results: List = []
+        self.results = []
 
     def _validate_pipeline(self):
+        if not self.supported_tasks:
+            raise ValidationError("No supported tasks were found")
         for step in self.network:
             if not isinstance(step, Lens):
                 raise ValidationError("Step must be a Lens instance")
-            if self.model is None:
-                raise ValidationError(f"No model found for pipeline: {step.model.name}")
 
     def run(self):
         for step in self.network:
@@ -34,9 +37,13 @@ class Prism:
 
         self.run_flag = True
 
-    def compare(self):
+    def execute(self):
+        # Check if already executed
         if not self.run_flag:
             self.run()
+        for task_name, task_params in self.supported_tasks.items():
+            task = self.SUPPORTED_TASKS[task_name](self.network, **task_params)
+            self.results.append(task.run().get_results())
 
     def get_results(self):
-        return self.compare_results
+        return self.results

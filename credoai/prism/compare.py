@@ -58,3 +58,7 @@ class Compare:
         self.results = MetricComparator(
             self.supported_results, self.ref, self.operation, self.abs
         ).compare()
+        return self
+
+    def get_results(self):
+        return self.results.comparisons
