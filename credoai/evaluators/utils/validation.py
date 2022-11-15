@@ -35,6 +35,11 @@ def check_feature_presence(feature_name, df, name):
             raise ValidationError(message)
 
 
+def check_features_presence(feature_list, df, name):
+    for feature in feature_list:
+        check_feature_presence(feature, df, name)
+
+
 def check_existence(obj, name=None):
     message = f"Missing object {name}"
     if isinstance(obj, (DataFrame, Series)):

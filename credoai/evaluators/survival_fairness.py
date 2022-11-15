@@ -1,20 +1,33 @@
+from connect.evidence import TableContainer
+
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
     check_data_instance,
     check_existence,
+    check_features_presence,
 )
-from connect.evidence import TableContainer
 from credoai.modules import CoxPH
 from credoai.modules.stats_utils import columns_from_formula
-from credoai.utils import ValidationError
 
 
 class SurvivalFairness(Evaluator):
+    """Performs survival analysis on a dataset and compares it to model predictions
+
+    This evaluator uses a Cox Proportional Hazard model to analyze
+    the "survival" in a dataset as a function
+
+    Parameters
+    ----------
+    CoxPh_kwargs : _type_, optional
+        _description_, by default None
+    confounds : _type_, optional
+        _description_, by default None
+    """
+
     def __init__(self, CoxPh_kwargs=None, confounds=None):
         if CoxPh_kwargs is None:
-            CoxPh_kwargs = {"duration_col": "duration", "event_col": "event"}
+            CoxPh_kwargs = {}
         self.coxPh_kwargs = CoxPh_kwargs
         self.confounds = confounds
         self.stats = []
@@ -80,12 +93,10 @@ class SurvivalFairness(Evaluator):
         if "formula" in self.coxPh_kwargs:
             expected_columns |= columns_from_formula(self.coxPh_kwargs["formula"])
             expected_columns -= {"predictions", "predicted_probabilities"}
+            expected_columns.add(self.coxPh_kwargs.get("duration_col", "duration_col"))
+            expected_columns.add(self.coxPh_kwargs.get("event_col", "event_col"))
         if expected_columns is not None:
-            missing_columns = expected_columns.difference(self.assessment_data.X)
-            if missing_columns:
-                raise ValidationError(
-                    f"Columns supplied to CoxPh formula not found in data. Columns are: {missing_columns}"
-                )
+            check_features_presence(expected_columns)
 
     def _get_expected_survival(self):
         return [s.expected_survival() for s in self.stats]
