@@ -19,10 +19,11 @@ class SurvivalFairness(Evaluator):
 
     Parameters
     ----------
-    CoxPh_kwargs : _type_, optional
-        _description_, by default None
-    confounds : _type_, optional
-        _description_, by default None
+    CoxPh_kwargs : dict, optional
+        arguments to pass to the `fit` function of lifelines.CoxPHFiter, by default None
+    confounds : list, optional
+        List of features in assessment_data.X to include in survival model
+        as confounds, by default None
     """
 
     def __init__(self, CoxPh_kwargs=None, confounds=None):
