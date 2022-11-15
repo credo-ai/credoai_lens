@@ -1,6 +1,12 @@
 Evaluators
 ==========
 
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   ./privacy
+
 Evaluators are the classes that perform specific functions on 
 a model and/or data. These can include assessing the model for fairness, or profiling a 
 data. Evaluators are constantly being added to the framework, which creates Lens's standard

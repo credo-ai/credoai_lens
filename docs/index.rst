@@ -3,11 +3,11 @@
    :hidden:
 
    Home page <self>
-   Setup <setup>
-   Jupyter tutorials <tutorials>
-   Developer Guide <developer_guide>
-   Evaluators <evaluators>
-   Metrics <metrics>
+   Setup <pages/setup>
+   Jupyter tutorials <pages/tutorials>
+   Developer Guide <pages/developer_guide>
+   Evaluators <pages/evaluators/evaluators>
+   Metrics <pages/metrics>
    API reference <_autosummary/credoai>
 
 
