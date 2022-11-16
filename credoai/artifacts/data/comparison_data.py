@@ -124,7 +124,9 @@ class ComparisonData(Data):
     def _preprocess_subjects_sensitive_features(self):
         """Preprocess the input `subjects_sensitive_features` object"""
         if self.subjects_sensitive_features is not None:
-            self.subjects_sensitive_features = self.subjects_sensitive_features.astype(str)
+            self.subjects_sensitive_features = self.subjects_sensitive_features.astype(
+                str
+            )
 
     def _validate_pairs_subjects_sensitive_features_match(self):
         if self.subjects_sensitive_features is not None:
