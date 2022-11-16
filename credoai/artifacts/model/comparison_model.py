@@ -48,5 +48,5 @@ class DummyComparisonModel:
     def __init__(self, compare_output=None):
         self.compare_output = compare_output
 
-    def compare(self):
+    def compare(self, pairs=None):
         return self.compare_output
