@@ -393,7 +393,7 @@ class TestIdentityVerification:
 
     def test_get_results(self):
         results = self.pipeline.get_results()[0]["results"]
-        assert len(results) == 8
+        assert len(results) == 12
 
     def test_results_performance(self):
         results_perf = self.pipeline.get_results()[0]["results"][0].round(2)
@@ -401,7 +401,7 @@ class TestIdentityVerification:
         assert results_perf.equals(self.expected_results_perf)
 
     def test_results_fairness(self):
-        results_fair = self.pipeline.get_results()[0]["results"][-1]
+        results_fair = self.pipeline.get_results()[0]["results"][-4]
         results_fair["value"] = results_fair["value"].astype(int)
         results_fair = results_fair.reset_index(drop=True)
         assert results_fair.equals(self.expected_results_fair)
