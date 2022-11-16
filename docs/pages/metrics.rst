@@ -59,7 +59,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - fdr
 	* - :ref:`false_negative_rate<false_negative_rate>`
 	  - performance
-	  - fnr, miss_rate
+	  - miss_rate, fnr
 	* - :ref:`false_omission_rate<false_omission_rate>`
 	  - performance
 	  - 
@@ -95,7 +95,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - 
 	* - :ref:`mean_squared_error<mean_squared_error>`
 	  - performance
-	  - mean_squared_deviation, MSD, MSE
+	  - MSD, MSE, mean_squared_deviation
 	* - :ref:`mean_squared_log_error<mean_squared_log_error>`
 	  - performance
 	  - 
@@ -146,7 +146,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - specificity, tnr
 	* - :ref:`true_positive_rate<true_positive_rate>`
 	  - performance
-	  - recall, tpr, hit_rate, sensitivity, recall_score
+	  - hit_rate, recall_score, tpr, sensitivity, recall
 	* - :ref:`underprediction<underprediction>`
 	  - performance
 	  - 
@@ -302,7 +302,7 @@ False negative rate  is defined as follows:
 
 **Source**: `click here <https://fairlearn.org/v0.4.6/api_reference/fairlearn.metrics.html#fairlearn.metrics.false_negative_rate>`__
 
-**Other known names**: fnr, miss_rate
+**Other known names**: miss_rate, fnr
 
 False_omission_rate
 -------------------
@@ -404,7 +404,7 @@ Mean square error is the expected value of the squared (quadratic) error or loss
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html>`__
 
-**Other known names**: mean_squared_deviation, MSD, MSE
+**Other known names**: MSD, MSE, mean_squared_deviation
 
 Mean_squared_log_error
 ----------------------
@@ -547,7 +547,7 @@ True Positive Rate (also called sensitivity, recall, or hit rate) refers to the 
 
 **Source**: `click here <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.true_positive_rate>`__
 
-**Other known names**: recall, tpr, hit_rate, sensitivity, recall_score
+**Other known names**: hit_rate, recall_score, tpr, sensitivity, recall
 
 Underprediction
 ---------------

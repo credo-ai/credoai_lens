@@ -14,6 +14,9 @@ class Evaluator(ABC):
     """
 
     def __init__(self):
+        """
+        Initialization of the class.
+        """
         self._results = None
         self.artifact_keys = []
         self.logger = global_logger
@@ -21,10 +24,19 @@ class Evaluator(ABC):
 
     @property
     def name(self):
+        """The name associated to the Evaluator, equals the class name."""
         return self.__class__.__name__
 
     @property
     def results(self):
+        """
+        Container for all results.
+
+        Raises
+        ------
+        NotRunError
+            It indicates that results are missing, the evaluator was not run.
+        """
         if self._results is not None:
             return self._results
         else:
@@ -34,6 +46,7 @@ class Evaluator(ABC):
 
     @results.setter
     def results(self, results):
+        """Requires the results to be list of Evidence Containers"""
         if not isinstance(results, list):
             raise ValidationError("Results must be a list")
         for result in results:
@@ -44,6 +57,14 @@ class Evaluator(ABC):
     @property
     @abstractmethod
     def required_artifacts(self):
+        """
+        The required artifacts necessary for the functioning of the evaluator
+
+        This set containes the :ref:`artifacts<credoai.artifacts>` that Lens can feed to
+        an evaluator, the accepted values are ``{"model", "assessment_data", "training_data"}``.
+        The set can also include the string "sensitive_feature". This is to indicate
+        that the evaluator depends on sensitive features.
+        """
         pass
 
     def __call__(self, **kwargs):
@@ -53,7 +74,7 @@ class Evaluator(ABC):
 
         After objects are passed, it performs arguments validation and calls _setup
 
-        >>> pipeline = Lens(model = model, assessment_data = dataset1)
+        >> pipeline = Lens(model = model, assessment_data = dataset1)
 
         where a group of arguments shareable across multiple evaluators is passed.
         This method inside a specific evaluator takes the required arguments and
@@ -72,8 +93,8 @@ class Evaluator(ABC):
         The following code template provides an example of what the internal of this
         method could look like:
 
-        >>> self.model = kwargs['model']
-        >>> self.assessment_dataset = kwargs['assessment_dataset']
+        >> self.model = kwargs['model']
+        >> self.assessment_dataset = kwargs['assessment_dataset']
 
         where model and assessment_dataset are Lens() arguments.
 
@@ -89,14 +110,22 @@ class Evaluator(ABC):
         Execute any data/model processing required for the evaluator.
 
         Populates the self.results object.
-
-        Returns
-        -------
-        self
         """
         return self
 
     def get_container_info(self, labels: dict = None, metadata: dict = None):
+        """
+        Expands the base labels and metadata used to populate evidences.
+
+        Parameters
+        ----------
+        labels : dict, optional
+            Labels defined by the user. A label is information necessary to
+            identify evidences in the Credo AI Platform, by default None.
+        metadata : dict, optional
+            Any extra info the user wants to associate to the evidences. Compared
+            to lables these are not necessary for evidence identification, by default None.
+        """
         info = self._base_container_info()
         if labels:
             info["labels"].update(labels)
@@ -105,6 +134,7 @@ class Evaluator(ABC):
         return info
 
     def _base_container_info(self):
+        """Extract basic info to populate labels and metadata."""
         meta = {**self.metadata, **self._get_artifacts()}
         labels = {"evaluator": self.name}
         if "dataset_type" in meta:
@@ -112,6 +142,11 @@ class Evaluator(ABC):
         return {"labels": labels, "metadata": meta}
 
     def _get_artifacts(self):
+        """
+        Exteact used artifacts within the evaluator.
+
+        The method also extract name info from the available artifacts.
+        """
         artifacts = {}
         save_keys = {
             "model": "model_name",
@@ -140,6 +175,7 @@ class Evaluator(ABC):
 
     @abstractmethod
     def _setup(self):
+        """Contains any extea step necessary to initialize the evaluator"""
         pass
 
     @abstractmethod

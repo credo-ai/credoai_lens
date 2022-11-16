@@ -6,6 +6,7 @@ Evaluators
    :hidden:
 
    ./privacy
+   ./make_your_own
 
 Evaluators are the classes that perform specific functions on 
 a model and/or data. These can include assessing the model for fairness, or profiling a 
