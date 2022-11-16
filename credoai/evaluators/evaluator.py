@@ -11,12 +11,13 @@ class Evaluator(ABC):
 
     Defines basic functions required from any evaluator object.
 
+    This class leverage the special method `__call__` to make artifacts
+    available in the class enclosure.
+
+    .. automethod:: __call__
     """
 
     def __init__(self):
-        """
-        Initialization of the class.
-        """
         self._results = None
         self.artifact_keys = []
         self.logger = global_logger
@@ -61,9 +62,14 @@ class Evaluator(ABC):
         The required artifacts necessary for the functioning of the evaluator
 
         This set containes the :ref:`artifacts<credoai.artifacts>` that Lens can feed to
-        an evaluator, the accepted values are ``{"model", "assessment_data", "training_data"}``.
+        an evaluator, the accepted values are ``{"model", "assessment_data", "training_data", "data"}``.
+
+        The string "data" means that the evaluator can be run on either assessment and training data
+        (DataProfiler is an example). Lens will iterate over the available artifacts internally.
+
         The set can also include the string "sensitive_feature". This is to indicate
-        that the evaluator depends on sensitive features.
+        that the evaluator depends on sensitive features. Lens will iterate over the available sensitive
+        features internally.
         """
         pass
 
@@ -72,32 +78,12 @@ class Evaluator(ABC):
         This method is used to pass the model, assessment_data and training_data
         artifacts to instantiated evaluator.
 
-        After objects are passed, it performs arguments validation and calls _setup
+        The method is called internally by the Lens instance, which only passess the
+        artifacts specified in the property :meth:`required_artifacts<Evaluator.required_artifacts>`.
 
-        >> pipeline = Lens(model = model, assessment_data = dataset1)
+        After the artifacts are passed, it performs arguments validation and calls :meth:`_setup<Evaluator._setup>`
 
-        where a group of arguments shareable across multiple evaluators is passed.
-        This method inside a specific evaluator takes the required arguments and
-        makes them available to the evaluator instance.
-
-        Requirements
-        -------------
-        _shared_arg_assignment requires explicitly named arguments.
-
-        Returns
-        -------
-        self
-
-        Implementation template
-        -----------------------
-        The following code template provides an example of what the internal of this
-        method could look like:
-
-        >> self.model = kwargs['model']
-        >> self.assessment_dataset = kwargs['assessment_dataset']
-
-        where model and assessment_dataset are Lens() arguments.
-
+        At the end of these operation, the validated artifacts are available in the evaluator enclosure.
         """
         self._init_artifacts(kwargs)
         self._validate_arguments()
