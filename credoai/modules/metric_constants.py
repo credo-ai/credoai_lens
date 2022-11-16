@@ -71,8 +71,8 @@ PROBABILITY_FUNCTIONS = {"average_precision_score", "roc_auc_score", "gini_coeff
 
 # *** Define Alternative Naming ***
 METRIC_EQUIVALENTS = {
-    "false_positive_rate": ["fpr", "fallout_rate"],
-    "false_negative_rate": ["fnr", "miss_rate"],
+    "false_positive_rate": ["fpr", "fallout_rate", "false_match_rate"],
+    "false_negative_rate": ["fnr", "miss_rate", "false_non_match_rate"],
     "false_discovery_rate": ["fdr"],
     "true_positive_rate": ["tpr", "recall_score", "recall", "sensitivity", "hit_rate"],
     "true_negative_rate": ["tnr", "specificity"],
