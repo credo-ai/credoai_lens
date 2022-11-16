@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import pandas as pd
+
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
@@ -9,7 +10,7 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from credoai.evidence import MetricContainer, TableContainer
+from connect.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,

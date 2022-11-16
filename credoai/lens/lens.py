@@ -7,9 +7,10 @@ from dataclasses import dataclass
 from inspect import isclass
 from typing import Dict, List, Optional, Tuple, Union
 
+from connect.governance import Governance
+
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
-from credoai.governance import Governance
 from credoai.lens.pipeline_creator import PipelineCreator
 from credoai.utils import ValidationError, check_subset, flatten_list, global_logger
 
@@ -280,7 +281,7 @@ class Lens:
         pipeline_results = [
             {
                 "metadata": step.metadata,
-                "results": [r.df for r in step.evaluator.results],
+                "results": [r.data for r in step.evaluator.results],
             }
             for step in pipeline_subset
         ]

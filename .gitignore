@@ -131,6 +131,7 @@ dmypy.json
 
 # custom
 *.json
+!docs/autogeneration/pages/metrics_info_manual.json
 *.csv
 *.txt
 .DS_Store

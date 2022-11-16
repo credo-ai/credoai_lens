@@ -1,8 +1,9 @@
 from itertools import product
 
 import pandas as pd
-from credoai.modules.stats_utils import columns_from_formula
 from lifelines import CoxPHFitter
+
+from credoai.modules.stats_utils import columns_from_formula
 
 
 class CoxPH:

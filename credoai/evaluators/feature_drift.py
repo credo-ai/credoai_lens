@@ -1,11 +1,11 @@
 """Feature Drift evaluator"""
+import pandas as pd
+from connect.evidence import MetricContainer, TableContainer
+
 from credoai.artifacts import ClassificationModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
-from credoai.evidence import MetricContainer
-from credoai.evidence.containers import TableContainer
 from credoai.modules.credoai_metrics import population_stability_index
-from pandas import DataFrame, Series
 
 
 class FeatureDrift(Evaluator):
@@ -84,7 +84,7 @@ class FeatureDrift(Evaluator):
             self.results.append(TableContainer(csi, **self.get_container_info()))
         return self
 
-    def _calculate_psi_on_prediction(self) -> DataFrame:
+    def _calculate_psi_on_prediction(self) -> pd.DataFrame:
         """
         Calculate the psi index on the model prediction.
 
@@ -100,10 +100,12 @@ class FeatureDrift(Evaluator):
             buckets=self.bucket_number,
             buckettype=self.buckettype,
         )
-        res = DataFrame({"value": psi, "type": "population_stability_index"}, index=[0])
+        res = pd.DataFrame(
+            {"value": psi, "type": "population_stability_index"}, index=[0]
+        )
         return res
 
-    def _calculate_csi(self) -> DataFrame:
+    def _calculate_csi(self) -> pd.DataFrame:
         """
         Calculate psi for all the columns in the dataframes.
 
@@ -122,14 +124,14 @@ class FeatureDrift(Evaluator):
                 psis[col_name] = population_stability_index(train, assess, True)
             else:
                 psis[col_name] = population_stability_index(train_data, assess_data)
-        psis = DataFrame.from_dict(psis, orient="index")
+        psis = pd.DataFrame.from_dict(psis, orient="index")
         psis = psis.reset_index()
         psis.columns = ["feature_names", "value"]
         psis.name = "Characteristic Stability Index"
         return psis
 
     @staticmethod
-    def _create_bin_percentage(train: Series, assess: Series) -> tuple:
+    def _create_bin_percentage(train: pd.Series, assess: pd.Series) -> tuple:
         """
         In case of categorical values proceed to count the instances
         of each class and divide by the total amount of samples to get

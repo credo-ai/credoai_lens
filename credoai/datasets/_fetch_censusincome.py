@@ -1,6 +1,7 @@
 import pandas as pd
-from credoai.utils.common import SupressSettingWithCopyWarning
 from sklearn.datasets import fetch_openml
+
+from credoai.utils.common import SupressSettingWithCopyWarning
 
 from .utils import get_local_credo_path
 

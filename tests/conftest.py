@@ -1,11 +1,12 @@
-from credoai.artifacts import ClassificationModel, RegressionModel, TabularData
-from credoai.datasets import fetch_testdata
+import pickle
+
 from pytest import fixture
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import train_test_split
-from credoai.datasets import fetch_creditdefault
-import pickle
+
+from credoai.artifacts import ClassificationModel, RegressionModel, TabularData
+from credoai.datasets import fetch_creditdefault, fetch_testdata
 
 
 @fixture(scope="session")
