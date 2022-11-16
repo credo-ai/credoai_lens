@@ -54,7 +54,7 @@ class ComparisonData(Data):
     def _validate_pairs(self):
         """Validate the input `pairs` object"""
         if self.pairs is not None:
-            """Basic validation for pairs"""
+            # Basic validation for pairs
             if not isinstance(self.pairs, (pd.DataFrame)):
                 raise ValidationError("pairs must be a pd.DataFrame")
 
@@ -84,7 +84,7 @@ class ComparisonData(Data):
     def _validate_subjects_sensitive_features(self):
         """Validate the input `subjects_sensitive_features` object"""
         if self.subjects_sensitive_features is not None:
-            """Basic validation for subjects_sensitive_features"""
+            # Basic validation for subjects_sensitive_features
             if not isinstance(self.subjects_sensitive_features, (pd.DataFrame)):
                 raise ValidationError(
                     "subjects_sensitive_features must be a pd.DataFrame"
@@ -118,17 +118,12 @@ class ComparisonData(Data):
     def _preprocess_pairs(self):
         """Preprocess the input `pairs` object"""
         cols = ["source-subject-id", "target-subject-id"]
-        for col in cols:
-            self.pairs[col] = self.pairs[col].astype(str)
+        self.pairs[cols] = self.pairs[cols].astype(str)
 
     def _preprocess_subjects_sensitive_features(self):
         """Preprocess the input `subjects_sensitive_features` object"""
         if self.subjects_sensitive_features is not None:
-            cols = list(self.subjects_sensitive_features.columns)
-            for col in cols:
-                self.subjects_sensitive_features[
-                    col
-                ] = self.subjects_sensitive_features[col].astype(str)
+            self.subjects_sensitive_features = self.subjects_sensitive_features.astype(str)
 
     def _validate_pairs_subjects_sensitive_features_match(self):
         if self.subjects_sensitive_features is not None:
