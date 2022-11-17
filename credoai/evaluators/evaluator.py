@@ -15,6 +15,9 @@ class Evaluator(ABC):
     available in the class enclosure.
 
     .. automethod:: __call__
+    .. automethod:: _init_artifacts
+    .. automethod:: _validate_arguments
+    .. automethod:: _setup
     """
 
     def __init__(self):
