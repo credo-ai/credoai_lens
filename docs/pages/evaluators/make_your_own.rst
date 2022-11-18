@@ -140,6 +140,72 @@ Specifically to evaluator, these are the main directives:
 Docstring style guide
 *********************
 
+This is a general style guide for any method docstring. In particular, the evaluator class docstring will be used to
+create an evaluator specific page in :ref:`evaluators`, so following the guidelines will ensure that the page
+will be displayed correctly.
+
+The following settings are generally applied to any docstring. Modern IDE generally allow to configure
+how docstrings will be populated. 
+
+- Format: **numpy**
+- Quote style: *"""* (3 x double quotes)
+- Start on new line: True -> This forces the docstring to not start in line with the first
+  3 double quotes. This setting is necessary for the docs page to be visualized correctly.
+
+The default format for the text content within the docstring follows the `sphinx restructured text <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ 
+conventions. Below an example of what a typical docstring could look like:
+
+.. code-block::
+
+   def MyEvaluator:
+      """
+      Evaluator purpose (generally a one liner).
+
+      Notice how the first line above starts below the triple quotes.
+
+      Custom section
+      --------------
+      Any form of custom section is supported, and will
+      be formatted according to rst rules. These sections can be used to further
+      break down a lengthy description.
+
+      Any section can contain numbered/bullet lists. There needs to be an empty line
+      between the text and the start of the list. No indentation is required to start
+      the list.
+
+      1. Numbered item
+      2. Another numbered item
+
+      * Bullet point
+        To extend to multiline simply align to the first letter
+        * Sub bullet
+
+      Parameters
+      ----------
+      param 1: type
+         Description
+      
+      Examples
+      --------
+
+      The section with actual code examples should be left for last.
+
+      Code lines should be prefixed with the symbol >>>
+
+      >>> a = 2
+      >>> a + 3 == 5
+
+      **WARNING!!!** Code prefixed with >>> will be tested during package testing, therefore
+      it should be correct/runnable.
+
+      Pseudo code can be inserted using indentation, this will not be tested:
+
+         my_pseudo_code = something_generic
+      
+      """
+
+
+
 
 ********************
 Summary of the steps
