@@ -33,7 +33,8 @@ METRIC_SUBSET = [
 
 
 class DataFairness(Evaluator):
-    """Data Fairness for Credo AI.
+    """
+    Data Fairness for Credo AI.
 
     This evaluator performs a fairness evaluation on the dataset. Given a sensitive feature,
     it calculates a number of assessments:

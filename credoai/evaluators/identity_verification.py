@@ -17,7 +17,8 @@ METRIC_SUBSET = ["false_match_rate-score", "false_non_match_rate-score"]
 
 
 class IdentityVerification(Evaluator):
-    """Pair-wise-comparison-based identity verification evaluator for Credo AI
+    """
+    Pair-wise-comparison-based identity verification evaluator for Credo AI
 
     This evaluator takes in identity verification data and
         provides functionality to perform performance and fairness assessment

@@ -5,7 +5,7 @@ Evaluators
    :maxdepth: 1
    :hidden:
 
-   ./privacy
+   ./test
    ./make_your_own
 
 Evaluators are the classes that perform specific functions on 

@@ -11,7 +11,7 @@ from credoai.modules.deepchecks_constants import DEFAULT_CHECKS
 
 class Deepchecks(Evaluator):
     """
-    deepchecks evaluator
+    Deepchecks evaluator
 
     This evaluator enables running of deepchecks `checks` and passing the results to
     the Governance platform in the form of a deepchecks SuiteResult, cast to JSON format.

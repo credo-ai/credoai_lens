@@ -318,6 +318,8 @@ class DataEquity(Evaluator):
 
 
 class ModelEquity(DataEquity):
+    """Calculates Equity for model predictions."""
+
     def __init__(self, use_predict_proba=False, p_value=0.01):
         self.use_predict_proba = use_predict_proba
         super().__init__(p_value)

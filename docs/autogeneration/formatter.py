@@ -7,6 +7,7 @@ content in a suitable way for a sphinx rst file.
 from typing import List, Literal, Optional
 
 from pandas import DataFrame, Series, concat
+from re import finditer
 
 
 def create_title(
@@ -80,3 +81,25 @@ def convert_df_to_table(
     df["sphinx"] = "\t* - " + df.sphinx
 
     return "\n".join(list(df.sphinx))
+
+
+def camel_case_split(identifier):
+    matches = finditer(
+        ".+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)", identifier
+    )
+    return [m.group(0) for m in matches]
+
+
+def extract_docstring_info_from_evaluator(object):
+    text = object.__doc__
+    text = text.replace(" {4}", "")
+    mod_txt = []
+    for line in text.splitlines(True):
+        if line != "\n":
+            mod_txt.append(line[4:])
+        else:
+            mod_txt.append(line)
+
+    title = " ".join(camel_case_split(object.name))
+    page = create_page_area([create_title(title), "".join(mod_txt)])
+    return page
