@@ -17,3 +17,4 @@ scikit-learn==1.1.2
 pandas==1.4.4
 fairlearn==0.7.0
 lifelines>=0.27.3
+credoai-connect>=0.0.2
