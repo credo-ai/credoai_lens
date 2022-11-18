@@ -19,6 +19,7 @@ Evaluators
    ./rankingfairness
    ./security
    ./shapexplainer
+   ./survivalfairness
    ./make_your_own
 
 Evaluators are the classes that perform specific functions on 
