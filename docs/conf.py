@@ -155,7 +155,7 @@ from docs.autogeneration.pages.evaluators import create_all_evaluator_pages
 
 def create_custom_pages(app):
     create_metrics_page()
-    create_all_evaluator_pages()
+    # create_all_evaluator_pages()
 
 
 def setup(app):
