@@ -8,10 +8,10 @@ in the page :ref:`Library of Evaluators`.
 
 The following documents goes through: 
 
-1. :ref:`structure of the abstract class<core evaluator methods>`
-2. :ref:`general methods organization within an evaluator object<evaluator schema>`
-3. :ref:`docstring style guide<docstring style guide>`
-4. :ref:`list of recommended steps to create an evaluator<summary of the steps>`
+1. :ref:`Core methods for the class<core evaluator methods>`
+2. :ref:`Evaluator class organization<evaluator schema>`
+3. :ref:`Docstring style guide<docstring style guide>`
+4. :ref:`TLTR: A condensed summary<summary of the steps>`
 
 In order to understand the structure of evaluators, it is important to understand how they
 are used within :class:`~.credoai.lens.lens.Lens`. A typical example of how Lens consumes evaluator
@@ -78,10 +78,10 @@ are the following:
    * ``"training_data"``: This represent a dataset used to perform a model training during assessment time.
      Accessible as ``self.assessment_data``
    * ``"data"``: This means that the evaluator can work on any generic dataset. If both training and assessment
-     data are available, Lens will run the evaluator on each separately.
+     data are available, Lens will run the evaluator on each separately. Accessible as ``self.data``.
    * ``"sensitive_feature"``: this is a special value, it represents a dependance of the evaluator on sensitive
      features, whereby that is intended in the context of Responsible AI. In case multiple sensitive features
-     are available, Lens will run the evaluator on each separately.
+     are available, Lens will run the evaluator on each separately. Accessible as ``self.sensitive_feature``
 
 #. :meth:`~.credoai.evaluators.evaluator.Evaluator._validate_arguments` -> Any validation on the format and content
    of the required artifacts should be performed in this method. The module :mod:`~.credoai.evaluators.utils.validation`
@@ -112,11 +112,29 @@ Evaluator schema
 This section deals with best practices in the organization of an evaluator class. This is a list
 of principles that aim to make the structure of evaluators consistent, easy to interpret and debug.
 
-#. Evaluator class naming is in CamelCase, consistent with Python best practices
+In general we strive to follow `Python PEP8 <https://peps.python.org/pep-0008/>`_ guidelines.
+Specifically to evaluator, these are the main directives:
+
+#. All evaluators inherit the class :class:`~.credoai.evaluators.evaluator.Evaluator`.
+#. Evaluator class naming is in CamelCase, consistent with Python best practices for classes.
 #. Immediately after the class name a docstring describing the purpose of the evaluator and any
-   parameter necessary at init time is inserted. For more info on the docstring structure, please
+   parameter necessary at ``init`` time is inserted. For more info on the docstring structure, please
    refer to the next section.
-#. 
+#. Immediately after the docstring, these methods/property (enforced by the abstract class) follow in this order:
+
+    #. ``__init__``: The last line of this method is ``super().__init__()``. The invocation of the abstract
+       class init method is necessary to initialize some class properties.
+    #. ``required_artifacts``: this is defined as a property of the class, outside of init
+    #. ``_validate_arguments``
+    #. ``_setup``
+    #. ``evaluate``
+
+#. The ``evaluate`` method is meant to be as simple as possible. Ideally the majority of the complexity is organized
+   in a suitable amount of private methods.
+#. By the end of the ``evaluate`` method, the property ``self.results`` needs to be populated with the results
+   of the assessment.
+#. Any other method created by the user to structure the code can come after evaluate. The only other recommendation
+   is for static methods to be put after any non-static method.
 
 *********************
 Docstring style guide
@@ -126,3 +144,28 @@ Docstring style guide
 ********************
 Summary of the steps
 ********************
+Here's a very practical, and condensed, approach to making an evaluator:
+
+* Create a class that inherits from :class:`~.credoai.evaluators.evaluator.Evaluator`.
+* Create the ``__init__``, remember that Lens artifacts are not meant to be here.
+* Define the ``required_artifacts`` for the evaluator. 
+* Define ``validate_arguments`` and ``setup``. These tend to be updated as the understanding.
+  of the evaluator scope and desired outcome increase.
+* Break down the logic of the evaluation in a suitable amount of methods.
+* Finalize creating the ``evaluate`` method, which runs the full logic and populates ``self.results`` with
+  a list of *evidence containers*.
+
+During building/testing phase you can run the evaluator outside of Lens, in order to make the artifacts
+available to the evaluator you can use the ``__call__`` method. An example of what a test would look like
+would be:
+
+.. code::
+
+    test = MyEvaluator(param1 = value1)
+    # If MyEvaluator requires model and assessment data, call the evaluator
+    # to pass teh artifacts. This mimics what happens internally in Lens.
+    test(model = my_model_artifact, assessment_data = my_assessment_data)
+    test.evaluate()
+    # To check the results
+    test.results
+
