@@ -150,10 +150,12 @@ html_css_files = [
 
 
 from docs.autogeneration.pages.metrics import create_metrics_page
+from docs.autogeneration.pages.evaluators import create_all_evaluator_pages
 
 
 def create_custom_pages(app):
     create_metrics_page()
+    create_all_evaluator_pages()
 
 
 def setup(app):

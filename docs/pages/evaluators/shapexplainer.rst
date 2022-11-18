@@ -57,7 +57,4 @@ background_kmeans : Union[bool, int], optional
     SHAP explainer using 50 centroids by default. If an int is provided,
     that will be used as the number of centroids. If False, random sampling will take place.
 
-Examples
---------
->>> My Code
->>> is here.
+

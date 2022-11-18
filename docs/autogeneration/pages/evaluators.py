@@ -5,7 +5,8 @@ from docs.autogeneration.formatter import (
 )
 from credoai.lens.pipeline_creator import build_list_of_evaluators
 
-if __name__ == "__main__":
+
+def create_all_evaluator_pages():
     all_ev = build_list_of_evaluators()
     for evaluator in all_ev:
         try:
@@ -15,3 +16,7 @@ if __name__ == "__main__":
                 text_file.write(doc)
         except:
             print(f"{evaluator.name} docstring not found")
+
+
+if __name__ == "__main__":
+    create_all_evaluator_pages()
