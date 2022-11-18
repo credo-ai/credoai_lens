@@ -12,6 +12,10 @@ from credoai.utils import ValidationError
 
 
 class SurvivalFairness(Evaluator):
+    """
+    Calculate Survival fairness
+    """
+
     def __init__(self, CoxPh_kwargs=None, confounds=None):
         if CoxPh_kwargs is None:
             CoxPh_kwargs = {"duration_col": "duration", "event_col": "event"}

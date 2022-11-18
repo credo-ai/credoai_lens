@@ -2,4 +2,5 @@
 Model equity
 ============
 
-ulates Equity for model predictions.
+
+Calculates Equity for model predictions.
