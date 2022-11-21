@@ -124,6 +124,9 @@ autodoc_mock_imports += [
     "transformers",
 ]
 
+# copy button properties
+copybutton_prompt_text = r">>> |\.\.\. "
+copybutton_prompt_is_regexp = True
 
 # -- Options for HTML output -------------------------------------------------
 
