@@ -49,7 +49,7 @@ class Deepchecks(Evaluator):
         checks: Optional[List[BaseCheck]] = DEFAULT_CHECKS,
     ):
         super().__init__()
-        self.name = suite_name
+        self.suite_name = suite_name
         self.checks = checks
 
     def _setup(self):
@@ -75,7 +75,7 @@ class Deepchecks(Evaluator):
         if self.model:
             self.deepchecks_model = self.model.model_like
 
-        self.suite = Suite(name=self.name)
+        self.suite = Suite(name=self.suite_name)
         for check in self.checks:
             self.suite.add(check)
             # doing this as a for-loop list seems to be the only way
@@ -94,7 +94,7 @@ class Deepchecks(Evaluator):
         self._setup_deepchecks()
         self.run_suite()
 
-        self.results = [DeepchecksContainer(self.name, self.suite_results)]
+        self.results = [DeepchecksContainer(self.suite_name, self.suite_results)]
 
         return self
 
