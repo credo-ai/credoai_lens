@@ -191,13 +191,29 @@ conventions. Below an example of what a typical docstring could look like:
 
       This is expected to be the last section.
 
-      Code lines are be prefixed with the symbol >>>
+      Code syntax uses doctest conventions:
+      1. Prefix lines with >>>, multiline code uses ... for second ine onward
+      2. Line after a code line is interpreted as expected output
+      3. Any output produced by the code needs to be matched for the test to succeed.
+      See strategy below to bypass matching a specific output
 
       >>> a = 2
-      >>> a + 3 == 5
+      >>> def my_func(): # multiline example
+      ...   pass
+      >>> print('123') # This outputs needs to be matched
+      123
 
-      **WARNING!!!** Code prefixed with >>> will be tested during package testing, therefore
-      it must be correct/runnable.
+      To skip having to match a specific output:
+
+      >>> import doctest
+      >>> doctest.ELLIPSIS_MARKER = '-etc-'
+      >>> # the next line produces output we will ignore
+      >>> print(42) # doctest: +ELLIPSIS
+      -etc-
+
+
+      **WARNING!!!** Code prefixed with >>> will be tested during package testing, leveraging doctests
+      capabilities.
 
       Pseudo code can be inserted using indentation, this will not be tested:
 
@@ -205,8 +221,10 @@ conventions. Below an example of what a typical docstring could look like:
       
       """
 
+.. warning::
 
-
+   It is necessary for any code prefixedto be syntactically correct and to conform to `doctests <https://docs.pytest.org/en/7.1.x/how-to/doctest.html>`_.
+   You can find an example of a complex code section in :ref:`this docstring <Identity verification>`.
 
 ********************
 Summary of the steps
