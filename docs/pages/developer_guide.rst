@@ -2,6 +2,12 @@
 Developer Guide
 ===============
 
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   
+   ./make_your_own
+
 This document will go into more detail about the different components of Lens so that you can
 extend it to fit your needs. 
 
