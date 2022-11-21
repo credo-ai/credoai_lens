@@ -5,10 +5,11 @@ Evaluators
    :maxdepth: 1
    :hidden:
 
-   ./credo_deepchecks_suite
+   
    ./dataequity
    ./datafairness
    ./dataprofiler
+   ./deepchecks
    ./featuredrift
    ./identityverification
    ./modelequity
@@ -20,7 +21,6 @@ Evaluators
    ./security
    ./shapexplainer
    ./survivalfairness
-   ./make_your_own
 
 Evaluators are the classes that perform specific functions on 
 a model and/or data. These can include assessing the model for fairness, or profiling a 
