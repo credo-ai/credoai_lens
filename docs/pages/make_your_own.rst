@@ -84,7 +84,7 @@ are the following:
      are available, Lens will run the evaluator on each separately. Accessible as ``self.sensitive_feature``
 
 #. :meth:`~.credoai.evaluators.evaluator.Evaluator._validate_arguments` -> Any validation on the format and content
-   of the required artifacts should be performed in this method. The module :mod:`~.credoai.evaluators.utils.validation`
+   of the required artifacts will be performed in this method. The module :mod:`~.credoai.evaluators.utils.validation`
    contains several pre-made utility function that can aid the user in creating their validity checks.
 
 #. :meth:`~.credoai.evaluators.evaluator.Evaluator._setup` -> This method is supposed to contain any extra step necessary
@@ -159,7 +159,7 @@ conventions. Below an example of what a typical docstring could look like:
 
    def MyEvaluator:
       """
-      Evaluator purpose (generally a one liner).
+      Evaluator purpose, no more than one line.
 
       Notice how the first line above starts below the triple quotes.
 
@@ -167,7 +167,8 @@ conventions. Below an example of what a typical docstring could look like:
       --------------
       Any form of custom section is supported, and will
       be formatted according to rst rules. These sections can be used to further
-      break down a lengthy description.
+      break down a lengthy description. NOtice the header level is defined by a rows
+      of "-" the same length as the section title.
 
       Any section can contain numbered/bullet lists. There needs to be an empty line
       between the text and the start of the list. No indentation is required to start
@@ -188,15 +189,15 @@ conventions. Below an example of what a typical docstring could look like:
       Examples
       --------
 
-      The section with actual code examples should be left for last.
+      This is expected to be the last section.
 
-      Code lines should be prefixed with the symbol >>>
+      Code lines are be prefixed with the symbol >>>
 
       >>> a = 2
       >>> a + 3 == 5
 
       **WARNING!!!** Code prefixed with >>> will be tested during package testing, therefore
-      it should be correct/runnable.
+      it must be correct/runnable.
 
       Pseudo code can be inserted using indentation, this will not be tested:
 
