@@ -6,21 +6,21 @@ Evaluators
    :hidden:
 
    
-   ./dataequity
-   ./datafairness
-   ./dataprofiler
-   ./deepchecks
-   ./featuredrift
-   ./identityverification
-   ./modelequity
-   ./modelfairness
-   ./modelprofiler
-   ./performance
-   ./privacy
-   ./rankingfairness
-   ./security
-   ./shapexplainer
-   ./survivalfairness
+   ./evaluators/dataequity
+   ./evaluators/datafairness
+   ./evaluators/dataprofiler
+   ./evaluators/deepchecks
+   ./evaluators/featuredrift
+   ./evaluators/identityverification
+   ./evaluators/modelequity
+   ./evaluators/modelfairness
+   ./evaluators/modelprofiler
+   ./evaluators/performance
+   ./evaluators/privacy
+   ./evaluators/rankingfairness
+   ./evaluators/security
+   ./evaluators/shapexplainer
+   ./evaluators/survivalfairness
 
 Evaluators are the classes that perform specific functions on 
 a model and/or data. These can include assessing the model for fairness, or profiling a 

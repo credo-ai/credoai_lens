@@ -6,7 +6,7 @@
    Setup <pages/setup>
    Jupyter tutorials <pages/tutorials>
    Developer Guide <pages/developer_guide>
-   Evaluators <pages/evaluators/evaluators>
+   Evaluators <pages/evaluators>
    Metrics <pages/metrics>
    API reference <_autosummary/credoai>
 
