@@ -11,7 +11,7 @@ class Evaluator(ABC):
 
     Defines basic functions required from any evaluator object.
 
-    This class leverage the special method `__call__` to make artifacts
+    This class leverages the special method `__call__` to make artifacts
     available in the class enclosure.
 
     .. automethod:: __call__
@@ -35,6 +35,9 @@ class Evaluator(ABC):
     def results(self):
         """
         Container for all results.
+
+        It is expected to be a list of EvidenceContainers. This is enforced in
+        the associated setter method.
 
         Raises
         ------
@@ -64,11 +67,11 @@ class Evaluator(ABC):
         """
         The required artifacts necessary for the functioning of the evaluator
 
-        This set containes the :ref:`artifacts<credoai.artifacts>` that Lens can feed to
+        This set contains the :ref:`artifacts<credoai.artifacts>` that Lens can feed to
         an evaluator, the accepted values are ``{"model", "assessment_data", "training_data", "data"}``.
 
-        The string "data" means that the evaluator can be run on either assessment and training data
-        (DataProfiler is an example). Lens will iterate over the available artifacts internally.
+        The string "data" means that the evaluator can be run on assessment and/or training data
+        (DataProfiler is an example). Lens will iterate over all the available artifacts internally.
 
         The set can also include the string "sensitive_feature". This is to indicate
         that the evaluator depends on sensitive features. Lens will iterate over the available sensitive
@@ -81,7 +84,7 @@ class Evaluator(ABC):
         This method is used to pass the model, assessment_data and training_data
         artifacts to instantiated evaluator.
 
-        The method is called internally by the Lens instance, which only passess the
+        The method is called internally by the Lens instance, which only passes the
         artifacts specified in the property :meth:`required_artifacts<Evaluator.required_artifacts>`.
 
         After the artifacts are passed, it performs arguments validation and calls :meth:`_setup<Evaluator._setup>`
@@ -109,11 +112,12 @@ class Evaluator(ABC):
         Parameters
         ----------
         labels : dict, optional
-            Labels defined by the user. A label is information necessary to
-            identify evidences in the Credo AI Platform, by default None.
+            The default labels can be expanded by the user when defining a new evaluator.
+            A label is in general any information necessary to identify evidences in the Credo AI Platform,
+            therefore, by default None.
         metadata : dict, optional
             Any extra info the user wants to associate to the evidences. Compared
-            to lables these are not necessary for evidence identification, by default None.
+            to labels these are not necessary for evidence identification, by default None.
         """
         info = self._base_container_info()
         if labels:
@@ -132,7 +136,7 @@ class Evaluator(ABC):
 
     def _get_artifacts(self):
         """
-        Exteact used artifacts within the evaluator.
+        Extract artifacts that will be used by the evaluator.
 
         The method also extract name info from the available artifacts.
         """
@@ -164,7 +168,9 @@ class Evaluator(ABC):
 
     @abstractmethod
     def _setup(self):
-        """Contains any extea step necessary to initialize the evaluator"""
+        """
+        Contains any extra steps necessary to initialize the evaluator
+        """
         pass
 
     @abstractmethod
