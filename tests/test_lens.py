@@ -85,6 +85,7 @@ def test_model_fairness(
     lens.add(evaluator)
     lens.run()
     assert lens.get_results()
+    assert lens.get_evidence()
 
 
 def test_privacy(
@@ -98,6 +99,7 @@ def test_privacy(
     lens.add(Privacy(attack_feature="MARRIAGE"))
     lens.run()
     assert lens.get_results()
+    assert lens.get_evidence()
 
 
 class TestDataFairness(Base_Evaluator_Test):
@@ -110,6 +112,7 @@ class TestDataFairness(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         self.pipeline.get_results()
+        self.pipeline.get_evidence()
         assert True
 
 
@@ -123,6 +126,7 @@ class TestDataProfiler(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         self.pipeline.get_results()
+        self.pipeline.get_evidence()
         assert True
 
 
@@ -136,6 +140,7 @@ class TestModelEquity(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+        assert self.pipeline.get_evidence()
 
 
 class TestDataEquity(Base_Evaluator_Test):
@@ -148,6 +153,7 @@ class TestDataEquity(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+        assert self.pipeline.get_evidence()
 
 
 class TestSecurity(Base_Evaluator_Test):
@@ -160,6 +166,7 @@ class TestSecurity(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+        assert self.pipeline.get_evidence()
 
 
 @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
@@ -175,6 +182,7 @@ def test_performance(
     lens.add(evaluator)
     lens.run()
     assert lens.get_results()
+    assert lens.get_evidence()
 
 
 class TestThresholdPerformance(Base_Evaluator_Test):
@@ -187,6 +195,7 @@ class TestThresholdPerformance(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+        assert self.pipeline.get_evidence()
 
 
 class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
@@ -199,6 +208,7 @@ class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+        assert self.pipeline.get_evidence()
 
 
 class TestFeatureDrift(Base_Evaluator_Test):
@@ -211,6 +221,7 @@ class TestFeatureDrift(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+        assert self.pipeline.get_evidence()
 
 
 class TestDeepchecks(Base_Evaluator_Test):
@@ -223,6 +234,7 @@ class TestDeepchecks(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+        assert self.pipeline.get_evidence()
 
 
 class TestRankingFairnes:
@@ -264,6 +276,7 @@ class TestRankingFairnes:
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+        assert self.pipeline.get_evidence()
 
     def test_results(self):
         results = self.pipeline.get_results()[0]["results"][0].round(2)
@@ -390,6 +403,7 @@ class TestIdentityVerification:
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+        assert self.pipeline.get_evidence()
 
     def test_get_results(self):
         results = self.pipeline.get_results()[0]["results"]
@@ -427,6 +441,7 @@ def test_bulk_pipeline_run(
     )
     my_pipeline.run()
     assert my_pipeline.get_results()
+    assert self.pipeline.get_evidence()
 
 
 @pytest.mark.xfail(raises=RuntimeError)
