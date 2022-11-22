@@ -191,7 +191,7 @@ class Lens:
             self.pipeline[idx].evaluator = evaluator
         return self
 
-    def send_to_governance(self, overwrite_governance=False):
+    def send_to_governance(self, overwrite_governance=True):
         """
         Parameters
         ---------
