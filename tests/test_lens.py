@@ -441,7 +441,7 @@ def test_bulk_pipeline_run(
     )
     my_pipeline.run()
     assert my_pipeline.get_results()
-    assert self.pipeline.get_evidence()
+    assert my_pipeline.get_evidence()
 
 
 @pytest.mark.xfail(raises=RuntimeError)
