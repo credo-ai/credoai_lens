@@ -1,5 +1,5 @@
 
-Model equity
+Model Equity
 ============
 
 

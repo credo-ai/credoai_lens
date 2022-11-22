@@ -1,5 +1,5 @@
 
-Shap explainer
+Shap Explainer
 ==============
 
 

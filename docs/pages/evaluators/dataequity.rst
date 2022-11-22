@@ -1,5 +1,5 @@
 
-Data equity
+Data Equity
 ===========
 
 

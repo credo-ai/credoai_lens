@@ -1,5 +1,5 @@
 
-Data profiler
+Data Profiler
 =============
 
 

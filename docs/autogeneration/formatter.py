@@ -21,7 +21,7 @@ def create_title(
         raise ValueError("Unknown level.")
 
     ttl_length = len(title)
-    title_string = f"\n{title.capitalize()}\n{sep*ttl_length}\n"
+    title_string = f"\n{title.title()}\n{sep*ttl_length}\n"
     if hyperlink:
         title_string = f"\n.. _{title}:\n" + title_string
 

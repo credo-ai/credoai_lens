@@ -1,5 +1,5 @@
 
-Model profiler
+Model Profiler
 ==============
 
 
