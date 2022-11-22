@@ -111,9 +111,10 @@ class TestDataFairness(Base_Evaluator_Test):
 
     def test_run(self):
         self.pipeline.run()
-        self.pipeline.get_results()
-        self.pipeline.get_evidence()
-        assert True
+        assert self.pipeline.get_results()
+
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
 
 
 class TestDataProfiler(Base_Evaluator_Test):
@@ -125,9 +126,10 @@ class TestDataProfiler(Base_Evaluator_Test):
 
     def test_run(self):
         self.pipeline.run()
-        self.pipeline.get_results()
-        self.pipeline.get_evidence()
-        assert True
+        assert self.pipeline.get_results()
+
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
 
 
 class TestModelEquity(Base_Evaluator_Test):
@@ -140,6 +142,8 @@ class TestModelEquity(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
         assert self.pipeline.get_evidence()
 
 
@@ -153,6 +157,8 @@ class TestDataEquity(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
         assert self.pipeline.get_evidence()
 
 
@@ -166,6 +172,8 @@ class TestSecurity(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
         assert self.pipeline.get_evidence()
 
 
@@ -195,6 +203,8 @@ class TestThresholdPerformance(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
         assert self.pipeline.get_evidence()
 
 
@@ -208,6 +218,8 @@ class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
         assert self.pipeline.get_evidence()
 
 
@@ -221,6 +233,8 @@ class TestFeatureDrift(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
         assert self.pipeline.get_evidence()
 
 
@@ -234,6 +248,8 @@ class TestDeepchecks(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
         assert self.pipeline.get_evidence()
 
 
@@ -276,6 +292,8 @@ class TestRankingFairnes:
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
         assert self.pipeline.get_evidence()
 
     def test_results(self):
@@ -403,11 +421,13 @@ class TestIdentityVerification:
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
-        assert self.pipeline.get_evidence()
 
     def test_get_results(self):
         results = self.pipeline.get_results()[0]["results"]
         assert len(results) == 12
+
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
 
     def test_results_performance(self):
         results_perf = self.pipeline.get_results()[0]["results"][0].round(2)
