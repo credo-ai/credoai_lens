@@ -87,7 +87,7 @@ def test_model_fairness(
         model=classification_model,
         assessment_data=classification_assessment_data,
         training_data=classification_train_data,
-        governance=gov
+        governance=gov,
     )
     evaluator = ModelFairness(metrics)
     lens.add(evaluator)
@@ -106,7 +106,7 @@ def test_privacy(
         model=credit_classification_model,
         assessment_data=credit_assessment_data,
         training_data=credit_training_data,
-        governance=gov
+        governance=gov,
     )
     lens.add(Privacy(attack_feature="MARRIAGE"))
     lens.run()
@@ -215,7 +215,7 @@ def test_performance(
         model=credit_classification_model,
         assessment_data=credit_assessment_data,
         training_data=credit_training_data,
-        governance=gov
+        governance=gov,
     )
     evaluator = Performance(metrics)
     lens.add(evaluator)
@@ -514,7 +514,7 @@ def test_bulk_pipeline_run(
         assessment_data=classification_assessment_data,
         training_data=classification_train_data,
         pipeline=pipe_structure,
-        governance=gov
+        governance=gov,
     )
     my_pipeline.run()
     assert my_pipeline.get_results()
