@@ -10,14 +10,11 @@ class Comparator(ABC):
 
     Comparators provide functionality to assess differences in Lens Evaluator results
     across datasets, models, etc. Some differences will be numeric while others will be
-    "change tracking" (a la 'diff').
+    "change tracking".
 
     Inputs:
         EvidenceContainers: Iterable of EvidenceContainer objects
 
-    Comparators output will be in
-    a custom-crafted data type and will depend on user input (e.g. output difference vs.
-    pointer to model with higher performance).
 
     Different Comparator will exist for each possible EvidenceContainer input.
     """

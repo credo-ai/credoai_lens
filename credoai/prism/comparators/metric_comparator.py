@@ -31,15 +31,24 @@ class MetricComparator(Comparator):
         "perc": lambda x, ref: x * 100 / ref,
         "perc_diff": lambda x, ref: ((x - ref) / ref) * 100,
     }
+    ID_COLS = [
+        "evaluator",
+        "model",
+        "assessment_data",
+        "training_data",
+        "sensitive_feature",
+    ]
 
     def __init__(
         self,
         EvidenceContainers: List[MetricContainer],
-        ref: Optional[str] = None,
+        ref_type: str,
+        ref: str,
         operation: Literal["diff", "ratio"] = "diff",
         abs: bool = False,
     ):
         # attributes all comparators will need
+        self.ref_type = ref_type
         self.overall_ref = ref
         self.operation = self.OPERATIONS[operation]
         self.abs = abs
@@ -70,11 +79,12 @@ class MetricComparator(Comparator):
 
     def _extract_results_from_containers(self):
         # Assign model name as ID
-        self.all_results = [
-            res.df.assign(id=res.metadata["model_name"])
-            for res in self.EvidenceContainers
-        ]
+        self.all_results = [res.df.assign(id=res.id) for res in self.EvidenceContainers]
         self.all_results = concat(self.all_results, ignore_index=True)
+        self.all_results[self.ID_COLS] = self.all_results.id.str.split("~", expand=True)
+
+        # Drop columns with no variance
+        self.all_results.drop("id", axis=1, inplace=True)
 
     def _scalar_operation(self) -> DataFrame:
         """
@@ -83,24 +93,36 @@ class MetricComparator(Comparator):
         Returns
         -------
         DataFrame
-            Columns:
-
-                type: metric name
-                value: original value of the metric
-                id: Identifier of the origin of the metric
-                comparison: value of the comparison
+            Containing a comparison column with the results. The other columns
+            include initial values and all other necessary identifiers.
         """
         # Group by metrics and calculate comparison
         output = []
-        for _, results in self.all_results.groupby("type"):
-            ref_value = results.value.loc[results.id == self.overall_ref].iloc[0]
+
+        # Remove reference id from ids, and add type to create unique groups
+        to_grp_by = [x for x in self.ID_COLS if x != self.ref_type] + ["type"]
+
+        for _, results in self.all_results.groupby(to_grp_by):
+
+            ref_value = results.value.loc[
+                results[self.ref_type] == self.overall_ref
+            ].iloc[0]
+
             if ref_value:
                 results["comparison"] = self.operation(results.value, ref_value)
             else:
                 results["comparison"] = None
             output.append(results)
-        output = concat(output, ignore_index=True)
+
+        final = concat(output, ignore_index=True)
 
         if self.abs:
-            output["comparison"] = output.comparison.abs()
-        self.comparisons["scalar_comparison"] = output
+            final["comparison"] = final["comparison"].abs()
+
+        # Clean data frame
+        nunique = final.nunique()
+        cols_to_drop = nunique[nunique == 1].index
+        final = final.drop(cols_to_drop, axis=1)
+        final[final == "NA"] = None
+
+        self.comparisons["scalar_comparison"] = final

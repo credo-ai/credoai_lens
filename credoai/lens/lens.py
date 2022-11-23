@@ -5,6 +5,7 @@ Main orchestration module handling running evaluators on AI artifacts
 from copy import deepcopy
 from dataclasses import dataclass
 from inspect import isclass
+import pandas as pd
 from typing import Dict, List, Optional, Tuple, Union
 
 from credoai.artifacts import Data, Model
@@ -37,10 +38,18 @@ class PipelineStep:
     def identifier(self):
         eval_properties = self.evaluator.__dict__
         info_to_get = ["model", "assessment_data", "training_data", "data"]
-        eval_info = [
-            eval_properties.get(x).name if eval_properties.get(x) else "NA"
-            for x in info_to_get
-        ]
+        eval_info = pd.Series(
+            [
+                eval_properties.get(x).name if eval_properties.get(x) else "NA"
+                for x in info_to_get
+            ],
+            index=info_to_get,
+        )
+
+        # Assign data to the correct dataset
+        if eval_info.data != "NA":
+            eval_info.loc[self.metadata["dataset_type"]] = eval_info.data
+        eval_info = eval_info.drop("data").to_list()
 
         id = [self.metadata.get("evaluator", "NA")] + eval_info
         id.append(self.metadata.get("sensitive_feature", "NA"))
