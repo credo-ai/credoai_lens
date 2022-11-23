@@ -28,6 +28,8 @@ from credoai.lens import Lens
 
 from connect.governance import Governance
 
+import tempfile
+
 TEST_METRICS = [
     ["false_negative_rate"],
     ["average_precision_score"],
@@ -93,6 +95,10 @@ def test_model_fairness(
     assert lens.get_results()
     assert lens.get_evidence()
     assert lens.send_to_governance()
+    tfile = tempfile.NamedTemporaryFile(delete=False)
+    assert not gov._file_export(
+        tfile.name
+    )  # governance file IO returns None if successful
 
 
 def test_privacy(
@@ -110,6 +116,10 @@ def test_privacy(
     assert lens.get_results()
     assert lens.get_evidence()
     assert lens.send_to_governance()
+    tfile = tempfile.NamedTemporaryFile(delete=False)
+    assert not gov._file_export(
+        tfile.name
+    )  # governance file IO returns None if successful
 
 
 class TestDataFairness(Base_Evaluator_Test):
@@ -129,6 +139,12 @@ class TestDataFairness(Base_Evaluator_Test):
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
 
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
+
 
 class TestDataProfiler(Base_Evaluator_Test):
     evaluator = DataProfiler()
@@ -146,6 +162,12 @@ class TestDataProfiler(Base_Evaluator_Test):
 
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
+
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
 
 
 class TestModelEquity(Base_Evaluator_Test):
@@ -165,6 +187,12 @@ class TestModelEquity(Base_Evaluator_Test):
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
 
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
+
 
 class TestDataEquity(Base_Evaluator_Test):
     evaluator = DataEquity()
@@ -182,6 +210,12 @@ class TestDataEquity(Base_Evaluator_Test):
 
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
+
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
 
 
 class TestSecurity(Base_Evaluator_Test):
@@ -201,6 +235,12 @@ class TestSecurity(Base_Evaluator_Test):
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
 
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
+
 
 @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
 def test_performance(
@@ -219,6 +259,10 @@ def test_performance(
     assert lens.get_results()
     assert lens.get_evidence()
     assert lens.send_to_governance()
+    tfile = tempfile.NamedTemporaryFile(delete=False)
+    assert not gov._file_export(
+        tfile.name
+    )  # governance file IO returns None if successful
 
 
 class TestThresholdPerformance(Base_Evaluator_Test):
@@ -238,6 +282,12 @@ class TestThresholdPerformance(Base_Evaluator_Test):
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
 
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
+
 
 class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
     evaluator = Performance(["roc_curve", "precision_recall_curve"])
@@ -255,6 +305,12 @@ class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
 
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
+
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
 
 
 class TestFeatureDrift(Base_Evaluator_Test):
@@ -274,6 +330,12 @@ class TestFeatureDrift(Base_Evaluator_Test):
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
 
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
+
 
 class TestDeepchecks(Base_Evaluator_Test):
     evaluator = Deepchecks()
@@ -291,6 +353,12 @@ class TestDeepchecks(Base_Evaluator_Test):
 
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
+
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
 
 
 class TestRankingFairnes:
@@ -339,6 +407,12 @@ class TestRankingFairnes:
 
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
+
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
 
     def test_results(self):
         results = self.pipeline.get_results()[0]["results"][0].round(2)
@@ -477,6 +551,12 @@ class TestIdentityVerification:
     def test_to_gov(self):
         assert self.pipeline.send_to_governance()
 
+    def test_gov_export(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        assert not self.pipeline.gov._file_export(
+            tfile.name
+        )  # governance file IO returns None if successful
+
     def test_results_performance(self):
         results_perf = self.pipeline.get_results()[0]["results"][0].round(2)
         results_perf = results_perf.reset_index(drop=True)
@@ -513,6 +593,10 @@ def test_bulk_pipeline_run(
     assert my_pipeline.get_results()
     assert my_pipeline.get_evidence()
     assert my_pipeline.send_to_governance()
+    tfile = tempfile.NamedTemporaryFile(delete=False)
+    assert not gov._file_export(
+        tfile.name
+    )  # governance file IO returns None if successful
 
 
 @pytest.mark.xfail(raises=RuntimeError)
