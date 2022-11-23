@@ -52,7 +52,6 @@ def init_lens(
     request,
 ):
     gov = Governance()
-    gov.register()
     my_pipeline = Lens(
         model=classification_model,
         assessment_data=classification_assessment_data,
@@ -82,7 +81,6 @@ def test_model_fairness(
     metrics,
 ):
     gov = Governance()
-    gov.register()
     lens = Lens(
         model=classification_model,
         assessment_data=classification_assessment_data,
@@ -101,7 +99,6 @@ def test_privacy(
     credit_classification_model, credit_assessment_data, credit_training_data
 ):
     gov = Governance()
-    gov.register()
     lens = Lens(
         model=credit_classification_model,
         assessment_data=credit_assessment_data,
@@ -210,7 +207,6 @@ def test_performance(
     credit_classification_model, credit_assessment_data, credit_training_data, metrics
 ):
     gov = Governance()
-    gov.register()
     lens = Lens(
         model=credit_classification_model,
         assessment_data=credit_assessment_data,
@@ -328,7 +324,6 @@ class TestRankingFairnes:
         }
     )
     gov = Governance()
-    gov.register()
     pipeline = Lens(assessment_data=data, governance=gov)
 
     def test_add(self):
@@ -462,7 +457,6 @@ class TestIdentityVerification:
     credo_model = ComparisonModel(name="face-compare", model_like=face_compare)
 
     gov = Governance()
-    gov.register()
     pipeline = Lens(model=credo_model, assessment_data=credo_data, governance=gov)
 
     def test_add(self):
@@ -508,7 +502,6 @@ def test_bulk_pipeline_run(
         DataFairness(),
     ]
     gov = Governance()
-    gov.register()
     my_pipeline = Lens(
         model=classification_model,
         assessment_data=classification_assessment_data,
