@@ -33,6 +33,19 @@ class PipelineStep:
         self.evaluator.metadata = self.metadata
         self.metadata["evaluator"] = self.evaluator.name
 
+    @property
+    def identifier(self):
+        eval_properties = self.evaluator.__dict__
+        info_to_get = ["model", "assessment_data", "training_data", "data"]
+        eval_info = [
+            eval_properties.get(x).name if eval_properties.get(x) else "NA"
+            for x in info_to_get
+        ]
+
+        id = [self.metadata.get("evaluator", "NA")] + eval_info
+        id.append(self.metadata.get("sensitive_feature", "NA"))
+        return "~".join(id)
+
     def check_match(self, metadata):
         """
         Return true if metadata is a subset of pipeline step's metadata
