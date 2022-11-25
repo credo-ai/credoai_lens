@@ -7,9 +7,10 @@ from credoai.lens import Lens
 from credoai.utils import flatten_list
 from credoai.prism.comparators.metric_comparator import MetricComparator
 from credoai.utils.common import ValidationError
+from credoai.prism.task import Task
 
 
-class Compare:
+class Compare(Task):
     """
     Compare results across multiple pipelines.
 
@@ -47,31 +48,27 @@ class Compare:
 
     def __init__(
         self,
-        pipelines: List[Lens],
         ref_type="model",
         ref: Optional[str] = None,
         operation: Literal["diff", "ratio", "perc", "perc_diff"] = "diff",
         abs: bool = False,
     ):
-        self.pipelines = pipelines
+        self.ref = ref
         self.ref_type = ref_type
-        if ref:
-            self.ref = ref
-        else:
-            self.ref = self.pipelines[0].__dict__[ref_type].name
-            # TODO: LOG this -> (f"Reference {self.ref_type}: {self.ref}")
         self.operation = operation
         self.abs = abs
-        self._validate()
-        self._extract_results_containers()
+        super().__init__()
 
     def _validate(self):
         for evaluator in self.pipelines:
             check_instance(evaluator, Lens)
         if len(self.pipelines) < 2:
             raise ValidationError("At least 2 lens objects are needed for a comparison")
+        if not self.ref:
+            self.ref = self.pipelines[0].__dict__[self.ref_type].name
+            # TODO: LOG this -> (f"Reference {self.ref_type}: {self.ref}")
 
-    def _extract_results_containers(self):
+    def _setup(self):
         pipesteps = flatten_list([x.pipeline for x in self.pipelines])
         # Propagate step identifier to results
         for step in pipesteps:

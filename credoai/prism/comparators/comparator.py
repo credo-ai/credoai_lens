@@ -12,7 +12,8 @@ class Comparator(ABC):
     across datasets, models, etc. Some differences will be numeric while others will be
     "change tracking".
 
-    Inputs:
+    Parameters
+    ----------
         EvidenceContainers: Iterable of EvidenceContainer objects
 
 
