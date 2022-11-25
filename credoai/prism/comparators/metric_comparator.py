@@ -12,17 +12,29 @@ from credoai.utils.common import ValidationError
 
 class MetricComparator(Comparator):
     """
-    Class for comparing metric evidence objects
+    Class for comparing metric evidence objects.
 
-    Supported comparisons for Metrics include difference, maximal values for each metric,
-    and minimal values for each metric. Comparisons are evaluated on intersection of the
-    metrics represented in the two provided MetricContainer objects. Comparison values for
-    non-intersecting metrics will be NoneType wrapped in output container.
+    Each metric is compared to the respective reference value. The reference value is the metric value
+    associated to a specific model or dataset. The reference model/dataset are identified by the user, see
+    ref type and ref in Prameters.
 
-    Inputs:
-        EvidenceContainers: dictionary of {name_of_model: MetricContainer} key-value pairs
+    Supported comparisons for Metrics include differences, ratio, percentage ratio, and percentage
+    difference.
 
-    Output, stored in a LensComparison object, is result of comparisons.
+    Parameters
+    ----------
+    EvidenceContainers : List[MetricContainer]
+        A list of metric containers.
+    ref_type: str
+        Accepted values: model, assessment_data, training_data. Indicates which of the
+        artifacts should be used as a refence, by default model.
+    ref : str
+        The model/dataset name by which to compare all others. Model/dataset names are
+        defined when instantiating Lens objects, by the usage of credo.artifacts.
+    operation : str
+        Accepted operations: "diff", "ratio", "perc", "perc_diff", by default "diff"
+    abs : bool, optional
+        If true the absolute value of the operation is returned, by default False
     """
 
     OPERATIONS = {
@@ -44,7 +56,7 @@ class MetricComparator(Comparator):
         EvidenceContainers: List[MetricContainer],
         ref_type: str,
         ref: str,
-        operation: Literal["diff", "ratio"] = "diff",
+        operation: str = "diff",
         abs: bool = False,
     ):
         # attributes all comparators will need
@@ -70,11 +82,14 @@ class MetricComparator(Comparator):
         Runs all comparisons
         """
         # Calculate scalar differences across all the metrics
-        self._scalar_operation()
+        self.comparisons["scalar_comparison"] = self._scalar_operation()
         return self
 
     def _extract_results_from_containers(self):
-        # Assign model name as ID
+        """
+        Extract results from containers.
+        """
+        # Create id columns from the result id.
         self.all_results = [res.df.assign(id=res.id) for res in self.EvidenceContainers]
         self.all_results = concat(self.all_results, ignore_index=True)
         self.all_results[self.ID_COLS] = self.all_results.id.str.split("~", expand=True)
@@ -95,11 +110,11 @@ class MetricComparator(Comparator):
         # Group by metrics and calculate comparison
         output = []
 
-        # Remove reference id from ids, and add type to create unique groups
+        # Remove reference type from ids, and add metric type to create unique groups
         to_grp_by = [x for x in self.ID_COLS if x != self.ref_type] + ["type"]
 
         for _, results in self.all_results.groupby(to_grp_by):
-
+            # Define reference value
             ref_value = results.value.loc[
                 results[self.ref_type] == self.overall_ref
             ].iloc[0]
@@ -121,4 +136,4 @@ class MetricComparator(Comparator):
         final = final.drop(cols_to_drop, axis=1)
         final[final == "NA"] = None
 
-        self.comparisons["scalar_comparison"] = final
+        return final

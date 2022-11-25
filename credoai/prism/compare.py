@@ -1,5 +1,5 @@
 """Performs comparison between 2 pipelines"""
-from typing import List, Literal, Optional
+from typing import Literal, Optional
 from credoai.evaluators.utils.validation import check_instance
 from credoai.evidence.containers import MetricContainer
 from credoai.lens import Lens
@@ -25,8 +25,9 @@ class Compare(Task):
 
     Parameters
     ----------
-    pipelines : List[Lens]
-        List of Lens objects, this must have been previously run, results need to be available
+    ref_type: str
+        Accepted values: model, assessment_data, training_data. Indicates which of the
+        artifacts should be used as a refence, by default model.
     ref : Optional[str], optional
         The model/dataset name by which to compare all others. Model/dataset names are
         defined when instantiating Lens objects, by the usage of credo.artifacts. If None, the
@@ -48,7 +49,7 @@ class Compare(Task):
 
     def __init__(
         self,
-        ref_type="model",
+        ref_type: str = "model",
         ref: Optional[str] = None,
         operation: Literal["diff", "ratio", "perc", "perc_diff"] = "diff",
         abs: bool = False,
@@ -60,27 +61,35 @@ class Compare(Task):
         super().__init__()
 
     def _validate(self):
+        """
+        Validate that parameters are in the correct format.
+        """
         for evaluator in self.pipelines:
             check_instance(evaluator, Lens)
         if len(self.pipelines) < 2:
             raise ValidationError("At least 2 lens objects are needed for a comparison")
-        if not self.ref:
-            self.ref = self.pipelines[0].__dict__[self.ref_type].name
-            # TODO: LOG this -> (f"Reference {self.ref_type}: {self.ref}")
 
     def _setup(self):
         pipesteps = flatten_list([x.pipeline for x in self.pipelines])
         # Propagate step identifier to results
         for step in pipesteps:
             for result in step.evaluator.results:
+                # Create the id property for each of the containers taking the Step identifier
                 result.id = step.identifier
         self.containers = flatten_list([x.evaluator.results for x in pipesteps])
         # Remove unsupported containers
         self.supported_results = [
             x for x in self.containers if type(x) in self.SUPPORTED_CONTAINERS
         ]
+        # Get default reference value if non is provided
+        if not self.ref:
+            self.ref = self.pipelines[0].__dict__[self.ref_type].name
+            # TODO: LOG this -> (f"Reference {self.ref_type}: {self.ref}")
 
     def run(self):
+        """
+        Runs the comparisons.
+        """
         # TODO: Add a splitter for different type of containers
         # When we have other comparators we can use the suitable ones depending
         # on container type. Potentially also dependent on evaluator
@@ -90,4 +99,7 @@ class Compare(Task):
         return self
 
     def get_results(self):
+        """
+        Returns the comparison results
+        """
         return self.results.comparisons

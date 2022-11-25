@@ -2,25 +2,54 @@ from typing import List
 from credoai.lens import Lens
 from credoai.utils import ValidationError, global_logger
 from credoai.utils.common import NotRunError
-from credoai.prism.compare import Compare
 from credoai.prism.task import Task
 
 
 class Prism:
+    """
+    The class orchestrate the run of complex operations (Tasks) on
+    an arbitrary amount of Lens objects.
+
+    Parameters
+    ----------
+    pipelines : List[Lens]
+        A list of Lens objects. The only requirement is for the Lens objects to
+        be instantiated with their necessary artifacts. One or multiple Lens objects
+        can be provided, each Task will validate that the amount of objects provided
+        is suitable for its requirement.
+    task : Task
+        A task instance, instantiated with all the required parameters.
+    """
+
     def __init__(self, pipelines: List[Lens], task: Task):
         self.pipelines = pipelines
         self.task = task
-        self._validate_pipeline()
+        self._validate()
         self.run_flag = False
         self.compare_results: List = []
         self.results: List = []
 
-    def _validate_pipeline(self):
+    def _validate(self):
+        """
+        Validate Prism parameters.
+
+        Raises
+        ------
+        ValidationError
+
+        """
         for step in self.pipelines:
             if not isinstance(step, Lens):
                 raise ValidationError("Step must be a Lens instance")
+        if not isinstance(self.task, Task):
+            raise ValidationError(
+                "The parameter task should be an instance of credoai.prism.Task"
+            )
 
-    def run(self):
+    def _run(self):
+        """
+        Runs the Lens pipelines if they were not already.
+        """
         for step in self.pipelines:
             try:
                 step.get_results()
@@ -32,11 +61,23 @@ class Prism:
         self.run_flag = True
 
     def execute(self):
+        """
+        Executes the task run.
+        """
         # Check if already executed
         if not self.run_flag:
-            self.run()
+            self._run()
 
         self.results.append(self.task(pipelines=self.pipelines).run().get_results())
 
     def get_results(self):
+        """
+        Returns prism results.
+        """
         return self.results
+
+    def get_pipelines_results(self):
+        """
+        Returns individual results of all the Lens objects runs.
+        """
+        return [x.get_results() for x in self.pipelines]
