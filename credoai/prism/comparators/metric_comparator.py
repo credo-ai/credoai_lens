@@ -61,13 +61,9 @@ class MetricComparator(Comparator):
     def _validate(self):
         """
         Check that provided containers are all MetricContainer type
-        Check that len >= 2
         """
         for container in self.EvidenceContainers:
             check_instance(container, MetricContainer)
-
-        if len(self.EvidenceContainers) < 2:
-            raise ValidationError("Expected multiple evidence objects to compare.")
 
     def compare(self):
         """

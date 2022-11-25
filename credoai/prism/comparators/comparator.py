@@ -35,8 +35,8 @@ class Comparator(ABC):
     @abstractclassmethod
     def _validate(self):
         """
-        Check that provided EvidenceContainers are all the same type
-        Check that len >= 2
+        Comparator specific validations, e.g., for metric comparators check
+        all object passed are of type MetricContainer, etc...
         """
         ...
 
