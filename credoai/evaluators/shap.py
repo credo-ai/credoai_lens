@@ -17,6 +17,7 @@ class ShapExplainer(Evaluator):
     leveraging the SHAP package.
 
     It supports 2 types of assessments:
+
     1. Overall statistics of the shap values across all samples: mean and mean(|x|)
     2. Individual shapley values for a list of samples
 
@@ -28,11 +29,12 @@ class ShapExplainer(Evaluator):
     value, the calculation of the shap values is still performed on the full dataset.
 
     Two strategies for down sampling are provided:
-        1. Random sampling (the default strategy): the amount of samples can be specified
-            by the user.
-        2. Kmeans: summarizes a dataset with k mean centroids, weighted by the number of
-            data points they each represent. The amount of centroids can also be specified
-            by the user.
+
+    1. Random sampling (the default strategy): the amount of samples can be specified
+       by the user.
+    2. Kmeans: summarizes a dataset with k mean centroids, weighted by the number of
+       data points they each represent. The amount of centroids can also be specified
+       by the user.
 
     There is no consensus on the optimal down sampling approach. For reference, see this
     conversation: https://github.com/slundberg/shap/issues/1018
@@ -64,6 +66,8 @@ class ShapExplainer(Evaluator):
         If True, use SHAP kmeans to create a data summary to serve as background data for the
         SHAP explainer using 50 centroids by default. If an int is provided,
         that will be used as the number of centroids. If False, random sampling will take place.
+
+
     """
 
     def __init__(

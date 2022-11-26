@@ -26,6 +26,8 @@ from credoai.evaluators import (
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
 
+from connect.governance import Governance
+
 TEST_METRICS = [
     ["false_negative_rate"],
     ["average_precision_score"],
@@ -49,10 +51,12 @@ def init_lens(
     classification_train_data,
     request,
 ):
+    gov = Governance()
     my_pipeline = Lens(
         model=classification_model,
         assessment_data=classification_assessment_data,
         training_data=classification_train_data,
+        governance=gov,
     )
     request.cls.pipeline = my_pipeline
 
@@ -76,28 +80,36 @@ def test_model_fairness(
     classification_train_data,
     metrics,
 ):
+    gov = Governance()
     lens = Lens(
         model=classification_model,
         assessment_data=classification_assessment_data,
         training_data=classification_train_data,
+        governance=gov,
     )
     evaluator = ModelFairness(metrics)
     lens.add(evaluator)
     lens.run()
     assert lens.get_results()
+    assert lens.get_evidence()
+    assert lens.send_to_governance()
 
 
 def test_privacy(
     credit_classification_model, credit_assessment_data, credit_training_data
 ):
+    gov = Governance()
     lens = Lens(
         model=credit_classification_model,
         assessment_data=credit_assessment_data,
         training_data=credit_training_data,
+        governance=gov,
     )
     lens.add(Privacy(attack_feature="MARRIAGE"))
     lens.run()
     assert lens.get_results()
+    assert lens.get_evidence()
+    assert lens.send_to_governance()
 
 
 class TestDataFairness(Base_Evaluator_Test):
@@ -109,8 +121,13 @@ class TestDataFairness(Base_Evaluator_Test):
 
     def test_run(self):
         self.pipeline.run()
-        self.pipeline.get_results()
-        assert True
+        assert self.pipeline.get_results()
+
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
 
 
 class TestDataProfiler(Base_Evaluator_Test):
@@ -122,8 +139,13 @@ class TestDataProfiler(Base_Evaluator_Test):
 
     def test_run(self):
         self.pipeline.run()
-        self.pipeline.get_results()
-        assert True
+        assert self.pipeline.get_results()
+
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
 
 
 class TestModelEquity(Base_Evaluator_Test):
@@ -137,6 +159,12 @@ class TestModelEquity(Base_Evaluator_Test):
         self.pipeline.run()
         assert self.pipeline.get_results()
 
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
+
 
 class TestDataEquity(Base_Evaluator_Test):
     evaluator = DataEquity()
@@ -148,6 +176,12 @@ class TestDataEquity(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
 
 
 class TestSecurity(Base_Evaluator_Test):
@@ -161,20 +195,30 @@ class TestSecurity(Base_Evaluator_Test):
         self.pipeline.run()
         assert self.pipeline.get_results()
 
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
+
 
 @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
 def test_performance(
     credit_classification_model, credit_assessment_data, credit_training_data, metrics
 ):
+    gov = Governance()
     lens = Lens(
         model=credit_classification_model,
         assessment_data=credit_assessment_data,
         training_data=credit_training_data,
+        governance=gov,
     )
     evaluator = Performance(metrics)
     lens.add(evaluator)
     lens.run()
     assert lens.get_results()
+    assert lens.get_evidence()
+    assert lens.send_to_governance()
 
 
 class TestThresholdPerformance(Base_Evaluator_Test):
@@ -188,6 +232,12 @@ class TestThresholdPerformance(Base_Evaluator_Test):
         self.pipeline.run()
         assert self.pipeline.get_results()
 
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
+
 
 class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
     evaluator = Performance(["roc_curve", "precision_recall_curve"])
@@ -199,6 +249,12 @@ class TestThresholdPerformanceMultiple(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
 
 
 class TestFeatureDrift(Base_Evaluator_Test):
@@ -212,6 +268,12 @@ class TestFeatureDrift(Base_Evaluator_Test):
         self.pipeline.run()
         assert self.pipeline.get_results()
 
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
+
 
 class TestDeepchecks(Base_Evaluator_Test):
     evaluator = Deepchecks()
@@ -223,6 +285,12 @@ class TestDeepchecks(Base_Evaluator_Test):
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
 
 
 class TestRankingFairnes:
@@ -255,7 +323,8 @@ class TestRankingFairnes:
             "subtype": ["score"] * 7,
         }
     )
-    pipeline = Lens(assessment_data=data)
+    gov = Governance()
+    pipeline = Lens(assessment_data=data, governance=gov)
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
@@ -264,6 +333,12 @@ class TestRankingFairnes:
     def test_run(self):
         self.pipeline.run()
         assert self.pipeline.get_results()
+
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
 
     def test_results(self):
         results = self.pipeline.get_results()[0]["results"][0].round(2)
@@ -381,7 +456,8 @@ class TestIdentityVerification:
 
     credo_model = ComparisonModel(name="face-compare", model_like=face_compare)
 
-    pipeline = Lens(model=credo_model, assessment_data=credo_data)
+    gov = Governance()
+    pipeline = Lens(model=credo_model, assessment_data=credo_data, governance=gov)
 
     def test_add(self):
         self.pipeline.add(self.evaluator)
@@ -393,7 +469,13 @@ class TestIdentityVerification:
 
     def test_get_results(self):
         results = self.pipeline.get_results()[0]["results"]
-        assert len(results) == 8
+        assert len(results) == 12
+
+    def test_evidence(self):
+        assert self.pipeline.get_evidence()
+
+    def test_to_gov(self):
+        assert self.pipeline.send_to_governance()
 
     def test_results_performance(self):
         results_perf = self.pipeline.get_results()[0]["results"][0].round(2)
@@ -401,7 +483,7 @@ class TestIdentityVerification:
         assert results_perf.equals(self.expected_results_perf)
 
     def test_results_fairness(self):
-        results_fair = self.pipeline.get_results()[0]["results"][-1]
+        results_fair = self.pipeline.get_results()[0]["results"][-4]
         results_fair["value"] = results_fair["value"].astype(int)
         results_fair = results_fair.reset_index(drop=True)
         assert results_fair.equals(self.expected_results_fair)
@@ -419,14 +501,18 @@ def test_bulk_pipeline_run(
         DataProfiler(),
         DataFairness(),
     ]
+    gov = Governance()
     my_pipeline = Lens(
         model=classification_model,
         assessment_data=classification_assessment_data,
         training_data=classification_train_data,
         pipeline=pipe_structure,
+        governance=gov,
     )
     my_pipeline.run()
     assert my_pipeline.get_results()
+    assert my_pipeline.get_evidence()
+    assert my_pipeline.send_to_governance()
 
 
 @pytest.mark.xfail(raises=RuntimeError)

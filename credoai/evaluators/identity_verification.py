@@ -10,17 +10,27 @@ from credoai.evaluators.utils.validation import (
     check_existence,
     check_model_instance,
 )
+
+from connect.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import BINARY_CLASSIFICATION_FUNCTIONS as bcf
 from credoai.modules.metrics import Metric
 
-METRIC_SUBSET = ["false_match_rate-score", "false_non_match_rate-score"]
+METRIC_SUBSET = [
+    "false_match_rate-score",
+    "false_non_match_rate-score",
+    "false_match_rate_parity_difference-score",
+    "false_non_match_rate_parity_difference-score",
+    "false_match_rate_parity_ratio-score",
+    "false_non_match_rate_parity_ratio-score",
+]
 
 
 class IdentityVerification(Evaluator):
-    """Pair-wise-comparison-based identity verification evaluator for Credo AI
+    """
+    Pair-wise-comparison-based identity verification evaluator for Credo AI
 
     This evaluator takes in identity verification data and
-        provides functionality to perform performance and fairness assessment
+    provides functionality to perform performance and fairness assessment
 
     Parameters
     ----------
@@ -53,11 +63,55 @@ class IdentityVerification(Evaluator):
             subject: it means if any pairs of samples for the same subject are a match, the subject pair
                 is marked as a match. Some identity verification use cases improve overall accuracy by storing
                 multiple samples per identity. Subject-level comparison mirrors this behavior.
+
+    Example
+    --------
+
+    >>> import pandas as pd
+    >>> from credoai.lens import Lens
+    >>> from credoai.artifacts import ComparisonData, ComparisonModel
+    >>> from credoai.evaluators import IdentityVerification
+    >>> evaluator = IdentityVerification(similarity_thresholds=[60, 99])
+    >>> import doctest
+    >>> doctest.ELLIPSIS_MARKER = '-etc-'
+    >>> pairs = pd.DataFrame({
+    ...     'source-subject-id': ['s0', 's0', 's0', 's0', 's1', 's1', 's1', 's1', 's1', 's2'],
+    ...     'source-subject-data-sample': ['s00', 's00', 's00', 's00', 's10', 's10', 's10', 's11', 's11', 's20'],
+    ...     'target-subject-id': ['s1', 's1', 's2', 's3', 's1', 's2', 's3', 's2', 's3', 's3'],
+    ...     'target-subject-data-sample': ['s10', 's11', 's20', 's30', 's11', 's20', 's30', 's20', 's30', 's30']
+    ... })
+    >>> subjects_sensitive_features = pd.DataFrame({
+    ...     'subject-id': ['s0', 's1', 's2', 's3'],
+    ...     'gender': ['female', 'male', 'female', 'female']
+    ... })
+    >>> class FaceCompare:
+    ...     # a dummy selfie comparison model
+    ...     def compare(self, pairs):
+    ...         similarity_scores = [31.5, 16.7, 20.8, 84.4, 12.0, 15.2, 45.8, 23.5, 28.5, 44.5]
+    ...         return similarity_scores
+    >>> face_compare = FaceCompare()
+    >>> credo_data = ComparisonData(
+    ...     name="face-data",
+    ...     pairs=pairs,
+    ...     subjects_sensitive_features=subjects_sensitive_features
+    ...     )
+    >>> credo_model = ComparisonModel(
+    ...     name="face-compare",
+    ...     model_like=face_compare
+    ...     )
+    >>> pipeline = Lens(model=credo_model, assessment_data=credo_data)
+    >>> pipeline.add(evaluator) # doctest: +ELLIPSIS
+    -etc-
+    >>> pipeline.run() # doctest: +ELLIPSIS
+    -etc-
+    >>> pipeline.get_results() # doctest: +ELLIPSIS
+    -etc-
+
     """
 
     def __init__(
         self,
-        similarity_thresholds: list = [90, 95],
+        similarity_thresholds: list = [90, 95, 99],
         comparison_levels: list = ["sample", "subject"],
     ):
         self.similarity_thresholds = similarity_thresholds
@@ -313,3 +367,59 @@ class IdentityVerification(Evaluator):
                 ),
             )
             self._results.append(e)
+
+            parity_diff = (
+                disaggregated_results.groupby("type")
+                .apply(lambda x: max(x.value) - min(x.value))
+                .to_dict()
+            )
+
+            fmr_parity_difference = {
+                "false_match_rate_parity_difference-score": [
+                    {"value": parity_diff["false_match_rate"]}
+                ]
+            }
+            fnmr_parity_difference = {
+                "false_non_match_rate_parity_difference-score": [
+                    {"value": parity_diff["false_non_match_rate"]}
+                ]
+            }
+
+            parity_ratio = (
+                disaggregated_results.groupby("type")
+                .apply(lambda x: max(x.value) - min(x.value) if max(x.value) > 0 else 0)
+                .to_dict()
+            )
+
+            fmr_parity_ratio = {
+                "false_match_rate_parity_ratio-score": [
+                    {"value": parity_ratio["false_match_rate"]}
+                ]
+            }
+            fnmr_parity_ratio = {
+                "false_non_match_rate_parity_ratio-score": [
+                    {"value": parity_ratio["false_non_match_rate"]}
+                ]
+            }
+
+            res = {
+                **fmr_parity_difference,
+                **fnmr_parity_difference,
+                **fmr_parity_ratio,
+                **fnmr_parity_ratio,
+            }
+            res = {k: v for k, v in res.items() if k in METRIC_SUBSET}
+
+            res = [pd.DataFrame(v).assign(metric_type=k) for k, v in res.items()]
+            res = pd.concat(res)
+
+            res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
+            res.drop("metric_type", axis=1, inplace=True)
+            self._results.append(
+                MetricContainer(
+                    res,
+                    **self.get_container_info(
+                        labels={**parameters_label, **sens_feat_label}
+                    ),
+                )
+            )
