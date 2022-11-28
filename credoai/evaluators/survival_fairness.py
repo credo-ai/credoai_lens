@@ -84,6 +84,15 @@ class SurvivalFairness(Evaluator):
             cph.fit(self.survival_df, **run_kwargs)
             self.stats.append(cph)
 
+    def _get_expected_survival(self):
+        return [s.expected_survival() for s in self.stats]
+
+    def _get_summaries(self):
+        return [s.summary() for s in self.stats]
+
+    def _get_survival_curves(self):
+        return [s.survival_curves() for s in self.stats]
+
     def _validate_arguments(self):
         check_data_instance(self.assessment_data, TabularData)
         check_existence(self.assessment_data.sensitive_features, "sensitive_features")
@@ -98,12 +107,3 @@ class SurvivalFairness(Evaluator):
             expected_columns.add(self.coxPh_kwargs.get("event_col", "event_col"))
         if expected_columns is not None:
             check_features_presence(expected_columns)
-
-    def _get_expected_survival(self):
-        return [s.expected_survival() for s in self.stats]
-
-    def _get_summaries(self):
-        return [s.summary() for s in self.stats]
-
-    def _get_survival_curves(self):
-        return [s.survival_curves() for s in self.stats]

@@ -7,6 +7,7 @@ Testing protocols for the Lens package. Tested functionalities:
 from abc import ABC
 
 import pytest
+from connect.governance import Governance
 from pandas import DataFrame
 
 from credoai.artifacts import ComparisonData, ComparisonModel, TabularData
@@ -21,12 +22,11 @@ from credoai.evaluators import (
     ModelFairness,
     Performance,
     Privacy,
+    RankingFairness,
     Security,
+    SurvivalFairness,
 )
-from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
-
-from connect.governance import Governance
 
 TEST_METRICS = [
     ["false_negative_rate"],
