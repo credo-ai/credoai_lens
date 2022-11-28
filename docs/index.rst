@@ -18,7 +18,7 @@
 Lens is an AI Assessment Framework. With a focus on responsible AI (RAI), Lens makes
 comprehensive AI assessment streamlined, structured and interpretable to diverse audiences. Lens
 aims to be the single entrypoint to a broad ecosystem of open source assessment
-tools developed in industry and academia. It is also extensible, and can be incorporate 
+tools developed in industry and academia. It is also extensible, and can incorporate 
 custom functionality from your own system.
 
 Lens allows you to assess your AI systems with respect to a number of RAI considerations including
