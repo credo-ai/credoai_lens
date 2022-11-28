@@ -8,9 +8,11 @@ from inspect import isclass
 import pandas as pd
 from typing import Dict, List, Optional, Tuple, Union
 
+from connect.governance import Governance
+from joblib import Parallel, delayed
+
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
-from credoai.governance import Governance
 from credoai.lens.pipeline_creator import PipelineCreator
 from credoai.utils import ValidationError, check_subset, flatten_list, global_logger
 
@@ -71,6 +73,7 @@ class Lens:
         training_data: Data = None,
         pipeline: Pipeline = None,
         governance: Governance = None,
+        n_jobs: int = 1,
     ) -> None:
         """
         Initializer for the Lens class.
@@ -94,6 +97,10 @@ class Lens:
             Lens and the Credo AI Platform. Specifically, evidence requirements taken from
             policy packs defined on the platform will configure Lens, and evidence created by
             Lens can be exported to the platform.
+        n_jobs : integer, optional
+            Number of evaluator jobs to run in parallel.
+            Uses joblib Parallel construct with multiprocessing backend.
+            Specifying n_jobs = -1 will use all available processors.
         """
         self.model = model
         self.assessment_data = assessment_data
@@ -106,6 +113,7 @@ class Lens:
             self.sens_feat_names = list(self.assessment_data.sensitive_features)
         else:
             self.sens_feat_names = []
+        self.n_jobs = n_jobs
         self._add_governance(governance)
         self._generate_pipeline(pipeline)
         # Can  pass pipeline directly
@@ -193,9 +201,16 @@ class Lens:
         """
         if self.pipeline == []:
             raise RuntimeError("No evaluators were added to the pipeline.")
-        for step in self.pipeline:
-            self.logger.info(f"Running evaluation for step: {step}")
-            step.evaluator.evaluate()
+
+        # Run evaluators in parallel. Shared object (self.pipeline) necessitates writing
+        # results to intermediate object evaluator_results
+        evaluator_results = Parallel(n_jobs=self.n_jobs, verbose=100)(
+            delayed(step.evaluator.evaluate)() for step in self.pipeline
+        )
+
+        # Write intermediate evaluator results back into self.pipeline for later processing
+        for idx, evaluator in enumerate(evaluator_results):
+            self.pipeline[idx].evaluator = evaluator
         return self
 
     def send_to_governance(self, overwrite_governance=False):
@@ -302,7 +317,7 @@ class Lens:
         pipeline_results = [
             {
                 "metadata": step.metadata,
-                "results": [r.df for r in step.evaluator.results],
+                "results": [r.data for r in step.evaluator.results],
             }
             for step in pipeline_subset
         ]
@@ -415,7 +430,7 @@ class Lens:
         for step in pipeline:
             if not isinstance(step, tuple):
                 step = (step,)
-            evaltr, meta = self._consume_pipeline_step(step)
+            evaltr, meta = self._consume_pipeline_step(deepcopy(step))
             if isclass(evaltr):
                 raise ValidationError(
                     f"Evaluator in step {step} needs to be instantiated"

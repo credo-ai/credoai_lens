@@ -1,5 +1,6 @@
 absl-py>=1.0.0
 cloudpickle>=2.0.0
+credoai-connect >= 0.0.2
 fairlearn>=0.7.0
 json-api-doc>=0.15.0
 matplotlib>=3.0
@@ -11,32 +12,29 @@ scikit-learn>=0.24
 scipy>=1.8.1
 tensorflow-macos==2.10.0; sys_platform == 'darwin'
 tensorflow==2.10.0; sys_platform != 'darwin'
-# Required for reporting
+
+# required for reporting
 pandas_profiling==3.3.0
 
-# required for NLP modules
+# required for Privacy and Security evaluators
+adversarial-robustness-toolbox>=1.10.1
+torch>=1.12.1
+
+# required for SurvivalFairness evaluator
+lifelines>=0.27.3
+
+# required for ShapExplainer evaluator
+shap>=0.41.0
+
+# required for Deepchecks evaluator
+deepchecks>=0.9.1
+
+# required for RankingFairness evaluator
+finsfairauditing>=0.0.2
+
+# required for NLP evaluator
 # joblib>=0.14.1
 # sentence-transformers>=2.1.0
 # transformers>=4.0.0
 # google-api-python-client>=1.12.8
-
-# required for privacy and security module
-adversarial-robustness-toolbox>=1.10.1
-torch>=1.12.1
-
-# required for survival
-lifelines>=0.27.3
-
-# required for shap module
-shap>=0.41.0
-
-#required for deepchecks module
-deepchecks>=0.9.1
-
-# for dev
-pytest>=6.2.5
-pytest-cov>=3.0.0
-pytest-watch>=4.2
-responses>=0.21.0
-pytest-mock>=3.8
 

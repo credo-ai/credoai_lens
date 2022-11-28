@@ -1,15 +1,16 @@
 from functools import partial
 
+from fairlearn import metrics as fl_metrics
+from sklearn import metrics as sk_metrics
+
 from credoai.modules.credoai_metrics import (
     equal_opportunity_difference,
     false_discovery_rate,
     false_omission_rate,
-    ks_statistic,
     gini_coefficient_discriminatory,
+    ks_statistic,
     population_stability_index,
 )
-from fairlearn import metrics as fl_metrics
-from sklearn import metrics as sk_metrics
 
 THRESHOLD_METRIC_CATEGORIES = ["BINARY_CLASSIFICATION_THRESHOLD"]
 
@@ -71,8 +72,8 @@ PROBABILITY_FUNCTIONS = {"average_precision_score", "roc_auc_score", "gini_coeff
 
 # *** Define Alternative Naming ***
 METRIC_EQUIVALENTS = {
-    "false_positive_rate": ["fpr", "fallout_rate"],
-    "false_negative_rate": ["fnr", "miss_rate"],
+    "false_positive_rate": ["fpr", "fallout_rate", "false_match_rate"],
+    "false_negative_rate": ["fnr", "miss_rate", "false_non_match_rate"],
     "false_discovery_rate": ["fdr"],
     "true_positive_rate": ["tpr", "recall_score", "recall", "sensitivity", "hit_rate"],
     "true_negative_rate": ["tnr", "specificity"],

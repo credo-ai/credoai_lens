@@ -1,4 +1,5 @@
 import pandas as pd
+
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
@@ -7,7 +8,7 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from credoai.evidence import MetricContainer, TableContainer
+from connect.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,
@@ -64,14 +65,13 @@ class Performance(Evaluator):
         except:
             self.y_prob = None
         self.update_metrics(self.metrics)
-        self.results = list()
-
         return self
 
     def evaluate(self):
         """
         Run performance base module
         """
+        self._results = []
         overall_metrics = self.get_overall_metrics()
         threshold_metrics = self.get_overall_threshold_metrics()
 
@@ -160,8 +160,6 @@ class Performance(Evaluator):
                 pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
             )
             return output_series.reset_index().rename({"index": "type"}, axis=1)
-        else:
-            self.logger.warn("No overall metrics could be calculated.")
 
     def get_overall_threshold_metrics(self):
         """Return performance metrics for each group
@@ -172,7 +170,7 @@ class Performance(Evaluator):
             The overall performance metrics
         """
         # retrieve overall metrics for one of the sensitive features only as they are the same
-        if self.threshold_metrics:
+        if self.threshold_metrics and "thresh" in self.metric_frames:
             threshold_results = (
                 pd.concat([self.metric_frames["thresh"].overall], axis=0)
                 .rename(index="value")

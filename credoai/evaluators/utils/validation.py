@@ -1,11 +1,10 @@
 ############# Validation related functionality ##################
 
-from email import message
-from credoai.artifacts.model.classification_model import ClassificationModel
-from credoai.artifacts.model.base_model import Model
+from pandas import DataFrame, Series
+
 from credoai.artifacts.data.tabular_data import TabularData
+from credoai.artifacts.model.base_model import Model
 from credoai.utils.common import ValidationError
-from pandas import Series, DataFrame
 
 
 def check_instance(obj, inst_type, message=None):

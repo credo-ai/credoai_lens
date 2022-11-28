@@ -1,5 +1,5 @@
 Evaluators
-=======
+==========
 
 Evaluators are the classes that perform specific functions on 
 a model and/or data. These can include assessing the model for fairness, or profiling a 
@@ -7,7 +7,7 @@ data. Evaluators are constantly being added to the framework, which creates Lens
 library.
 
 Library of Evaluators
------------
+---------------------
 
 DataEquity
     This evaluator assesses whether outcomes are distributed equally across a sensitive
@@ -53,3 +53,31 @@ Performance
     This evaluator calculates overall performance metrics.
     Handles any metric that can be calculated on a set of ground truth labels and predictions,
     e.g., binary classification, multiclass classification, regression.
+
+RankingFairness
+    This evaluator calculates group fairness metrics for ranking systems.
+    This works on ranked items. If items scores data are also available and provided, it outputs 
+    a wider range of metrics.
+
+IdentityVerification
+    This evaluator performs performance and fairness assessments for identity verification systems.
+    The identity verification system here refers to a pair-wise-comparison-based system that 
+    inputs samples of a biometric attribute (face, fingerprint, voice, etc.) and their demographics
+    and then outputs the degree to which they represent the same person to verify their Identity.
+
+Privacy
+    This evaluator calculates privacy metrics based on two adversarial attacks:
+
+    - Membership inference attack: when an attacker with black-box access to a model attempts 
+      to infer if a data sample was in the model's training dataset or not.
+    - Attribute inference attack: when an attacker attempts to learn the attacked feature from 
+      the rest of the features.
+
+Security
+    This evaluator calculates security metrics based on two adversarial attacks:
+
+    - Model extraction attack: when an attacker with black-box access to a model attempts to 
+      train a substitute model of it.
+    - Model evasion attack: when an attacker with black-box access to a model attempts to
+      create minimally-perturbed samples that get misclassified by the model.
+

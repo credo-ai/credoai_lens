@@ -5,7 +5,7 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from credoai.evidence import TableContainer
+from connect.evidence import TableContainer
 from credoai.modules import CoxPH
 from credoai.modules.stats_utils import columns_from_formula
 from credoai.utils import ValidationError

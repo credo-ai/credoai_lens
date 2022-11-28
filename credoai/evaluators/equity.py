@@ -4,6 +4,8 @@ from itertools import combinations
 
 import numpy as np
 import pandas as pd
+from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
+
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
@@ -11,10 +13,9 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from credoai.evidence import MetricContainer, TableContainer
+from connect.evidence import MetricContainer, TableContainer
 from credoai.utils import NotRunError
 from credoai.utils.model_utils import type_of_target
-from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
 
 
 class DataEquity(Evaluator):
@@ -119,23 +120,21 @@ class DataEquity(Evaluator):
 
     def _describe(self):
         """Create descriptive output"""
-        results = {
-            "summary": self.df.groupby(self.sensitive_features.name)[
-                self.y.name
-            ].describe()
-        }
+        means = self.df.groupby(self.sensitive_features.name).mean()
+        results = {"summary": means}
+
         summary = results["summary"]
         results["sensitive_feature"] = self.sensitive_features.name
-        results["highest_group"] = summary["mean"].idxmax()
-        results["lowest_group"] = summary["mean"].idxmin()
+        results["highest_group"] = summary[self.y.name].idxmax()
+        results["lowest_group"] = summary[self.y.name].idxmin()
         results["demographic_parity_difference"] = (
-            summary["mean"].max() - summary["mean"].min()
+            summary[self.y.name].max() - summary[self.y.name].min()
         )
         results["demographic_parity_ratio"] = (
-            summary["mean"].min() / summary["mean"].max()
+            summary[self.y.name].min() / summary[self.y.name].max()
         )
 
-        summary.name = f"Summary"
+        summary.name = f"Average Outcome Per Group"
 
         return results
 

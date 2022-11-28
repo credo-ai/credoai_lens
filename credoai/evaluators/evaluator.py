@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from credoai.evidence import EvidenceContainer
+from connect.evidence import EvidenceContainer
 from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError
 
@@ -25,7 +25,7 @@ class Evaluator(ABC):
 
     @property
     def results(self):
-        if self._results:
+        if self._results is not None:
             return self._results
         else:
             raise NotRunError(

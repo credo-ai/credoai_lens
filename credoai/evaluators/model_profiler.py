@@ -1,11 +1,10 @@
 from typing import Optional
 
-from pandas import DataFrame
-
+from connect.evidence.lens_evidence import ModelProfilerContainer
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_existence
-from credoai.evidence.containers import ModelProfilerContainer
 from credoai.utils import ValidationError, global_logger
+from pandas import DataFrame
 
 USER_INFO_TEMPLATE = {
     "developed_by": None,

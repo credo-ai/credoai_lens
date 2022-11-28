@@ -117,3 +117,25 @@ def scrub_data(credo_data, nan_strategy="ignore"):
         X = X.copy()
         X.iloc[:, :] = imputed
     return X, y, sensitive_features
+
+
+def empirical_distribution_curve(values, down_sampling_step=1, variable_name="x"):
+    """Creates empirical distribution of a list of values
+
+    Parameters
+    ----------
+    values : array
+        list of values
+    down_sampling_step : int, optional
+        down-sampling step, by default 1 (i.e., no down-sampling)
+    variable_name : str, optional
+        name of the variable, by default 'x'
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    x = np.sort(values)[::down_sampling_step]
+    y = np.arange(len(x)) / float(len(x))
+    return pd.DataFrame({variable_name: x, "cumulative_probability": y})
