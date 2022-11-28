@@ -1,7 +1,7 @@
 """Performs comparison between 2 pipelines"""
 from typing import Literal, Optional
 from credoai.evaluators.utils.validation import check_instance
-from credoai.evidence.containers import MetricContainer
+from connect.evidence.containers import MetricContainer
 from credoai.lens import Lens
 
 from credoai.utils import flatten_list

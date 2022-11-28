@@ -1,13 +1,11 @@
 """Comparators for metric type containers"""
-from typing import Callable, List, Literal, Optional
+from typing import List
 
-import numpy as np
 from pandas import DataFrame, concat
 
 from credoai.evaluators.utils.validation import check_instance
-from credoai.evidence import MetricContainer
+from connect.evidence import MetricContainer
 from credoai.prism.comparators.comparator import Comparator
-from credoai.utils.common import ValidationError
 
 
 class MetricComparator(Comparator):
