@@ -29,7 +29,7 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Run tests
         run: |
-          scripts/test-cov-html.sh 
+          scripts/test.sh 
       - name: my-artifact
         if: always()
         uses: actions/upload-artifact@v3
@@ -39,4 +39,4 @@ jobs:
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         with:
-          pytest-coverage-path: cov_html
+          pytest-coverage-path: ./pytest-coverage.txt
