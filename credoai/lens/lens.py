@@ -345,7 +345,9 @@ class Lens:
             return
         self.gov = governance
         if self.model:
-            self.gov.set_artifacts(self.model, self.training_data, self.assessment_data)
+            self.gov.set_artifacts(
+                self.model, self.model.tags, self.training_data, self.assessment_data
+            )
 
     def _cycle_add_through_ds_feat(
         self,

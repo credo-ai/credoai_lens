@@ -36,7 +36,7 @@ class Model(ABC):
         self.type = type
         self.name = name
         self.model_like = model_like
-        self.tags = tags
+        self.tags = tags or {}
         self.model_info = get_model_info(model_like)
         self._validate(necessary_functions)
         self._build(possible_functions)
