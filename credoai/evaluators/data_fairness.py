@@ -71,6 +71,11 @@ class DataFairness(Evaluator):
 
     required_artifacts = {"data", "sensitive_feature"}
 
+    def _validate_arguments(self):
+        check_data_instance(self.data, TabularData)
+        check_existence(self.data.sensitive_features, "sensitive_features")
+        check_artifact_for_nulls(self.data, "Data")
+
     def _setup(self):
         self.data_to_eval = self.data  # Pick the only member
 
@@ -96,35 +101,52 @@ class DataFairness(Evaluator):
 
         return self
 
-    def _validate_arguments(self):
-        check_data_instance(self.data, TabularData)
-        check_existence(self.data.sensitive_features, "sensitive_features")
-        check_artifact_for_nulls(self.data, "Data")
-
-        return self
-
     def evaluate(self):
         """
         Runs the assessment process.
         """
-        res = {}
         ##  Aggregate results from all subprocess
         sensitive_feature_prediction_results = self._run_cv()
         mi_results = self._calculate_mutual_information()
         balance_metrics = self._assess_balance_metrics()
-        # Note: Output for group difference is in a different format
-        # Probably more suitable for table container. Address when this is
-        # reintroduced in final results.
         group_differences = self._group_differences()
 
-        res.update(
-            {
-                **balance_metrics,
-                **sensitive_feature_prediction_results,
-                **mi_results,
-                "standardized_group_diffs": group_differences,
-            }
+        # Format the output
+        self.results = self._format_results(
+            sensitive_feature_prediction_results,
+            mi_results,
+            balance_metrics,
+            group_differences,
         )
+        return self
+
+    def _format_results(
+        self,
+        sensitive_feature_prediction_results,
+        mi_results,
+        balance_metrics,
+        group_differences,
+    ):
+        """
+        Formats the results into a dataframe for MetricContainer
+
+        Parameters
+        ----------
+        sensitive_feature_prediction_results : dict
+            Results of redundant encoding calculation
+        mi_results : dict
+            Results of mutual information calculation
+        balance_metrics : dict
+            Results of balanced statistics calculation
+        group_differences : dict
+            Results of standardized difference calculation
+        """
+        res = {
+            **balance_metrics,
+            **sensitive_feature_prediction_results,
+            **mi_results,
+            **group_differences,
+        }
 
         # Select relevant results
         res = {k: v for k, v in res.items() if k in METRIC_SUBSET}
@@ -135,8 +157,7 @@ class DataFairness(Evaluator):
         res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
         res.drop("metric_type", axis=1, inplace=True)
 
-        self.results = [MetricContainer(res, **self.get_container_info())]
-        return self
+        return [MetricContainer(res, **self.get_container_info())]
 
     def _group_differences(self):
         """
@@ -160,6 +181,7 @@ class DataFairness(Evaluator):
         for group1, group2 in combinations(group_means.index, 2):
             diff = (group_means.loc[group1] - group_means.loc[group2]) / std
             diffs[f"{group1}-{group2}"] = diff.to_dict()
+        diffs = {"standardized_group_diffs": diffs}
         return diffs
 
     def _run_cv(self):
@@ -179,8 +201,8 @@ class DataFairness(Evaluator):
 
         Returns
         -------
-        ndarray
-            Cross-validation score
+        dict
+            Nested dictionary containing all results
         """
         results = {}
         if is_categorical(self.sensitive_features):
