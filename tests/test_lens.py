@@ -19,9 +19,11 @@ from credoai.evaluators import (
     IdentityVerification,
     ModelEquity,
     ModelFairness,
+    ModelProfiler,
     Performance,
     Privacy,
     Security,
+    ShapExplainer,
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
@@ -168,6 +170,70 @@ class TestDataProfiler(Base_Evaluator_Test):
         assert not self.pipeline.gov._file_export(
             tfile.name
         )  # governance file IO returns None if successful
+
+
+def test_model_profiler(
+    classification_model, classification_assessment_data, classification_train_data
+):
+    """
+    Testing the passing of the list of evaluator works
+    and the pipeline is running.
+    """
+    gov = Governance()
+
+    my_pipeline = Lens(
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
+        governance=gov,
+    )
+
+    my_pipeline.add(ModelProfiler())
+    assert len(my_pipeline.pipeline) == 1
+
+    my_pipeline.run()
+    assert my_pipeline.get_results()
+
+    assert my_pipeline.get_evidence()
+
+    assert my_pipeline.send_to_governance()
+
+    tfile = tempfile.NamedTemporaryFile(delete=False)
+    assert not gov._file_export(
+        tfile.name
+    )  # governance file IO returns None if successful
+
+
+def test_shap_explainer(
+    classification_model, classification_assessment_data, classification_train_data
+):
+    """
+    Testing the passing of the list of evaluator works
+    and the pipeline is running.
+    """
+    gov = Governance()
+
+    my_pipeline = Lens(
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
+        governance=gov,
+    )
+
+    my_pipeline.add(ShapExplainer(background_samples=5))
+    assert len(my_pipeline.pipeline) == 1
+
+    my_pipeline.run()
+    assert my_pipeline.get_results()
+
+    assert my_pipeline.get_evidence()
+
+    assert my_pipeline.send_to_governance()
+
+    tfile = tempfile.NamedTemporaryFile(delete=False)
+    assert not gov._file_export(
+        tfile.name
+    )  # governance file IO returns None if successful
 
 
 class TestModelEquity(Base_Evaluator_Test):
