@@ -136,6 +136,13 @@ class DataFairness(Evaluator):
         res.drop("metric_type", axis=1, inplace=True)
 
         self.results = [MetricContainer(res, **self.get_container_info())]
+        self.results = [
+            MetricContainer(
+                res.iloc[i].to_frame().T,
+                **self.get_container_info({"subtype": res.iloc[i].subtype}),
+            )
+            for i in range(res.shape[0])
+        ]
         return self
 
     def _group_differences(self):

@@ -166,7 +166,13 @@ class Privacy(Evaluator):
         attack_score[["type", "subtype"]] = attack_score.type.str.split(
             "-", expand=True
         )
-        self.results = [MetricContainer(attack_score, **self.get_container_info())]
+        self.results = [
+            MetricContainer(
+                attack_score.iloc[i].to_frame().T,
+                **self.get_container_info({"subtype": attack_score.iloc[i].subtype})
+            )
+            for i in range(attack_score.shape[0])
+        ]
 
         return self
 
