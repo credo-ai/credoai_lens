@@ -1,6 +1,8 @@
 import pandas as pd
+from connect.evidence import MetricContainer, TableContainer
+from sklearn.metrics import confusion_matrix
 
-from credoai.artifacts import TabularData
+from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
 from credoai.evaluators.utils.validation import (
@@ -8,7 +10,6 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from connect.evidence import MetricContainer, TableContainer
 from credoai.modules.metric_constants import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,
@@ -89,6 +90,13 @@ class Performance(Evaluator):
                         **self.get_container_info({"metric_type": metric}),
                     )
                 )
+
+        if isinstance(self.model, ClassificationModel):
+            confusion_container = TableContainer(
+                Performance.create_confusion_matrix(self.y_true, self.y_pred),
+                **self.get_container_info(),
+            )
+            self._results.append(confusion_container)
         return self
 
     def update_metrics(self, metrics, replace=True):
@@ -247,3 +255,24 @@ class Performance(Evaluator):
         check_existence(self.metrics, "metrics")
         check_data_instance(self.assessment_data, TabularData)
         check_artifact_for_nulls(self.assessment_data, "Data")
+
+    @staticmethod
+    def create_confusion_matrix(y_true, y_pred):
+        """Create a confusion matrix as a dataframe
+
+        Parameters
+        ----------
+        y_true : pd.Series of shape (n_samples,)
+            Ground truth (correct) target values.
+
+        y_pred : array-like of shape (n_samples,)
+            Estimated targets as returned by a classifier.
+
+        """
+        labels = y_true.astype("category").cat.categories
+        confusion = confusion_matrix(y_true, y_pred, normalize="true", labels=labels)
+        confusion_df = pd.DataFrame(confusion, index=labels.copy(), columns=labels)
+        confusion_df.index.name = "True"
+        confusion_df.columns.name = "Predicted"
+        confusion_df.name = "Confusion Matrix"
+        return confusion_df
