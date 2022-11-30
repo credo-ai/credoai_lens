@@ -31,7 +31,7 @@ subjects_sensitive_features : pd.DataFrame of shape (n_subjects, n_sensitive_fea
 
     Required columns:
 
-    * subject-id: id of subjects. Must cover all the subjects inlcluded in `pairs` dataframe
+    * subject-id: id of subjects. Must cover all the subjects included in `pairs` dataframe
       other columns with arbitrary names for sensitive features
 
 similarity_thresholds : list
