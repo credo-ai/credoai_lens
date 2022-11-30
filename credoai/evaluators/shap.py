@@ -70,24 +70,14 @@ class ShapExplainer(Evaluator):
 
     """
 
+    required_artifacts = ["assessment_data", "model"]
+
     def __init__(
         self,
         samples_ind: Optional[List[int]] = None,
         background_samples: int = 100,
         background_kmeans: Union[bool, int] = False,
     ):
-        """
-
-        Parameters
-        ----------
-        samples_ind : Optional[List[int]], optional
-            _description_, by default None
-        background_samples : int, optional
-            _description_, by default 100
-        background_kmeans : Union[bool, int], optional
-            _description_, by default False
-        """
-
         super().__init__()
         self.samples_ind = samples_ind
         self._validate_samples_ind()
@@ -95,15 +85,13 @@ class ShapExplainer(Evaluator):
         self.background_kmeans = background_kmeans
         self.classes = [None]
 
-    required_artifacts = ["assessment_data", "model"]
+    def _validate_arguments(self):
+        check_requirements_existence(self)
 
     def _setup(self):
         self.X = self.assessment_data.X
         self.model = self.model
         return self
-
-    def _validate_arguments(self):
-        check_requirements_existence(self)
 
     def evaluate(self):
         ## Overall stats
