@@ -7,9 +7,10 @@ Performance evaluator for Credo AI.
 
 This evaluator calculates overall performance metrics.
 Handles any metric that can be calculated on a set of ground truth labels and predictions,
-e.g., binary classification, multiclass classification, regression.
+e.g., binary classification, multi class classification, regression.
 
 This module takes in a set of metrics and provides functionality to:
+
 - calculate the metrics
 - create disaggregated metrics
 
