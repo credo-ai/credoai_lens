@@ -55,7 +55,7 @@ class IdentityVerification(Evaluator):
 
         Required columns:
 
-        * subject-id: id of subjects. Must cover all the subjects inlcluded in `pairs` dataframe
+        * subject-id: id of subjects. Must cover all the subjects included in `pairs` dataframe
           other columns with arbitrary names for sensitive features
 
     similarity_thresholds : list
@@ -127,6 +127,12 @@ class IdentityVerification(Evaluator):
         self.comparison_levels = comparison_levels
         super().__init__()
 
+    def _validate_arguments(self):
+        check_data_instance(self.assessment_data, ComparisonData)
+        check_model_instance(self.model, ComparisonModel)
+        check_existence(self.assessment_data.pairs, "pairs")
+        return self
+
     def _setup(self):
         self.pairs = self.assessment_data.pairs
         try:
@@ -156,14 +162,9 @@ class IdentityVerification(Evaluator):
 
         return self
 
-    def _validate_arguments(self):
-        check_data_instance(self.assessment_data, ComparisonData)
-        check_model_instance(self.model, ComparisonModel)
-        check_existence(self.assessment_data.pairs, "pairs")
-        return self
-
     def evaluate(self):
-        """Runs the assessment process
+        """
+        Runs the assessment process
 
         Returns
         -------
@@ -182,7 +183,8 @@ class IdentityVerification(Evaluator):
     def _process_data(
         self, pairs_processed, threshold=90, comparison_level="sample", sf=None
     ):
-        """Process the pairs and sensitive features dataframes
+        """
+        Process the pairs and sensitive features dataframes
 
         Parameters
         ----------
@@ -205,7 +207,7 @@ class IdentityVerification(Evaluator):
         Returns
         -------
         pd.DataFrame, pd.DataFrame
-            processeded pairs and sensitive features dataframes
+            Processed pairs and sensitive features dataframes
         """
         pairs_processed["match_prediction"] = pairs_processed.apply(
             lambda x: 1 if x["similarity_score"] >= threshold else 0, axis=1
@@ -245,7 +247,9 @@ class IdentityVerification(Evaluator):
         return pairs_processed, sf_processed
 
     def _assess_overall_performance(self):
-        """Perform overall performance assessment"""
+        """
+        Perform overall performance assessment
+        """
         overall_performance_res = []
         for threshold in self.similarity_thresholds:
             for level in self.comparison_levels:
@@ -289,7 +293,9 @@ class IdentityVerification(Evaluator):
         return overall_performance_res
 
     def _assess_disaggregated_performance(self):
-        """Perform disaggregated performance assessment"""
+        """
+        Perform disaggregated performance assessment
+        """
         performance_metrics = {
             "false_match_rate": Metric(
                 "false_match_rate", "BINARY_CLASSIFICATION", bcf["false_positive_rate"]
@@ -310,14 +316,15 @@ class IdentityVerification(Evaluator):
     def _assess_disaggregated_performance_one(
         self, sf_name, threshold, level, performance_metrics
     ):
-        """Perform disaggregated performance assessment for one combination
+        """
+        Perform disaggregated performance assessment for one combination
 
-        One combination of similarity threshold, comparision level, and sensitive feature
+        One combination of similarity threshold, comparison level, and sensitive feature
 
         Parameters
         ----------
         sf_name : str
-            sesnsitive feature name
+            sensitive feature name
         threshold : float
             similarity threshold
         level : str
