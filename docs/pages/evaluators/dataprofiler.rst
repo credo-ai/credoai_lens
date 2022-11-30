@@ -10,9 +10,7 @@ of descriptive statistics about the data.
 
 Parameters
 ----------
-X : pandas.DataFrame
-    The features
-y : pandas.Series
-    The outcome labels
+dataset_name: str
+    Name of the dataset
 profile_kwargs
-    Passed to pandas_profiling.ProfileReport
+    Potential arguments to be passed to pandas_profiling.ProfileReport
