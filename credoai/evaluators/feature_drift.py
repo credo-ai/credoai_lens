@@ -41,6 +41,8 @@ class FeatureDrift(Evaluator):
         by default False
     """
 
+    required_artifacts = {"model", "assessment_data", "training_data"}
+
     def __init__(self, buckets: int = 10, buckettype="bins", csi_calculation=False):
 
         self.bucket_number = buckets
@@ -48,8 +50,6 @@ class FeatureDrift(Evaluator):
         self.csi_calculation = csi_calculation
         self.percentage = False
         super().__init__()
-
-    required_artifacts = {"model", "assessment_data", "training_data"}
 
     def _validate_arguments(self):
         check_requirements_existence(self)
