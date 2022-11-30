@@ -15,7 +15,15 @@ class SurvivalFairness(Evaluator):
     """Performs survival analysis on a dataset and compares it to model predictions
 
     This evaluator uses a Cox Proportional Hazard model to analyze
-    the "survival" in a dataset as a function
+    the "survival" in a dataset as a function of sensitive features. That is, is there a
+    relationship between survival rate and the sensitive category. In addition, an arbitrary
+    formula can be passed to run a custom CoxPH model.
+
+    This evaluator provides functionality to:
+
+    - calculate expected survival
+    - create survival curves
+    - calculate beta coefficients for sensitive features affected survival
 
     Parameters
     ----------
@@ -64,11 +72,11 @@ class SurvivalFairness(Evaluator):
         return self
 
     def _run_survival_analyses(self):
+        # if formula is provided, also run that analysis
         if "formula" in self.coxPh_kwargs:
             cph = CoxPH()
             cph.fit(self.survival_df, **self.coxPh_kwargs)
             self.stats.append(cph)
-            return
 
         model_predictions = (
             ["predictions", "predicted_probabilities"]
