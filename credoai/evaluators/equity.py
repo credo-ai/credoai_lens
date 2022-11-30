@@ -339,11 +339,11 @@ class ModelEquity(DataEquity):
         The significance value to evaluate statistical tests, by default 0.01
     """
 
+    required_artifacts = {"model", "assessment_data", "sensitive_feature"}
+
     def __init__(self, use_predict_proba=False, p_value=0.01):
         self.use_predict_proba = use_predict_proba
         super().__init__(p_value)
-
-    required_artifacts = {"model", "assessment_data", "sensitive_feature"}
 
     def _setup(self):
         self.sensitive_features = self.assessment_data.sensitive_feature
@@ -361,6 +361,10 @@ class ModelEquity(DataEquity):
         self.type_of_target = type_of_target(self.y)
 
         self.df = pd.concat([self.sensitive_features, self.y], axis=1)
+        self.labels = {
+            "sensitive_feature": self.sensitive_features.name,
+            "outcome": self.y.name,
+        }
         return self
 
     def _validate_arguments(self):
