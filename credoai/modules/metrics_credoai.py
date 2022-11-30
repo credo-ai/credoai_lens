@@ -1,5 +1,6 @@
-from time import perf_counter
-from typing import Literal, Optional
+"""Custom metrics defined by Credo AI"""
+
+from typing import Literal
 
 import numpy as np
 import pandas as pd

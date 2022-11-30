@@ -1,6 +1,11 @@
-from sklearn import metrics as sk_metrics
+"""Constants for threshold metrics
 
-from credoai.modules.credoai_metrics import (
+Define relationships between metric names (strings) and
+threshold metric functions,
+as well as alternate names for each metric name
+"""
+
+from credoai.modules.metrics_credoai import (
     credo_det_curve,
     credo_pr_curve,
     credo_roc_curve,
