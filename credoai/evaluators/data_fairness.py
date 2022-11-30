@@ -53,6 +53,8 @@ class DataFairness(Evaluator):
         `credoai.utils.common.is_categorical`
     """
 
+    required_artifacts = {"data", "sensitive_feature"}
+
     def __init__(
         self,
         categorical_features_keys: Optional[List[str]] = None,
@@ -62,8 +64,6 @@ class DataFairness(Evaluator):
         self.categorical_features_keys = categorical_features_keys
         self.categorical_threshold = categorical_threshold
         super().__init__()
-
-    required_artifacts = {"data", "sensitive_feature"}
 
     def _validate_arguments(self):
         check_data_instance(self.data, TabularData)

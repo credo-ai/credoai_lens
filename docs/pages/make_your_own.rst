@@ -122,9 +122,9 @@ Specifically to evaluator, these are the main directives:
    refer to the next section.
 #. Immediately after the docstring, these methods/property (enforced by the abstract class) follow in this order:
 
-   1. ``__init__``: The last line of this method is ``super().__init__()``. The invocation of the abstract
+   1. ``required_artifacts``: this is defined as a property of the class, outside of init.
+   2. ``__init__``: The last line of this method is ``super().__init__()``. The invocation of the abstract
       class init method is necessary to initialize some class properties.
-   2. ``required_artifacts``: this is defined as a property of the class, outside of init.
    3. ``_validate_arguments``
    4. ``_setup``
    5. ``evaluate``
