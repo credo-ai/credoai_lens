@@ -93,7 +93,7 @@ class Performance(Evaluator):
 
         if isinstance(self.model, ClassificationModel):
             confusion_container = TableContainer(
-                Performance.create_confusion_matrix(self.y_true, self.y_pred),
+                create_confusion_matrix(self.y_true, self.y_pred),
                 **self.get_container_info(),
             )
             self._results.append(confusion_container)
@@ -256,23 +256,30 @@ class Performance(Evaluator):
         check_data_instance(self.assessment_data, TabularData)
         check_artifact_for_nulls(self.assessment_data, "Data")
 
-    @staticmethod
-    def create_confusion_matrix(y_true, y_pred):
-        """Create a confusion matrix as a dataframe
 
-        Parameters
-        ----------
-        y_true : pd.Series of shape (n_samples,)
-            Ground truth (correct) target values.
+############################################
+## Evaluation helper functions
 
-        y_pred : array-like of shape (n_samples,)
-            Estimated targets as returned by a classifier.
+## Helper functions create evidences
+## to be passed to .evaluate to be wrapped
+## by evidence containers
+############################################
+def create_confusion_matrix(y_true, y_pred):
+    """Create a confusion matrix as a dataframe
 
-        """
-        labels = y_true.astype("category").cat.categories
-        confusion = confusion_matrix(y_true, y_pred, normalize="true", labels=labels)
-        confusion_df = pd.DataFrame(confusion, index=labels.copy(), columns=labels)
-        confusion_df.index.name = "True"
-        confusion_df.columns.name = "Predicted"
-        confusion_df.name = "Confusion Matrix"
-        return confusion_df
+    Parameters
+    ----------
+    y_true : pd.Series of shape (n_samples,)
+        Ground truth (correct) target values.
+
+    y_pred : array-like of shape (n_samples,)
+        Estimated targets as returned by a classifier.
+
+    """
+    labels = y_true.astype("category").cat.categories
+    confusion = confusion_matrix(y_true, y_pred, normalize="true", labels=labels)
+    confusion_df = pd.DataFrame(confusion, index=labels.copy(), columns=labels)
+    confusion_df.index.name = "True"
+    confusion_df.columns.name = "Predicted"
+    confusion_df.name = "Confusion Matrix"
+    return confusion_df
