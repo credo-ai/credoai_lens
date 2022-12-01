@@ -220,16 +220,6 @@ def test_threshold_performance(init_lens_classification):
     pytest.assume(not gov._file_export(temp_file))
 
 
-def test_privacy(init_lens_credit):
-    lens, temp_file, gov = init_lens_credit
-    lens.add(Privacy(attack_feature="MARRIAGE"))
-    lens.run()
-    pytest.assume(lens.get_results())
-    pytest.assume(lens.get_evidence())
-    pytest.assume(lens.send_to_governance())
-    pytest.assume(not gov._file_export(temp_file))
-
-
 @pytest.mark.parametrize(
     "evaluator",
     [DataFairness, DataProfiler, ModelEquity, DataEquity, Security, Deepchecks],
@@ -248,6 +238,16 @@ def test_generic_evaluator(init_lens_classification, evaluator):
     """
     lens, temp_file, gov = init_lens_classification
     lens.add(evaluator())
+    lens.run()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
+
+
+def test_privacy(init_lens_credit):
+    lens, temp_file, gov = init_lens_credit
+    lens.add(Privacy(attack_feature="MARRIAGE"))
     lens.run()
     pytest.assume(lens.get_results())
     pytest.assume(lens.get_evidence())
