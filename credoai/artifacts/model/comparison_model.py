@@ -45,8 +45,10 @@ class DummyComparisonModel:
         Array containing the output of a comparison model's "compare" method
     """
 
-    def __init__(self, compare_output=None):
+    def __init__(self, name, compare_output=None, tags=None):
         self.compare_output = compare_output
+        self.name = name
+        self.tags = tags
 
     def compare(self, pairs=None):
         return self.compare_output
