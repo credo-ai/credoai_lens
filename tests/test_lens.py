@@ -131,56 +131,18 @@ def init_lens_fairness(temp_file):
 
 @pytest.fixture(scope="function")
 def init_lens_identityverification(temp_file):
+    source_subject_id = 4 * ["s0"] + 5 * ["s1"] + ["s2"]
+    source_subject_data_sample = 4 * ["s00"] + 3 * ["s10"] + 2 * ["s11"] + ["s20"]
+    target_subject_id = ["s1"] + ["s1", "s2", "s3"] * 2 + ["s2", "s3", "s3"]
+    target_subject_data_sample = (
+        ["s10"] + ["s11", "s20", "s30"] * 2 + ["s20"] + ["s30"] * 2
+    )
     pairs = DataFrame(
         {
-            "source-subject-id": [
-                "s0",
-                "s0",
-                "s0",
-                "s0",
-                "s1",
-                "s1",
-                "s1",
-                "s1",
-                "s1",
-                "s2",
-            ],
-            "source-subject-data-sample": [
-                "s00",
-                "s00",
-                "s00",
-                "s00",
-                "s10",
-                "s10",
-                "s10",
-                "s11",
-                "s11",
-                "s20",
-            ],
-            "target-subject-id": [
-                "s1",
-                "s1",
-                "s2",
-                "s3",
-                "s1",
-                "s2",
-                "s3",
-                "s2",
-                "s3",
-                "s3",
-            ],
-            "target-subject-data-sample": [
-                "s10",
-                "s11",
-                "s20",
-                "s30",
-                "s11",
-                "s20",
-                "s30",
-                "s20",
-                "s30",
-                "s30",
-            ],
+            "source-subject-id": source_subject_id,
+            "source-subject-data-sample": source_subject_data_sample,
+            "target-subject-id": target_subject_id,
+            "target-subject-data-sample": target_subject_data_sample,
         }
     )
 
@@ -211,6 +173,7 @@ def init_lens_identityverification(temp_file):
             "value": [0, 0, 0, 1],
         }
     )
+    expected_results = {"fair": expected_results_fair, "perf": expected_results_perf}
     similarity_scores = [31.5, 16.7, 20.8, 84.4, 12.0, 15.2, 45.8, 23.5, 28.5, 44.5]
 
     credo_data = ComparisonData(
@@ -224,7 +187,7 @@ def init_lens_identityverification(temp_file):
     gov = Governance()
     pipeline = Lens(model=credo_model, assessment_data=credo_data, governance=gov)
 
-    return pipeline, temp_file, gov, expected_results_fair, expected_results_perf
+    return pipeline, temp_file, gov, expected_results
 
 
 ##################################################
@@ -895,13 +858,7 @@ def test_ranking_fairness(init_lens_fairness):
 
 
 def test_identity_verification(init_lens_identityverification):
-    (
-        lens,
-        temp_file,
-        gov,
-        expected_results_fair,
-        expected_results_perf,
-    ) = init_lens_identityverification
+    lens, temp_file, gov, expected_results = init_lens_identityverification
     lens.add(IdentityVerification(similarity_thresholds=[60, 99]))
     lens.run()
     # Get peformance results
@@ -916,90 +873,36 @@ def test_identity_verification(init_lens_identityverification):
     pytest.assume(lens.get_evidence())
     pytest.assume(lens.send_to_governance())
     pytest.assume(not gov._file_export(temp_file))
-    pytest.assume(results_perf.equals(expected_results_perf))
-    pytest.assume(results_fair.equals(expected_results_fair))
+    pytest.assume(results_perf.equals(expected_results["perf"]))
+    pytest.assume(results_fair.equals(expected_results["fair"]))
 
 
-# def test_bulk_pipeline_run(
-#     classification_model, classification_assessment_data, classification_train_data
-# ):
-#     """
-#     Testing the passing of the list of evaluator works
-#     and the pipeline is running.
-#     """
-#     pipe_structure = [
-#         Security(),
-#         DataProfiler(),
-#         DataFairness(),
-#     ]
-#     gov = Governance()
-#     my_pipeline = Lens(
-#         model=classification_model,
-#         assessment_data=classification_assessment_data,
-#         training_data=classification_train_data,
-#         pipeline=pipe_structure,
-#         governance=gov,
-#     )
-#     my_pipeline.run()
-#     assert my_pipeline.get_results()
-#     assert my_pipeline.get_evidence()
-#     assert my_pipeline.send_to_governance()
-#     tfile = tempfile.NamedTemporaryFile(delete=False)
-#     assert not gov._file_export(
-#         tfile.name
-#     )  # governance file IO returns None if successful
-
-
-# @pytest.mark.xfail(raises=RuntimeError)
-# def test_empty_pipeline_run(
-#     classification_model, classification_assessment_data, classification_train_data
-# ):
-#     my_pipeline = Lens(
-#         model=classification_model,
-#         assessment_data=classification_assessment_data,
-#         training_data=classification_train_data,
-#     )
-#     my_pipeline.run()
-
-
-def test_lens_validation_no_sens_feat(
-    credit_classification_model, credit_assessment_data
-):
+def test_bulk_pipeline_run(init_lens_classification):
     """
-    Tests to ensure Lens will not allow running evaluators that require sensitive features without
-    any sensitive features specified
+    Testing the passing of the list of evaluator works
+    and the pipeline is running.
     """
-    credit_assessment_data.sensitive_features = None
-
-    lens = Lens(
-        model=credit_classification_model, assessment_data=credit_assessment_data
-    )
-    evaluator = ModelFairness(["accuracy_score"])
-    try:
-        lens.add(evaluator)
-    except:
-        assert True
-        # if the above throws an error, validation is correct
-
-
-def test_print_results(
-    credit_classification_model, credit_assessment_data, credit_training_data
-):
-    gov = Governance()
-    lens = Lens(
-        model=credit_classification_model,
-        assessment_data=credit_assessment_data,
-        training_data=credit_training_data,
-        governance=gov,
-    )
-    evaluator = Performance(["accuracy_score"])
-    lens.add(evaluator)
+    lens, temp_file, gov = init_lens_classification
+    lens.add(Security())
+    lens.add(DataProfiler())
+    lens.add(DataFairness())
     lens.run()
-    assert lens.get_results()
-    try:
-        lens.print_results()
-    except:
-        assert False
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
+
+
+@pytest.mark.xfail(raises=RuntimeError)
+def test_empty_pipeline_run(
+    classification_model, classification_assessment_data, classification_train_data
+):
+    my_pipeline = Lens(
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
+    )
+    my_pipeline.run()
 
 
 def test_lens_validation_no_sens_feat(
