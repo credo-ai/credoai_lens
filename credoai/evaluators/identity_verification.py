@@ -10,9 +10,7 @@ from credoai.evaluators.utils.validation import (
     check_existence,
     check_model_instance,
 )
-
-from connect.evidence import MetricContainer, TableContainer
-from credoai.modules.metric_constants import BINARY_CLASSIFICATION_FUNCTIONS as bcf
+from credoai.modules.constants_metrics import BINARY_CLASSIFICATION_FUNCTIONS as bcf
 from credoai.modules.metrics import Metric
 
 METRIC_SUBSET = [

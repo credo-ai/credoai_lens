@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import pandas as pd
+from connect.evidence import MetricContainer, TableContainer
 
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
@@ -10,8 +11,7 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from connect.evidence import MetricContainer, TableContainer
-from credoai.modules.metric_constants import (
+from credoai.modules.constants_metrics import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,
 )

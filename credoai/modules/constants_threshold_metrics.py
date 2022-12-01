@@ -27,7 +27,7 @@ THRESHOLD_PROBABILITY_FUNCTIONS = {
     "det_curve": credo_det_curve,
 }
 
-# Included for consistency relative to Metric and metric_constants.py
+# Included for consistency relative to Metric and constants_metrics.py
 # Empty because there are no supported equivalent names for threshold-varying metric functions
 THRESHOLD_METRIC_EQUIVALENTS = {
     "precision_recall_curve": ["pr_curve"],
