@@ -183,3 +183,15 @@ def frozen_validation_data():
 #         y=train_data["train_labels"],
 #         sensitive_features=train_data["sensitive_features"],
 #     )
+
+
+@fixture(scope="session")
+def config_path_in():
+    return  # TODO!!! FILL IN WITH GITHUB SECRET FOR CONFIG FILE (API TOKEN)
+    # return ""
+
+
+@fixture(scope="session")
+def assessment_plan_url_in():
+    return  # TODO!!! FILL IN WITH GITHUB SECRET FOR ASSESSMENT PLAN (API LINK)
+    # return ""
