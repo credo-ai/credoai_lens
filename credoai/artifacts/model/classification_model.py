@@ -57,9 +57,11 @@ class DummyClassifier:
         Array containing the output of a model's "predict_proba" method
     """
 
-    def __init__(self, predict_output=None, predict_proba_output=None):
+    def __init__(self, name, predict_output=None, predict_proba_output=None, tags=None):
         self.predict_output = predict_output
         self.predict_proba_output = predict_proba_output
+        self.name = name
+        self.tags = tags
 
     def predict(self, X=None):
         return self.predict_output
