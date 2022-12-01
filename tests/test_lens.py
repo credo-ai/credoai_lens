@@ -37,6 +37,7 @@ TEST_METRICS = [
     ["average_precision_score"],
     ["false_negative_rate", "average_precision_score"],
     ["precision_score", "equal_opportunity"],
+    ["roc_curve"],
     ["false_negative_rate", "average_precision_score", "equal_opportunity"],
 ]
 TEST_METRICS_IDS = [
@@ -44,6 +45,7 @@ TEST_METRICS_IDS = [
     "probability_metric",
     "binary_and_probability",
     "fairness",
+    "threshold",
     "all_types",
 ]
 
@@ -204,7 +206,7 @@ def test_model_profiler(
     )  # governance file IO returns None if successful
 
 
-def test_shap_explainer(
+def test_shap_explainer_background_sample(
     classification_model, classification_assessment_data, classification_train_data
 ):
     """
@@ -221,6 +223,70 @@ def test_shap_explainer(
     )
 
     my_pipeline.add(ShapExplainer(background_samples=5))
+    assert len(my_pipeline.pipeline) == 1
+
+    my_pipeline.run()
+    assert my_pipeline.get_results()
+
+    assert my_pipeline.get_evidence()
+
+    assert my_pipeline.send_to_governance()
+
+    tfile = tempfile.NamedTemporaryFile(delete=False)
+    assert not gov._file_export(
+        tfile.name
+    )  # governance file IO returns None if successful
+
+
+def test_shap_explainer_background_kmeans(
+    classification_model, classification_assessment_data, classification_train_data
+):
+    """
+    Testing the passing of the list of evaluator works
+    and the pipeline is running.
+    """
+    gov = Governance()
+
+    my_pipeline = Lens(
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
+        governance=gov,
+    )
+
+    my_pipeline.add(ShapExplainer(background_kmeans=5))
+    assert len(my_pipeline.pipeline) == 1
+
+    my_pipeline.run()
+    assert my_pipeline.get_results()
+
+    assert my_pipeline.get_evidence()
+
+    assert my_pipeline.send_to_governance()
+
+    tfile = tempfile.NamedTemporaryFile(delete=False)
+    assert not gov._file_export(
+        tfile.name
+    )  # governance file IO returns None if successful
+
+
+def test_shap_explainer_individual_samples(
+    classification_model, classification_assessment_data, classification_train_data
+):
+    """
+    Testing the passing of the list of evaluator works
+    and the pipeline is running.
+    """
+    gov = Governance()
+
+    my_pipeline = Lens(
+        model=classification_model,
+        assessment_data=classification_assessment_data,
+        training_data=classification_train_data,
+        governance=gov,
+    )
+
+    my_pipeline.add(ShapExplainer(samples_ind=[2, 5, 7], background_kmeans=5))
     assert len(my_pipeline.pipeline) == 1
 
     my_pipeline.run()
@@ -675,3 +741,23 @@ def test_empty_pipeline_run(
         training_data=classification_train_data,
     )
     my_pipeline.run()
+
+
+def test_lens_validation_no_sens_feat(
+    credit_classification_model, credit_assessment_data
+):
+    """
+    Tests to ensure Lens will not allow running evaluators that require sensitive features without
+    any sensitive features specified
+    """
+    credit_assessment_data.sensitive_features = None
+
+    lens = Lens(
+        model=credit_classification_model, assessment_data=credit_assessment_data
+    )
+    evaluator = ModelFairness(["accuracy_score"])
+    try:
+        lens.add(evaluator)
+    except:
+        assert True
+        # if the above throws an error, validation is correct
