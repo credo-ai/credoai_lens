@@ -69,6 +69,23 @@ def init_lens_classification(
     return my_pipeline, temp_file, gov
 
 
+@pytest.fixture(scope="function")
+def init_lens_credit(
+    credit_classification_model,
+    credit_assessment_data,
+    credit_training_data,
+    temp_file,
+):
+    gov = Governance()
+    my_pipeline = Lens(
+        model=credit_classification_model,
+        assessment_data=credit_assessment_data,
+        training_data=credit_training_data,
+        governance=gov,
+    )
+    return my_pipeline, temp_file, gov
+
+
 @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
 def test_model_fairness(
     init_lens_classification,
@@ -84,145 +101,64 @@ def test_model_fairness(
     pytest.assume(not gov._file_export(temp_file))
 
 
-# def test_privacy(
-#     credit_classification_model, credit_assessment_data, credit_training_data
-# ):
-#     gov = Governance()
-#     lens = Lens(
-#         model=credit_classification_model,
-#         assessment_data=credit_assessment_data,
-#         training_data=credit_training_data,
-#         governance=gov,
-#     )
-#     lens.add(Privacy(attack_feature="MARRIAGE"))
-#     lens.run()
-#     assert lens.get_results()
-#     assert lens.get_evidence()
-#     assert lens.send_to_governance()
-#     tfile = tempfile.NamedTemporaryFile(delete=False)
-#     assert not gov._file_export(
-#         tfile.name
-#     )  # governance file IO returns None if successful
+def test_privacy(init_lens_credit):
+    lens, temp_file, gov = init_lens_credit
+    lens.add(Privacy(attack_feature="MARRIAGE"))
+    lens.run()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
 
 
-# class TestDataFairness(Base_Evaluator_Test):
-#     evaluator = DataFairness()
-
-#     def test_add(self):
-#         self.pipeline.add(self.evaluator)
-#         assert len(self.pipeline.pipeline) == 4
-
-#     def test_run(self):
-#         self.pipeline.run()
-#         assert self.pipeline.get_results()
-
-#     def test_evidence(self):
-#         assert self.pipeline.get_evidence()
-
-#     def test_to_gov(self):
-#         assert self.pipeline.send_to_governance()
-
-#     def test_gov_export(self):
-#         tfile = tempfile.NamedTemporaryFile(delete=False)
-#         assert not self.pipeline.gov._file_export(
-#             tfile.name
-#         )  # governance file IO returns None if successful
+def test_data_fairness(init_lens_classification):
+    lens, temp_file, gov = init_lens_classification
+    lens.add(DataFairness())
+    lens.run()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
 
 
-# class TestDataProfiler(Base_Evaluator_Test):
-#     evaluator = DataProfiler()
-
-#     def test_add(self):
-#         self.pipeline.add(self.evaluator)
-#         assert len(self.pipeline.pipeline) == 2
-
-#     def test_run(self):
-#         self.pipeline.run()
-#         assert self.pipeline.get_results()
-
-#     def test_evidence(self):
-#         assert self.pipeline.get_evidence()
-
-#     def test_to_gov(self):
-#         assert self.pipeline.send_to_governance()
-
-#     def test_gov_export(self):
-#         tfile = tempfile.NamedTemporaryFile(delete=False)
-#         assert not self.pipeline.gov._file_export(
-#             tfile.name
-#         )  # governance file IO returns None if successful
+def test_data_profiler(init_lens_classification):
+    lens, temp_file, gov = init_lens_classification
+    lens.add(DataProfiler())
+    lens.run()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
 
 
-# class TestModelEquity(Base_Evaluator_Test):
-#     evaluator = ModelEquity()
-
-#     def test_add(self):
-#         self.pipeline.add(self.evaluator)
-#         assert len(self.pipeline.pipeline) == 2
-
-#     def test_run(self):
-#         self.pipeline.run()
-#         assert self.pipeline.get_results()
-
-#     def test_evidence(self):
-#         assert self.pipeline.get_evidence()
-
-#     def test_to_gov(self):
-#         assert self.pipeline.send_to_governance()
-
-#     def test_gov_export(self):
-#         tfile = tempfile.NamedTemporaryFile(delete=False)
-#         assert not self.pipeline.gov._file_export(
-#             tfile.name
-#         )  # governance file IO returns None if successful
+def test_model_equity(init_lens_classification):
+    lens, temp_file, gov = init_lens_classification
+    lens.add(ModelEquity())
+    lens.run()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
 
 
-# class TestDataEquity(Base_Evaluator_Test):
-#     evaluator = DataEquity()
-
-#     def test_add(self):
-#         self.pipeline.add(self.evaluator)
-#         assert len(self.pipeline.pipeline) == 4
-
-#     def test_run(self):
-#         self.pipeline.run()
-#         assert self.pipeline.get_results()
-
-#     def test_evidence(self):
-#         assert self.pipeline.get_evidence()
-
-#     def test_to_gov(self):
-#         assert self.pipeline.send_to_governance()
-
-#     def test_gov_export(self):
-#         tfile = tempfile.NamedTemporaryFile(delete=False)
-#         assert not self.pipeline.gov._file_export(
-#             tfile.name
-#         )  # governance file IO returns None if successful
+def test_data_equity(init_lens_classification):
+    lens, temp_file, gov = init_lens_classification
+    lens.add(DataEquity())
+    lens.run()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
 
 
-# class TestSecurity(Base_Evaluator_Test):
-#     evaluator = Security()
-
-#     def test_add(self):
-#         self.pipeline.add(self.evaluator)
-#         assert len(self.pipeline.pipeline) == 1
-
-#     def test_run(self):
-#         self.pipeline.run()
-#         assert self.pipeline.get_results()
-
-#     def test_evidence(self):
-#         assert self.pipeline.get_evidence()
-
-#     def test_to_gov(self):
-#         assert self.pipeline.send_to_governance()
-
-#     def test_gov_export(self):
-#         tfile = tempfile.NamedTemporaryFile(delete=False)
-#         assert not self.pipeline.gov._file_export(
-#             tfile.name
-#         )  # governance file IO returns None if successful
+def test_security(init_lens_classification):
+    lens, temp_file, gov = init_lens_classification
+    lens.add(Security())
+    lens.run()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
 
 
 # @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
