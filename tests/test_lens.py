@@ -226,49 +226,24 @@ def test_privacy(init_lens_credit):
     pytest.assume(not gov._file_export(temp_file))
 
 
-def test_data_fairness(init_lens_classification):
+@pytest.mark.parametrize(
+    "evaluator",
+    [DataFairness, DataProfiler, ModelEquity, DataEquity, Security, Deepchecks],
+    ids=[
+        "DataFairness",
+        "DataProfiler",
+        "ModelEquity",
+        "DataEquity",
+        "Security",
+        "Deepchecks",
+    ],
+)
+def test_generic_evaluator(init_lens_classification, evaluator):
+    """
+    Any evaluator not requiring specific treatment can be tested here
+    """
     lens, temp_file, gov = init_lens_classification
-    lens.add(DataFairness())
-    lens.run()
-    pytest.assume(lens.get_results())
-    pytest.assume(lens.get_evidence())
-    pytest.assume(lens.send_to_governance())
-    pytest.assume(not gov._file_export(temp_file))
-
-
-def test_data_profiler(init_lens_classification):
-    lens, temp_file, gov = init_lens_classification
-    lens.add(DataProfiler())
-    lens.run()
-    pytest.assume(lens.get_results())
-    pytest.assume(lens.get_evidence())
-    pytest.assume(lens.send_to_governance())
-    pytest.assume(not gov._file_export(temp_file))
-
-
-def test_model_equity(init_lens_classification):
-    lens, temp_file, gov = init_lens_classification
-    lens.add(ModelEquity())
-    lens.run()
-    pytest.assume(lens.get_results())
-    pytest.assume(lens.get_evidence())
-    pytest.assume(lens.send_to_governance())
-    pytest.assume(not gov._file_export(temp_file))
-
-
-def test_data_equity(init_lens_classification):
-    lens, temp_file, gov = init_lens_classification
-    lens.add(DataEquity())
-    lens.run()
-    pytest.assume(lens.get_results())
-    pytest.assume(lens.get_evidence())
-    pytest.assume(lens.send_to_governance())
-    pytest.assume(not gov._file_export(temp_file))
-
-
-def test_security(init_lens_classification):
-    lens, temp_file, gov = init_lens_classification
-    lens.add(Security())
+    lens.add(evaluator())
     lens.run()
     pytest.assume(lens.get_results())
     pytest.assume(lens.get_evidence())
@@ -279,16 +254,6 @@ def test_security(init_lens_classification):
 def test_feature_drift(init_lens_classification):
     lens, temp_file, gov = init_lens_classification
     lens.add(FeatureDrift(csi_calculation=True))
-    lens.run()
-    pytest.assume(lens.get_results())
-    pytest.assume(lens.get_evidence())
-    pytest.assume(lens.send_to_governance())
-    pytest.assume(not gov._file_export(temp_file))
-
-
-def test_deepchecks(init_lens_classification):
-    lens, temp_file, gov = init_lens_classification
-    lens.add(Deepchecks())
     lens.run()
     pytest.assume(lens.get_results())
     pytest.assume(lens.get_evidence())
