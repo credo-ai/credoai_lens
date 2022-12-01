@@ -761,3 +761,23 @@ def test_lens_validation_no_sens_feat(
     except:
         assert True
         # if the above throws an error, validation is correct
+
+
+def test_print_results(
+    credit_classification_model, credit_assessment_data, credit_training_data
+):
+    gov = Governance()
+    lens = Lens(
+        model=credit_classification_model,
+        assessment_data=credit_assessment_data,
+        training_data=credit_training_data,
+        governance=gov,
+    )
+    evaluator = Performance(["accuracy_score"])
+    lens.add(evaluator)
+    lens.run()
+    assert lens.get_results()
+    try:
+        lens.print_results()
+    except:
+        assert False
