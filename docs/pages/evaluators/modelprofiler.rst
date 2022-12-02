@@ -9,9 +9,10 @@ This evaluator builds a model card the purpose of which is to characterize
 a fitted model.
 
 The overall strategy is:
-    1. Extract all potentially useful info from the model itself in an
-        automatic fashion.
-    2. Allow the user to personalize the model card freely.
+
+1. Extract all potentially useful info from the model itself in an
+   automatic fashion.
+2. Allow the user to personalize the model card freely.
 
 The method generate_template() provides a dictionary with several entries the
 user could be interested in filling up.
@@ -24,6 +25,7 @@ model_info : Optional[dict]
     a template can be provided by running the generate_template() method.
 
     The only restrictions are checked in a validation step:
+
     1. Some keys are protected because they are used internally
     2. Only basic python types are accepted as values
 

@@ -20,14 +20,6 @@ metrics : List-like
     Note for performance parity metrics like
     "false negative rate parity" just list "false negative rate". Parity metrics
     are calculated automatically if the performance metric is supplied
-sensitive_features :  pandas.DataFrame
-    The segmentation feature(s) which should be used to create subgroups to analyze.
-y_true : (List, pandas.Series, numpy.ndarray)
-    The ground-truth labels (for classification) or target values (for regression).
-y_pred : (List, pandas.Series, numpy.ndarray)
-    The predicted labels for classification
-y_prob : (List, pandas.Series, numpy.ndarray), optional
-    The unthresholded predictions, confidence values or probabilities.
 method : str, optional
     How to compute the differences: "between_groups" or "to_overall".
     See fairlearn.metrics.MetricFrame.difference

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import List
 
 import pandas as pd
 
@@ -38,19 +39,13 @@ class ModelFairness(Evaluator):
         Note for performance parity metrics like
         "false negative rate parity" just list "false negative rate". Parity metrics
         are calculated automatically if the performance metric is supplied
-    sensitive_features :  pandas.DataFrame
-        The segmentation feature(s) which should be used to create subgroups to analyze.
-    y_true : (List, pandas.Series, numpy.ndarray)
-        The ground-truth labels (for classification) or target values (for regression).
-    y_pred : (List, pandas.Series, numpy.ndarray)
-        The predicted labels for classification
-    y_prob : (List, pandas.Series, numpy.ndarray), optional
-        The unthresholded predictions, confidence values or probabilities.
     method : str, optional
         How to compute the differences: "between_groups" or "to_overall".
         See fairlearn.metrics.MetricFrame.difference
         for details, by default 'between_groups'
     """
+
+    required_artifacts = {"model", "data", "sensitive_feature"}
 
     def __init__(
         self,
@@ -63,7 +58,11 @@ class ModelFairness(Evaluator):
         self.fairness_prob_metrics = None
         super().__init__()
 
-    required_artifacts = {"model", "data", "sensitive_feature"}
+    def _validate_arguments(self):
+        check_existence(self.metrics, "metrics")
+        check_data_instance(self.data, TabularData)
+        check_existence(self.data.sensitive_features, "sensitive_features")
+        check_artifact_for_nulls(self.data, "Data")
 
     def _setup(self):
         self.sensitive_features = self.data.sensitive_feature
@@ -74,46 +73,30 @@ class ModelFairness(Evaluator):
         else:
             self.y_prob = (None,)
         self.update_metrics(self.metrics)
+        self.sens_feat_label = {"sensitive_feature": self.sensitive_features.name}
 
     def evaluate(self):
         """
         Run fairness base module.
         """
-        disaggregated_metrics_df = self.get_disaggregated_performance()
+        fairness_results = self.get_fairness_results()
+        disaggregated_metrics = self.get_disaggregated_performance()
         disaggregated_thresh_results = self.get_disaggregated_threshold_performance()
 
-        sens_feat_label = {"sensitive_feature": self.sensitive_features.name}
-        metric_type_label = {
-            "metric_types": disaggregated_metrics_df.type.unique().tolist()
-        }
+        results = [fairness_results]
 
-        self._results = [
-            MetricContainer(
-                self.get_fairness_results(),
-                **self.get_container_info(labels=sens_feat_label),
-            )
-        ]
-
-        if disaggregated_metrics_df is not None:
-            e = TableContainer(
-                disaggregated_metrics_df,
-                **self.get_container_info(
-                    labels={**sens_feat_label, **metric_type_label}
-                ),
-            )
-            self._results.append(e)
+        if disaggregated_metrics is not None:
+            results.append(disaggregated_metrics)
 
         if disaggregated_thresh_results is not None:
-            for key, df in disaggregated_thresh_results.items():
-                labels = {**sens_feat_label, **{"metric_type": key}}
-                self._results.append(
-                    TableContainer(df, **self.get_container_info(labels=labels))
-                )
+            results += disaggregated_thresh_results
 
+        self.results = results
         return self
 
     def update_metrics(self, metrics, replace=True):
-        """replace metrics
+        """
+        Replace metrics
 
         Parameters
         ----------
@@ -146,14 +129,17 @@ class ModelFairness(Evaluator):
         )
 
     def get_disaggregated_performance(self):
-        """Return performance metrics for each group
+        """
+        Return performance metrics for each group
+
         Parameters
         ----------
         melt : bool, optional
             If True, return a long-form dataframe, by default False
+
         Returns
         -------
-        pandas.DataFrame
+        TableContainer
             The disaggregated performance metrics
         """
         disaggregated_df = pd.DataFrame()
@@ -171,10 +157,21 @@ class ModelFairness(Evaluator):
         if disaggregated_results.empty:
             self.logger.warn("No disaggregated metrics could be calculated.")
             return
-        return disaggregated_results
+
+        metric_type_label = {
+            "metric_types": disaggregated_results.type.unique().tolist()
+        }
+
+        return TableContainer(
+            disaggregated_results,
+            **self.get_container_info(
+                labels={**self.sens_feat_label, **metric_type_label}
+            ),
+        )
 
     def get_disaggregated_threshold_performance(self):
-        """Return performance metrics for each group
+        """
+        Return performance metrics for each group
 
         Parameters
         ----------
@@ -183,7 +180,7 @@ class ModelFairness(Evaluator):
 
         Returns
         -------
-        pandas.DataFrame
+        List[TableContainer]
             The disaggregated performance metrics
         """
         metric_frame = self.metric_frames.get("thresh")
@@ -205,7 +202,15 @@ class ModelFairness(Evaluator):
             df = pd.concat(to_return[key])
             df.name = "threshold_dependent_disaggregated_performance"
             to_return[key] = df
-        return to_return
+
+        disaggregated_thresh_results = []
+        for key, df in to_return.items():
+            labels = {**self.sens_feat_label, **{"metric_type": key}}
+            self._results.append(
+                TableContainer(df, **self.get_container_info(labels=labels))
+            )
+
+        return disaggregated_thresh_results
 
     def get_fairness_results(self):
         """Return fairness and performance parity metrics
@@ -216,7 +221,7 @@ class ModelFairness(Evaluator):
 
         Returns
         -------
-        pandas.DataFrame
+        MetricContainer
             The returned fairness metrics
         """
 
@@ -258,12 +263,17 @@ class ModelFairness(Evaluator):
         if parity_results:
             parity_results = pd.concat(parity_results)
             results = pd.concat([results, parity_results])
-        results.set_index("metric_type", inplace=True)
 
-        return results.reset_index().rename({"metric_type": "type"}, axis=1)
+        results.rename({"metric_type": "type"}, axis=1, inplace=True)
+
+        return MetricContainer(
+            results,
+            **self.get_container_info(labels=self.sens_feat_label),
+        )
 
     def _process_metrics(self, metrics):
-        """Separates metrics
+        """
+        Separates metrics
 
         Parameters
         ----------
@@ -323,9 +333,3 @@ class ModelFairness(Evaluator):
             fairness_metrics,
             failed_metrics,
         )
-
-    def _validate_arguments(self):
-        check_existence(self.metrics, "metrics")
-        check_data_instance(self.data, TabularData)
-        check_existence(self.data.sensitive_features, "sensitive_features")
-        check_artifact_for_nulls(self.data, "Data")
