@@ -37,30 +37,37 @@ class IdentityVerification(Evaluator):
         Type of data sample is decided by the ComparisonModel's `compare` function, which takes
         data sample pairs and returns their similarity scores. Examples are selfies, fingerprint scans,
         or voices of a person.
+
         Required columns:
-            source-subject-id: unique identifier of the source subject
-            source-subject-data-sample: data sample from the source subject
-            target-subject-id: unique identifier of the target subject
-            target-subject-data-sample: data sample from the target subject
+
+        * source-subject-id: unique identifier of the source subject
+        * source-subject-data-sample: data sample from the source subject
+        * target-subject-id: unique identifier of the target subject
+        * target-subject-data-sample: data sample from the target subject
+
     subjects_sensitive_features : pd.DataFrame of shape (n_subjects, n_sensitive_feature_names), optional
         Sensitive features of all subjects present in pairs dataframe
         If provided, disaggregated performance assessment is also performed.
         This can be the columns you want to perform segmentation analysis on, or
-        a feature related to fairness like 'race' or 'gender'
+        a feature related to fairness like 'race' or 'gender'.
+
         Required columns:
-            subject-id: id of subjects. Must cover all the subjects inlcluded in `pairs` dataframe
-            other columns with arbitrary names for sensitive features
+
+        * subject-id: id of subjects. Must cover all the subjects included in `pairs` dataframe
+          other columns with arbitrary names for sensitive features
+
     similarity_thresholds : list
         list of similarity score thresholds
         Similarity equal or greater than a similarity score threshold means match
     comparison_levels : list
         list of comparison levels. Options:
-            sample: it means a match is observed for every sample pair. Sample-level comparison represent
-                a use case where only two samples (such as a real time selfie and stored ID image) are
-                used to confirm an identity.
-            subject: it means if any pairs of samples for the same subject are a match, the subject pair
-                is marked as a match. Some identity verification use cases improve overall accuracy by storing
-                multiple samples per identity. Subject-level comparison mirrors this behavior.
+
+        * sample: it means a match is observed for every sample pair. Sample-level comparison represent
+          a use case where only two samples (such as a real time selfie and stored ID image) are
+          used to confirm an identity.
+        * subject: it means if any pairs of samples for the same subject are a match, the subject pair
+          is marked as a match. Some identity verification use cases improve overall accuracy by storing
+          multiple samples per identity. Subject-level comparison mirrors this behavior.
 
     Example
     --------
@@ -107,6 +114,8 @@ class IdentityVerification(Evaluator):
 
     """
 
+    required_artifacts = {"model", "assessment_data"}
+
     def __init__(
         self,
         similarity_thresholds: list = [90, 95, 99],
@@ -116,7 +125,11 @@ class IdentityVerification(Evaluator):
         self.comparison_levels = comparison_levels
         super().__init__()
 
-    required_artifacts = {"model", "assessment_data"}
+    def _validate_arguments(self):
+        check_data_instance(self.assessment_data, ComparisonData)
+        check_model_instance(self.model, ComparisonModel)
+        check_existence(self.assessment_data.pairs, "pairs")
+        return self
 
     def _setup(self):
         self.pairs = self.assessment_data.pairs
@@ -147,14 +160,9 @@ class IdentityVerification(Evaluator):
 
         return self
 
-    def _validate_arguments(self):
-        check_data_instance(self.assessment_data, ComparisonData)
-        check_model_instance(self.model, ComparisonModel)
-        check_existence(self.assessment_data.pairs, "pairs")
-        return self
-
     def evaluate(self):
-        """Runs the assessment process
+        """
+        Runs the assessment process
 
         Returns
         -------
@@ -173,7 +181,8 @@ class IdentityVerification(Evaluator):
     def _process_data(
         self, pairs_processed, threshold=90, comparison_level="sample", sf=None
     ):
-        """Process the pairs and sensitive features dataframes
+        """
+        Process the pairs and sensitive features dataframes
 
         Parameters
         ----------
@@ -196,7 +205,7 @@ class IdentityVerification(Evaluator):
         Returns
         -------
         pd.DataFrame, pd.DataFrame
-            processeded pairs and sensitive features dataframes
+            Processed pairs and sensitive features dataframes
         """
         pairs_processed["match_prediction"] = pairs_processed.apply(
             lambda x: 1 if x["similarity_score"] >= threshold else 0, axis=1
@@ -236,7 +245,9 @@ class IdentityVerification(Evaluator):
         return pairs_processed, sf_processed
 
     def _assess_overall_performance(self):
-        """Perform overall performance assessment"""
+        """
+        Perform overall performance assessment
+        """
         overall_performance_res = []
         for threshold in self.similarity_thresholds:
             for level in self.comparison_levels:
@@ -280,7 +291,9 @@ class IdentityVerification(Evaluator):
         return overall_performance_res
 
     def _assess_disaggregated_performance(self):
-        """Perform disaggregated performance assessment"""
+        """
+        Perform disaggregated performance assessment
+        """
         performance_metrics = {
             "false_match_rate": Metric(
                 "false_match_rate", "BINARY_CLASSIFICATION", bcf["false_positive_rate"]
@@ -301,14 +314,15 @@ class IdentityVerification(Evaluator):
     def _assess_disaggregated_performance_one(
         self, sf_name, threshold, level, performance_metrics
     ):
-        """Perform disaggregated performance assessment for one combination
+        """
+        Perform disaggregated performance assessment for one combination
 
-        One combination of similarity threshold, comparision level, and sensitive feature
+        One combination of similarity threshold, comparison level, and sensitive feature
 
         Parameters
         ----------
         sf_name : str
-            sesnsitive feature name
+            sensitive feature name
         threshold : float
             similarity threshold
         level : str

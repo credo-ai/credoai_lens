@@ -344,8 +344,15 @@ class Lens:
         if governance is None:
             return
         self.gov = governance
+        artifact_args = {}
+        if self.training_data:
+            artifact_args["training_dataset"] = self.training_data.name
+        if self.assessment_data:
+            artifact_args["assessment_dataset"] = self.assessment_data.name
         if self.model:
-            self.gov.set_artifacts(self.model, self.training_data, self.assessment_data)
+            artifact_args["model"] = self.model.name
+            artifact_args["model_tags"] = self.model.tags
+            self.gov.set_artifacts(**artifact_args)
 
     def _cycle_add_through_ds_feat(
         self,
