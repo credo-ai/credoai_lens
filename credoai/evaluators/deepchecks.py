@@ -6,7 +6,7 @@ from deepchecks.tabular import Dataset, Suite
 
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_deepchecks
-from credoai.modules.deepchecks_constants import DEFAULT_CHECKS
+from credoai.modules.constants_deepchecks import DEFAULT_CHECKS
 
 
 class Deepchecks(Evaluator):
