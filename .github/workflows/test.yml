@@ -29,13 +29,13 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Run tests
         run: |
-          scripts/test.sh 
+          scripts/test.sh | tee ./pytest-coverage.txt
       - name: my-artifact
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: pytest-coverage
-          path: pytest-coverage.txt
+          path: ./pytest-coverage.txt
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         with:

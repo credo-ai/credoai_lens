@@ -1,0 +1,68 @@
+name: Test Reports
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/add-badges
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+      - '**.ipynb'
+
+jobs:
+  run-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: GitHub Slug Action
+        uses: rlespinasse/github-slug-action@v4.4.0
+        with:
+          prefix: CI_
+      - id: install-aws-cli
+        uses: unfor19/install-aws-cli-action@v1.0.4
+      - name: Set up python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+          cache: 'pip'
+          cache-dependency-path: |
+            **/requirements*.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov genbadge
+          pip install tensorflow
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      - name: Run tests
+        run: |
+          rm -rf test-reports/
+          scripts/test-reports.sh
+      - name: Push reports to S3
+        if: always()
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_CI_BADGES_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_CI_BADGES_ACCESS_KEY_SECRET }}
+          AWS_REGION: "us-west-2"
+        run: |
+          if [ -e "test-reports/cov.xml" ]; then
+              genbadge coverage -i test-reports/cov.xml -o test-reports/coverage-badge.svg
+          fi
+          if [ -e "junit.xml" ]; then
+              genbadge tests -i junit.xml -o test-reports/tests-badge.svg
+              cp junit.xml test-reports/
+          fi
+          if [ -d "test-reports" ]; then
+              tar czf test-reports.tgz test-reports
+              aws s3 sync test-reports s3://credoai-ci-badges-test/$CI_GITHUB_REPOSITORY_NAME_PART_SLUG/$CI_GITHUB_REF_SLUG/
+          fi
+      - name: test-reports artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports
+          path: ./test-reports.tgz
