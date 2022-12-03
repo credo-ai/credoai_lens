@@ -23,9 +23,10 @@ class Performance(Evaluator):
 
     This evaluator calculates overall performance metrics.
     Handles any metric that can be calculated on a set of ground truth labels and predictions,
-    e.g., binary classification, multiclass classification, regression.
+    e.g., binary classification, multi class classification, regression.
 
     This module takes in a set of metrics and provides functionality to:
+
     - calculate the metrics
     - create disaggregated metrics
 
@@ -56,6 +57,11 @@ class Performance(Evaluator):
         self.prob_metrics = None
         self.failed_metrics = None
 
+    def _validate_arguments(self):
+        check_existence(self.metrics, "metrics")
+        check_data_instance(self.assessment_data, TabularData)
+        check_artifact_for_nulls(self.assessment_data, "Data")
+
     def _setup(self):
         # data variables
         self.y_true = self.assessment_data.y
@@ -71,24 +77,15 @@ class Performance(Evaluator):
         """
         Run performance base module
         """
-        self._results = []
+        results = []
         overall_metrics = self.get_overall_metrics()
         threshold_metrics = self.get_overall_threshold_metrics()
 
         if overall_metrics is not None:
-            self._results.append(
-                MetricContainer(overall_metrics, **self.get_container_info())
-            )
+            results.append(overall_metrics)
         if threshold_metrics is not None:
-            for _, threshold_metric in threshold_metrics.iterrows():
-                metric = threshold_metric.threshold_metric
-                threshold_metric.value.name = "threshold_dependent_performance"
-                self._results.append(
-                    TableContainer(
-                        threshold_metric.value,
-                        **self.get_container_info({"metric_type": metric}),
-                    )
-                )
+            results += threshold_metrics
+        self.results = results
         return self
 
     def update_metrics(self, metrics, replace=True):
@@ -155,11 +152,15 @@ class Performance(Evaluator):
             for name, metric_frame in self.metric_frames.items()
             if name != "thresh"
         ]
-        if overall_metrics:
-            output_series = (
-                pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
-            )
-            return output_series.reset_index().rename({"index": "type"}, axis=1)
+        if not overall_metrics:
+            return
+
+        output_series = (
+            pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
+        )
+        output_series = output_series.reset_index().rename({"index": "type"}, axis=1)
+
+        return MetricContainer(output_series, **self.get_container_info())
 
     def get_overall_threshold_metrics(self):
         """Return performance metrics for each group
@@ -170,17 +171,31 @@ class Performance(Evaluator):
             The overall performance metrics
         """
         # retrieve overall metrics for one of the sensitive features only as they are the same
-        if self.threshold_metrics and "thresh" in self.metric_frames:
-            threshold_results = (
-                pd.concat([self.metric_frames["thresh"].overall], axis=0)
-                .rename(index="value")
-                .to_frame()
+        if not (self.threshold_metrics and "thresh" in self.metric_frames):
+            return
+
+        threshold_results = (
+            pd.concat([self.metric_frames["thresh"].overall], axis=0)
+            .rename(index="value")
+            .to_frame()
+        )
+        threshold_results = threshold_results.reset_index().rename(
+            {"index": "threshold_metric"}, axis=1
+        )
+        threshold_results.name = "threshold_metric_performance"
+
+        results = []
+        for _, threshold_metric in threshold_results.iterrows():
+            metric = threshold_metric.threshold_metric
+            threshold_metric.value.name = "threshold_dependent_performance"
+            results.append(
+                TableContainer(
+                    threshold_metric.value,
+                    **self.get_container_info({"metric_type": metric}),
+                )
             )
-            threshold_results = threshold_results.reset_index().rename(
-                {"index": "threshold_metric"}, axis=1
-            )
-            threshold_results.name = "threshold_metric_performance"
-            return threshold_results
+
+        return results
 
     def _process_metrics(self, metrics):
         """Separates metrics
@@ -242,8 +257,3 @@ class Performance(Evaluator):
                 failed_metrics.append(metric_name)
 
         return (performance_metrics, prob_metrics, threshold_metrics, failed_metrics)
-
-    def _validate_arguments(self):
-        check_existence(self.metrics, "metrics")
-        check_data_instance(self.assessment_data, TabularData)
-        check_artifact_for_nulls(self.assessment_data, "Data")
