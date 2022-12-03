@@ -202,7 +202,7 @@ def identity_verification_data():
     return pairs, subjects_sensitive_features
 
 
-### Identity verification data artifacts #######
+### Identity verification data/model artifacts ###
 
 
 @fixture(scope="session")

@@ -7,7 +7,6 @@ Testing protocols for the Lens package. Tested functionalities:
 
 import pytest
 
-from credoai.artifacts.model.comparison_model import DummyComparisonModel
 from credoai.evaluators import (
     DataEquity,
     DataFairness,
