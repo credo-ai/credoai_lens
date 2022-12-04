@@ -130,7 +130,7 @@ class IdentityVerification(Evaluator):
 
     def _validate_arguments(self):
         check_data_instance(self.assessment_data, ComparisonData)
-        check_model_instance(self.model, ComparisonModel)
+        check_model_instance(self.model, (ComparisonModel, DummyComparisonModel))
         check_existence(self.assessment_data.pairs, "pairs")
         return self
 
