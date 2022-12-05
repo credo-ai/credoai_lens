@@ -47,7 +47,10 @@ class Data(ABC):
         sensitive_features=None,
         sensitive_intersections: Union[bool, list] = False,
     ):
-        self.name = name
+        if isinstance(name, str):
+            self.name = name
+        else:
+            raise ValidationError("{Name} must be a string")
         self.X = X
         self.y = y
         self.sensitive_features = sensitive_features
@@ -207,7 +210,7 @@ class Data(ABC):
         pass
 
     def _validate_processed_sensitive(self):
-        """VAlidation of processed sensitive features"""
+        """Validation of processed sensitive features"""
         for col_name, col in self.sensitive_features.iteritems():
             unique_values = col.unique()
             if len(unique_values) == 1:
