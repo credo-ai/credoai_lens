@@ -237,4 +237,4 @@ def test_print_results(init_lens_classification):
     lens.add(Performance(["accuracy_score"]))
     lens.run()
     # pytest.assume(lens.get_results())
-    pytest.assume(lens.print_results())
+    pytest.assume(not lens.print_results())
