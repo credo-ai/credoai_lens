@@ -307,8 +307,7 @@ class Lens:
             for key, val in result_grouping["metadata"].items():
                 print(f"{key.capitalize()}: {val}")
             for val in result_grouping["results"]:
-                print(val)
-                print()
+                print(f"{val}\n")
             print()
 
     def set_governance(self, governance: Governance):
