@@ -1,7 +1,8 @@
 """
 Testing protocols for the Lens package. Tested functionalities:
-    1. General inits
-    2. Individual evaluator runs
+
+    1. Individual evaluator runs within Lens framework
+    2. Full run of Lens pipeline with multiple evaluators
 """
 
 
@@ -26,7 +27,6 @@ from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
 
 from credoai.utils import ValidationError
-
 
 ##################################################
 #################### Init ########################
@@ -187,7 +187,6 @@ def test_shap(
     pytest.assume(lens.get_evidence())
     pytest.assume(lens.send_to_governance())
     pytest.assume(not gov._file_export(temp_file))
-
 
 def test_bulk_pipeline_run(init_lens_classification):
     """
