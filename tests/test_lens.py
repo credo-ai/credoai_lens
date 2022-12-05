@@ -167,11 +167,6 @@ def test_identity_verification(init_lens_identityverification):
     pytest.assume(results_fair.equals(expected_results["fair"]))
 
 
-# @pytest.mark.parametrize(
-#     "shap_args",
-#     blarg,
-#     ids=["Samples", "KMeans"],
-# )
 @pytest.mark.parametrize(
     "samples_ind,background_samples,background_kmeans",
     [([], 5, None), ([], None, 5), ([1, 2, 7], None, 5)],
