@@ -92,7 +92,7 @@ def test_dummy_classifier():
     # light wrapping to create the dummy model
     try:
         dummy_model = DummyClassifier(
-            predict_output=predictions, predict_proba_output=probs
+            name="test_dummy", predict_output=predictions, predict_proba_output=probs
         )
     except:
         assert False
