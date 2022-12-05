@@ -221,7 +221,7 @@ Equal_opportunity_difference
 
 The equalized odds difference is equivalent to the `true_positive_rate_difference` defined as the difference between the largest and smallest of :math:`P[h(X)=1 | A=a, Y=1]`, across all values :math:`a` of the sensitive feature(s).
 
-**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__
+**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
 
 **Other known names**: equal_opportunity
 
@@ -287,7 +287,7 @@ The best value is 0 and the worst value is 1.
 
    \text{False Discovery Rate} = \frac{False \ Positives}{False \ Positives + True \ Positives}
 
-**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__
+**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
 
 **Other known names**: fdr
 
@@ -315,7 +315,7 @@ The best value is 0 and the worst value is 1.
 
    \text{False Omission Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Negatives}
 
-**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__
+**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
 
 False_positive_rate
 -------------------
@@ -525,7 +525,7 @@ If the KS statistic is small or the p-value is high, then we cannot reject the n
 
 For practical purposes, if the statistic value is higher than `the critical value <https://sparky.rice.edu//astr360/kstest.pdf>`__, the two distributions are different.
 
-**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__
+**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
 
 True_negative_rate
 ------------------
