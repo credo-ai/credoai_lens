@@ -1,7 +1,8 @@
 """
 Testing protocols for the Lens package. Tested functionalities:
-    1. General inits
-    2. Individual evaluator runs
+
+    1. Individual evaluator runs within Lens framework
+    2. Full run of Lens pipeline with multiple evaluators
 """
 
 
