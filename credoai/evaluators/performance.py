@@ -58,6 +58,11 @@ class Performance(Evaluator):
         self.prob_metrics = None
         self.failed_metrics = None
 
+    def _validate_arguments(self):
+        check_existence(self.metrics, "metrics")
+        check_data_instance(self.assessment_data, TabularData)
+        check_artifact_for_nulls(self.assessment_data, "Data")
+
     def _setup(self):
         # data variables
         self.y_true = self.assessment_data.y
@@ -260,11 +265,6 @@ class Performance(Evaluator):
                 failed_metrics.append(metric_name)
 
         return (performance_metrics, prob_metrics, threshold_metrics, failed_metrics)
-
-    def _validate_arguments(self):
-        check_existence(self.metrics, "metrics")
-        check_data_instance(self.assessment_data, TabularData)
-        check_artifact_for_nulls(self.assessment_data, "Data")
 
 
 ############################################
