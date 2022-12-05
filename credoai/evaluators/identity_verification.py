@@ -3,6 +3,7 @@ import pandas as pd
 from connect.evidence import MetricContainer, TableContainer
 
 from credoai.artifacts import ComparisonData, ComparisonModel
+from credoai.artifacts.model.comparison_model import DummyComparisonModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
 from credoai.evaluators.utils.validation import (
@@ -129,7 +130,7 @@ class IdentityVerification(Evaluator):
 
     def _validate_arguments(self):
         check_data_instance(self.assessment_data, ComparisonData)
-        check_model_instance(self.model, ComparisonModel)
+        check_model_instance(self.model, (ComparisonModel, DummyComparisonModel))
         check_existence(self.assessment_data.pairs, "pairs")
         return self
 
