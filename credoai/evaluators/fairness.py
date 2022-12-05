@@ -79,17 +79,18 @@ class ModelFairness(Evaluator):
         """
         Run fairness base module.
         """
-        fairness_results = self.get_fairness_results()
-        disaggregated_metrics = self.get_disaggregated_performance()
-        disaggregated_thresh_results = self.get_disaggregated_threshold_performance()
+        results = []
 
-        results = [fairness_results]
+        if not self.all_threshold:
+            fairness_results = self.get_fairness_results()
+            results.append(fairness_results)
 
-        if disaggregated_metrics is not None:
-            results.append(disaggregated_metrics)
+            disaggregated_metrics = self.get_disaggregated_performance()
+            if disaggregated_metrics is not None:
+                results.append(disaggregated_metrics)
 
-        if disaggregated_thresh_results is not None:
-            results += disaggregated_thresh_results
+        if self.threshold_metrics:
+            results += self.get_disaggregated_threshold_performance()
 
         self.results = results
         return self
@@ -126,6 +127,9 @@ class ModelFairness(Evaluator):
             self.y_prob,
             self.y_true,
             self.sensitive_features,
+        )
+        self.all_threshold = all(
+            [met in self.threshold_metrics for met in self.metrics]
         )
 
     def get_disaggregated_performance(self):
@@ -206,7 +210,7 @@ class ModelFairness(Evaluator):
         disaggregated_thresh_results = []
         for key, df in to_return.items():
             labels = {**self.sens_feat_label, **{"metric_type": key}}
-            self._results.append(
+            disaggregated_thresh_results.append(
                 TableContainer(df, **self.get_container_info(labels=labels))
             )
 
