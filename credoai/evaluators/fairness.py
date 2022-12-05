@@ -83,13 +83,17 @@ class ModelFairness(Evaluator):
         disaggregated_metrics = self.get_disaggregated_performance()
         disaggregated_thresh_results = self.get_disaggregated_threshold_performance()
 
-        results = [fairness_results]
-
-        if disaggregated_metrics is not None:
-            results.append(disaggregated_metrics)
-
-        if disaggregated_thresh_results is not None:
-            results += disaggregated_thresh_results
+        results = []
+        for result_obj in [
+            fairness_results,
+            disaggregated_metrics,
+            disaggregated_thresh_results,
+        ]:
+            if result_obj is not None:
+                try:
+                    results += result_obj
+                except TypeError:
+                    results.append(result_obj)
 
         self.results = results
         return self
@@ -148,15 +152,17 @@ class ModelFairness(Evaluator):
                 continue
             df = metric_frame.by_group.copy().convert_dtypes()
             disaggregated_df = pd.concat([disaggregated_df, df], axis=1)
+
+        if disaggregated_df.empty:
+            self.logger.warn("No disaggregated metrics could be calculated.")
+            return
+
+        # reshape
         disaggregated_results = disaggregated_df.reset_index().melt(
             id_vars=[disaggregated_df.index.name],
             var_name="type",
         )
         disaggregated_results.name = "disaggregated_performance"
-
-        if disaggregated_results.empty:
-            self.logger.warn("No disaggregated metrics could be calculated.")
-            return
 
         metric_type_label = {
             "metric_types": disaggregated_results.type.unique().tolist()
@@ -206,7 +212,7 @@ class ModelFairness(Evaluator):
         disaggregated_thresh_results = []
         for key, df in to_return.items():
             labels = {**self.sens_feat_label, **{"metric_type": key}}
-            self._results.append(
+            disaggregated_thresh_results.append(
                 TableContainer(df, **self.get_container_info(labels=labels))
             )
 
@@ -266,6 +272,9 @@ class ModelFairness(Evaluator):
 
         results.rename({"metric_type": "type"}, axis=1, inplace=True)
 
+        if results.empty:
+            self.logger.info("No fairness metrics calculated.")
+            return
         return MetricContainer(
             results,
             **self.get_container_info(labels=self.sens_feat_label),
