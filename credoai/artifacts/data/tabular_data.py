@@ -5,7 +5,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from credoai.utils.common import ValidationError
+from credoai.utils.common import ValidationError, check_array_like
 
 from .base_data import Data
 
@@ -66,24 +66,21 @@ class TabularData(Data):
 
         If y is convertible, convert y to pandas object with X's index
         """
-        if isinstance(y, (np.ndarray, list)):
-            pd_type = pd.Series
-            if isinstance(y, np.ndarray) and y.ndim == 2 and y.shape[1] > 1:
-                pd_type = pd.DataFrame
-            if self.X is not None:
-                y = pd_type(y, index=self.X.index, name="target")
-            else:
-                y = pd_type(y, name="target")
+        pd_type = pd.Series
+        if isinstance(y, np.ndarray) and y.ndim == 2 and y.shape[1] > 1:
+            pd_type = pd.DataFrame
+        if self.X is not None:
+            y = pd_type(y, index=self.X.index, name="target")
+        else:
+            y = pd_type(y, name="target")
         return y
 
     def _validate_X(self):
-        try:
-            pd.DataFrame(self.X)
-        except:
-            raise ValidationError("X must be able to be coerced into a dataframe")
+        check_array_like(self.X)
 
     def _validate_y(self):
         """Validation of Y inputs"""
+        check_array_like(self.y)
         if self.X is not None and (len(self.X) != len(self.y)):
             raise ValidationError(
                 "X and y are not the same length. "
