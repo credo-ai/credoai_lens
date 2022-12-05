@@ -188,6 +188,7 @@ def test_shap(
     pytest.assume(lens.send_to_governance())
     pytest.assume(not gov._file_export(temp_file))
 
+
 def test_bulk_pipeline_run(init_lens_classification):
     """
     Testing the passing of the list of evaluator works
