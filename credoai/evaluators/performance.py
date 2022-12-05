@@ -88,11 +88,7 @@ class Performance(Evaluator):
             results += threshold_metrics
 
         if isinstance(self.model, ClassificationModel):
-            confusion_container = TableContainer(
-                create_confusion_matrix(self.y_true, self.y_pred),
-                **self.get_container_info(),
-            )
-            results.append(confusion_container)
+            results.append(self._create_confusion_container())
         self.results = results
         return self
 
@@ -265,6 +261,13 @@ class Performance(Evaluator):
                 failed_metrics.append(metric_name)
 
         return (performance_metrics, prob_metrics, threshold_metrics, failed_metrics)
+
+    def _create_confusion_container(self):
+        confusion_container = TableContainer(
+            create_confusion_matrix(self.y_true, self.y_pred),
+            **self.get_container_info(),
+        )
+        return confusion_container
 
 
 ############################################
