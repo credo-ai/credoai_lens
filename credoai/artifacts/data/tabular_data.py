@@ -66,15 +66,16 @@ class TabularData(Data):
 
         If y is convertible, convert y to pandas object with X's index
         """
-        if isinstance(y, pd.DataFrame):
+        if isinstance(y, (pd.DataFrame, pd.Series)):
             return y
         pd_type = pd.Series
         if isinstance(y, np.ndarray) and y.ndim == 2 and y.shape[1] > 1:
             pd_type = pd.DataFrame
         if self.X is not None:
-            y = pd_type(y, index=self.X.index, name="target")
+            y = pd_type(y, index=self.X.index)
         else:
-            y = pd_type(y, name="target")
+            y = pd_type(y)
+        y.name = "target"
         return y
 
     def _validate_X(self):
