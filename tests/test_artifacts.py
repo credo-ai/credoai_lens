@@ -65,13 +65,7 @@ def test_tabular_sensitive_intersections(binary_data):
         sensitive_features=sensitive_features,
         sensitive_intersections=True,
     )
-    test_intersections = credo_data.sensitive_features
-
-    with pytest.raises(Exception) as e_info:
-        pd.testing.assert_series_equal(
-            credo_data.sensitive_features, sensitive_features
-        )
-    assert type(e_info.value) == AssertionError
+    assert "race_gender" in credo_data.sensitive_features.columns
 
 
 def test_dummy_classifier(binary_data):

@@ -9,16 +9,16 @@ from credoai.artifacts import ClassificationModel, TabularData
 from credoai.lens import Lens
 
 
-################################################
-############ Lens init #########################
-################################################
-
-
 @pytest.fixture(scope="function")
 def temp_file(tmp_path):
     d = tmp_path / "test.json"
     d.touch()
     return d
+
+
+################################################
+############ Lens init #########################
+################################################
 
 
 @pytest.fixture(scope="function")
