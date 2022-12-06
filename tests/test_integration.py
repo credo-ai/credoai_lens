@@ -1,4 +1,5 @@
 from connect.governance import Governance
+from connect.governance.credo_api_client import CredoApiClient
 from credoai.lens import Lens
 from credoai.artifacts import ClassificationModel, TabularData
 from credoai.datasets import fetch_credit_model
@@ -6,9 +7,12 @@ from credoai.datasets import fetch_credit_model
 import tempfile
 
 
-def test_integration(config_path_in, assessment_plan_url_in):
+def test_integration(api_config_in, config_path_in, assessment_plan_url_in):
     # Retrieve Policy Pack Assessment Plan
-    gov = Governance(config_path=config_path_in)
+    if api_config_in:
+        gov = Governance(credo_api_client=CredoApiClient(config=api_config_in))
+    else:
+        gov = Governance(config_path=config_path_in)
 
     gov.register(assessment_plan_url=assessment_plan_url_in)
 
