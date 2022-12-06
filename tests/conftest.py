@@ -406,12 +406,12 @@ def frozen_validation_data():
 
 @fixture(scope="session")
 def config_path_in():
-    return os.getenv('CREDOAI_LENS_CONFIG_PATH', None)
+    return os.getenv("CREDOAI_LENS_CONFIG_PATH", None)
 
 
 @fixture(scope="session")
 def api_config_in():
-    b64_config = os.getenv('CREDOAI_LENS_CONFIG_JSON_B64', None)
+    b64_config = os.getenv("CREDOAI_LENS_CONFIG_JSON_B64", None)
     if b64_config:
         return CredoApiConfig(**json.loads(base64.b64decode(b64_config)))
     return None
@@ -419,4 +419,4 @@ def api_config_in():
 
 @fixture(scope="session")
 def assessment_plan_url_in():
-    return os.getenv('CREDOAI_LENS_PLAN_URL', None)
+    return os.getenv("CREDOAI_LENS_PLAN_URL", None)

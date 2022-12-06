@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - test/integration_test
     paths-ignore:
       - '**.md'
       - '**.rst'
