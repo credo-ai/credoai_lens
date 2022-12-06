@@ -4,18 +4,15 @@ Testing protocols for the Lens package. Tested functionalities:
     2. Individual evaluator runs
 """
 
-from abc import ABC
 
 import pytest
 import pandas as pd
-import numpy as np
 
-from credoai.artifacts import ComparisonData, ComparisonModel, TabularData
+from credoai.artifacts import TabularData
 from credoai.artifacts import DummyClassifier
 
-from credoai.datasets import fetch_censusincome, fetch_credit_model
+from credoai.datasets import fetch_credit_model
 
-from credoai.lens import Lens
 
 from credoai.utils import ValidationError
 
