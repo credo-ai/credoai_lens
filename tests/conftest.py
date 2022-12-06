@@ -128,6 +128,24 @@ def init_lens_identityverification(
     return pipeline, temp_file, gov, expected_results
 
 
+@pytest.fixture(scope="function")
+def init_lens_regression(
+    regression_model,
+    regression_assessment_data,
+    regression_train_data,
+    temp_file,
+):
+    gov = Governance()
+    my_pipeline = Lens(
+        model=regression_model,
+        assessment_data=regression_assessment_data,
+        training_data=regression_train_data,
+        governance=gov
+    )
+
+    return my_pipeline, temp_file, gov
+
+
 ################################################
 ############ Artifacts fixtures ################
 ################################################
