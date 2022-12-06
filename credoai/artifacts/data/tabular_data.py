@@ -66,6 +66,8 @@ class TabularData(Data):
 
         If y is convertible, convert y to pandas object with X's index
         """
+        if isinstance(y, pd.DataFrame):
+            return y
         pd_type = pd.Series
         if isinstance(y, np.ndarray) and y.ndim == 2 and y.shape[1] > 1:
             pd_type = pd.DataFrame
