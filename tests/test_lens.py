@@ -217,7 +217,7 @@ def test_empty_pipeline_run(
     my_pipeline.run()
 
 
-def test_lens_validation_no_sens_feat(init_lens_classification):
+def test_fairness_validation_no_sens_feat(init_lens_classification):
     """
     Tests to ensure Lens will not allow running evaluators that require sensitive features without
     any sensitive features specified
@@ -229,6 +229,44 @@ def test_lens_validation_no_sens_feat(init_lens_classification):
     with pytest.raises(Exception) as e_info:
         lens.add(ModelFairness(["accuracy_score"]))
 
+    pytest.assume(type(e_info.value) == ValidationError)
+
+
+@pytest.mark.parametrize(
+    "evaluator",
+    [
+        DataFairness,
+        ModelEquity,
+        DataEquity,
+    ],
+    ids=[
+        "DataFairness",
+        "ModelEquity",
+        "DataEquity",
+    ],
+)
+def test_generic_validation_no_sens_feat(init_lens_classification, evaluator):
+    """
+    Tests to ensure Lens will not allow running evaluators that require sensitive features without
+    any sensitive features specified
+    """
+    lens, _, _ = init_lens_classification
+    lens.assessment_data.sensitive_features = None
+    lens.sens_feat_names = []
+    lens.training_data = None
+    with pytest.raises(Exception) as e_info:
+        lens.add(evaluator())
+
+    pytest.assume(type(e_info.value) == ValidationError)
+
+
+def test_ranking_validation_no_sens_feat(init_lens_fairness):
+    lens, _, _, _ = init_lens_fairness
+    lens.assessment_data.sensitive_features = None
+    lens.sens_feat_names = []
+    lens.training_data = None
+    with pytest.raises(Exception) as e_info:
+        lens.add(RankingFairness(k=5))
     pytest.assume(type(e_info.value) == ValidationError)
 
 
