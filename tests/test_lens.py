@@ -17,13 +17,16 @@ from credoai.evaluators import (
     IdentityVerification,
     ModelEquity,
     ModelFairness,
+    ModelProfiler,
     Performance,
     Privacy,
     Security,
+    ShapExplainer,
 )
 from credoai.evaluators.ranking_fairness import RankingFairness
 from credoai.lens import Lens
 
+from credoai.utils import ValidationError
 
 ##################################################
 #################### Init ########################
@@ -34,6 +37,7 @@ TEST_METRICS = [
     ["average_precision_score"],
     ["false_negative_rate", "average_precision_score"],
     ["precision_score", "equal_opportunity"],
+    ["roc_curve"],
     ["false_negative_rate", "average_precision_score", "equal_opportunity"],
 ]
 TEST_METRICS_IDS = [
@@ -41,6 +45,7 @@ TEST_METRICS_IDS = [
     "probability_metric",
     "binary_and_probability",
     "fairness",
+    "threshold",
     "all_types",
 ]
 
@@ -77,7 +82,15 @@ def test_threshold_performance(init_lens_classification):
 
 @pytest.mark.parametrize(
     "evaluator",
-    [DataFairness, DataProfiler, ModelEquity, DataEquity, Security, Deepchecks],
+    [
+        DataFairness,
+        DataProfiler,
+        ModelEquity,
+        DataEquity,
+        Security,
+        Deepchecks,
+        ModelProfiler,
+    ],
     ids=[
         "DataFairness",
         "DataProfiler",
@@ -85,6 +98,7 @@ def test_threshold_performance(init_lens_classification):
         "DataEquity",
         "Security",
         "Deepchecks",
+        "ModelProfiler",
     ],
 )
 def test_generic_evaluator(init_lens_classification, evaluator):
@@ -153,6 +167,28 @@ def test_identity_verification(init_lens_identityverification):
     pytest.assume(results_fair.equals(expected_results["fair"]))
 
 
+@pytest.mark.parametrize(
+    "samples_ind,background_samples,background_kmeans",
+    [([], 5, None), ([], None, 5), ([1, 2, 7], None, 5)],
+    ids=["Samples", "KMeans", "Ind_Samples"],
+)
+def test_shap(
+    init_lens_classification, samples_ind, background_samples, background_kmeans
+):
+    lens, temp_file, gov = init_lens_classification
+    eval = ShapExplainer(
+        samples_ind=samples_ind,
+        background_samples=background_samples,
+        background_kmeans=background_kmeans,
+    )
+    lens.add(eval)
+    lens.run()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
+
+
 def test_bulk_pipeline_run(init_lens_classification):
     """
     Testing the passing of the list of evaluator works
@@ -179,3 +215,64 @@ def test_empty_pipeline_run(
         training_data=classification_train_data,
     )
     my_pipeline.run()
+
+
+def test_fairness_validation_no_sens_feat(init_lens_classification):
+    """
+    Tests to ensure Lens will not allow running evaluators that require sensitive features without
+    any sensitive features specified
+    """
+    lens, _, _ = init_lens_classification
+    lens.assessment_data.sensitive_features = None
+    lens.sens_feat_names = []
+    lens.training_data = None
+    with pytest.raises(Exception) as e_info:
+        lens.add(ModelFairness(["accuracy_score"]))
+
+    pytest.assume(type(e_info.value) == ValidationError)
+
+
+@pytest.mark.parametrize(
+    "evaluator",
+    [
+        DataFairness,
+        ModelEquity,
+        DataEquity,
+    ],
+    ids=[
+        "DataFairness",
+        "ModelEquity",
+        "DataEquity",
+    ],
+)
+def test_generic_validation_no_sens_feat(init_lens_classification, evaluator):
+    """
+    Tests to ensure Lens will not allow running evaluators that require sensitive features without
+    any sensitive features specified
+    """
+    lens, _, _ = init_lens_classification
+    lens.assessment_data.sensitive_features = None
+    lens.sens_feat_names = []
+    lens.training_data = None
+    with pytest.raises(Exception) as e_info:
+        lens.add(evaluator())
+
+    pytest.assume(type(e_info.value) == ValidationError)
+
+
+def test_ranking_validation_no_sens_feat(init_lens_fairness):
+    lens, _, _, _ = init_lens_fairness
+    lens.assessment_data.sensitive_features = None
+    lens.sens_feat_names = []
+    lens.training_data = None
+    with pytest.raises(Exception) as e_info:
+        lens.add(RankingFairness(k=5))
+    pytest.assume(type(e_info.value) == ValidationError)
+
+
+def test_print_results(init_lens_classification):
+    lens, _, _ = init_lens_classification
+    lens.add(Performance(["accuracy_score"]))
+    lens.run()
+    # pytest.assume(lens.get_results())
+    pytest.assume(not lens.print_results())
