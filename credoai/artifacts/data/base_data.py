@@ -9,6 +9,8 @@ import pandas as pd
 from credoai.utils.common import ValidationError
 from credoai.utils.model_utils import type_of_target
 
+from copy import deepcopy
+
 
 class Data(ABC):
     """Class wrapper around data-to-be-assessed
@@ -109,7 +111,7 @@ class Data(ABC):
             self.y = self._process_y(self.y)
         if self.sensitive_features is not None:
             self.sensitive_features = self._process_sensitive(
-                self.sensitive_features, sensitive_intersections
+                deepcopy(self.sensitive_features), sensitive_intersections
             )
 
     def _process_sensitive(self, sensitive_features, sensitive_intersections):
