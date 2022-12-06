@@ -24,7 +24,7 @@ def test_base_data_property(credit_data):
     y_test = credit_data["test"]["y"]
 
     credo_data = TabularData(name="test_data_property", X=X_test, y=y_test)
-    pytest.assume(not print(credo_data.data))
+    pytest.assume(credo_data.data is not None)
 
 
 def test_tabular_data_array_inputs(credit_data):
@@ -34,7 +34,7 @@ def test_tabular_data_array_inputs(credit_data):
     credo_data = TabularData(
         name="test_numpy_inputs", X=X_test.to_numpy(), y=y_test.to_numpy()
     )
-    pytest.assume(not print(credo_data.data))
+    pytest.assume(credo_data.data is not None)
 
 
 def test_tabular_data_mismatched_X_y(credit_data):
