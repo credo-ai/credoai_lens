@@ -1,4 +1,7 @@
 import pickle
+import os
+import base64
+import json
 
 from pytest import fixture
 from sklearn.ensemble import RandomForestClassifier
@@ -17,6 +20,7 @@ from credoai.artifacts.model.comparison_model import DummyComparisonModel
 from credoai.lens import Lens
 
 from connect.governance import Governance
+from connect.governance.credo_api_client import CredoApiConfig
 
 ################################################
 ############ Lens init #########################
@@ -398,3 +402,21 @@ def frozen_validation_data():
 #         y=train_data["train_labels"],
 #         sensitive_features=train_data["sensitive_features"],
 #     )
+
+
+@fixture(scope="session")
+def config_path_in():
+    return os.getenv("CREDOAI_LENS_CONFIG_PATH", None)
+
+
+@fixture(scope="session")
+def api_config_in():
+    b64_config = os.getenv("CREDOAI_LENS_CONFIG_JSON_B64", None)
+    if b64_config:
+        return CredoApiConfig(**json.loads(base64.b64decode(b64_config)))
+    return None
+
+
+@fixture(scope="session")
+def assessment_plan_url_in():
+    return os.getenv("CREDOAI_LENS_PLAN_URL", None)
