@@ -2,7 +2,7 @@ import pandas as pd
 from connect.evidence import MetricContainer, TableContainer
 from sklearn.metrics import confusion_matrix
 
-from credoai.artifacts import ClassificationModel, TabularData, KerasData
+from credoai.artifacts import ClassificationModel, KerasClassificationModel, TabularData, KerasData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
 from credoai.evaluators.utils.validation import (
@@ -90,7 +90,7 @@ class Performance(Evaluator):
         if threshold_metrics is not None:
             results += threshold_metrics
 
-        if isinstance(self.model, ClassificationModel):
+        if isinstance(self.model, ClassificationModel) or isinstance(self.model, KerasClassificationModel):
             results.append(self._create_confusion_container())
         self.results = results
         return self

@@ -1,8 +1,4 @@
 """Data artifact wrapping any data in table format"""
-from copy import deepcopy
-from typing import Union
-
-import numpy as np
 import pandas as pd
 
 from credoai.utils.common import ValidationError, check_array_like
@@ -64,7 +60,7 @@ class KerasData(Data):
         """
         Standardize y data
         """
-        return y
+        return pd.Series(y)
 
     def _validate_processed_X(self):
         """Validate processed X"""
