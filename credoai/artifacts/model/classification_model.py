@@ -1,7 +1,6 @@
 """Model artifact wrapping any classification model"""
 from .base_model import Model
-
-PREDICT_PROBA_FRAMEWORKS = ["sklearn", "xgboost"]
+from .constants_model import SKLEARN_LIKE_FRAMEWORKS
 
 
 class ClassificationModel(Model):
@@ -24,7 +23,7 @@ class ClassificationModel(Model):
 
     def __init__(self, name: str, model_like=None, tags=None):
         super().__init__(
-            "Classification",
+            "classification",
             ["predict", "predict_proba"],
             ["predict"],
             name,
@@ -32,12 +31,17 @@ class ClassificationModel(Model):
             tags,
         )
 
-    def _update_functionality(self):
+    def __post_init__(self):
         """Conditionally updates functionality based on framework"""
-        if self.model_info["framework"] in PREDICT_PROBA_FRAMEWORKS:
+        if self.model_info["framework"] in SKLEARN_LIKE_FRAMEWORKS:
             func = getattr(self, "predict_proba", None)
-            if func and len(self.model_like.classes_) == 2:
-                self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
+            if len(self.model_like.classes_) == 2:
+                self.type = "binary_classification"
+                # if binary, replace probability array with one-dimensional vector
+                if func:
+                    self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
+            else:
+                self.type = "multiclass_classification"
 
 
 class DummyClassifier:
