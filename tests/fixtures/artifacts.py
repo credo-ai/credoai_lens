@@ -8,6 +8,7 @@ from credoai.artifacts import (
 )
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
 
 
 ### Identity verification data/model artifacts ###
@@ -143,5 +144,40 @@ def credit_training_data(credit_data):
         name="UCI-credit-default-test",
         X=train["X"],
         y=train["y"],
+    )
+    return training_data
+
+
+### Multiclass model/data artifacts ############
+
+
+@fixture(scope="session")
+def multiclass_model(multiclass_data):
+    model = DecisionTreeClassifier(max_depth=2)
+    model.fit(multiclass_data["train"]["X"], multiclass_data["train"]["y"])
+    credo_model = ClassificationModel("credit_default_classifier", model)
+    return credo_model
+
+
+@fixture(scope="session")
+def multiclass_assessment_data(multiclass_data):
+    test = multiclass_data["test"]
+    assessment_data = TabularData(
+        name="UCI-credit-default-test",
+        X=test["X"],
+        y=test["y"],
+        sensitive_features=test["sens_features"],
+    )
+    return assessment_data
+
+
+@fixture(scope="session")
+def multiclass_training_data(multiclass_data):
+    train = multiclass_data["train"]
+    training_data = TabularData(
+        name="UCI-credit-default-test",
+        X=train["X"],
+        y=train["y"],
+        sensitive_features=train["sens_features"],
     )
     return training_data

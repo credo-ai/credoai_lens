@@ -22,6 +22,20 @@ def temp_file(tmp_path):
 
 
 @pytest.fixture(scope="function")
+def init_lens_multiclass(
+    multiclass_model, multiclass_assessment_data, multiclass_training_data, temp_file
+):
+    gov = Governance()
+    my_pipeline = Lens(
+        model=multiclass_model,
+        assessment_data=multiclass_assessment_data,
+        training_data=multiclass_training_data,
+        governance=gov,
+    )
+    return my_pipeline, temp_file, gov
+
+
+@pytest.fixture(scope="function")
 def init_lens_classification(
     classification_model,
     classification_assessment_data,

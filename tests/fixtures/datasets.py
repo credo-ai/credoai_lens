@@ -1,7 +1,9 @@
 from pytest import fixture
 from credoai.datasets import fetch_creditdefault, fetch_testdata
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from sklearn.model_selection import train_test_split
+from sklearn import datasets
+
 
 ### Datasets definition ########################
 
@@ -71,3 +73,24 @@ def identity_verification_data():
         }
     )
     return pairs, subjects_sensitive_features
+
+
+@fixture(scope="session")
+def multiclass_data():
+    iris = datasets.load_iris()
+    X = iris.data
+    y = iris.target
+    sensitive_features = (
+        Series(["B", "W"]).sample(X.shape[0], replace=True, random_state=42).to_list()
+    )
+    (
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        sensitive_features_train,
+        sensitive_features_test,
+    ) = train_test_split(X, y, sensitive_features, random_state=42)
+    train_data = {"X": X_train, "y": y_train, "sens_features": sensitive_features_train}
+    test_data = {"X": X_test, "y": y_test, "sens_features": sensitive_features_test}
+    return {"train": train_data, "test": test_data}
