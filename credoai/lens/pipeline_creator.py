@@ -11,6 +11,7 @@ from connect.evidence import EvidenceRequirement
 from connect.governance import Governance
 from credoai.evaluators import *
 from credoai.evaluators.utils import name2evaluator
+from credoai.utils.common import remove_suffix
 
 
 class PipelineCreator:
@@ -58,7 +59,7 @@ def extract_metrics(labels):
     """Extract metrics from a single evidence requirement"""
     metrics = set()
     if "metric_type" in labels:
-        metrics.add(labels["metric_type"].removesuffix("_parity"))
+        metrics.add(remove_suffix(labels["metric_type"], "_parity"))
     elif "metric_types" in labels:
         metrics = metrics.union(labels["metric_types"])
     return metrics
