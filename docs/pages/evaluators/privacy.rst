@@ -1,9 +1,9 @@
 
-Privacy
-=======
+Privacy (Experimental)
+======================
 
 
-Privacy module for Credo AI.
+Privacy module for Credo AI (Experimental)
 
 This module takes  provides functionality to perform privacy assessment.
 
