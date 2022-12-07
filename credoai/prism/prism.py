@@ -1,18 +1,21 @@
 from typing import List
+
 from credoai.lens import Lens
+from credoai.prism.task import Task
 from credoai.utils import ValidationError, global_logger
 from credoai.utils.common import NotRunError
-from credoai.prism.task import Task
 
 
 class Prism:
     """
-    The class orchestrate the run of complex operations (Tasks) on
+    **Experimental**
+
+    Orchestrates the run of complex operations (Tasks) on
     an arbitrary amount of Lens objects.
 
     Parameters
     ----------
-    pipelines : List[Lens]
+    lenses : List[Lens]
         A list of Lens objects. The only requirement is for the Lens objects to
         be instantiated with their necessary artifacts. One or multiple Lens objects
         can be provided, each Task will validate that the amount of objects provided
@@ -21,8 +24,8 @@ class Prism:
         A task instance, instantiated with all the required parameters.
     """
 
-    def __init__(self, pipelines: List[Lens], task: Task):
-        self.pipelines = pipelines
+    def __init__(self, lenses: List[Lens], task: Task):
+        self.lenses = lenses
         self.task = task
         self._validate()
         self.run_flag = False
@@ -38,7 +41,7 @@ class Prism:
         ValidationError
 
         """
-        for step in self.pipelines:
+        for step in self.lenses:
             if not isinstance(step, Lens):
                 raise ValidationError("Step must be a Lens instance")
         if not isinstance(self.task, Task):
@@ -50,7 +53,7 @@ class Prism:
         """
         Runs the Lens pipelines if they were not already.
         """
-        for step in self.pipelines:
+        for step in self.lenses:
             try:
                 step.get_results()
                 global_logger.info(f"{step.model.name} pipeline already run")
@@ -68,7 +71,7 @@ class Prism:
         if not self.run_flag:
             self._run()
 
-        self.results.append(self.task(pipelines=self.pipelines).run().get_results())
+        self.results.append(self.task(pipelines=self.lenses).run().get_results())
 
     def get_results(self):
         """
@@ -80,4 +83,4 @@ class Prism:
         """
         Returns individual results of all the Lens objects runs.
         """
-        return [x.get_results() for x in self.pipelines]
+        return [x.get_results() for x in self.lenses]

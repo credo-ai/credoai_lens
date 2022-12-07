@@ -1,10 +1,10 @@
 """Comparators for metric type containers"""
 from typing import List
 
+from connect.evidence import MetricContainer
 from pandas import DataFrame, concat
 
 from credoai.evaluators.utils.validation import check_instance
-from connect.evidence import MetricContainer
 from credoai.prism.comparators.comparator import Comparator
 
 
@@ -14,7 +14,7 @@ class MetricComparator(Comparator):
 
     Each metric is compared to the respective reference value. The reference value is the metric value
     associated to a specific model or dataset. The reference model/dataset are identified by the user, see
-    ref type and ref in Prameters.
+    ref type and ref in Parameters.
 
     Supported comparisons for Metrics include differences, ratio, percentage ratio, and percentage
     difference.
@@ -88,7 +88,9 @@ class MetricComparator(Comparator):
         Extract results from containers.
         """
         # Create id columns from the result id.
-        self.all_results = [res.df.assign(id=res.id) for res in self.EvidenceContainers]
+        self.all_results = [
+            res.data.assign(id=res.id) for res in self.EvidenceContainers
+        ]
         self.all_results = concat(self.all_results, ignore_index=True)
         self.all_results[self.ID_COLS] = self.all_results.id.str.split("~", expand=True)
 
