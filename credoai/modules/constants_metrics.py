@@ -41,6 +41,8 @@ METRIC_CATEGORIES = (
 SCALAR_METRIC_CATEGORIES = MODEL_METRIC_CATEGORIES + NON_MODEL_METRIC_CATEGORIES
 
 # MODEL METRICS
+# Define Binary classification name mapping.
+# Binary classification metrics must have a similar signature to sklearn metrics
 BINARY_CLASSIFICATION_FUNCTIONS = {
     "false_positive_rate": fl_metrics.false_positive_rate,
     "false_negative_rate": fl_metrics.false_negative_rate,
@@ -59,6 +61,12 @@ BINARY_CLASSIFICATION_FUNCTIONS = {
     "overprediction": fl_metrics._mean_overprediction,
     "underprediction": fl_metrics._mean_underprediction,
     "gini_coefficient": gini_coefficient_discriminatory,
+}
+
+# Define Multiclass classification name mapping.
+# Multiclass classification metrics must have a similar signature to sklearn metrics
+MULTICLASS_CLASSIFICATION_FUNCTIONS = {
+    "precision_score": partial(sk_metrics.precision_score, average="macro")
 }
 
 # Define Fairness Metric Name Mapping
