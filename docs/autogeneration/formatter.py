@@ -94,6 +94,9 @@ def extract_docstring_info_from_evaluator(object):
     text = object.__doc__
     text = text.replace(" {4}", "")
     mod_txt = []
+    experimental = (
+        " (experimental)" if "(Experimental)" in text.strip().splitlines()[0] else ""
+    )
     for line in text.splitlines(True):
         if line != "\n":
             mod_txt.append(line[4:])
@@ -101,5 +104,6 @@ def extract_docstring_info_from_evaluator(object):
             mod_txt.append(line)
 
     title = " ".join(camel_case_split(object.name))
+    title += experimental
     page = create_page_area([create_title(title), "".join(mod_txt)])
     return page

@@ -12,8 +12,6 @@ def create_all_evaluator_pages():
         try:
             doc = extract_docstring_info_from_evaluator(evaluator)
             page_name = evaluator.name.lower()
-            if "(Experimental)\n" in doc:
-                page_name += " (experimental)"
             with open(f"./pages/evaluators/{page_name}.rst", "w") as text_file:
                 text_file.write(doc)
         except:
