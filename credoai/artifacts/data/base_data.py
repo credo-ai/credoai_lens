@@ -9,6 +9,8 @@ import pandas as pd
 from credoai.utils.common import ValidationError
 from credoai.utils.model_utils import type_of_target
 
+from copy import deepcopy
+
 
 class Data(ABC):
     """Class wrapper around data-to-be-assessed
@@ -47,7 +49,10 @@ class Data(ABC):
         sensitive_features=None,
         sensitive_intersections: Union[bool, list] = False,
     ):
-        self.name = name
+        if isinstance(name, str):
+            self.name = name
+        else:
+            raise ValidationError("{Name} must be a string")
         self.X = X
         self.y = y
         self.sensitive_features = sensitive_features
@@ -106,7 +111,7 @@ class Data(ABC):
             self.y = self._process_y(self.y)
         if self.sensitive_features is not None:
             self.sensitive_features = self._process_sensitive(
-                self.sensitive_features, sensitive_intersections
+                deepcopy(self.sensitive_features), sensitive_intersections
             )
 
     def _process_sensitive(self, sensitive_features, sensitive_intersections):
@@ -207,7 +212,7 @@ class Data(ABC):
         pass
 
     def _validate_processed_sensitive(self):
-        """VAlidation of processed sensitive features"""
+        """Validation of processed sensitive features"""
         for col_name, col in self.sensitive_features.iteritems():
             unique_values = col.unique()
             if len(unique_values) == 1:

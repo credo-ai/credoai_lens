@@ -20,7 +20,11 @@ def check_data_instance(obj, inst_type, name="Data"):
 
 
 def check_model_instance(obj, inst_type, name="Model"):
-    message = f"{name} should be an instance of {inst_type.__name__}"
+    if isinstance(inst_type, tuple):
+        comp_label = " or ".join([x.__name__ for x in inst_type])
+    else:
+        comp_label = inst_type.__name__
+    message = f"{name} should be an instance of {comp_label}"
     check_instance(obj, inst_type, message)
 
 

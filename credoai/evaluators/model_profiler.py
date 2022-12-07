@@ -42,9 +42,10 @@ class ModelProfiler(Evaluator):
     a fitted model.
 
     The overall strategy is:
-        1. Extract all potentially useful info from the model itself in an
-            automatic fashion.
-        2. Allow the user to personalize the model card freely.
+
+    1. Extract all potentially useful info from the model itself in an
+       automatic fashion.
+    2. Allow the user to personalize the model card freely.
 
     The method generate_template() provides a dictionary with several entries the
     user could be interested in filling up.
@@ -57,6 +58,7 @@ class ModelProfiler(Evaluator):
         a template can be provided by running the generate_template() method.
 
         The only restrictions are checked in a validation step:
+
         1. Some keys are protected because they are used internally
         2. Only basic python types are accepted as values
 
@@ -81,11 +83,13 @@ class ModelProfiler(Evaluator):
         check_existence(self.model, "model")
 
     def evaluate(self):
-        # Collate info
         basic = self._get_basic_info()
         res = self._get_model_params()
+        # Add user generated info
         self.usr_model_info = {k: v for k, v in self.usr_model_info.items() if v}
+        # Get a sample of the data
         data_sample = self._get_dataset_sample()
+        # Collate info
         res = {**basic, **res, **self.usr_model_info, **data_sample}
         # Format
         res, labels = self._add_entries_labeling(res)

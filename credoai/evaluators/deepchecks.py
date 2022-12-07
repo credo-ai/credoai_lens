@@ -6,18 +6,18 @@ from deepchecks.tabular import Dataset, Suite
 
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_deepchecks
-from credoai.modules.deepchecks_constants import DEFAULT_CHECKS
+from credoai.modules.constants_deepchecks import DEFAULT_CHECKS
 
 
 class Deepchecks(Evaluator):
     """
-    Deepchecks evaluator
+    `Deepchecks <https://docs.deepchecks.com/stable/getting-started/welcome.html?utm_campaign=/&utm_medium=referral&utm_source=deepchecks.com>`_ evaluator for Credo AI.
 
     This evaluator enables running of deepchecks `checks` and passing the results to
     the Governance platform in the form of a deepchecks SuiteResult, cast to JSON format.
-    See https://docs.deepchecks.com/stable/api/generated/deepchecks.tabular.checks.model_evaluation.html
-    and https://docs.deepchecks.com/stable/api/generated/deepchecks.core.SuiteResult.html
-    and https://docs.deepchecks.com/stable/user-guide/general/customizations/examples/plot_create_a_custom_suite.html
+    See `model evaluation <https://docs.deepchecks.com/stable/api/generated/deepchecks.tabular.checks.model_evaluation.html>`_
+    and `SuiteResults <https://docs.deepchecks.com/stable/api/generated/deepchecks.core.SuiteResult.html>`_
+    and `create a custom suite <https://docs.deepchecks.com/stable/user-guide/general/customizations/examples/plot_create_a_custom_suite.html>`_
     for more details.
 
     This evaluator provides some redundant functionality. For instance, metrics which can be
@@ -30,14 +30,11 @@ class Deepchecks(Evaluator):
 
     Parameters
     ----------
-    name : str, optional
+    suite_name : str, optional
         Name of the supplied deepchecks suite
-    checks : List-like, optional
+    checks : List[BaseCheck], optional
         A list of instantiated deepchecks checks objects (e.g. BoostingOverfit, CalibrationScore)
-        #TODO allow list of strings?
     """
-
-    name = "Deepchecks"  ##This is going to go away once we merge with Ian's PR #214
 
     required_artifacts = {"model", "assessment_data", "training_data"}
     # all artifacts are OPTIONAL; All that's required is that at least one of these is
@@ -50,7 +47,14 @@ class Deepchecks(Evaluator):
     ):
         super().__init__()
         self.suite_name = suite_name
+        # TODO allow list of strings?
         self.checks = checks
+
+    def _validate_arguments(self):
+        """
+        Check that basic requirements for the run of an evaluator are met.
+        """
+        check_requirements_deepchecks(self)
 
     def _setup(self):
         # Set artifacts
@@ -60,6 +64,23 @@ class Deepchecks(Evaluator):
         self.model = self.model
         self.test_dataset = self.assessment_data
         self.train_dataset = self.training_data
+
+    def evaluate(self):
+        """
+        Execute any data/model processing required for the evaluator.
+
+        Populates the self.results object.
+
+        Returns
+        -------
+        self
+        """
+        self._setup_deepchecks()
+        self.run_suite()
+
+        self.results = [DeepchecksContainer(self.suite_name, self.suite_results)]
+
+        return self
 
     def _setup_deepchecks(self):
         if self.test_dataset:
@@ -81,23 +102,6 @@ class Deepchecks(Evaluator):
             # doing this as a for-loop list seems to be the only way
             # deepchecks won't let you pass a whole list of checks, which is...silly?
 
-    def evaluate(self):
-        """
-        Execute any data/model processing required for the evaluator.
-
-        Populates the self.results object.
-
-        Returns
-        -------
-        self
-        """
-        self._setup_deepchecks()
-        self.run_suite()
-
-        self.results = [DeepchecksContainer(self.suite_name, self.suite_results)]
-
-        return self
-
     def run_suite(self):
         if self.train_dataset and self.test_dataset:
             self.suite_results = self.suite.run(
@@ -118,9 +122,3 @@ class Deepchecks(Evaluator):
             self.suite_results = self.suite.run(
                 train_dataset=self.test_dataset, model=self.model.model_like
             )
-
-    def _validate_arguments(self):
-        """
-        Check that basic requirements for the run of an evaluator are met.
-        """
-        check_requirements_deepchecks(self)

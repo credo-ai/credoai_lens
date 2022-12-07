@@ -11,7 +11,6 @@ Start here!
    ../notebooks/quickstart
    ../notebooks/lens_faq
    ../notebooks/platform_integration
-   
 
 **Quickstart Demo**
 

@@ -1,15 +1,20 @@
+"""Constants for threshold metrics
+
+Define relationships between metric names (strings) and
+metric functions, as well as alternate names for each metric name
+"""
+
 from functools import partial
 
 from fairlearn import metrics as fl_metrics
 from sklearn import metrics as sk_metrics
 
-from credoai.modules.credoai_metrics import (
+from credoai.modules.metrics_credoai import (
     equal_opportunity_difference,
     false_discovery_rate,
     false_omission_rate,
     gini_coefficient_discriminatory,
     ks_statistic,
-    population_stability_index,
 )
 
 THRESHOLD_METRIC_CATEGORIES = ["BINARY_CLASSIFICATION_THRESHOLD"]
