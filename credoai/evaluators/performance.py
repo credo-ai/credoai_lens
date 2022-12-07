@@ -1,6 +1,8 @@
 import pandas as pd
+from connect.evidence import MetricContainer, TableContainer
+from sklearn.metrics import confusion_matrix
 
-from credoai.artifacts import TabularData
+from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
 from credoai.evaluators.utils.validation import (
@@ -8,8 +10,7 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from connect.evidence import MetricContainer, TableContainer
-from credoai.modules.metric_constants import (
+from credoai.modules.constants_metrics import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,
 )
@@ -85,6 +86,9 @@ class Performance(Evaluator):
             results.append(overall_metrics)
         if threshold_metrics is not None:
             results += threshold_metrics
+
+        if isinstance(self.model, ClassificationModel):
+            results.append(self._create_confusion_container())
         self.results = results
         return self
 
@@ -257,3 +261,40 @@ class Performance(Evaluator):
                 failed_metrics.append(metric_name)
 
         return (performance_metrics, prob_metrics, threshold_metrics, failed_metrics)
+
+    def _create_confusion_container(self):
+        confusion_container = TableContainer(
+            create_confusion_matrix(self.y_true, self.y_pred),
+            **self.get_container_info(),
+        )
+        return confusion_container
+
+
+############################################
+## Evaluation helper functions
+
+## Helper functions create evidences
+## to be passed to .evaluate to be wrapped
+## by evidence containers
+############################################
+def create_confusion_matrix(y_true, y_pred):
+    """Create a confusion matrix as a dataframe
+
+    Parameters
+    ----------
+    y_true : pd.Series of shape (n_samples,)
+        Ground truth (correct) target values.
+
+    y_pred : array-like of shape (n_samples,)
+        Estimated targets as returned by a classifier.
+
+    """
+    labels = y_true.astype("category").cat.categories
+    confusion = confusion_matrix(y_true, y_pred, normalize="true", labels=labels)
+    confusion_df = pd.DataFrame(confusion, index=labels.copy(), columns=labels)
+    confusion_df.index.name = "true_label"
+    confusion_df = confusion_df.reset_index().melt(
+        id_vars=["true_label"], var_name="predicted_label"
+    )
+    confusion_df.name = "Confusion Matrix"
+    return confusion_df

@@ -303,11 +303,11 @@ class Lens:
 
     def print_results(self):
         results = self.get_results()
-        for key, val in results.items():
-            print(f"Evaluator: {key}\n")
-            for i in val:
-                print(i)
-                print()
+        for result_grouping in results:
+            for key, val in result_grouping["metadata"].items():
+                print(f"{key.capitalize()}: {val}")
+            for val in result_grouping["results"]:
+                print(f"{val}\n")
             print()
 
     def set_governance(self, governance: Governance):
