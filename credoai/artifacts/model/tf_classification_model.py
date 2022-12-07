@@ -3,10 +3,11 @@ from .base_model import Model
 
 
 class TF_Keras_ClassificationModel(Model):
-    """Class wrapper around classification model to be assessed
+    """Class wrapper around Keras-based classification model to be assessed
 
-    ClassificationModel serves as an adapter between arbitrary binary or multi-class
-    classification models and the evaluations in Lens. Evaluations depend on
+    TF_Keras_ClassificationModel serves as an adapter between arbitrary binary or multi-class
+    classification models based on the Tensorflow Keras framework and the evaluations in Lens.
+    Evaluations depend on
     ClassificationModel instantiating `predict` and (optionally) `predict_proba`
 
     Parameters
