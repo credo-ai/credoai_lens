@@ -1,4 +1,4 @@
-"""Model artifact wrapping any classification model"""
+"""Model artifact wrapping Keras classification model"""
 from .base_model import Model
 
 
@@ -23,7 +23,7 @@ class TF_Keras_ClassificationModel(Model):
     def __init__(self, name: str, model_like=None, tags=None):
         super().__init__(
             "Classification",
-            ["predict", "predict_proba"],
+            ["predict"],
             ["predict"],
             name,
             model_like,
