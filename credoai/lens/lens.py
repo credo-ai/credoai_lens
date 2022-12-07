@@ -213,7 +213,7 @@ class Lens:
             self.pipeline[idx].evaluator = evaluator
         return self
 
-    def send_to_governance(self, overwrite_governance=False):
+    def send_to_governance(self, overwrite_governance=True):
         """
         Parameters
         ---------
@@ -325,11 +325,11 @@ class Lens:
 
     def print_results(self):
         results = self.get_results()
-        for key, val in results.items():
-            print(f"Evaluator: {key}\n")
-            for i in val:
-                print(i)
-                print()
+        for result_grouping in results:
+            for key, val in result_grouping["metadata"].items():
+                print(f"{key.capitalize()}: {val}")
+            for val in result_grouping["results"]:
+                print(f"{val}\n")
             print()
 
     def set_governance(self, governance: Governance):
@@ -366,8 +366,15 @@ class Lens:
         if governance is None:
             return
         self.gov = governance
+        artifact_args = {}
+        if self.training_data:
+            artifact_args["training_dataset"] = self.training_data.name
+        if self.assessment_data:
+            artifact_args["assessment_dataset"] = self.assessment_data.name
         if self.model:
-            self.gov.set_artifacts(self.model, self.training_data, self.assessment_data)
+            artifact_args["model"] = self.model.name
+            artifact_args["model_tags"] = self.model.tags
+            self.gov.set_artifacts(**artifact_args)
 
     def _cycle_add_through_ds_feat(
         self,

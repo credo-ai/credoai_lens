@@ -30,10 +30,19 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
 class Security(Evaluator):
-    """Security module for Credo AI.
+    """
+    Security module for Credo AI.
 
-    This module takes in classification model and data and
-     provides functionality to perform security assessment
+    This module takes in classification model and data and provides functionality
+    to perform security assessment.
+
+    The evaluator tests security of the model, by performing 2 types of attacks
+    (click on the links for more details):
+
+    1. `Evasion Attack`_: attempts to create a set of samples that will be
+       misclassified by the model
+    2. `Extraction Attack`_: attempts to infer enough information from the model
+       prediction to train a substitutive model.
 
     Parameters
     ----------
@@ -49,9 +58,22 @@ class Security(Evaluator):
         The test features
     y_test : pandas.Series
         The test outcome labels
+
+    .. _Evasion Attack: https://adversarial-robustness-toolbox.readthedocs.
+       io/en/latest/modules/attacks/evasion.html#hopskipjump-attack
+    .. _Extraction Attack: https://adversarial-robustness-toolbox.readthedocs.
+       io/en/latest/modules/attacks/extraction.html#copycat-cnn
     """
 
     required_artifacts = {"model", "assessment_data", "training_data"}
+
+    def _validate_arguments(self):
+        check_requirements_existence(self)
+        check_model_instance(self.model, ClassificationModel)
+        for ds in ["assessment_data", "training_data"]:
+            artifact = vars(self)[ds]
+            check_data_instance(artifact, TabularData, ds)
+            check_artifact_for_nulls(artifact, ds)
 
     def _setup(self):
         self.x_train = self.training_data.X.to_numpy()
@@ -69,16 +91,9 @@ class Security(Evaluator):
         np.random.seed(10)
         return self
 
-    def _validate_arguments(self):
-        check_requirements_existence(self)
-        check_model_instance(self.model, ClassificationModel)
-        for ds in ["assessment_data", "training_data"]:
-            artifact = vars(self)[ds]
-            check_data_instance(artifact, TabularData, ds)
-            check_artifact_for_nulls(artifact, ds)
-
     def evaluate(self):
-        """Runs the assessment process
+        """
+        Runs the assessment process
 
         Returns
         -------
@@ -93,10 +108,11 @@ class Security(Evaluator):
         return self
 
     def _extraction_attack(self):
-        """Model extraction security attack
+        """
+        Model extraction security attack
 
         In model extraction, the adversary only has access to the prediction API of a target model
-            which she queries to extract information about the model internals and train a substitute model.
+        which she queries to extract information about the model internals and train a substitute model.
 
         Returns
         -------
@@ -147,7 +163,8 @@ class Security(Evaluator):
         return metrics
 
     def _get_model(self, input_dim):
-        """Creates a sequential binary classification model
+        """
+        Creates a sequential binary classification model
 
         Parameters
         ----------
@@ -175,7 +192,8 @@ class Security(Evaluator):
         return model
 
     def _evasion_attack(self, nsamples=10, distance_threshold=0.1):
-        """Model evasion security attack
+        """
+        Model evasion security attack
 
         In model evasion, the adversary only has access to the prediction API of a target model
             which she queries to create minimally-perturbed samples that get misclassified
@@ -236,7 +254,8 @@ class Security(Evaluator):
         adver_sample_scaled,
         distance_threshold=0.1,
     ):
-        """Calculates evasion success rate
+        """
+        Calculates evasion success rate
 
         Parameters
         ----------
@@ -278,8 +297,10 @@ class Security(Evaluator):
             return 0
 
     def _predict_binary_class_matrix(self, x):
-        """`predict` that returns a binary class matrix
+        """
+        `predict` that returns a binary class matrix
 
+        Parameters
         ----------
         x : features array
             shape (nb_inputs, nb_features)

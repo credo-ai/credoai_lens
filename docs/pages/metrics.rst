@@ -59,7 +59,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - fdr
 	* - :ref:`false_negative_rate<false_negative_rate>`
 	  - performance
-	  - fnr, miss_rate
+	  - miss_rate, fnr
 	* - :ref:`false_omission_rate<false_omission_rate>`
 	  - performance
 	  - 
@@ -68,7 +68,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - fallout_rate, fpr
 	* - :ref:`gini_coefficient<gini_coefficient>`
 	  - 
-	  - discriminatory_gini_index, gini_index, discriminatory_gini
+	  - discriminatory_gini, discriminatory_gini_index, gini_index
 	* - :ref:`matthews_correlation_coefficient<matthews_correlation_coefficient>`
 	  - performance
 	  - 
@@ -95,7 +95,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - 
 	* - :ref:`mean_squared_error<mean_squared_error>`
 	  - performance
-	  - MSD, mean_squared_deviation, MSE
+	  - MSE, mean_squared_deviation, MSD
 	* - :ref:`mean_squared_log_error<mean_squared_log_error>`
 	  - performance
 	  - 
@@ -119,7 +119,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - precision
 	* - :ref:`r2_score<r2_score>`
 	  - performance
-	  - r_squared, r2
+	  - r2, r_squared
 	* - :ref:`roc_auc_score<roc_auc_score>`
 	  - performance
 	  - 
@@ -146,7 +146,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - tnr, specificity
 	* - :ref:`true_positive_rate<true_positive_rate>`
 	  - performance
-	  - recall, hit_rate, tpr, sensitivity, recall_score
+	  - sensitivity, recall_score, tpr, hit_rate, recall
 	* - :ref:`underprediction<underprediction>`
 	  - performance
 	  - 
@@ -221,7 +221,7 @@ Equal_opportunity_difference
 
 The equalized odds difference is equivalent to the `true_positive_rate_difference` defined as the difference between the largest and smallest of :math:`P[h(X)=1 | A=a, Y=1]`, across all values :math:`a` of the sensitive feature(s).
 
-**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__
+**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
 
 **Other known names**: equal_opportunity
 
@@ -287,7 +287,7 @@ The best value is 0 and the worst value is 1.
 
    \text{False Discovery Rate} = \frac{False \ Positives}{False \ Positives + True \ Positives}
 
-**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__
+**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
 
 **Other known names**: fdr
 
@@ -302,7 +302,7 @@ False negative rate  is defined as follows:
 
 **Source**: `click here <https://fairlearn.org/v0.4.6/api_reference/fairlearn.metrics.html#fairlearn.metrics.false_negative_rate>`__
 
-**Other known names**: fnr, miss_rate
+**Other known names**: miss_rate, fnr
 
 False_omission_rate
 -------------------
@@ -315,7 +315,7 @@ The best value is 0 and the worst value is 1.
 
    \text{False Omission Rate} = \frac{False \ Negatives}{False \ Negatives + True \ Negatives}
 
-**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__
+**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
 
 False_positive_rate
 -------------------
@@ -335,7 +335,7 @@ Gini_coefficient
 
 
 
-**Other known names**: discriminatory_gini_index, gini_index, discriminatory_gini
+**Other known names**: discriminatory_gini, discriminatory_gini_index, gini_index
 
 Matthews_correlation_coefficient
 --------------------------------
@@ -404,7 +404,7 @@ Mean square error is the expected value of the squared (quadratic) error or loss
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html>`__
 
-**Other known names**: MSD, mean_squared_deviation, MSE
+**Other known names**: MSE, mean_squared_deviation, MSD
 
 Mean_squared_log_error
 ----------------------
@@ -466,7 +466,7 @@ Best possible score is 1.0 and it can be negative (because the model can be arbi
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html>`__
 
-**Other known names**: r_squared, r2
+**Other known names**: r2, r_squared
 
 Roc_auc_score
 -------------
@@ -525,7 +525,7 @@ If the KS statistic is small or the p-value is high, then we cannot reject the n
 
 For practical purposes, if the statistic value is higher than `the critical value <https://sparky.rice.edu//astr360/kstest.pdf>`__, the two distributions are different.
 
-**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/credoai_metrics.py>`__
+**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
 
 True_negative_rate
 ------------------
@@ -547,7 +547,7 @@ True Positive Rate (also called sensitivity, recall, or hit rate) refers to the 
 
 **Source**: `click here <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.true_positive_rate>`__
 
-**Other known names**: recall, hit_rate, tpr, sensitivity, recall_score
+**Other known names**: sensitivity, recall_score, tpr, hit_rate, recall
 
 Underprediction
 ---------------

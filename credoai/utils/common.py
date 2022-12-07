@@ -6,6 +6,7 @@ from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
+from sklearn.utils import check_array
 
 
 class NotRunError(Exception):
@@ -56,6 +57,18 @@ def check_subset(subset, superset):
         return set(subset) <= set(superset)
 
     return True
+
+
+def check_array_like(array):
+    if isinstance(array, (pd.DataFrame, pd.Series)):
+        pass
+    else:
+        try:
+            check_array(array, ensure_2d=False)
+        except ValueError:
+            raise ValidationError(
+                "Expected array-like (e.g., list, numpy array, pandas series/dataframe"
+            )
 
 
 def get_project_root() -> Path:

@@ -3,11 +3,11 @@
    :hidden:
 
    Home page <self>
-   Setup <setup>
-   Jupyter tutorials <tutorials>
-   Developer Guide <developer_guide>
-   Evaluators <evaluators>
-   Metrics <metrics>
+   Setup <pages/setup>
+   Jupyter tutorials <pages/tutorials>
+   Developer Guide <pages/developer_guide>
+   Evaluators <pages/evaluators>
+   Metrics <pages/metrics>
    API reference <_autosummary/credoai>
 
 
@@ -18,7 +18,7 @@
 Lens is an AI Assessment Framework. With a focus on responsible AI (RAI), Lens makes
 comprehensive AI assessment streamlined, structured and interpretable to diverse audiences. Lens
 aims to be the single entrypoint to a broad ecosystem of open source assessment
-tools developed in industry and academia. It is also extensible, and can be incorporate 
+tools developed in industry and academia. It is also extensible, and can incorporate 
 custom functionality from your own system.
 
 Lens allows you to assess your AI systems with respect to a number of RAI considerations including
@@ -33,7 +33,7 @@ Check out the :ref:`quickstart tutorial <quickstart>` to get started.
 
 Check out the :ref:`FAQ <lens faq>` for answers to common questions.
 
-To connect with the Credo AI Governance Platform, see the :ref:`governance integration tutorial <credo governance integration>`.
+To connect with the Credo AI Governance Platform, see the :ref:`platform integration tutorial <credo ai platform integration>`.
 
 
 Overview

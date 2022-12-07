@@ -3,4 +3,4 @@
 set -e
 set -x
 
-PYTHONPATH=credoai pytest --cov=credoai --cov-report=term-missing tests "${@}"
+PYTHONPATH=credoai pytest --cov-config=.coveragerc --cov=credoai --cov-report=term-missing tests "${@}"

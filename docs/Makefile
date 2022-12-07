@@ -15,7 +15,7 @@ help:
 .PHONY: help Makefile
 
 html:
-	ls autogeneration/pages/*.py|xargs -n 1 -P 3 python
+# ls autogeneration/pages/*.py|xargs -n 1 -P 3 python
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # Catch-all target: route all unknown targets to Sphinx using the new

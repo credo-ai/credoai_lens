@@ -8,10 +8,9 @@ Start here!
 .. toctree::
    :maxdepth: 1
    
-   notebooks/quickstart
-   notebooks/lens_faq
-   notebooks/governance_integration
-   
+   ../notebooks/quickstart
+   ../notebooks/lens_faq
+   ../notebooks/platform_integration
 
 **Quickstart Demo**
 

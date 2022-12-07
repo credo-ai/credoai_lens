@@ -2,6 +2,12 @@
 Developer Guide
 ===============
 
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   
+   ./make_your_own
+
 This document will go into more detail about the different components of Lens so that you can
 extend it to fit your needs. 
 
@@ -37,7 +43,8 @@ Evaluator
    Classes inheriting ``Evaluator`` will perform any kind of assessment or function needed to
    understand an AI Artifacts behavior or characteristics. There are clearly a wide range of possible
    evaluators! Everything from assessing performance metrics to levying adversarial attacks
-   can be instantiated in an evaluator.
+   can be instantiated in an evaluator. For more information on how to create an evaluator, please visit
+   :ref:`How to create Evaluators`
 
 EvidenceContainers
    The ``EvidenceContainer`` abstract class is used to hold results of evaluators. An EvidenceContainer

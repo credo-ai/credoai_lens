@@ -1,9 +1,21 @@
 # Documentation & Website Generation
 
-To build the documentation locally, run `make html` from the `/docs` directory and the docs site will build to: `docs/_build/html/index.html`, which can be opened in the browser.
+To build the documentation:, from the `/docs` folder:
+
+Run:
+* `python autogeneration/pages/evaluators.py` -> creates evaluator pages
+* `python autogeneration/pages/metrics.py` -> creates metrics page
+
+> Note: credoai-lens and credoai-connect needs to be installed for this to work correctly.
+
+After pushing to github, Read the Docs will build the documentation if the
+branch is currently activated.
+
+For local build, on top of the previous commands, run `make html`directory and the docs site will build to: `docs/_build/html/index.html`, which can be opened in the browser.
+
 > Make sure you have [Sphinx installed](https://www.sphinx-doc.org/en/master/usage/installation.html) if you are building the docs site locally.
 
-Building the docs requires additional dependencies listed in `docs/requirements.txt`.
+> Building the docs requires additional dependencies listed in `docs/requirements.txt`.
 
 This directory contains the content relevant to documentation & website
 generation using `sphinx`. The most important resource is `conf.py` which

@@ -124,6 +124,9 @@ autodoc_mock_imports += [
     "transformers",
 ]
 
+# copy button properties
+copybutton_prompt_text = r">>> |\.\.\. "
+copybutton_prompt_is_regexp = True
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -149,12 +152,14 @@ html_css_files = [
 # -- Generating pages ---------------------------------------------------
 
 
-from docs.autogeneration.pages.metrics import create_metrics_page
+# from docs.autogeneration.pages.metrics import create_metrics_page
+# from docs.autogeneration.pages.evaluators import create_all_evaluator_pages
 
 
-def create_custom_pages(app):
-    create_metrics_page()
+# def create_custom_pages(app):
+#     create_metrics_page()
+#     create_all_evaluator_pages()
 
 
-def setup(app):
-    app.connect("builder-inited", create_custom_pages)
+# def setup(app):
+#     app.connect("builder-inited", create_custom_pages)
