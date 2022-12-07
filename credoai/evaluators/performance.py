@@ -292,7 +292,9 @@ def create_confusion_matrix(y_true, y_pred):
     labels = y_true.astype("category").cat.categories
     confusion = confusion_matrix(y_true, y_pred, normalize="true", labels=labels)
     confusion_df = pd.DataFrame(confusion, index=labels.copy(), columns=labels)
-    confusion_df.index.name = "True"
-    confusion_df.columns.name = "Predicted"
+    confusion_df.index.name = "true_label"
+    confusion_df = confusion_df.reset_index().melt(
+        id_vars=["true_label"], var_name="predicted_label"
+    )
     confusion_df.name = "Confusion Matrix"
     return confusion_df
