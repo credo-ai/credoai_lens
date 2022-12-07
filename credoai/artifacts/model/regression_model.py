@@ -39,8 +39,10 @@ class DummyRegression:
         Array containing the output of a model's "predict" method
     """
 
-    def __init__(self, predict_output=None):
+    def __init__(self, name: str, predict_output=None, tags=None):
         self.predict_output = predict_output
+        self.name = name
+        self.tags = tags
 
     def predict(self, X=None):
         return self.predict_output

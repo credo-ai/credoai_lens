@@ -20,7 +20,7 @@ from credoai.utils.model_utils import type_of_target
 
 class DataEquity(Evaluator):
     """
-    Data Equity module for Credo AI.
+    Data Equity evaluator for Credo AI.
 
     This evaluator assesses whether outcomes are distributed equally across a sensitive
     feature. Depending on the kind of outcome, different tests will be performed.
@@ -29,15 +29,10 @@ class DataEquity(Evaluator):
       followed by bonferronni corrected posthoc chi-sq tests
     - Continuous: One-way ANOVA, followed by Tukey HSD posthoc tests
     - Proportion (Bounded [0-1] continuous outcome): outcome is transformed to logits, then
-        proceed as normal for continuous
+      proceed as normal for continuous
 
     Parameters
     ----------
-    sensitive_features :  pandas.Series
-        The segmentation feature which should be used to create subgroups to analyze.
-    y : (List, pandas.Series, numpy.ndarray)
-        Outcomes (e.g., labels for classification or target values for regression),
-        either ground-truth or model generated.
     p_value : float
         The significance value to evaluate statistical tests
     """
@@ -48,55 +43,28 @@ class DataEquity(Evaluator):
         self.pvalue = p_value
         super().__init__()
 
+    def _validate_arguments(self):
+        check_data_instance(self.data, TabularData)
+        check_existence(self.data.sensitive_features, "sensitive_features")
+        check_artifact_for_nulls(self.data, "Data")
+
     def _setup(self):
         self.sensitive_features = self.data.sensitive_feature
         self.y = self.data.y
         self.type_of_target = self.data.y_type
 
         self.df = pd.concat([self.sensitive_features, self.y], axis=1)
-        return self
-
-    def _validate_arguments(self):
-        check_data_instance(self.data, TabularData)
-        check_existence(self.data.sensitive_features, "sensitive_features")
-        check_artifact_for_nulls(self.data, "Data")
-
-    def evaluate(self):
-        labels = {
+        self.labels = {
             "sensitive_feature": self.sensitive_features.name,
             "outcome": self.y.name,
         }
-        desc = self._describe()
-        # Create summary
-        summary = TableContainer(
-            desc["summary"],
-            **self.get_container_info(labels=labels),
-        )
-        # outcome distribution
-        outcome_distribution = TableContainer(
-            self._outcome_distributions(),
-            **self.get_container_info(labels=labels),
-        )
-        # Create parity results
-        parity_results = pd.DataFrame(
-            [
-                {"type": k, "value": v}
-                for k, v in desc.items()
-                if "demographic_parity" in k
-            ]
-        )
-        parity_results = MetricContainer(
-            parity_results,
-            **self.get_container_info(labels=labels),
-        )
-        # Add statistics
+        return self
+
+    def evaluate(self):
+        summary, parity_results = self._describe()
+        outcome_distribution = self._outcome_distributions()
         overall_equity, posthoc_tests = self._get_formatted_stats()
-        overall_equity = MetricContainer(
-            pd.DataFrame(overall_equity, index=[0]),
-            **self.get_container_info(
-                labels={"sensitive_feature": self.sensitive_features.name}
-            ),
-        )
+
         # Combine
         equity_containers = [
             summary,
@@ -107,14 +75,8 @@ class DataEquity(Evaluator):
 
         # Add posthoc if available
         if posthoc_tests is not None:
-            equity_containers.append(
-                TableContainer(
-                    posthoc_tests,
-                    **self.get_container_info(
-                        labels={"sensitive_feature": self.sensitive_features.name}
-                    ),
-                )
-            )
+            equity_containers.append(posthoc_tests)
+
         self.results = equity_containers
         return self
 
@@ -136,7 +98,26 @@ class DataEquity(Evaluator):
 
         summary.name = f"Average Outcome Per Group"
 
-        return results
+        # Format summary results
+        summary = TableContainer(
+            results["summary"],
+            **self.get_container_info(labels=self.labels),
+        )
+
+        # Format parity results
+        parity_results = pd.DataFrame(
+            [
+                {"type": k, "value": v}
+                for k, v in results.items()
+                if "demographic_parity" in k
+            ]
+        )
+        parity_results = MetricContainer(
+            parity_results,
+            **self.get_container_info(labels=self.labels),
+        )
+
+        return summary, parity_results
 
     def _outcome_distributions(self):
         # count categorical data
@@ -160,7 +141,12 @@ class DataEquity(Evaluator):
                 distribution.append(tmp)
             distribution = pd.concat(distribution, axis=0)
         distribution.name = "Outcome Distributions"
-        return distribution
+
+        outcome_distribution = TableContainer(
+            distribution,
+            **self.get_container_info(labels=self.labels),
+        )
+        return outcome_distribution
 
     def _get_formatted_stats(self) -> tuple:
         """
@@ -183,11 +169,24 @@ class DataEquity(Evaluator):
             "p_value": statistics["equity_test"]["pvalue"],
         }
 
+        overall_equity = MetricContainer(
+            pd.DataFrame(overall_equity, index=[0]),
+            **self.get_container_info(
+                labels={"sensitive_feature": self.sensitive_features.name}
+            ),
+        )
+
         posthoc_tests = None
         if "significant_posthoc_tests" in statistics:
             posthoc_tests = pd.DataFrame(statistics["significant_posthoc_tests"])
             posthoc_tests.rename({"test_type": "subtype"}, axis=1, inplace=True)
             posthoc_tests.name = "posthoc"
+            posthoc_tests = TableContainer(
+                posthoc_tests,
+                **self.get_container_info(
+                    labels={"sensitive_feature": self.sensitive_features.name}
+                ),
+            )
 
         return overall_equity, posthoc_tests
 
@@ -324,11 +323,11 @@ class ModelEquity(DataEquity):
     This evaluator assesses whether model predictions are distributed equally across a sensitive
     feature. Depending on the kind of outcome, different tests will be performed.
 
-    - Discrete: chi-squared contingency tests,
+    * Discrete: chi-squared contingency tests,
       followed by bonferronni corrected posthoc chi-sq tests
-    - Continuous: One-way ANOVA, followed by Tukey HSD posthoc tests
-    - Proportion (Bounded [0-1] continuous outcome): outcome is transformed to logits, then
-        proceed as normal for continuous
+    * Continuous: One-way ANOVA, followed by Tukey HSD posthoc tests
+    * Proportion (Bounded [0-1] continuous outcome): outcome is transformed to logits, then
+      proceed as normal for continuous
 
     Parameters
     ----------
@@ -340,11 +339,11 @@ class ModelEquity(DataEquity):
         The significance value to evaluate statistical tests, by default 0.01
     """
 
+    required_artifacts = {"model", "assessment_data", "sensitive_feature"}
+
     def __init__(self, use_predict_proba=False, p_value=0.01):
         self.use_predict_proba = use_predict_proba
         super().__init__(p_value)
-
-    required_artifacts = {"model", "assessment_data", "sensitive_feature"}
 
     def _setup(self):
         self.sensitive_features = self.assessment_data.sensitive_feature
@@ -362,6 +361,10 @@ class ModelEquity(DataEquity):
         self.type_of_target = type_of_target(self.y)
 
         self.df = pd.concat([self.sensitive_features, self.y], axis=1)
+        self.labels = {
+            "sensitive_feature": self.sensitive_features.name,
+            "outcome": self.y.name,
+        }
         return self
 
     def _validate_arguments(self):

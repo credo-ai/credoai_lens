@@ -122,19 +122,23 @@ Specifically to evaluator, these are the main directives:
    refer to the next section.
 #. Immediately after the docstring, these methods/property (enforced by the abstract class) follow in this order:
 
-    #. ``__init__``: The last line of this method is ``super().__init__()``. The invocation of the abstract
-       class init method is necessary to initialize some class properties.
-    #. ``required_artifacts``: this is defined as a property of the class, outside of init
-    #. ``_validate_arguments``
-    #. ``_setup``
-    #. ``evaluate``
+   1. ``required_artifacts``: this is defined as a property of the class, outside of init.
+   2. ``__init__``: The last line of this method is ``super().__init__()``. The invocation of the abstract
+      class init method is necessary to initialize some class properties.
+   3. ``_validate_arguments``
+   4. ``_setup``
+   5. ``evaluate``
 
-#. The ``evaluate`` method is meant to be as simple as possible. Ideally the majority of the complexity is organized
-   in a suitable amount of private methods.
-#. By the end of the ``evaluate`` method, the property ``self.results`` needs to be populated with the results
-   of the assessment.
-#. Any other method created by the user to structure the code can come after evaluate. The only other recommendation
-   is for static methods to be put after any non-static method.
+#. The ``evaluate`` method is meant to be as simple as possible. The majority of the complexity is organized
+   in a user defined private methods. The structure of ``evaluate`` is the following:
+
+   1. Calls to any of the private methods necessary to build the results
+   2. If any complex formatting is further needed, this should be contained in a separate method and called from ``evaluate``
+   3. Finally, the property ``self.results`` needs to be populated with the results of the assessment.
+
+#. Any other method created by the user to structure the code can come after evaluate.
+#. All other methods created by the user should be private (their name is preceded by underscore).
+#. Static methods are to be placed after non-static methods.
 
 *********************
 Docstring style guide
