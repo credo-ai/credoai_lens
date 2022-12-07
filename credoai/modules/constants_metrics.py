@@ -42,25 +42,31 @@ SCALAR_METRIC_CATEGORIES = MODEL_METRIC_CATEGORIES + NON_MODEL_METRIC_CATEGORIES
 
 # MODEL METRICS
 BINARY_CLASSIFICATION_FUNCTIONS = {
-    "false_positive_rate": fl_metrics.false_positive_rate,
-    "false_negative_rate": fl_metrics.false_negative_rate,
-    "false_discovery_rate": false_discovery_rate,
-    "false_omission_rate": false_omission_rate,
-    "true_positive_rate": fl_metrics.true_positive_rate,
-    "true_negative_rate": fl_metrics.true_negative_rate,
-    "precision_score": sk_metrics.precision_score,
     "accuracy_score": sk_metrics.accuracy_score,
-    "balanced_accuracy_score": sk_metrics.balanced_accuracy_score,
-    "matthews_correlation_coefficient": sk_metrics.matthews_corrcoef,
-    "f1_score": sk_metrics.f1_score,
     "average_precision_score": sk_metrics.average_precision_score,
+    "balanced_accuracy_score": sk_metrics.balanced_accuracy_score,
+    "f1_score": sk_metrics.f1_score,
+    "false_discovery_rate": false_discovery_rate,
+    "false_negative_rate": fl_metrics.false_negative_rate,
+    "false_omission_rate": false_omission_rate,
+    "false_positive_rate": fl_metrics.false_positive_rate,
+    "gini_coefficient": gini_coefficient_discriminatory,
+    "matthews_correlation_coefficient": sk_metrics.matthews_corrcoef,
+    "overprediction": fl_metrics._mean_overprediction,
+    "precision_score": sk_metrics.precision_score,
     "roc_auc_score": sk_metrics.roc_auc_score,
     "selection_rate": fl_metrics.selection_rate,
-    "overprediction": fl_metrics._mean_overprediction,
+    "true_negative_rate": fl_metrics.true_negative_rate,
+    "true_positive_rate": fl_metrics.true_positive_rate,
     "underprediction": fl_metrics._mean_underprediction,
-    "gini_coefficient": gini_coefficient_discriminatory,
 }
 
+MULTICLASS_CLASSIFICATION_FUNCTIONS = {
+    "accuracy_score": sk_metrics.accuracy_score,
+    "balanced_accuracy_score": sk_metrics.balanced_accuracy_score,
+    "f1_score": partial(sk_metrics.f1_score, average="weighted"),
+    "precision_score": partial(sk_metrics.precision_score, average="weighted"),
+}
 # Define Fairness Metric Name Mapping
 # Fairness metrics must have a similar signature to fairlearn.metrics.equalized_odds_difference
 # (they should take sensitive_features and method)
