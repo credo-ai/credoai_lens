@@ -2,7 +2,7 @@ import pandas as pd
 from connect.evidence import MetricContainer, TableContainer
 from sklearn.metrics import confusion_matrix
 
-from credoai.artifacts import ClassificationModel, TabularData
+from credoai.artifacts import ClassificationModel, TabularData, KerasData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
 from credoai.evaluators.utils.validation import (
@@ -60,8 +60,11 @@ class Performance(Evaluator):
 
     def _validate_arguments(self):
         check_existence(self.metrics, "metrics")
-        check_data_instance(self.assessment_data, TabularData)
-        check_artifact_for_nulls(self.assessment_data, "Data")
+        try:
+            check_data_instance(self.assessment_data, TabularData)
+            check_artifact_for_nulls(self.assessment_data, "Data")
+        except:
+            check_data_instance(self.assessment_data, KerasData)
 
     def _setup(self):
         # data variables
