@@ -1,5 +1,9 @@
 <img src="https://raw.githubusercontent.com/credo-ai/credoai_lens/develop/docs/_static/images/credo_ai-lens.png" width="250" alt="Credo AI Lens"><br>
 
+![Workflow](https://github.com/credo-ai/credoai_lens/actions/workflows/test-reports.yml/badge.svg)
+![Tests](https://credoai-cicd-public-artifacts.s3.us-west-2.amazonaws.com/credoai_lens/feature-add-badges/tests-badge.svg)
+[![Coverage](https://credoai-cicd-public-artifacts.s3.us-west-2.amazonaws.com/credoai_lens/feature-add-badges/coverage-badge.svg)](https://credoai-cicd-public-artifacts.s3.us-west-2.amazonaws.com/credoai_lens/feature-add-badges/html/index.html)
+
 --------------------------------------
 
 # Lens by Credo AI - Responsible AI Assessment Framework
