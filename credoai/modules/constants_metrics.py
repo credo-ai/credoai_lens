@@ -17,14 +17,11 @@ from credoai.modules.metrics_credoai import (
     ks_statistic,
     multiclass_rates,
 )
+from credoai.artifacts.model.constants_model import MODEL_TYPES
 
 THRESHOLD_METRIC_CATEGORIES = ["BINARY_CLASSIFICATION_THRESHOLD"]
 
-MODEL_TYPE_METRIC_CATEGORIES = [
-    "BINARY_CLASSIFICATION",
-    "MULTICLASS_CLASSIFICATION",
-    "REGRESSION",
-]
+MODEL_TYPE_METRIC_CATEGORIES = [x.upper() for x in MODEL_TYPES]
 
 MODEL_METRIC_CATEGORIES = [
     "CLUSTERING",
