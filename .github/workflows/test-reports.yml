@@ -51,6 +51,7 @@ jobs:
           rm -rf test-reports/
           scripts/test-reports.sh
       - name: configure aws credentials
+        if: always()
         uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: arn:aws:iam::858725184704:role/allow-gh-actions-public
