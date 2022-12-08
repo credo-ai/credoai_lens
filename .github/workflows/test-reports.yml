@@ -6,7 +6,6 @@ on:
     branches:
       - main
       - develop
-      - feature/add-badges
     paths-ignore:
       - '**.md'
       - '**.rst'
@@ -30,7 +29,8 @@ jobs:
         uses: rlespinasse/github-slug-action@v4.4.0
         with:
           prefix: CI_
-      - id: install-aws-cli
+      - name: Install AWS CLI
+        id: install-aws-cli
         uses: unfor19/install-aws-cli-action@v1.0.4
       - name: Set up python
         uses: actions/setup-python@v4
@@ -50,15 +50,17 @@ jobs:
         run: |
           rm -rf test-reports/
           scripts/test-reports.sh
-      - name: configure aws credentials
+      - name: Configure AWS Credentials
+        id: aws-creds
         if: always()
+        # continue-on-error: true # Set this if you don't want the workflow to error on AWS creds issue
         uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: arn:aws:iam::858725184704:role/allow-gh-actions-public
           role-session-name: credoai-lens-test-reports
           aws-region: ${{ env.AWS_REGION }}
       - name: Push reports to S3
-        if: always()
+        if: steps.aws-creds.outcome == 'success'
         run: |
           if [ -e "test-reports/cov.xml" ]; then
               genbadge coverage -i test-reports/cov.xml -o test-reports/coverage-badge.svg
