@@ -72,7 +72,7 @@ BINARY_CLASSIFICATION_FUNCTIONS = {
 # Define Multiclass classification name mapping.
 # Multiclass classification metrics must have a similar signature to sklearn metrics
 MULTICLASS_CLASSIFICATION_FUNCTIONS = {
-    "precision_score": partial(sk_metrics.precision_score, average="macro")
+    "precision_score": partial(sk_metrics.precision_score, average="weighted")
 }
 
 # Define Fairness Metric Name Mapping
