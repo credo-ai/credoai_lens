@@ -15,6 +15,7 @@ from credoai.modules.metrics_credoai import (
     false_omission_rate,
     gini_coefficient_discriminatory,
     ks_statistic,
+    multiclass_rates,
 )
 
 THRESHOLD_METRIC_CATEGORIES = ["BINARY_CLASSIFICATION_THRESHOLD"]
@@ -50,29 +51,45 @@ SCALAR_METRIC_CATEGORIES = MODEL_METRIC_CATEGORIES + NON_MODEL_METRIC_CATEGORIES
 # Define Binary classification name mapping.
 # Binary classification metrics must have a similar signature to sklearn metrics
 BINARY_CLASSIFICATION_FUNCTIONS = {
-    "false_positive_rate": fl_metrics.false_positive_rate,
-    "false_negative_rate": fl_metrics.false_negative_rate,
-    "false_discovery_rate": false_discovery_rate,
-    "false_omission_rate": false_omission_rate,
-    "true_positive_rate": fl_metrics.true_positive_rate,
-    "true_negative_rate": fl_metrics.true_negative_rate,
-    "precision_score": sk_metrics.precision_score,
     "accuracy_score": sk_metrics.accuracy_score,
-    "balanced_accuracy_score": sk_metrics.balanced_accuracy_score,
-    "matthews_correlation_coefficient": sk_metrics.matthews_corrcoef,
-    "f1_score": sk_metrics.f1_score,
     "average_precision_score": sk_metrics.average_precision_score,
+    "balanced_accuracy_score": sk_metrics.balanced_accuracy_score,
+    "f1_score": sk_metrics.f1_score,
+    "false_discovery_rate": false_discovery_rate,
+    "false_negative_rate": fl_metrics.false_negative_rate,
+    "false_omission_rate": false_omission_rate,
+    "false_positive_rate": fl_metrics.false_positive_rate,
+    "gini_coefficient": gini_coefficient_discriminatory,
+    "matthews_correlation_coefficient": sk_metrics.matthews_corrcoef,
+    "overprediction": fl_metrics._mean_overprediction,
+    "precision_score": sk_metrics.precision_score,
     "roc_auc_score": sk_metrics.roc_auc_score,
     "selection_rate": fl_metrics.selection_rate,
-    "overprediction": fl_metrics._mean_overprediction,
+    "true_negative_rate": fl_metrics.true_negative_rate,
+    "true_positive_rate": fl_metrics.true_positive_rate,
     "underprediction": fl_metrics._mean_underprediction,
-    "gini_coefficient": gini_coefficient_discriminatory,
 }
 
 # Define Multiclass classification name mapping.
 # Multiclass classification metrics must have a similar signature to sklearn metrics
 MULTICLASS_CLASSIFICATION_FUNCTIONS = {
-    "precision_score": partial(sk_metrics.precision_score, average="weighted")
+    "accuracy_score": sk_metrics.accuracy_score,
+    "balanced_accuracy_score": sk_metrics.balanced_accuracy_score,
+    "f1_score": partial(sk_metrics.f1_score, average="weighted"),
+    "false_discovery_rate": partial(false_discovery_rate, average="weighted"),
+    "gini_coefficient": partial(
+        gini_coefficient_discriminatory, multi_class="ovo", average="weighted"
+    ),
+    "matthews_correlation_coefficient": sk_metrics.matthews_corrcoef,
+    "overprediction": fl_metrics._mean_overprediction,
+    "precision_score": partial(sk_metrics.precision_score, average="weighted"),
+    "roc_auc_score": partial(
+        sk_metrics.roc_auc_score, multi_class="ovo", average="weighted"
+    ),
+    "selection_rate": fl_metrics.selection_rate,
+    "true_negative_rate": partial(multiclass_rates, rate="TNR"),
+    "true_positive_rate": partial(multiclass_rates, rate="TNR"),
+    "underprediction": fl_metrics._mean_underprediction,
 }
 
 # Define Fairness Metric Name Mapping
