@@ -24,8 +24,6 @@ from credoai.evaluators.utils.validation import (
     check_requirements_existence,
 )
 
-tf.compat.v1.disable_eager_execution()
-
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
@@ -101,10 +99,12 @@ class Security(Evaluator):
             Key: metric name
             Value: metric value
         """
+        tf.compat.v1.disable_eager_execution()
         res = {**self._extraction_attack(), **self._evasion_attack()}
         res = pd.DataFrame(list(res.items()), columns=["type", "value"])
         res[["type", "subtype"]] = res.type.str.split("-", expand=True)
         self.results = [MetricContainer(res, **self.get_container_info())]
+        tf.compat.v1.enable_eager_execution()
         return self
 
     def _extraction_attack(self):
