@@ -5,7 +5,7 @@ Evaluators
    :maxdepth: 2
    :hidden:
 
-   
+   ./evaluators/dataprofiler
    ./evaluators/modelequity
    ./evaluators/modelfairness
    ./evaluators/performance
@@ -20,6 +20,10 @@ library.
 
 Library of Evaluators
 ---------------------
+
+:ref:`DataProfiling<Data Profiler (Experimental)>`
+    This evaluator runs the pandas profiler on a data. Pandas profiler calculates a number
+    of descriptive statistics about the data.
 
 :ref:`ModelEquity<Model Equity>`
     This evaluator assesses whether model outcomes (i.e., predictions) are distributed equally 

@@ -7,7 +7,6 @@ Experimental Evaluators
 
    ./experimental/dataequity
    ./experimental/datafairness
-   ./experimental/dataprofiler
    ./experimental/deepchecks
    ./experimental/featuredrift
    ./experimental/identityverification
@@ -37,10 +36,6 @@ Several evaluators in Lens are still in an experimental development phase. The c
     - evaluates whether features in the dataset are proxies for the sensitive feature
     - whether the entire dataset can be seen as a proxy for the sensitive feature
       (i.e., the sensitive feature is "redundantly encoded")
-
-:ref:`DataProfiling<Data Profiler (Experimental)>`
-    This evaluator runs the pandas profiler on a data. Pandas profiler calculates a number
-    of descriptive statistics about the data.
 
 :ref:`RankingFairness<Ranking Fairness (Experimental)>`
     This evaluator calculates group fairness metrics for ranking systems.
