@@ -1,9 +1,9 @@
 
-Survival Fairness
-=================
+Survival Fairness (Experimental)
+================================
 
 
-Calculate Survival fairness
+Calculate Survival fairness (Experimental)
 
 Parameters
 ----------

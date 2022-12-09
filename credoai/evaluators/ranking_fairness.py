@@ -35,7 +35,7 @@ METRIC_SUBSET = [
 
 class RankingFairness(Evaluator):
     """
-    Ranking fairness evaluator for Credo AI
+    Ranking fairness evaluator for Credo AI (Experimental)
 
     This module takes in ranking results and provides functionality to perform fairness assessment
     The results should include rankings, sensitive features, and optionally, scores.

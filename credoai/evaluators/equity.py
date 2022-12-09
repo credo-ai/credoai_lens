@@ -20,7 +20,7 @@ from credoai.utils.model_utils import type_of_target
 
 class DataEquity(Evaluator):
     """
-    Data Equity evaluator for Credo AI.
+    Data Equity evaluator for Credo AI (Experimental)
 
     This evaluator assesses whether outcomes are distributed equally across a sensitive
     feature. Depending on the kind of outcome, different tests will be performed.

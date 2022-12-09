@@ -11,7 +11,7 @@ from credoai.modules.constants_deepchecks import DEFAULT_CHECKS
 
 class Deepchecks(Evaluator):
     """
-    `Deepchecks <https://docs.deepchecks.com/stable/getting-started/welcome.html?utm_campaign=/&utm_medium=referral&utm_source=deepchecks.com>`_ evaluator for Credo AI.
+    `Deepchecks <https://docs.deepchecks.com/stable/getting-started/welcome.html?utm_campaign=/&utm_medium=referral&utm_source=deepchecks.com>`_ evaluator for Credo AI (Experimental)
 
     This evaluator enables running of deepchecks `checks` and passing the results to
     the Governance platform in the form of a deepchecks SuiteResult, cast to JSON format.
