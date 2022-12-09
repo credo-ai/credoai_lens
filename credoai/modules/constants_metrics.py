@@ -16,7 +16,7 @@ from credoai.modules.metrics_credoai import (
     false_omission_rate,
     gini_coefficient_discriminatory,
     ks_statistic,
-    multiclass_rates,
+    multiclass_confusion_metrics,
 )
 
 THRESHOLD_METRIC_CATEGORIES = ["BINARY_CLASSIFICATION_THRESHOLD"]
@@ -68,22 +68,24 @@ BINARY_CLASSIFICATION_FUNCTIONS = {
 # Define Multiclass classification name mapping.
 # Multiclass classification metrics must have a similar signature to sklearn metrics
 MULTICLASS_CLASSIFICATION_FUNCTIONS = {
-    "accuracy_score": sk_metrics.accuracy_score,
+    "accuracy_score": partial(multiclass_confusion_metrics, metric="ACC"),
     "balanced_accuracy_score": sk_metrics.balanced_accuracy_score,
     "f1_score": partial(sk_metrics.f1_score, average="weighted"),
-    "false_discovery_rate": partial(false_discovery_rate, average="weighted"),
+    "false_discovery_rate": partial(multiclass_confusion_metrics, metric="FDR"),
+    "false_negative_rate": partial(multiclass_confusion_metrics, metric="FNR"),
+    "false_positive_rate": partial(multiclass_confusion_metrics, metric="FPR"),
     "gini_coefficient": partial(
-        gini_coefficient_discriminatory, multi_class="ovo", average="weighted"
+        gini_coefficient_discriminatory, multi_class="ovo", average="macro"
     ),
     "matthews_correlation_coefficient": sk_metrics.matthews_corrcoef,
     "overprediction": fl_metrics._mean_overprediction,
-    "precision_score": partial(sk_metrics.precision_score, average="weighted"),
+    "precision_score": partial(sk_metrics.precision_score, average="macro"),
     "roc_auc_score": partial(
-        sk_metrics.roc_auc_score, multi_class="ovo", average="weighted"
+        sk_metrics.roc_auc_score, multi_class="ovo", average="macro"
     ),
     "selection_rate": fl_metrics.selection_rate,
-    "true_negative_rate": partial(multiclass_rates, rate="TNR"),
-    "true_positive_rate": partial(multiclass_rates, rate="TNR"),
+    "true_negative_rate": partial(multiclass_confusion_metrics, metric="TNR"),
+    "true_positive_rate": partial(multiclass_confusion_metrics, metric="TPR"),
     "underprediction": fl_metrics._mean_underprediction,
 }
 

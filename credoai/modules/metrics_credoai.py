@@ -11,7 +11,35 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.utils import check_consistent_length
 
 
-def multiclass_rates(y_true, y_pred, rate):
+def multiclass_confusion_metrics(y_true, y_pred, metric=None, average=True):
+    """Calculate
+
+    Parameters
+    ----------
+    y_true : array-like of shape (n_samples,)
+        Ground truth (correct) target values.
+
+    y_pred : array-like of shape (n_samples,)
+        Estimated targets as returned by a classifier.
+    metric : str, optional
+        If provided, returns a specific metric. All metrics are returned if None is provided.
+        Options are:
+            "TPR": Sensitivity, hit rate, recall, or true positive rate
+            "TNR": Specificity or true negative rate
+            "PPV": Precision or positive predictive value
+            "NPV": Negative predictive value
+            "FPR": Fall out or false positive rate
+            "FNR": False negative rate
+            "FDR": False discovery rate
+            "ACC": Overall accuracy
+    average : bool, optional
+        If True, calculates the Macro average across the metric
+
+    Returns
+    -------
+    dict or float
+        dict if metric is not provided
+    """
     cnf_matrix = confusion_matrix(y_true, y_pred)
     FP = cnf_matrix.sum(axis=0) - np.diag(cnf_matrix)
     FN = cnf_matrix.sum(axis=1) - np.diag(cnf_matrix)
@@ -23,13 +51,22 @@ def multiclass_rates(y_true, y_pred, rate):
     TP = TP.astype(float)
     TN = TN.astype(float)
 
-    TPR = TP / (TP + FN)
-    TNR = TN / (TN + FP)
-
-    if rate == "TPR":
-        return np.round(TPR, 6)
-    if rate == "TNR":
-        return np.round(TNR, 6)
+    metrics = {
+        "TPR": TP / (TP + FN),
+        "TNR": TN / (TN + FP),
+        "PPV": TP / (TP + FP),
+        "NPV": TN / (TN + FN),
+        "FPR": FP / (FP + TN),
+        "FNR": FN / (TP + FN),
+        "FDR": FP / (TP + FP),
+        "ACC": (TP + TN) / (TP + FP + FN + TN),
+    }
+    if average:
+        metrics = {k: v.mean() for k, v in metrics.items()}
+    if metric:
+        return metrics[metric]
+    else:
+        return metrics
 
 
 def general_wilson(p, n, z=1.96):
