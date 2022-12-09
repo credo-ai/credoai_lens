@@ -23,7 +23,7 @@ class ClassificationModel(Model):
 
     def __init__(self, name: str, model_like=None, tags=None):
         super().__init__(
-            "classification",
+            "CLASSIFICATION",
             ["predict", "predict_proba"],
             ["predict"],
             name,
@@ -36,12 +36,12 @@ class ClassificationModel(Model):
         if self.model_info["framework"] in SKLEARN_LIKE_FRAMEWORKS:
             func = getattr(self, "predict_proba", None)
             if len(self.model_like.classes_) == 2:
-                self.type = "binary_classification"
+                self.type = "BINARY_CLASSIFICATION"
                 # if binary, replace probability array with one-dimensional vector
                 if func:
                     self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
             else:
-                self.type = "multiclass_classification"
+                self.type = "MULTICLASS_CLASSIFICATION"
 
 
 class DummyClassifier:

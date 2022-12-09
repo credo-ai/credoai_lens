@@ -9,6 +9,7 @@ from functools import partial
 from fairlearn import metrics as fl_metrics
 from sklearn import metrics as sk_metrics
 
+from credoai.artifacts.model.constants_model import MODEL_TYPES
 from credoai.modules.metrics_credoai import (
     equal_opportunity_difference,
     false_discovery_rate,
@@ -17,11 +18,8 @@ from credoai.modules.metrics_credoai import (
     ks_statistic,
     multiclass_rates,
 )
-from credoai.artifacts.model.constants_model import MODEL_TYPES
 
 THRESHOLD_METRIC_CATEGORIES = ["BINARY_CLASSIFICATION_THRESHOLD"]
-
-MODEL_TYPE_METRIC_CATEGORIES = [x.upper() for x in MODEL_TYPES]
 
 MODEL_METRIC_CATEGORIES = [
     "CLUSTERING",
@@ -36,7 +34,7 @@ NON_MODEL_METRIC_CATEGORIES = [
 ]
 
 METRIC_CATEGORIES = (
-    MODEL_TYPE_METRIC_CATEGORIES
+    MODEL_TYPES
     + MODEL_METRIC_CATEGORIES
     + THRESHOLD_METRIC_CATEGORIES
     + NON_MODEL_METRIC_CATEGORIES
