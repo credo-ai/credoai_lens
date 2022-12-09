@@ -224,6 +224,8 @@ class Performance(Evaluator):
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
+                metric_categories_to_include = MODEL_METRIC_CATEGORIES
+                metric_categories_to_include.append(self.model.type.upper())
                 metric = find_metrics(metric, MODEL_METRIC_CATEGORIES)
                 if len(metric) == 1:
                     metric = metric[0]
@@ -292,7 +294,9 @@ def create_confusion_matrix(y_true, y_pred):
     labels = y_true.astype("category").cat.categories
     confusion = confusion_matrix(y_true, y_pred, normalize="true", labels=labels)
     confusion_df = pd.DataFrame(confusion, index=labels.copy(), columns=labels)
-    confusion_df.index.name = "True"
-    confusion_df.columns.name = "Predicted"
+    confusion_df.index.name = "true_label"
+    confusion_df = confusion_df.reset_index().melt(
+        id_vars=["true_label"], var_name="predicted_label"
+    )
     confusion_df.name = "Confusion Matrix"
     return confusion_df

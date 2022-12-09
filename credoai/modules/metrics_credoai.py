@@ -11,6 +11,27 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.utils import check_consistent_length
 
 
+def multiclass_rates(y_true, y_pred, rate):
+    cnf_matrix = confusion_matrix(y_true, y_pred)
+    FP = cnf_matrix.sum(axis=0) - np.diag(cnf_matrix)
+    FN = cnf_matrix.sum(axis=1) - np.diag(cnf_matrix)
+    TP = np.diag(cnf_matrix)
+    TN = cnf_matrix.sum() - (FP + FN + TP)
+
+    FP = FP.astype(float)
+    FN = FN.astype(float)
+    TP = TP.astype(float)
+    TN = TN.astype(float)
+
+    TPR = TP / (TP + FN)
+    TNR = TN / (TN + FP)
+
+    if rate == "TPR":
+        return np.round(TPR, 6)
+    if rate == "TNR":
+        return np.round(TNR, 6)
+
+
 def general_wilson(p, n, z=1.96):
     """Return lower and upper bound using Wilson Interval.
     Parameters
@@ -322,7 +343,7 @@ def credo_det_curve(y_true, y_prob):
     )
 
 
-def gini_coefficient_discriminatory(y_true, y_prob):
+def gini_coefficient_discriminatory(y_true, y_prob, **kwargs):
     """Returns the Gini Coefficient of a discriminatory model
 
     NOTE: There are two popular, yet distinct metrics known as the 'gini coefficient'.
@@ -349,7 +370,7 @@ def gini_coefficient_discriminatory(y_true, y_prob):
     float
         Discriminatory Gini Coefficient
     """
-    G = (2 * sk_metrics.roc_auc_score(y_true, y_prob)) - 1
+    G = (2 * sk_metrics.roc_auc_score(y_true, y_prob, **kwargs)) - 1
     return G
 
 
