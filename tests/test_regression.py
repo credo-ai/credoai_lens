@@ -14,8 +14,11 @@ from credoai.evaluators import (
     ModelEquity,
     ModelFairness,
     Performance,
+    DataFairness,
+    Security,
+    Deepchecks,
+    ModelProfiler,
 )
-
 
 TEST_METRICS = [["r2_score"]]
 TEST_METRICS_IDS = ["regression_metric"]
@@ -40,8 +43,22 @@ def test_modelfairness_performance(init_lens_regression, metrics, evaluator):
 
 @pytest.mark.parametrize(
     "evaluator",
-    [DataProfiler, ModelEquity, DataEquity],
-    ids=["DataProfiler", "ModelEquity", "DataEquity"],
+    [
+        DataFairness,
+        DataProfiler,
+        ModelEquity,
+        DataEquity,
+        Deepchecks,
+        ModelProfiler,
+    ],
+    ids=[
+        "DataFairness",
+        "DataProfiler",
+        "ModelEquity",
+        "DataEquity",
+        "Deepchecks",
+        "ModelProfiler",
+    ],
 )
 def test_generic_evaluator(init_lens_regression, evaluator):
     """
