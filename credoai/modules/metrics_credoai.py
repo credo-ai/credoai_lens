@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.utils import check_consistent_length
 
 
-def multiclass_confusion_metrics(y_true, y_pred, metric=None, average=True):
+def multiclass_confusion_metrics(y_true, y_pred, metric=None, average="weighted"):
     """Calculate
 
     Parameters
@@ -32,8 +32,8 @@ def multiclass_confusion_metrics(y_true, y_pred, metric=None, average=True):
             "FNR": False negative rate
             "FDR": False discovery rate
             "ACC": Overall accuracy
-    average : bool, optional
-        If True, calculates the Macro average across the metric
+    average : str
+        Options are "weighted", "macro" or None (which will return the values for each label)
 
     Returns
     -------
@@ -61,7 +61,10 @@ def multiclass_confusion_metrics(y_true, y_pred, metric=None, average=True):
         "FDR": FP / (TP + FP),
         "ACC": (TP + TN) / (TP + FP + FN + TN),
     }
-    if average:
+    if average == "weighted":
+        weights = np.unique(y_true, return_counts=True)[1] / len(y_true)
+        metrics = {k: np.average(v, weights=weights) for k, v in metrics.items()}
+    elif average == "macro":
         metrics = {k: v.mean() for k, v in metrics.items()}
     if metric:
         return metrics[metric]

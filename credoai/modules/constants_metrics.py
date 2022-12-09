@@ -75,13 +75,13 @@ MULTICLASS_CLASSIFICATION_FUNCTIONS = {
     "false_negative_rate": partial(multiclass_confusion_metrics, metric="FNR"),
     "false_positive_rate": partial(multiclass_confusion_metrics, metric="FPR"),
     "gini_coefficient": partial(
-        gini_coefficient_discriminatory, multi_class="ovo", average="macro"
+        gini_coefficient_discriminatory, multi_class="ovo", average="weighted"
     ),
     "matthews_correlation_coefficient": sk_metrics.matthews_corrcoef,
     "overprediction": fl_metrics._mean_overprediction,
-    "precision_score": partial(sk_metrics.precision_score, average="macro"),
+    "precision_score": partial(sk_metrics.precision_score, average="weighted"),
     "roc_auc_score": partial(
-        sk_metrics.roc_auc_score, multi_class="ovo", average="macro"
+        sk_metrics.roc_auc_score, multi_class="ovo", average="weighted"
     ),
     "selection_rate": fl_metrics.selection_rate,
     "true_negative_rate": partial(multiclass_confusion_metrics, metric="TNR"),
