@@ -1,4 +1,7 @@
 import pickle
+import os
+import base64
+import json
 
 import pytest
 from connect.governance import Governance
@@ -7,6 +10,7 @@ from pytest import fixture
 
 from credoai.artifacts import ClassificationModel, TabularData
 from credoai.lens import Lens
+from connect.governance.credo_api_client import CredoApiConfig
 
 
 @pytest.fixture(scope="function")
