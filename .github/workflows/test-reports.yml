@@ -47,6 +47,9 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
       - name: Run tests
+        env:
+          CREDOAI_LENS_CONFIG_JSON_B64: ${{ env.CREDOAI_LENS_CONFIG_JSON_B64 }}
+          CREDOAI_LENS_PLAN_URL: ${{ env.CREDOAI_LENS_PLAN_URL }}
         run: |
           rm -rf test-reports/
           scripts/test-reports.sh
