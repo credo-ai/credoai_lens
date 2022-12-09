@@ -21,7 +21,7 @@ library.
 Library of Evaluators
 ---------------------
 
-:ref:`DataProfiling<Data Profiler (Experimental)>`
+:ref:`DataProfiling<Data Profiler>`
     This evaluator runs the pandas profiler on a data. Pandas profiler calculates a number
     of descriptive statistics about the data.
 
