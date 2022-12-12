@@ -1,10 +1,15 @@
+import re
 from typing import Optional
 
+import numpy as np
+from pandas import DataFrame, concat
+
 from connect.evidence.lens_evidence import ModelProfilerContainer
+from connect.evidence import TableContainer
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_existence
 from credoai.utils import ValidationError, global_logger
-from pandas import DataFrame
+
 
 USER_INFO_TEMPLATE = {
     "developed_by": None,
@@ -85,6 +90,10 @@ class ModelProfiler(Evaluator):
     def evaluate(self):
         basic = self._get_basic_info()
         res = self._get_model_params()
+        if "keras" in str(self.model_type):
+            # Hack for keras demo, TODO: remove when merging to dev
+            self.results = [TableContainer(self._hack_results_into_table(res, basic))]
+            return self
         # Add user generated info
         self.usr_model_info = {k: v for k, v in self.usr_model_info.items() if v}
         # Get a sample of the data
@@ -93,11 +102,29 @@ class ModelProfiler(Evaluator):
         res = {**basic, **res, **self.usr_model_info, **data_sample}
         # Format
         res, labels = self._add_entries_labeling(res)
+
         # Package into evidence
         self.results = [
             ModelProfilerContainer(res, **self.get_container_info(labels=labels))
         ]
         return self
+
+    @staticmethod
+    def _hack_results_into_table(res, basic):
+        basic = DataFrame(basic, index=[0]).T
+        opt_info = DataFrame(res["parameters"]["optimizer_info"], index=[0])
+        opt_info.columns = [f"optimizer.{x}" for x in opt_info.columns]
+        opt_info = opt_info.T
+        choose = ["total_parameters", "trainable_parameters"]
+        chosen = DataFrame(
+            {k: v for k, v in res["parameters"].items() if k in choose}, index=[0]
+        ).T
+
+        output = concat([basic, chosen, opt_info])
+        output = output.reset_index()
+        output.columns = ["parameters", "values"]
+        output.name = "model profile"
+        return output
 
     def _get_basic_info(self) -> dict:
         """
@@ -141,11 +168,48 @@ class ModelProfiler(Evaluator):
         """
         if "sklearn" in str(self.model_type):
             return self._get_sklearn_model_params()
-        else:
-            self.logger.info(
-                "Automatic model parameter inference not available for this model type."
-            )
-            return {}
+        if "keras" in str(self.model_type):
+            return self._get_keras_model_params()
+        self.logger.info(
+            "Automatic model parameter inference not available for this model type."
+        )
+        return {}
+
+    def _get_keras_model_params(self) -> dict:
+        trainable_parameters = int(
+            np.sum([np.prod(v.get_shape()) for v in self.model.trainable_weights])
+        )
+        non_trainable_parameters = int(
+            np.sum([np.prod(v.get_shape()) for v in self.model.non_trainable_weights])
+        )
+
+        total_parameters = trainable_parameters + non_trainable_parameters
+
+        opt_info = self.model.optimizer.get_config()  # dict
+
+        network_structure = DataFrame(
+            [
+                (
+                    x.name,
+                    re.sub(r"[^a-zA-Z]", "", str(type(x)).split(".")[-1]),
+                    x.input_shape,
+                    x.output_shape,
+                    x.count_params(),
+                )
+                for x in self.model.layers
+            ],
+            columns=["name", "layer_type", "input_shape", "output_shape", "parameters"],
+        )
+
+        return {
+            "parameters": {
+                "total_parameters": total_parameters,
+                "trainable_parameters": trainable_parameters,
+                "non_trainable_parameters": non_trainable_parameters,
+                "network_architecture": network_structure,
+                "optimizer_info": opt_info,
+            }
+        }
 
     def _get_sklearn_model_params(self) -> dict:
         """
