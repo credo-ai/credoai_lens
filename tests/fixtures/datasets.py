@@ -86,9 +86,10 @@ def multiclass_data():
     iris = datasets.load_iris()
     X = iris.data
     y = iris.target
-    sensitive_features = (
-        Series(["B", "W"]).sample(X.shape[0], replace=True, random_state=42).to_list()
+    sensitive_features = Series(["B", "W"]).sample(
+        X.shape[0], replace=True, random_state=42
     )
+
     (
         X_train,
         X_test,

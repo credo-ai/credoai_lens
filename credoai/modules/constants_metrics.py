@@ -89,12 +89,6 @@ MULTICLASS_CLASSIFICATION_FUNCTIONS = {
     "underprediction": fl_metrics._mean_underprediction,
 }
 
-MULTICLASS_CLASSIFICATION_FUNCTIONS = {
-    "accuracy_score": sk_metrics.accuracy_score,
-    "balanced_accuracy_score": sk_metrics.balanced_accuracy_score,
-    "f1_score": partial(sk_metrics.f1_score, average="weighted"),
-    "precision_score": partial(sk_metrics.precision_score, average="weighted"),
-}
 # Define Fairness Metric Name Mapping
 # Fairness metrics must have a similar signature to fairlearn.metrics.equalized_odds_difference
 # (they should take sensitive_features and method)
