@@ -27,7 +27,9 @@ def get_model_info(model):
         framework = model.__class__.__module__.split(".")[0]
     except AttributeError:
         framework = None
-    return {"framework": framework}
+    try:
+        name = model.__class__.__name__
+    return {"framework": framework, "lib_name": name}
 
 
 def get_default_metrics(model):

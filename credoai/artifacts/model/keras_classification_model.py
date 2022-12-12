@@ -5,6 +5,10 @@ from credoai.utils import ValidationError
 
 import numpy as np
 
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+
 
 class KerasClassificationModel(Model):
     """Class wrapper around Keras-based classification model to be assessed
@@ -13,6 +17,8 @@ class KerasClassificationModel(Model):
     classification models based on the Tensorflow Keras framework and the evaluations in Lens.
     Evaluations depend on ClassificationModel redefining `predict` and `predict_proba` since
     Keras `predict` is probabilistic by default and no thresholded classification exists.
+
+    Assumes use of tf.models.Sequential linear layer grouping.
 
     Parameters
     ----------
@@ -34,10 +40,35 @@ class KerasClassificationModel(Model):
             tags,
         )
         self._validate_keras()
+        self._validate_sequential()
+        self._validate_dense()
 
     def _validate_keras(self):
-        if not self.model_like.__class__.__module__ == "keras.engine.sequential":
-            raise ValidationError("Expected model from Keras Sequential framework")
+        if not self.model_info["framework"] == "keras":
+            raise ValidationError("Expected model from Keras framework")
+
+    def _validate_sequential(self):
+        # This is how Keras checks sequential too: https://github.com/keras-team/keras/blob/master/keras/utils/layer_utils.py#L219
+        if not self.model_info["lib_name"] == "Sequential":
+            raise ValidationError("Expected model to use Sequential layer grouping")
+
+    def _validate_dense(self):
+        if not isinstance(self.model_like.layers[-1], layers.Dense):
+            raise ValidationError(
+                "Expected output layer to be of type tf.keras.layers.Dense"
+            )
+        if len(self.model_like.layers[-1].shape) != 2:
+            raise ValidationError(
+                "Expected output 2D output shape: (batch_size, n_classes) or (None, n_classes)"
+            )
+        if self.model_like.layers[-1].shape[0] is not None:
+            raise ValidationError("Expected output shape to have arbitrary length")
+        if self.model_like.layers[-1].shape[1] < 2:
+            raise ValidationError(
+                "Expected classification output shape (batch_size, n_classes) or (None, n_classes). Continuous output univariate regression not supported"
+            )
+            # TODO Add support for model-imposed argmax layer
+            # https://stackoverflow.com/questions/56704669/keras-output-single-value-through-argmax
 
     def _update_functionality(self):
         """Conditionally updates functionality based on framework"""
