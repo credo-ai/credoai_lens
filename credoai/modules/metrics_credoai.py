@@ -1,5 +1,6 @@
 """Custom metrics defined by Credo AI"""
 
+from functools import partial
 from typing import Literal
 
 import numpy as np
@@ -257,7 +258,13 @@ def equal_opportunity_difference(
     float
         The average odds difference
     """
-    fun = make_derived_metric(metric=true_positive_rate, transform="difference")
+    if len(set(y_pred)) == 2:
+        metric = true_positive_rate
+    else:
+        # Handles multiclass case
+        metric = partial(multiclass_confusion_metrics, metric="TPR")
+        metric.__name__ = "true_positive_rate"
+    fun = make_derived_metric(metric=metric, transform="difference")
     return fun(
         y_true,
         y_pred,
