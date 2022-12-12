@@ -92,7 +92,12 @@ class ModelProfiler(Evaluator):
         res = self._get_model_params()
         if "keras" in str(self.model_type):
             # Hack for keras demo, TODO: remove when merging to dev
-            self.results = [TableContainer(self._hack_results_into_table(res, basic))]
+            self.results = [
+                TableContainer(
+                    self._hack_results_into_table(res, basic),
+                    **self.get_container_info(),
+                )
+            ]
             return self
         # Add user generated info
         self.usr_model_info = {k: v for k, v in self.usr_model_info.items() if v}
