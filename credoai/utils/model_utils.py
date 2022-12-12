@@ -29,6 +29,8 @@ def get_model_info(model):
         framework = None
     try:
         name = model.__class__.__name__
+    except AttributeError:
+        name = None
     return {"framework": framework, "lib_name": name}
 
 
