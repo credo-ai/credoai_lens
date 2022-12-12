@@ -1,3 +1,15 @@
+"""
+Contains all fixtures related to lens initialization.
+
+The inits created here contain:
+
+1. Initialized Lens instance
+2. Governance instance
+3. temp_file fixture (this is created in conftest.py)
+
+Any fixture added to the file will be immediately available due to
+addition of this module as plugin in the file `pytest.ini`.
+"""
 import pytest
 from connect.governance import Governance
 from pandas import DataFrame

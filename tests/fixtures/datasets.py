@@ -1,3 +1,9 @@
+"""
+Contains all fixtures related to dataset creation.
+
+Any fixture added to the file will be immediately available due to
+addition of this module as plugin in the file `pytest.ini`.
+"""
 from pytest import fixture
 from credoai.datasets import fetch_creditdefault, fetch_testdata
 from pandas import DataFrame, Series
