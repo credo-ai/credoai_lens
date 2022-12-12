@@ -305,7 +305,7 @@ class ModelFairness(Evaluator):
             if isinstance(metric, str):
                 metric_name = metric
                 metric_categories_to_include = MODEL_METRIC_CATEGORIES
-                metric_categories_to_include.append(self.model.type.upper())
+                metric_categories_to_include.append(self.model.type)
                 metric = find_metrics(metric, metric_categories_to_include)
                 if len(metric) == 1:
                     metric = metric[0]
