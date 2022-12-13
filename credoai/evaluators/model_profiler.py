@@ -81,8 +81,8 @@ class ModelProfiler(Evaluator):
 
     def _setup(self):
         self.model_name = self.model.name
-        self.model = self.model.model_like
-        self.model_type = type(self.model)
+        self.model_internal = self.model.model_like
+        self.model_type = type(self.model_internal)
 
     def _validate_arguments(self):
         check_existence(self.model, "model")
@@ -182,15 +182,22 @@ class ModelProfiler(Evaluator):
 
     def _get_keras_model_params(self) -> dict:
         trainable_parameters = int(
-            np.sum([np.prod(v.get_shape()) for v in self.model.trainable_weights])
+            np.sum(
+                [np.prod(v.get_shape()) for v in self.model_internal.trainable_weights]
+            )
         )
         non_trainable_parameters = int(
-            np.sum([np.prod(v.get_shape()) for v in self.model.non_trainable_weights])
+            np.sum(
+                [
+                    np.prod(v.get_shape())
+                    for v in self.model_internal.non_trainable_weights
+                ]
+            )
         )
 
         total_parameters = trainable_parameters + non_trainable_parameters
 
-        opt_info = self.model.optimizer.get_config()  # dict
+        opt_info = self.model_internal.optimizer.get_config()  # dict
 
         network_structure = DataFrame(
             [
@@ -201,7 +208,7 @@ class ModelProfiler(Evaluator):
                     x.output_shape,
                     x.count_params(),
                 )
-                for x in self.model.layers
+                for x in self.model_internal.layers
             ],
             columns=["name", "layer_type", "input_shape", "output_shape", "parameters"],
         )
@@ -225,11 +232,11 @@ class ModelProfiler(Evaluator):
         dict
             Dictionary of info about the model
         """
-        parameters = self.model.get_params()
+        parameters = self.model_internal.get_params()
         model_library = self.model_type.__name__
         library = "sklearn"
-        if hasattr(self.model, "feature_names_in_"):
-            feature_names = list(self.model.feature_names_in_)
+        if hasattr(self.model_internal, "feature_names_in_"):
+            feature_names = list(self.model_internal.feature_names_in_)
         else:
             feature_names = None
         return {
