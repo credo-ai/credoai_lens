@@ -307,6 +307,12 @@ class ModelFairness(Evaluator):
                 metric_categories_to_include = MODEL_METRIC_CATEGORIES
                 metric_categories_to_include.append(self.model.type)
                 metric = find_metrics(metric, metric_categories_to_include)
+                if self.model.type == "MULTICLASS_CLASSIFICATION" and any(
+                    [x.metric_category == "FAIRNESS" for x in metric]
+                ):
+                    raise Exception(
+                        "Fairness metrics not supported for multiclass classification"
+                    )
                 if len(metric) == 1:
                     metric = metric[0]
                 elif len(metric) == 0:
