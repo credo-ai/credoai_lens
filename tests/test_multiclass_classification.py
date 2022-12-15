@@ -12,6 +12,7 @@ from credoai.evaluators import (
     ModelFairness,
     Performance,
 )
+from credoai.modules.constants_metrics import FAIRNESS_FUNCTIONS
 
 
 ##################################################
@@ -38,6 +39,24 @@ TEST_METRICS_IDS = [
 ]
 
 
+@pytest.fixture
+def xfail_fairness_tests(request):
+    """
+    Fail tests for fairness metrics.
+
+    TODO: explore multiclass definitions of fairness and updated the tests
+    if any logic change is made.
+    """
+    message = "Fairness metrics currently not supported for multiclass classification"
+    metrics = request.getfixturevalue("metrics")
+    evaluator = request.getfixturevalue("evaluator")
+
+    metrics_fairness_intersection = [x for x in metrics if x in FAIRNESS_FUNCTIONS]
+
+    if evaluator == ModelFairness and len(metrics_fairness_intersection) != 0:
+        request.node.add_marker(pytest.mark.xfail(reason=message))
+
+
 ##################################################
 #################### Tests #######################
 ##################################################
@@ -47,6 +66,7 @@ TEST_METRICS_IDS = [
     "evaluator", [ModelFairness, Performance], ids=["Model Fairness", "Performance"]
 )
 @pytest.mark.parametrize("metrics", TEST_METRICS, ids=TEST_METRICS_IDS)
+@pytest.mark.usefixtures("xfail_fairness_tests")
 def test_modelfairness_performance(init_lens_multiclass, metrics, evaluator):
     lens, temp_file, gov = init_lens_multiclass
     eval = evaluator(metrics)

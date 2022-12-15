@@ -258,13 +258,7 @@ def equal_opportunity_difference(
     float
         The average odds difference
     """
-    if len(set(y_pred)) == 2:
-        metric = true_positive_rate
-    else:
-        # Handles multiclass case
-        metric = partial(multiclass_confusion_metrics, metric="TPR")
-        metric.__name__ = "true_positive_rate"
-    fun = make_derived_metric(metric=metric, transform="difference")
+    fun = make_derived_metric(metric=true_positive_rate, transform="difference")
     return fun(
         y_true,
         y_pred,
