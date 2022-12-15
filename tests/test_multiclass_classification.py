@@ -11,7 +11,14 @@ import pytest
 from credoai.evaluators import (
     ModelFairness,
     Performance,
+    DataFairness,
+    DataProfiler,
+    ModelProfiler,
+    Deepchecks,
 )
+from credoai.evaluators.data_fairness import DataFairness
+from credoai.evaluators.equity import DataEquity, ModelEquity
+from credoai.evaluators.security import Security
 from credoai.modules.constants_metrics import FAIRNESS_FUNCTIONS
 
 
@@ -71,6 +78,51 @@ def test_modelfairness_performance(init_lens_multiclass, metrics, evaluator):
     lens, temp_file, gov = init_lens_multiclass
     eval = evaluator(metrics)
     lens.add(eval)
+    lens.run()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
+
+
+@pytest.mark.xfail(reason="multiclass format is not supported")
+def test_threshold_performance(init_lens_multiclass):
+    lens, temp_file, gov = init_lens_multiclass
+    lens.add(Performance(["roc_curve", "precision_recall_curve"]))
+    lens.run()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.get_evidence())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(not gov._file_export(temp_file))
+
+
+@pytest.mark.parametrize(
+    "evaluator",
+    [
+        DataFairness,
+        DataProfiler,
+        ModelEquity,
+        DataEquity,
+        Security,
+        Deepchecks,
+        ModelProfiler,
+    ],
+    ids=[
+        "DataFairness",
+        "DataProfiler",
+        "ModelEquity",
+        "DataEquity",
+        "Security",
+        "Deepchecks",
+        "ModelProfiler",
+    ],
+)
+def test_generic_evaluator(init_lens_classification, evaluator):
+    """
+    Any evaluator not requiring specific treatment can be tested here
+    """
+    lens, temp_file, gov = init_lens_classification
+    lens.add(evaluator())
     lens.run()
     pytest.assume(lens.get_results())
     pytest.assume(lens.get_evidence())
