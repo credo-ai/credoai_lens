@@ -151,7 +151,7 @@ class DataFairness(Evaluator):
         res[["type", "subtype"]] = res.metric_type.str.split("-", expand=True)
         res.drop("metric_type", axis=1, inplace=True)
 
-        return [MetricContainer(res, **self.get_container_info())]
+        return [MetricContainer(res, **self.get_info())]
 
     def _group_differences(self):
         """

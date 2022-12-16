@@ -4,6 +4,7 @@ from itertools import combinations
 
 import numpy as np
 import pandas as pd
+from connect.evidence import MetricContainer, TableContainer
 from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
 
 from credoai.artifacts import TabularData
@@ -13,7 +14,6 @@ from credoai.evaluators.utils.validation import (
     check_data_instance,
     check_existence,
 )
-from connect.evidence import MetricContainer, TableContainer
 from credoai.utils import NotRunError
 from credoai.utils.model_utils import type_of_target
 
@@ -101,7 +101,7 @@ class DataEquity(Evaluator):
         # Format summary results
         summary = TableContainer(
             results["summary"],
-            **self.get_container_info(labels=self.labels),
+            **self.get_info(labels=self.labels),
         )
 
         # Format parity results
@@ -114,7 +114,7 @@ class DataEquity(Evaluator):
         )
         parity_results = MetricContainer(
             parity_results,
-            **self.get_container_info(labels=self.labels),
+            **self.get_info(labels=self.labels),
         )
 
         return summary, parity_results
@@ -144,7 +144,7 @@ class DataEquity(Evaluator):
 
         outcome_distribution = TableContainer(
             distribution,
-            **self.get_container_info(labels=self.labels),
+            **self.get_info(labels=self.labels),
         )
         return outcome_distribution
 
@@ -171,9 +171,7 @@ class DataEquity(Evaluator):
 
         overall_equity = MetricContainer(
             pd.DataFrame(overall_equity, index=[0]),
-            **self.get_container_info(
-                labels={"sensitive_feature": self.sensitive_features.name}
-            ),
+            **self.get_info(labels={"sensitive_feature": self.sensitive_features.name}),
         )
 
         posthoc_tests = None
@@ -183,7 +181,7 @@ class DataEquity(Evaluator):
             posthoc_tests.name = "posthoc"
             posthoc_tests = TableContainer(
                 posthoc_tests,
-                **self.get_container_info(
+                **self.get_info(
                     labels={"sensitive_feature": self.sensitive_features.name}
                 ),
             )

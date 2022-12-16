@@ -73,7 +73,6 @@ class ModelFairness(Evaluator):
         else:
             self.y_prob = (None,)
         self.update_metrics(self.metrics)
-        self.sens_feat_label = {"sensitive_feature": self.sensitive_features.name}
 
     def evaluate(self):
         """
@@ -170,9 +169,7 @@ class ModelFairness(Evaluator):
 
         return TableContainer(
             disaggregated_results,
-            **self.get_container_info(
-                labels={**self.sens_feat_label, **metric_type_label}
-            ),
+            **self.get_info(labels=metric_type_label),
         )
 
     def get_disaggregated_threshold_performance(self):
@@ -211,9 +208,9 @@ class ModelFairness(Evaluator):
 
         disaggregated_thresh_results = []
         for key, df in to_return.items():
-            labels = {**self.sens_feat_label, **{"metric_type": key}}
+            labels = {"metric_type": key}
             disaggregated_thresh_results.append(
-                TableContainer(df, **self.get_container_info(labels=labels))
+                TableContainer(df, **self.get_info(labels=labels))
             )
 
         return disaggregated_thresh_results
@@ -275,10 +272,7 @@ class ModelFairness(Evaluator):
         if results.empty:
             self.logger.info("No fairness metrics calculated.")
             return
-        return MetricContainer(
-            results,
-            **self.get_container_info(labels=self.sens_feat_label),
-        )
+        return MetricContainer(results, **self.get_info())
 
     def _process_metrics(self, metrics):
         """

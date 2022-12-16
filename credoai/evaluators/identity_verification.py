@@ -284,9 +284,7 @@ class IdentityVerification(Evaluator):
                     "comparison_level": level,
                 }
                 overall_performance_res.append(
-                    MetricContainer(
-                        res, **self.get_container_info(labels={**parameters_label})
-                    )
+                    MetricContainer(res, **self.get_info(labels={**parameters_label}))
                 )
 
         return overall_performance_res
@@ -371,7 +369,7 @@ class IdentityVerification(Evaluator):
         if disaggregated_results is not None:
             e = TableContainer(
                 disaggregated_results,
-                **self.get_container_info(
+                **self.get_info(
                     labels={
                         **sens_feat_label,
                         **metric_type_label,
@@ -431,8 +429,6 @@ class IdentityVerification(Evaluator):
             self._results.append(
                 MetricContainer(
                     res,
-                    **self.get_container_info(
-                        labels={**parameters_label, **sens_feat_label}
-                    ),
+                    **self.get_info(labels={**parameters_label, **sens_feat_label}),
                 )
             )

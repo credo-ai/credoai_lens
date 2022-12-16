@@ -1,10 +1,11 @@
 from typing import Optional
 
 from connect.evidence.lens_evidence import ModelProfilerContainer
+from pandas import DataFrame
+
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_existence
 from credoai.utils import ValidationError, global_logger
-from pandas import DataFrame
 
 USER_INFO_TEMPLATE = {
     "developed_by": None,
@@ -94,9 +95,7 @@ class ModelProfiler(Evaluator):
         # Format
         res, labels = self._add_entries_labeling(res)
         # Package into evidence
-        self.results = [
-            ModelProfilerContainer(res, **self.get_container_info(labels=labels))
-        ]
+        self.results = [ModelProfilerContainer(res, **self.get_info(labels=labels))]
         return self
 
     def _get_basic_info(self) -> dict:

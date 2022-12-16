@@ -164,7 +164,7 @@ class Performance(Evaluator):
         )
         output_series = output_series.reset_index().rename({"index": "type"}, axis=1)
 
-        return MetricContainer(output_series, **self.get_container_info())
+        return MetricContainer(output_series, **self.get_info())
 
     def get_overall_threshold_metrics(self):
         """Return performance metrics for each group
@@ -195,7 +195,7 @@ class Performance(Evaluator):
             results.append(
                 TableContainer(
                     threshold_metric.value,
-                    **self.get_container_info({"metric_type": metric}),
+                    **self.get_info({"metric_type": metric}),
                 )
             )
 
@@ -265,7 +265,7 @@ class Performance(Evaluator):
     def _create_confusion_container(self):
         confusion_container = TableContainer(
             create_confusion_matrix(self.y_true, self.y_pred),
-            **self.get_container_info(),
+            **self.get_info(),
         )
         return confusion_container
 
