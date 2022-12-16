@@ -99,29 +99,25 @@ def test_threshold_performance(init_lens_multiclass):
 @pytest.mark.parametrize(
     "evaluator",
     [
-        DataFairness,
         DataProfiler,
         ModelEquity,
-        DataEquity,
         Security,
         Deepchecks,
         ModelProfiler,
     ],
     ids=[
-        "DataFairness",
         "DataProfiler",
         "ModelEquity",
-        "DataEquity",
         "Security",
         "Deepchecks",
         "ModelProfiler",
     ],
 )
-def test_generic_evaluator(init_lens_classification, evaluator):
+def test_generic_evaluator(init_lens_multiclass, evaluator):
     """
     Any evaluator not requiring specific treatment can be tested here
     """
-    lens, temp_file, gov = init_lens_classification
+    lens, temp_file, gov = init_lens_multiclass
     lens.add(evaluator())
     lens.run()
     pytest.assume(lens.get_results())
