@@ -33,6 +33,7 @@ def credit_data():
     sens_feat = X["SEX"].copy()
     X = X.drop(columns=["SEX"])
     y = data["target"].iloc[0:100].astype(int)
+    y.name = "target"
     (
         X_train,
         X_test,

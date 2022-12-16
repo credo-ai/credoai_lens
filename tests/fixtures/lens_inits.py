@@ -71,7 +71,7 @@ def init_lens_integration(
     config_path_in,
     assessment_plan_url_in,
     temp_file,
-    credit_classification_model,
+    credit_classification_model_integration,
     credit_assessment_data,
     credit_training_data,
 ):
@@ -85,7 +85,7 @@ def init_lens_integration(
 
     # Initialization of the Lens object
     lens = Lens(
-        model=credit_classification_model,
+        model=credit_classification_model_integration,
         assessment_data=credit_assessment_data,
         training_data=credit_training_data,
         governance=gov,

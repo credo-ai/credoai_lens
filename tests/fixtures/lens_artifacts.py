@@ -125,6 +125,18 @@ def regression_train_data(continuous_data):
 
 
 @fixture(scope="session")
+def credit_classification_model_integration(credit_data):
+    model = RandomForestClassifier()
+    model.fit(credit_data["train"]["X"], credit_data["train"]["y"])
+    credo_model = ClassificationModel(
+        "credit_default_classifier",
+        model,
+        tags={"model_type": "binary_classification"},
+    )
+    return credo_model
+
+
+@fixture(scope="session")
 def credit_classification_model(credit_data):
     model = RandomForestClassifier()
     model.fit(credit_data["train"]["X"], credit_data["train"]["y"])
