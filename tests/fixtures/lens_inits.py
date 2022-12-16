@@ -14,6 +14,7 @@ import pytest
 from connect.governance import Governance
 from pandas import DataFrame
 from credoai.lens import Lens
+from connect.governance.credo_api_client import CredoApiClient
 
 
 @pytest.fixture(scope="function")
@@ -62,6 +63,34 @@ def init_lens_credit(
         governance=gov,
     )
     return my_pipeline, temp_file, gov
+
+
+@pytest.fixture(scope="function")
+def init_lens_integration(
+    api_config_in,
+    config_path_in,
+    assessment_plan_url_in,
+    temp_file,
+    credit_classification_model,
+    credit_assessment_data,
+    credit_training_data,
+):
+    # Retrieve Policy Pack Assessment Plan
+    if api_config_in:
+        gov = Governance(credo_api_client=CredoApiClient(config=api_config_in))
+    else:
+        gov = Governance(config_path=config_path_in)
+
+    gov.register(assessment_plan_url=assessment_plan_url_in)
+
+    # Initialization of the Lens object
+    lens = Lens(
+        model=credit_classification_model,
+        assessment_data=credit_assessment_data,
+        training_data=credit_training_data,
+        governance=gov,
+    )
+    return lens, temp_file, gov
 
 
 @pytest.fixture(scope="function")

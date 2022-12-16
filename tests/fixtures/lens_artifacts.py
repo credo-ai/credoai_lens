@@ -139,6 +139,7 @@ def credit_assessment_data(credit_data):
         name="UCI-credit-default-test",
         X=test["X"],
         y=test["y"],
+        sensitive_features=test["sens_feat"],
     )
     return assessment_data
 
@@ -150,6 +151,7 @@ def credit_training_data(credit_data):
         name="UCI-credit-default-test",
         X=train["X"],
         y=train["y"],
+        sensitive_features=train["sens_feat"],
     )
     return training_data
 

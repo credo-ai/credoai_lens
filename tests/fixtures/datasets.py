@@ -30,6 +30,7 @@ def continuous_data():
 def credit_data():
     data = fetch_creditdefault()
     X = data["data"].iloc[0:100]
+    sens_feat = X["SEX"].copy()
     X = X.drop(columns=["SEX"])
     y = data["target"].iloc[0:100].astype(int)
     (
@@ -37,9 +38,11 @@ def credit_data():
         X_test,
         y_train,
         y_test,
-    ) = train_test_split(X, y, random_state=42)
-    train_data = {"X": X_train, "y": y_train}
-    test_data = {"X": X_test, "y": y_test}
+        sens_feat_train,
+        sens_feat_test,
+    ) = train_test_split(X, y, sens_feat, random_state=42)
+    train_data = {"X": X_train, "y": y_train, "sens_feat": sens_feat_train}
+    test_data = {"X": X_test, "y": y_test, "sens_feat": sens_feat_test}
     return {"train": train_data, "test": test_data}
 
 
