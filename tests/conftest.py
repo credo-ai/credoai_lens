@@ -1,13 +1,8 @@
-import os
-import base64
-import json
-
+"""
+Hosts generic fixtures that are not specific to datasets or
+Lens artifacts.
+"""
 import pytest
-
-from pytest import fixture
-import time
-
-from connect.governance.credo_api_client import CredoApiConfig
 
 
 @pytest.fixture(scope="function")
@@ -31,41 +26,3 @@ def temp_file(tmp_path):
     d = tmp_path / "test.json"
     d.touch()
     return d
-
-
-########## Integration tests config ############
-
-
-@fixture(scope="session")
-def config_path_in():
-    """
-    Retrieves config path env variable.
-
-    Not necessary in local mode as long as .config is in
-    the expected location.
-    """
-    return os.getenv("CREDOAI_LENS_CONFIG_PATH", None)
-
-
-@fixture(scope="session")
-def api_config_in():
-    """
-    Retrieves config path env variable, in json format.
-
-    Not necessary in local mode as long as .config is in
-    the expected location.
-    """
-    b64_config = os.getenv("CREDOAI_LENS_CONFIG_JSON_B64", None)
-    if b64_config:
-        return CredoApiConfig(**json.loads(base64.b64decode(b64_config)))
-    return None
-
-
-@fixture(scope="session")
-def assessment_plan_url_in():
-    """
-    Retrieves the assessment plan designated for this test.
-
-    This is necessary also locally in order for the test to pass.
-    """
-    return os.getenv("CREDOAI_LENS_PLAN_URL", None)

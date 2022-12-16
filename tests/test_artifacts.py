@@ -1,19 +1,13 @@
 """
-Testing protocols for the Lens package. Tested functionalities:
-    1. General inits
-    2. Individual evaluator runs
+Testing for specific credoai.artifacts.
 """
-
-
 import pytest
-import pandas as pd
+
+from sklearn.linear_model import LogisticRegression
 
 from credoai.artifacts import TabularData
 from credoai.artifacts import DummyClassifier
-
 from credoai.utils import ValidationError
-
-from sklearn.linear_model import LogisticRegression
 
 
 def test_base_data_property(credit_data):

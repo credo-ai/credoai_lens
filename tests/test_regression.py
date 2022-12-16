@@ -1,9 +1,9 @@
 """
-Testing protocols for the Lens package. Tested functionalities:
-    1. General inits
-    2. Individual evaluator runs
-"""
+Testing protocols for the Lens package.
 
+Testing evaluators behavior when dealing with regression
+data/models.
+"""
 
 import pytest
 
@@ -15,7 +15,6 @@ from credoai.evaluators import (
     ModelFairness,
     Performance,
     DataFairness,
-    Security,
     Deepchecks,
     ModelProfiler,
 )

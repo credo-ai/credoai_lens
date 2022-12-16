@@ -1,24 +1,21 @@
 """
-Testing protocols for the Lens package. Tested functionalities:
+Testing protocols for the Lens package.
 
-    1. Individual evaluator runs within Lens framework
-    2. Full run of Lens pipeline with multiple evaluators
+Testing evaluators behavior when dealing with multiclass classification
+data/models.
 """
-
 
 import pytest
 
 from credoai.evaluators import (
     ModelFairness,
     Performance,
-    DataFairness,
     DataProfiler,
     ModelProfiler,
     Deepchecks,
+    ModelEquity,
+    Security,
 )
-from credoai.evaluators.data_fairness import DataFairness
-from credoai.evaluators.equity import DataEquity, ModelEquity
-from credoai.evaluators.security import Security
 from credoai.modules.constants_metrics import FAIRNESS_FUNCTIONS
 
 
