@@ -8,6 +8,13 @@ from pytest import fixture
 
 from connect.governance.credo_api_client import CredoApiConfig
 
+pytest_plugins = [
+    "tests.fixtures.datasets",
+    "tests.fixtures.frozen_tests",
+    "tests.fixtures.lens_artifacts",
+    "tests.fixtures.lens_inits",
+]
+
 
 @pytest.fixture(scope="function")
 def temp_file(tmp_path):
