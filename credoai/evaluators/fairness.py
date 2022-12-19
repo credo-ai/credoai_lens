@@ -304,7 +304,15 @@ class ModelFairness(Evaluator):
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
-                metric = find_metrics(metric, MODEL_METRIC_CATEGORIES)
+                metric_categories_to_include = MODEL_METRIC_CATEGORIES.copy()
+                metric_categories_to_include.append(self.model.type)
+                metric = find_metrics(metric, metric_categories_to_include)
+                if self.model.type == "MULTICLASS_CLASSIFICATION" and any(
+                    [x.metric_category == "FAIRNESS" for x in metric]
+                ):
+                    raise Exception(
+                        "Fairness metrics not supported for multiclass classification"
+                    )
                 if len(metric) == 1:
                     metric = metric[0]
                 elif len(metric) == 0:
@@ -321,7 +329,7 @@ class ModelFairness(Evaluator):
                 raise ValidationError("Metric is not of type credoai.metric.Metric")
             if metric.metric_category == "FAIRNESS":
                 fairness_metrics[metric_name] = metric
-            elif metric.metric_category in MODEL_METRIC_CATEGORIES:
+            elif metric.metric_category in metric_categories_to_include:
                 if metric.takes_prob:
                     if metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
                         threshold_metrics[metric_name] = metric

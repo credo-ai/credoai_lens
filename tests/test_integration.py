@@ -1,67 +1,61 @@
-from connect.governance import Governance
-from connect.governance.credo_api_client import CredoApiClient
-from credoai.lens import Lens
-from credoai.artifacts import ClassificationModel, TabularData
-from credoai.datasets import fetch_credit_model
+"""
+Tests integration with the platform.
 
-import tempfile
+Downloads an assessment plan, runs the assessments and exports
+them to file and platform.
+
+The test specific fixtures are leveraged by the `init_lens_integration`
+fixture created in the tests.fixtures.lens_inits plugin.
+"""
+import pytest
+import os
+import base64
+import json
+from connect.governance.credo_api_client import CredoApiConfig
 
 
-def test_integration(api_config_in, config_path_in, assessment_plan_url_in):
-    # Retrieve Policy Pack Assessment Plan
-    if api_config_in:
-        gov = Governance(credo_api_client=CredoApiClient(config=api_config_in))
-    else:
-        gov = Governance(config_path=config_path_in)
+@pytest.fixture(scope="session")
+def config_path_in():
+    """
+    Retrieves config path env variable.
 
-    gov.register(assessment_plan_url=assessment_plan_url_in)
+    Not necessary in local mode as long as .config is in
+    the expected location.
+    """
+    return os.getenv("CREDOAI_LENS_CONFIG_PATH", None)
 
-    (
-        X_train,
-        y_train,
-        sensitive_features_train,
-        X_test,
-        y_test,
-        sensitive_features_test,
-        model,
-    ) = fetch_credit_model(True)
 
-    credo_model = ClassificationModel(
-        name="credit_default_classifier",
-        model_like=model,
-        tags={"model_type": "binary_classification"},
-    )
+@pytest.fixture(scope="session")
+def api_config_in():
+    """
+    Retrieves config path env variable, in json format.
 
-    credo_test = TabularData(
-        name="UCI-credit-test",
-        X=X_test,
-        y=y_test,
-        sensitive_features=sensitive_features_test,
-    )
+    Not necessary in local mode as long as .config is in
+    the expected location.
+    """
+    b64_config = os.getenv("CREDOAI_LENS_CONFIG_JSON_B64", None)
+    if b64_config:
+        return CredoApiConfig(**json.loads(base64.b64decode(b64_config)))
+    return None
 
-    credo_train = TabularData(
-        name="UCI-credit-train",
-        X=X_train,
-        y=y_train,
-        sensitive_features=sensitive_features_train,
-    )
 
-    # Initialization of the Lens object
-    lens = Lens(
-        model=credo_model,
-        assessment_data=credo_test,
-        training_data=credo_train,
-        governance=gov,
-    )
+@pytest.fixture(scope="session")
+def assessment_plan_url_in():
+    """
+    Retrieves the assessment plan designated for this test.
+
+    This is necessary also locally in order for the test to pass.
+    """
+    return os.getenv("CREDOAI_LENS_PLAN_URL", None)
+
+
+def test_integration(init_lens_integration):
+    lens, temp_file, gov = init_lens_integration
 
     lens.run()
 
-    assert lens.get_results()
-
-    lens.send_to_governance()
+    pytest.assume(lens.get_results())
+    pytest.assume(lens.send_to_governance())
+    pytest.assume(gov.export(temp_file))
     # Send results to Credo API Platform
-
-    tfile = tempfile.NamedTemporaryFile(delete=False)
-    assert gov.export(tfile.name)
-
-    assert gov.export()
+    pytest.assume(gov.export())

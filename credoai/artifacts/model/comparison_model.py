@@ -23,7 +23,7 @@ class ComparisonModel(Model):
 
     def __init__(self, name: str, model_like=None):
         super().__init__(
-            "ComparisonModel",
+            "COMPARISON",
             ["compare"],
             ["compare"],
             name,

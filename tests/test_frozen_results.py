@@ -1,3 +1,9 @@
+"""
+EXPERIMENTAL! Testing results of evaluator runs against
+pre-saved results.
+
+Currently skipped.
+"""
 import os
 import pickle
 from abc import ABC

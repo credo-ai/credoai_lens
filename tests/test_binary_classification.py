@@ -1,10 +1,9 @@
 """
-Testing protocols for the Lens package. Tested functionalities:
+Testing protocols for the Lens package.
 
-    1. Individual evaluator runs within Lens framework
-    2. Full run of Lens pipeline with multiple evaluators
+Testing evaluators behavior when dealing with binary classification
+data/models.
 """
-
 
 import pytest
 
