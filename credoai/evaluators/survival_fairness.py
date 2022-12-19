@@ -12,7 +12,7 @@ from credoai.utils import ValidationError
 
 class SurvivalFairness(Evaluator):
     """
-    Calculate Survival fairness
+    Calculate Survival fairness (Experimental)
 
     Parameters
     ----------

@@ -12,8 +12,14 @@ def create_all_evaluator_pages():
         try:
             doc = extract_docstring_info_from_evaluator(evaluator)
             page_name = evaluator.name.lower()
-            with open(f"./pages/evaluators/{page_name}.rst", "w") as text_file:
-                text_file.write(doc)
+            if "(Experimental)" in doc:
+                with open(
+                    f"./pages/evaluators/experimental/{page_name}.rst", "w"
+                ) as text_file:
+                    text_file.write(doc)
+            else:
+                with open(f"./pages/evaluators/{page_name}.rst", "w") as text_file:
+                    text_file.write(doc)
         except:
             print(f"{evaluator.name} docstring not found")
 

@@ -135,3 +135,6 @@ dmypy.json
 *.csv
 *.txt
 .DS_Store
+
+test-reports/
+junit.xml
