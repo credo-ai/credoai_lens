@@ -170,8 +170,7 @@ class DataEquity(Evaluator):
         }
 
         overall_equity = MetricContainer(
-            pd.DataFrame(overall_equity, index=[0]),
-            **self.get_info(labels={"sensitive_feature": self.sensitive_features.name}),
+            pd.DataFrame(overall_equity, index=[0]), **self.get_info()
         )
 
         posthoc_tests = None
@@ -179,12 +178,7 @@ class DataEquity(Evaluator):
             posthoc_tests = pd.DataFrame(statistics["significant_posthoc_tests"])
             posthoc_tests.rename({"test_type": "subtype"}, axis=1, inplace=True)
             posthoc_tests.name = "posthoc"
-            posthoc_tests = TableContainer(
-                posthoc_tests,
-                **self.get_info(
-                    labels={"sensitive_feature": self.sensitive_features.name}
-                ),
-            )
+            posthoc_tests = TableContainer(posthoc_tests, **self.get_info())
 
         return overall_equity, posthoc_tests
 
