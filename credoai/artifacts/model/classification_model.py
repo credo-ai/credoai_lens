@@ -39,8 +39,8 @@ class ClassificationModel(Model):
             the class label probabilities for each sample.
             If the supplied model_like is from the sklearn or xgboost framework, `predict` is assumed
             to return a column vector with a single value for each sample (i.e. thresholded predictions).
-            If the supplied model_like is from the Keras framework, `predict` is assumed to return a matrix
-            with probability values (i.e., with softmax applied) similar to sklearn.predict_proba.
+            If the supplied model_like is from the Keras framework, `predict` is assumed to return a matrix with
+            probability values (i.e., with softmax applied; without argmax) similar to sklearn.predict_proba.
     """
 
     def __init__(self, name: str, model_like=None, tags=None):
