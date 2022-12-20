@@ -16,8 +16,7 @@ from credoai.modules.constants_metrics import (
     MODEL_METRIC_CATEGORIES,
     THRESHOLD_METRIC_CATEGORIES,
 )
-from credoai.modules.metrics import Metric, find_metrics
-from credoai.utils.common import ValidationError
+from credoai.modules.metrics import process_metrics
 
 
 class ModelFairness(Evaluator):
@@ -114,17 +113,11 @@ class ModelFairness(Evaluator):
             self.metrics = metrics
         else:
             self.metrics += metrics
-        (
-            self.performance_metrics,
-            self.prob_metrics,
-            self.threshold_metrics,
-            self.fairness_metrics,
-            self.failed_metrics,
-        ) = self._process_metrics(self.metrics)
+        self.processed_metrics, self.fairness_metrics = process_metrics(
+            self.metrics, self.model.type
+        )
         self.metric_frames = setup_metric_frames(
-            self.performance_metrics,
-            self.prob_metrics,
-            self.threshold_metrics,
+            self.processed_metrics,
             self.y_pred,
             self.y_prob,
             self.y_true,
@@ -273,74 +266,3 @@ class ModelFairness(Evaluator):
             self.logger.info("No fairness metrics calculated.")
             return
         return MetricContainer(results, **self.get_info())
-
-    def _process_metrics(self, metrics):
-        """
-        Separates metrics
-
-        Parameters
-        ----------
-        metrics : Union[List[Metric, str]]
-            list of metrics to use. These can be Metric objects (see credoai.modules.metrics.py), or strings.
-            If strings, they will be converted to Metric objects using find_metrics
-
-        Returns
-        -------
-        Separate dictionaries and lists of metrics
-        """
-        # separate metrics
-        failed_metrics = []
-        performance_metrics = {}
-        prob_metrics = {}
-        threshold_metrics = {}
-        fairness_metrics = {}
-        fairness_prob_metrics = {}
-        for metric in metrics:
-            if isinstance(metric, str):
-                metric_name = metric
-                metric_categories_to_include = MODEL_METRIC_CATEGORIES.copy()
-                metric_categories_to_include.append(self.model.type)
-                metric = find_metrics(metric, metric_categories_to_include)
-                if self.model.type == "MULTICLASS_CLASSIFICATION" and any(
-                    [x.metric_category == "FAIRNESS" for x in metric]
-                ):
-                    raise Exception(
-                        "Fairness metrics not supported for multiclass classification"
-                    )
-                if len(metric) == 1:
-                    metric = metric[0]
-                elif len(metric) == 0:
-                    raise Exception(
-                        f"Returned no metrics when searching using the provided metric name <{metric_name}>. Expected to find one matching metric."
-                    )
-                else:
-                    raise Exception(
-                        f"Returned multiple metrics when searching using the provided metric name <{metric_name}>. Expected to find only one matching metric."
-                    )
-            else:
-                metric_name = metric.name
-            if not isinstance(metric, Metric):
-                raise ValidationError("Metric is not of type credoai.metric.Metric")
-            if metric.metric_category == "FAIRNESS":
-                fairness_metrics[metric_name] = metric
-            elif metric.metric_category in metric_categories_to_include:
-                if metric.takes_prob:
-                    if metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
-                        threshold_metrics[metric_name] = metric
-                    else:
-                        prob_metrics[metric_name] = metric
-                else:
-                    performance_metrics[metric_name] = metric
-            else:
-                self.logger.warning(
-                    f"{metric_name} failed to be used by FairnessModule"
-                )
-                failed_metrics.append(metric_name)
-
-        return (
-            performance_metrics,
-            prob_metrics,
-            threshold_metrics,
-            fairness_metrics,
-            failed_metrics,
-        )

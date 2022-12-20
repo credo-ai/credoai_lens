@@ -1,6 +1,7 @@
 from fairlearn.metrics import MetricFrame
 
-from credoai.utils import ValidationError, global_logger
+from credoai.modules.constants_metrics import THRESHOLD_METRIC_CATEGORIES
+from credoai.utils import global_logger, wrap_list
 
 ########### General functions shared across evaluators ###########
 
@@ -16,47 +17,80 @@ def create_metric_frame(metrics, y_pred, y_true, sensitive_features):
     )
 
 
+def filter_processed_metrics(
+    processed_metrics, metric_categories=None, Xmetric_categories=None, takes_prob=None
+):
+    """Filters processed metrics
+
+    If any argument is None, it will be ignored for filtering
+
+    Parameters
+    ----------
+    metric_categories: dict
+        Dictionary of metrics (dict of str: Metric)
+    metric_categories: str or list
+        Positive metric categories to filter metrics. Each metric must have a metric_category
+        within this list. The list of metric categories is stored in modules.constants_metrics.METRIC_CATEGORIES
+    Xmetric_categories: str or list
+        Negative metric categories to filter metrics. Each metric must have a metric_category
+        NOT within this list. The list of metric categories is stored in modules.constants_metrics.METRIC_CATEGORIES
+    takes_prob: bool
+        Whether the metric takes probabilities
+    """
+    metric_categories = wrap_list(metric_categories)
+    return {
+        name: metric
+        for name, metric in processed_metrics.items()
+        if (metric_categories is None or metric.metric_category in metric_categories)
+        and (
+            Xmetric_categories is None
+            or metric.metric_category not in Xmetric_categories
+        )
+        and (takes_prob is None or metric.takes_prob == takes_prob)
+    }
+
+
 def setup_metric_frames(
-    performance_metrics,
-    prob_metrics,
-    thresh_metrics,
+    processed_metrics,
     y_pred,
     y_prob,
     y_true,
     sensitive_features,
 ):
     metric_frames = {}
-    if y_pred is not None and performance_metrics:
-        metric_frames["pred"] = create_metric_frame(
-            performance_metrics,
-            y_pred,
-            y_true,
-            sensitive_features=sensitive_features,
-        )
 
-    if prob_metrics:
-        if y_prob is not None:
-            metric_frames["prob"] = create_metric_frame(
-                prob_metrics,
-                y_prob,
-                y_true,
-                sensitive_features=sensitive_features,
-            )
-        else:
-            global_logger.warn(
-                f"Metrics ({list(prob_metrics.keys())}) requested, but no y_prob available"
-            )
+    # tuple structure: (metric frame name, y_input, dictionary of metrics)
+    metric_frame_tuples = [
+        ("pred", y_pred, filter_processed_metrics(processed_metrics, takes_prob=False)),
+        (
+            "prob",
+            y_prob,
+            filter_processed_metrics(
+                processed_metrics,
+                Xmetric_categories=THRESHOLD_METRIC_CATEGORIES,
+                takes_prob=True,
+            ),
+        ),
+        (
+            "thresh",
+            y_prob,
+            filter_processed_metrics(
+                processed_metrics,
+                metric_categories=THRESHOLD_METRIC_CATEGORIES,
+                takes_prob=True,
+            ),
+        ),
+    ]
 
-    if thresh_metrics:
-        if y_prob is not None:
-            metric_frames["thresh"] = create_metric_frame(
-                thresh_metrics,
-                y_prob,
-                y_true,
-                sensitive_features=sensitive_features,
-            )
-        else:
-            global_logger.warn(
-                f"Metrics ({list(thresh_metrics.keys())}) requested, but no y_prob available"
-            )
+    for name, y, metrics in metric_frame_tuples:
+        if metrics:
+            if y is not None:
+                metric_frames[name] = create_metric_frame(
+                    metrics, y, y_true, sensitive_features
+                )
+            else:
+                global_logger.warn(
+                    f"Metrics ({list(metrics.keys())}) requested for {name} metric frame, but no appropriate y available"
+                )
+
     return metric_frames

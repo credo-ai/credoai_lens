@@ -340,8 +340,6 @@ class IdentityVerification(Evaluator):
 
         self.metric_frames = setup_metric_frames(
             performance_metrics,
-            prob_metrics=None,
-            thresh_metrics=None,
             y_pred=pairs_processed["match_prediction"],
             y_prob=None,
             y_true=pairs_processed["match"],
