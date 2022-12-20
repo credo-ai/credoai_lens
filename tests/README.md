@@ -7,12 +7,34 @@ The testing protocol of choice is [pytest](https://docs.pytest.org/en/7.2.x/). A
 The `tests` directory contains the following files:
 
 * **Conftest.py**: the general place in which (fixtures)[https://docs.pytest.org/en/6.2.x/fixture.html] are stored.
-* **test_lens.py**: contains all integration tests for evaluators, i.e., evaluators are tested within the
-  lens framework. Also evidence exporting through governance artifacts is tested for each evaluator
-* **test_regression.py**: contains integration tests for evaluators, but run on regression models.
-  !! This is  temporary, these tests will be moved to *test_lens.py*.
-* **test_quickstart.py**: tests the logic in the quickstart notebook.
-* **tests_frozen_results.py**: tests results of evaluators by comparing them to stored values.
+The fixtures contained in this files are not data/lens specific, but
+of a general utility for testing. For the organization of lens specific
+fixtures see [the next section](#fixtures)
+* **test_binary_classification.py**: `Lens` tests involving binary classification data.
+* **test_multiclass_classification.py**: `Lens` tests involving multiclass classification data.
+* **test_regression.py**:`Lens` tests involving regression data.
+* **test_integration.py**: tests downloading an assessment plan, executing the associated `Lens` run, and exporting results to file and to
+platform.
+* **test_quickstart.py**: tests the logic in the quick-start notebook.
+* **tests_frozen_results.py**: (Experimental) tests results of evaluators by comparing them to stored values. Currently all tests here are skipped.
+* **test_artifacts.py**: tests specific functionality of `Lens` artifacts.
+
+## Lens Fixtures
+All fixtures inherent to datasets, `Lens` artifacts and `Lens` initialization are thematically organized and contained in the **fixtures** module. The fixtures are separated in the following
+files:
+
+- **datasets** -> all fixtures creating datasets to be used in testing.
+- **frozen_tests** (experimental) -> contains anything related to the checking
+  of lens runs against pre compiled results. Feature is non active ATM.
+- **lens_artifacts** -> contains logic wrapping models/data in credo artifacts.
+- **lens_inits** -> contains the lens initialized instance.
+
+The files are seen by pytest as plugins. In order to add the files as plugins, their path needs to be added to a **project level** `conftest.py` file. Any fixtures added to these files will be immediately available
+for testing, in order to add new plugins to pytest please edit the conftest file in the credo-lens directory.
+
+> **Warning**
+> This `conftest.py` file should not be confused with the one inside the > `tests` folder which is used only for general fixtures.
+
 
 ## Evaluator testing
 
@@ -45,10 +67,8 @@ All evaluator tests will mandatorily check, in order:
 Any extra check on result values/structure will be appended after the mandatory checks.
 
 ### Fixture creation
-In general any operation required to create datasets, credoai-lens artifacts, and instantiating `Lens` is wrapped in fixtures. These fixtures are located in the *conftest.py* file.
-
-The structure of *conftest* is formalized within the file itself, by explicitly defined sections.
-
+In general any operation required to create datasets, credoai-lens artifacts, and instantiating `Lens` is wrapped in fixtures. These fixtures are placed in files according to the logic highlighted in 
+the section [Fixtures](#fixtures).
 
 
 

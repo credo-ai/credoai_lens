@@ -224,7 +224,9 @@ class Performance(Evaluator):
         for metric in metrics:
             if isinstance(metric, str):
                 metric_name = metric
-                metric = find_metrics(metric, MODEL_METRIC_CATEGORIES)
+                metric_categories_to_include = MODEL_METRIC_CATEGORIES.copy()
+                metric_categories_to_include.append(self.model.type)
+                metric = find_metrics(metric, metric_categories_to_include)
                 if len(metric) == 1:
                     metric = metric[0]
                 elif len(metric) == 0:
@@ -246,7 +248,7 @@ class Performance(Evaluator):
                     f"fairness metric, {metric_name}, unused by PerformanceModule"
                 )
                 pass
-            elif metric.metric_category in MODEL_METRIC_CATEGORIES:
+            elif metric.metric_category in metric_categories_to_include:
                 if metric.takes_prob:
                     if metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
                         threshold_metrics[metric_name] = metric

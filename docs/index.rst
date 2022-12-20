@@ -18,26 +18,31 @@
 Lens is an AI Assessment Framework. With a focus on responsible AI (RAI), Lens makes
 comprehensive AI assessment streamlined, structured and interpretable to diverse audiences. Lens
 aims to be the single entrypoint to a broad ecosystem of open source assessment
-tools developed in industry and academia. It is also extensible, and can incorporate 
-custom functionality from your own system.
+tools. It is especially useful as part of your AI Governance process
+when paired with `Credo AI's Platform <https://www.credo.ai/>`_.
 
-Lens allows you to assess your AI systems with respect to a number of RAI considerations including
-Fairness, Performance, Security and more. See :ref:`evaluators` for a full list of Lens's
-evaluation capabilities.
 
-As an assessment framework, Lens is an important component of your overall **AI Governance** strategy.
-A full AI Governance system requires other components! Credo AI, the developer of Lens, also develops
-tools to satisfy your general AI Governance needs, which integrate easily with Lens.
+Getting started
+----------------
+#. :ref:`Install Lens <setup>`.
+#. Run the :ref:`quickstart tutorial <quickstart>`. 
 
-Check out the :ref:`quickstart tutorial <quickstart>` to get started. 
+   * This will verify that Lens is properly installed and introduce you to its functionality.
+  
+#. If using Lens with the Credo AI Platform, run the :ref:`platform integration tutorial <credo ai platform integration>`.
 
-Check out the :ref:`FAQ <lens faq>` for answers to common questions.
+   * This tutorial will take you through setting up an API connection, and integrating your assessment
+     code with governance requirements.
 
-To connect with the Credo AI Governance Platform, see the :ref:`platform integration tutorial <credo ai platform integration>`.
+For other questions, check out the :ref:`FAQ <lens faq>` for answers to common questions.
 
 
 Overview
 --------
+Lens allows you to assess your AI systems with respect to a number of RAI considerations including
+Fairness, Performance, Security and more. See :ref:`evaluators` for a full list of Lens's
+evaluation capabilities.
+
 Lens runs a ``pipeline`` of ``evaluators`` which assess your model and datas along multiple 
 dimensions. Each evaluator is focused on a limited set of assessments, but they can be strung
 together to create a comprehensive view of the characteristics of your model and/or data. 

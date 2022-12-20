@@ -29,7 +29,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - 
 	* - :ref:`demographic_parity_difference<demographic_parity_difference>`
 	  - fairness
-	  - statistical_parity, demographic_parity
+	  - demographic_parity, statistical_parity
 	* - :ref:`demographic_parity_ratio<demographic_parity_ratio>`
 	  - fairness
 	  - disparate_impact
@@ -59,16 +59,16 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - fdr
 	* - :ref:`false_negative_rate<false_negative_rate>`
 	  - performance
-	  - miss_rate, fnr
+	  - miss_rate, false_non_match_rate, fnr
 	* - :ref:`false_omission_rate<false_omission_rate>`
 	  - performance
 	  - 
 	* - :ref:`false_positive_rate<false_positive_rate>`
 	  - performance
-	  - fallout_rate, fpr
+	  - fallout_rate, false_match_rate, fpr
 	* - :ref:`gini_coefficient<gini_coefficient>`
 	  - 
-	  - discriminatory_gini, discriminatory_gini_index, gini_index
+	  - discriminatory_gini_index, discriminatory_gini, gini_index
 	* - :ref:`matthews_correlation_coefficient<matthews_correlation_coefficient>`
 	  - performance
 	  - 
@@ -95,7 +95,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - 
 	* - :ref:`mean_squared_error<mean_squared_error>`
 	  - performance
-	  - MSE, mean_squared_deviation, MSD
+	  - mean_squared_deviation, MSE, MSD
 	* - :ref:`mean_squared_log_error<mean_squared_log_error>`
 	  - performance
 	  - 
@@ -143,15 +143,15 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - 
 	* - :ref:`true_negative_rate<true_negative_rate>`
 	  - performance
-	  - tnr, specificity
+	  - specificity, tnr
 	* - :ref:`true_positive_rate<true_positive_rate>`
 	  - performance
-	  - sensitivity, recall_score, tpr, hit_rate, recall
+	  - sensitivity, hit_rate, recall, tpr, recall_score
 	* - :ref:`underprediction<underprediction>`
 	  - performance
 	  - 
 
-Accuracy_score
+Accuracy_Score
 --------------
 
 Accuracy is the fraction of predictions that a classification model got right. This metric is not robust to class imbalance.
@@ -164,14 +164,14 @@ The best value is 1 and the worst value is 0.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html>`__
 
-Average_precision_score
+Average_Precision_Score
 -----------------------
 
 Average precision summarizes a precision-recall curve as the weighted mean of precisions achieved at each threshold, with the increase in recall from the previous threshold used as the weight.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html>`__
 
-Balanced_accuracy_score
+Balanced_Accuracy_Score
 -----------------------
 
 The balanced accuracy in classification problems is used to deal with imbalanced datasets. It is defined as the average of recall obtained on each class.
@@ -180,14 +180,14 @@ The best value is 1 and the worst value is 0.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.balanced_accuracy_score.html>`__
 
-D2_tweedie_score
+D2_Tweedie_Score
 ----------------
 
 :math:`D^2`  regression score is percentage of `Tweedie deviance <https://en.wikipedia.org/wiki/Tweedie_distribution#The_Tweedie_deviance>`__ explained.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.d2_tweedie_score.html>`__
 
-Demographic_parity_difference
+Demographic_Parity_Difference
 -----------------------------
 
 Demographic parity difference is a parity metric that is satisfied if the results of a model's classification are not dependent on a given sensitive attribute.
@@ -196,9 +196,9 @@ Demographic parity difference should be ideally 0.
 
 **Source**: `click here <https://fairlearn.org/v0.4.6/api_reference/fairlearn.metrics.html#fairlearn.metrics.demographic_parity_difference>`__
 
-**Other known names**: statistical_parity, demographic_parity
+**Other known names**: demographic_parity, statistical_parity
 
-Demographic_parity_ratio
+Demographic_Parity_Ratio
 ------------------------
 
 Demographic parity ratio is a parity metric that is satisfied if the results of a model's classification are not dependent on a given sensitive attribute.
@@ -209,14 +209,14 @@ Demographic parity ratio should be ideally 1.
 
 **Other known names**: disparate_impact
 
-Det_curve
+Det_Curve
 ---------
 
 
 
 **Other known names**: detection_error_tradeoff
 
-Equal_opportunity_difference
+Equal_Opportunity_Difference
 ----------------------------
 
 The equalized odds difference is equivalent to the `true_positive_rate_difference` defined as the difference between the largest and smallest of :math:`P[h(X)=1 | A=a, Y=1]`, across all values :math:`a` of the sensitive feature(s).
@@ -225,7 +225,7 @@ The equalized odds difference is equivalent to the `true_positive_rate_differenc
 
 **Other known names**: equal_opportunity
 
-Equalized_odds_difference
+Equalized_Odds_Difference
 -------------------------
 
 The equalized odds difference of 0 means that all groups have the same true positive, true negative, false positive, and false negative rates.
@@ -234,7 +234,7 @@ The equalized odds difference of 0 means that all groups have the same true posi
 
 **Other known names**: equalized_odds
 
-Evasion_attack_score
+Evasion_Attack_Score
 --------------------
 
 Model evasion attack occurs when an attacker with black-box access to a model attempts to create minimally-perturbed samples that get misclassified by the model.
@@ -245,7 +245,7 @@ The best value is 0 and the worst value is 1.
 
 **Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/main/credoai/evaluators/security.py>`__
 
-Explained_variance_score
+Explained_Variance_Score
 ------------------------
 
 Explained variance regression score function.
@@ -254,7 +254,7 @@ Best possible score is 1.0, lower values are worse.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.explained_variance_score.html>`__
 
-Extraction_attack_score
+Extraction_Attack_Score
 -----------------------
 
 Model extraction attack occurs when an attacker with black-box access to a model attempts to train a substitute model of it.
@@ -265,7 +265,7 @@ The best value is 0 and the worst value is 1.
 
 **Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/main/credoai/evaluators/security.py>`__
 
-F1_score
+F1_Score
 --------
 
 Also known as balanced F-score or F-measure, the F1 score can be interpreted as a harmonic mean of the precision and recall, where an F1 score reaches its best value at 1 and worst score at 0. The relative contribution of precision and recall to the F1 score are equal.
@@ -276,7 +276,7 @@ Also known as balanced F-score or F-measure, the F1 score can be interpreted as 
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html>`__
 
-False_discovery_rate
+False_Discovery_Rate
 --------------------
 
 False discovery rate is intuitively the rate at which the classifier will be wrong when labeling an example as positive.
@@ -291,7 +291,7 @@ The best value is 0 and the worst value is 1.
 
 **Other known names**: fdr
 
-False_negative_rate
+False_Negative_Rate
 -------------------
 
 False negative rate  is defined as follows:
@@ -302,9 +302,9 @@ False negative rate  is defined as follows:
 
 **Source**: `click here <https://fairlearn.org/v0.4.6/api_reference/fairlearn.metrics.html#fairlearn.metrics.false_negative_rate>`__
 
-**Other known names**: miss_rate, fnr
+**Other known names**: miss_rate, false_non_match_rate, fnr
 
-False_omission_rate
+False_Omission_Rate
 -------------------
 
 The false omission rate is intuitively the rate at which the classifier will be wrong when labeling an example as negative.
@@ -317,7 +317,7 @@ The best value is 0 and the worst value is 1.
 
 **Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
 
-False_positive_rate
+False_Positive_Rate
 -------------------
 
 False positive rate is defined as follows:
@@ -328,23 +328,23 @@ False positive rate is defined as follows:
 
 **Source**: `click here <https://fairlearn.org/v0.4.6/api_reference/fairlearn.metrics.html#fairlearn.metrics.false_positive_rate>`__
 
-**Other known names**: fallout_rate, fpr
+**Other known names**: fallout_rate, false_match_rate, fpr
 
-Gini_coefficient
+Gini_Coefficient
 ----------------
 
 
 
-**Other known names**: discriminatory_gini, discriminatory_gini_index, gini_index
+**Other known names**: discriminatory_gini_index, discriminatory_gini, gini_index
 
-Matthews_correlation_coefficient
+Matthews_Correlation_Coefficient
 --------------------------------
 
 The Matthews correlation coefficient is a measure of the quality of a classification model. It takes into account true and false positives and negatives and is generally regarded as a balanced measure which can be used even if the classes are of very different sizes.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.matthews_corrcoef.html>`__
 
-Max_error
+Max_Error
 ---------
 
 Max error the maximum residual error, a metric that captures the worst case error between the predicted value and the true value.
@@ -353,12 +353,12 @@ In a perfectly fitted single output regression model, ``max_error`` would be 0 o
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.max_error.html>`__
 
-Max_proxy_mutual_information
+Max_Proxy_Mutual_Information
 ----------------------------
 
 
 
-Mean_absolute_error
+Mean_Absolute_Error
 -------------------
 
 Mean absolute error is the expected value of the absolute error loss or l1-norm loss.
@@ -367,7 +367,7 @@ Mean absolute error is the expected value of the absolute error loss or l1-norm 
 
 **Other known names**: MAE
 
-Mean_absolute_percentage_error
+Mean_Absolute_Percentage_Error
 ------------------------------
 
 Mean absolute percentage error is an evaluation metric for regression problems.
@@ -376,56 +376,56 @@ The idea of this metric is to be sensitive to relative errors. It is for example
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_percentage_error.html>`__
 
-Mean_gamma_deviance
+Mean_Gamma_Deviance
 -------------------
 
 Mean Gamma deviance is the mean `Tweedie deviance <https://en.wikipedia.org/wiki/Tweedie_distribution#The_Tweedie_deviance>`__ error with a power parameter 2. This is a metric that elicits predicted expectation values of regression targets.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_gamma_deviance.html>`__
 
-Mean_pinball_loss
+Mean_Pinball_Loss
 -----------------
 
 Mean pinball loss is used to evaluate the predictive performance of quantile regression models. The pinball loss is equivalent to mean_absolute_error when the quantile parameter alpha is set to 0.5.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_pinball_loss.html>`__
 
-Mean_poisson_deviance
+Mean_Poisson_Deviance
 ---------------------
 
 Mean Poisson deviance is the mean `Tweedie deviance <https://en.wikipedia.org/wiki/Tweedie_distribution#The_Tweedie_deviance>`__ error with a power parameter 1. This is a metric that elicits predicted expectation values of regression targets.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_poisson_deviance.html>`__
 
-Mean_squared_error
+Mean_Squared_Error
 ------------------
 
 Mean square error is the expected value of the squared (quadratic) error or loss.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html>`__
 
-**Other known names**: MSE, mean_squared_deviation, MSD
+**Other known names**: mean_squared_deviation, MSE, MSD
 
-Mean_squared_log_error
+Mean_Squared_Log_Error
 ----------------------
 
 Mean squared log error is the expected value of the squared logarithmic (quadratic) error or loss.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_log_error.html>`__
 
-Median_absolute_error
+Median_Absolute_Error
 ---------------------
 
 Median absolute error the median of all absolute differences between the target and the prediction. It is robust to outliers.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.median_absolute_error.html>`__
 
-Membership_inference_attack_score
+Membership_Inference_Attack_Score
 ---------------------------------
 
 
 
-Model_based_attack_score
+Model_Based_Attack_Score
 ------------------------
 
 
@@ -437,14 +437,14 @@ This is the mean of the error where any negative errors (i.e., underpredictions)
 
 **Source**: `click here <https://github.com/fairlearn/fairlearn/blob/main/fairlearn/metrics/_mean_predictions.py>`__
 
-Precision_recall_curve
+Precision_Recall_Curve
 ----------------------
 
 
 
 **Other known names**: pr_curve
 
-Precision_score
+Precision_Score
 ---------------
 
 Precision is intuitively the ability of the classifier not to label as positive a sample that is negative.
@@ -457,7 +457,7 @@ Precision is intuitively the ability of the classifier not to label as positive 
 
 **Other known names**: precision
 
-R2_score
+R2_Score
 --------
 
 :math:`R^2` (coefficient of determination) regression score function.
@@ -468,7 +468,7 @@ Best possible score is 1.0 and it can be negative (because the model can be arbi
 
 **Other known names**: r2, r_squared
 
-Roc_auc_score
+Roc_Auc_Score
 -------------
 
 ROC-AUC score is the area Under the Receiver Operating Characteristic Curve from prediction scores.
@@ -477,12 +477,12 @@ ROC-AUC varies between 0 and 1 (ideal) — with an uninformative classifier yiel
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html>`__
 
-Roc_curve
+Roc_Curve
 ---------
 
 
 
-Root_mean_squared_error
+Root_Mean_Squared_Error
 -----------------------
 
 Root mean square error is the root of ``mean_squared_error`` metric.
@@ -491,19 +491,19 @@ Root mean square error is the root of ``mean_squared_error`` metric.
 
 **Other known names**: RMSE
 
-Rule_based_attack_score
+Rule_Based_Attack_Score
 -----------------------
 
 
 
-Selection_rate
+Selection_Rate
 --------------
 
 Selection rate is the fraction of predicted labels matching the "good" outcome.
 
 **Source**: `click here <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.selection_rate>`__
 
-Sensitive_feature_prediction_score
+Sensitive_Feature_Prediction_Score
 ----------------------------------
 
 Sensitive feature prediction score quantifies how much a model redundantly encoded a sensitive feature.
@@ -514,7 +514,7 @@ The score ranges from 0.5 - 1.0. If the score is 0.5, the model is random, and n
 
 **Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/modules/dataset_modules/dataset_fairness.py>`__
 
-Target_ks_statistic
+Target_Ks_Statistic
 -------------------
 
 The two-sample Kolmogorov-Smirnov test (two-sided) statistic for target and prediction arrays
@@ -527,7 +527,7 @@ For practical purposes, if the statistic value is higher than `the critical valu
 
 **Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
 
-True_negative_rate
+True_Negative_Rate
 ------------------
 
 True negative rate (also called specificity or selectivity) refers to the probability of a negative test, conditioned on truly being negative.
@@ -538,16 +538,16 @@ True negative rate (also called specificity or selectivity) refers to the probab
 
 **Source**: `click here <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.true_negative_rate>`__
 
-**Other known names**: tnr, specificity
+**Other known names**: specificity, tnr
 
-True_positive_rate
+True_Positive_Rate
 ------------------
 
 True Positive Rate (also called sensitivity, recall, or hit rate) refers to the probability of a positive test, conditioned on truly being positive.
 
 **Source**: `click here <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.true_positive_rate>`__
 
-**Other known names**: sensitivity, recall_score, tpr, hit_rate, recall
+**Other known names**: sensitivity, hit_rate, recall, tpr, recall_score
 
 Underprediction
 ---------------
