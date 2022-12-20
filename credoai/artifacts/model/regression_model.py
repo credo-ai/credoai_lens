@@ -14,10 +14,8 @@ class RegressionModel(Model):
     name : str
         Label of the model
     model_like : model_like
-        A binary or multi-class classification model or pipeline. It must have a
-            `predict` function that returns array containing the class labels for each sample.
-            It can also optionally have a `predict_proba` function that returns array containing
-            the class labels probabilities for each sample.
+        A continuous output regression model or pipeline. It must have a
+            `predict` function that returns array containing the predicted outcomes for each sample.
     """
 
     def __init__(self, name: str, model_like=None, tags=None):

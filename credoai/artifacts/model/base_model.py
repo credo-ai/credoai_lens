@@ -37,10 +37,7 @@ class Model(ABC):
         self.name = name
         self.model_like = model_like
         self.tags = tags or {}
-        self.model_info = get_model_info(model_like)
-        self._validate(necessary_functions)
-        self._build(possible_functions)
-        self._update_functionality()
+        self._process_model(model_like, necessary_functions, possible_functions)
 
     @property
     def tags(self):
@@ -51,6 +48,14 @@ class Model(ABC):
         if not isinstance(value, dict) and value is not None:
             raise ValidationError("Tags must be of type dictionary")
         self._tags = value
+
+    def _process_model(self, model_like, necessary_functions, possible_functions):
+        self.model_info = get_model_info(model_like)
+        self._validate_framework()
+        self._validate_callables(necessary_functions)
+        self._build(possible_functions)
+        self._update_functionality()
+        return self
 
     def _build(self, function_names: List[str]):
         """
@@ -64,9 +69,16 @@ class Model(ABC):
         for key in function_names:
             self._add_functionality(key)
 
-    def _validate(self, function_names: List[str]):
+    def _validate_framework(self):
         """
-        Checks the the necessary methods are available in model_like
+        Optional check to determine whether model is from supported framework.
+        WARNS if unsupported framework (does not RAISE).
+        """
+        pass
+
+    def _validate_callables(self, function_names: List[str]):
+        """
+        Checks that the necessary methods are available in model_like
 
         Parameters
         ----------
