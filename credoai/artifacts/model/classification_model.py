@@ -2,10 +2,7 @@
 from .base_model import Model
 
 from credoai.utils import global_logger
-
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
+from credoai.utils.model_utils import validate_sklearn_like, validate_keras_clf
 
 import numpy as np
 
@@ -118,42 +115,3 @@ class DummyClassifier:
 
     def predict_proba(self, X=None):
         return self.predict_proba_output
-
-
-def validate_sklearn_like(model_obj, model_info: dict):
-    pass
-
-
-def validate_keras_clf(model_obj, model_info: dict):
-    # This is how Keras checks sequential too: https://github.com/keras-team/keras/blob/master/keras/utils/layer_utils.py#L219
-    if not model_info["lib_name"] == "Sequential":
-        message = "Only Keras models with Sequential architecture are supported at this time. "
-        message += "Using Keras with other architechtures has undefined behavior."
-        global_logger.warning(message)
-
-    valid_final_layer = (
-        isinstance(model_obj.layers[-1], layers.Dense)
-        and model_obj.layers[-1].activation.__name__ == "softmax"
-    )
-    valid_final_layer = valid_final_layer or isinstance(
-        model_obj.layers[-1], layers.Softmax
-    )
-    if not valid_final_layer:
-        message = "Expected output layer to be either: tf.keras.layers.Softmax or "
-        message += "tf.keras.layers.Dense with softmax activation."
-        global_logger.warning(message)
-
-    if len(model_obj.layers[-1].shape) != 2:
-        message = "Expected 2D output shape for Keras.Sequetial model: (batch_size, n_classes) or (None, n_classes)"
-        global_logger.warning(message)
-
-    if model_obj.layers[-1].shape[0] is not None:
-        message = "Expected output shape of Keras model to have arbitrary length"
-        global_logger.warning(message)
-
-    if model_obj.layers[-1].shape[1] < 2:
-        message = "Expected classification output shape (batch_size, n_classes) or (None, n_classes). "
-        message += "Continuous output univariate regression not supported"
-        global_logger.warning(message)
-        # TODO Add support for model-imposed argmax layer
-        # https://stackoverflow.com/questions/56704669/keras-output-single-value-through-argmax
