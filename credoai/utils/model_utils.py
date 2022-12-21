@@ -91,9 +91,22 @@ def validate_keras_clf(model_obj, model_info: dict):
         message = "Expected output shape of Keras model to have arbitrary length"
         global_logger.warning(message)
 
-    if model_obj.layers[-1].output.shape[1] < 2:
+    if (
+        model_obj.layers[-1].output.shape[1] < 2
+        and model_obj.layers[-1].activation.__name__ != "sigmoid"
+    ):
         message = "Expected classification output shape (batch_size, n_classes) or (None, n_classes). "
         message += "Univariate outputs not supported at this time."
+        global_logger.warning(message)
+
+    if (
+        model_obj.layers[-1].output.shape[1] > 2
+        and model_obj.layers[-1].activation.__name__ != "softmax"
+        and not isinstance(model_obj.layers[-1], layers.Softmax)
+    ):
+        message = "Expected multiclass classification to use softmax activation with "
+        message += "output shape (batch_size, n_classes) or (None, n_classes). "
+        message += "Non-softmax classification not supported at this time."
         global_logger.warning(message)
         # TODO Add support for model-imposed argmax layer
         # https://stackoverflow.com/questions/56704669/keras-output-single-value-through-argmax

@@ -36,8 +36,10 @@ class ClassificationModel(Model):
             the class label probabilities for each sample.
             If the supplied model_like is from the sklearn or xgboost framework, `predict` is assumed
             to return a column vector with a single value for each sample (i.e. thresholded predictions).
-            If the supplied model_like is from the Keras framework, `predict` is assumed to return a matrix with
-            probability values (i.e., with softmax applied; without argmax) similar to sklearn.predict_proba.
+            If the supplied model_like is from the Keras framework, the assumed form of `predict` outputs
+            depends on the final-layer activation. If softmax, wrapper assumes return is a matrix with
+            probability values (i.e., without argmax) similar to sklearn.predict_proba. If sigmoid, wrapper
+            assumes return is a column vector with label predictions.
     """
 
     def __init__(self, name: str, model_like=None, tags=None):
@@ -83,17 +85,21 @@ class ClassificationModel(Model):
             # TODO change this to '__call__' when adding in general TF and PyTorch
             pred_func = getattr(self, "predict", None)
             if pred_func:
-                self.__dict__["predict"] = lambda x: np.argmax(pred_func(x), axis=1)
+                if self.model_like.layers[-1].output_shape == (None, 1):
+                    self.__dict__["predict"] = pred_func
+                else:
+                    self.__dict__["predict"] = lambda x: np.argmax(pred_func(x), axis=1)
+
                 if self.model_like.layers[-1].output_shape == (None, 2):
                     self.__dict__["predict_proba"] = lambda x: pred_func(x)[:, 1]
                 elif (
                     len(self.model_like.layers[-1].output_shape) == 2
                     and self.model_like.layers[-1].output_shape[1] > 2
                 ):
-                    self.__dict__["predict_proba"] = lambda x: pred_func(x)
+                    self.__dict__["predict_proba"] = pred_func
                 else:
                     pass
-                    # predict_proba is not valid
+                    # predict_proba is not valid (for now)
 
 
 class DummyClassifier:
