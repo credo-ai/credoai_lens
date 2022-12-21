@@ -20,7 +20,8 @@ def create_metric_frame(metrics, y_pred, y_true, sensitive_features):
 def filter_processed_metrics(
     processed_metrics, metric_categories=None, Xmetric_categories=None, takes_prob=None
 ):
-    """Filters processed metrics
+    """
+    Filters processed metrics
 
     If any argument is None, it will be ignored for filtering
 
