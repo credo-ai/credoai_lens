@@ -38,6 +38,11 @@ class Model(ABC):
         self.model_like = model_like
         self.tags = tags or {}
         self._process_model(model_like, necessary_functions, possible_functions)
+        self.__post_init__()
+
+    def __post_init__(self):
+        """Optional custom functionality to call after Base Model init"""
+        pass
 
     @property
     def tags(self):
@@ -54,7 +59,6 @@ class Model(ABC):
         self._validate_framework()
         self._validate_callables(necessary_functions)
         self._build(possible_functions)
-        self._update_functionality()
         return self
 
     def _build(self, function_names: List[str]):
@@ -100,7 +104,3 @@ class Model(ABC):
         func = getattr(self.model_like, key, None)
         if func:
             self.__dict__[key] = func
-
-    def _update_functionality(self):
-        """Optional framework specific functionality update"""
-        pass

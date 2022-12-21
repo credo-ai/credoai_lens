@@ -1,9 +1,9 @@
 
-Data Fairness
-=============
+Data Fairness (Experimental)
+============================
 
 
-Data Fairness evaluator for Credo AI.
+Data Fairness evaluator for Credo AI (Experimental)
 
 This evaluator performs a fairness evaluation on the dataset. Given a sensitive feature,
 it calculates a number of assessments:

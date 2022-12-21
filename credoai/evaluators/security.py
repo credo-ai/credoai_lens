@@ -29,7 +29,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 class Security(Evaluator):
     """
-    Security module for Credo AI.
+    Security module for Credo AI. (Experimental)
 
     This module takes in classification model and data and provides functionality
     to perform security assessment.

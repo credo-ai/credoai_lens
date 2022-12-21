@@ -132,6 +132,8 @@ class Data(ABC):
             _description_
         """
         df = pd.DataFrame(sensitive_features)
+        if len(df.columns) == 1 and isinstance(df.columns[0], int):
+            df.columns = ["NA"]
         # add intersections if asked for
         features = df.columns
         if sensitive_intersections is False or len(features) == 1:

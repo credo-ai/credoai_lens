@@ -1,5 +1,6 @@
 """Custom metrics defined by Credo AI"""
 
+from functools import partial
 from typing import Literal
 
 import numpy as np
@@ -9,6 +10,67 @@ from fairlearn.metrics import make_derived_metric, true_positive_rate
 from sklearn import metrics as sk_metrics
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.utils import check_consistent_length
+
+
+def multiclass_confusion_metrics(y_true, y_pred, metric=None, average="weighted"):
+    """Calculate
+
+    Parameters
+    ----------
+    y_true : array-like of shape (n_samples,)
+        Ground truth (correct) target values.
+
+    y_pred : array-like of shape (n_samples,)
+        Estimated targets as returned by a classifier.
+    metric : str, optional
+        If provided, returns a specific metric. All metrics are returned if None is provided.
+        Options are:
+            "TPR": Sensitivity, hit rate, recall, or true positive rate
+            "TNR": Specificity or true negative rate
+            "PPV": Precision or positive predictive value
+            "NPV": Negative predictive value
+            "FPR": Fall out or false positive rate
+            "FNR": False negative rate
+            "FDR": False discovery rate
+            "ACC": Overall accuracy
+    average : str
+        Options are "weighted", "macro" or None (which will return the values for each label)
+
+    Returns
+    -------
+    dict or float
+        dict if metric is not provided
+    """
+    cnf_matrix = confusion_matrix(y_true, y_pred)
+    FP = cnf_matrix.sum(axis=0) - np.diag(cnf_matrix)
+    FN = cnf_matrix.sum(axis=1) - np.diag(cnf_matrix)
+    TP = np.diag(cnf_matrix)
+    TN = cnf_matrix.sum() - (FP + FN + TP)
+
+    FP = FP.astype(float)
+    FN = FN.astype(float)
+    TP = TP.astype(float)
+    TN = TN.astype(float)
+
+    metrics = {
+        "TPR": TP / (TP + FN),
+        "TNR": TN / (TN + FP),
+        "PPV": TP / (TP + FP),
+        "NPV": TN / (TN + FN),
+        "FPR": FP / (FP + TN),
+        "FNR": FN / (TP + FN),
+        "FDR": FP / (TP + FP),
+        "ACC": (TP + TN) / (TP + FP + FN + TN),
+    }
+    if average == "weighted":
+        weights = np.unique(y_true, return_counts=True)[1] / len(y_true)
+        metrics = {k: np.average(v, weights=weights) for k, v in metrics.items()}
+    elif average == "macro":
+        metrics = {k: v.mean() for k, v in metrics.items()}
+    if metric:
+        return metrics[metric]
+    else:
+        return metrics
 
 
 def general_wilson(p, n, z=1.96):
@@ -322,7 +384,7 @@ def credo_det_curve(y_true, y_prob):
     )
 
 
-def gini_coefficient_discriminatory(y_true, y_prob):
+def gini_coefficient_discriminatory(y_true, y_prob, **kwargs):
     """Returns the Gini Coefficient of a discriminatory model
 
     NOTE: There are two popular, yet distinct metrics known as the 'gini coefficient'.
@@ -349,7 +411,7 @@ def gini_coefficient_discriminatory(y_true, y_prob):
     float
         Discriminatory Gini Coefficient
     """
-    G = (2 * sk_metrics.roc_auc_score(y_true, y_prob)) - 1
+    G = (2 * sk_metrics.roc_auc_score(y_true, y_prob, **kwargs)) - 1
     return G
 
 

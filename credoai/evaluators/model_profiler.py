@@ -41,7 +41,7 @@ PROTECTED_KEYS = [
 
 class ModelProfiler(Evaluator):
     """
-    Model profiling evaluator.
+    Model profiling evaluator (Experimental)
 
     This evaluator builds a model card the purpose of which is to characterize
     a fitted model.

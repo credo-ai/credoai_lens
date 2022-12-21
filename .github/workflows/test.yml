@@ -32,13 +32,13 @@ jobs:
           CREDOAI_LENS_CONFIG_JSON_B64: ${{ secrets.CREDOAI_LENS_CONFIG_JSON_B64 }}
           CREDOAI_LENS_PLAN_URL: ${{ secrets.CREDOAI_LENS_PLAN_URL }}
         run: |
-          scripts/test.sh 
+          scripts/test.sh | tee ./pytest-coverage.txt
       - name: my-artifact
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: pytest-coverage
-          path: pytest-coverage.txt
+          path: ./pytest-coverage.txt
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         with:

@@ -127,7 +127,14 @@ def find_metrics(metric_name, metric_category=None):
 # Convert To List of Metrics
 BINARY_CLASSIFICATION_METRICS = metrics_from_dict(
     BINARY_CLASSIFICATION_FUNCTIONS,
-    "BINARY_CLASSIFICATION",
+    "binary_classification",
+    PROBABILITY_FUNCTIONS,
+    METRIC_EQUIVALENTS,
+)
+
+MULTICLASS_CLASSIFICATION_METRICS = metrics_from_dict(
+    MULTICLASS_CLASSIFICATION_FUNCTIONS,
+    "MULTICLASS_CLASSIFICATION",
     PROBABILITY_FUNCTIONS,
     METRIC_EQUIVALENTS,
 )
@@ -168,6 +175,7 @@ METRIC_NAMES = (
 
 ALL_METRICS = (
     list(BINARY_CLASSIFICATION_METRICS.values())
+    + list(MULTICLASS_CLASSIFICATION_METRICS.values())
     + list(THRESHOLD_VARYING_METRICS.values())
     + list(FAIRNESS_METRICS.values())
     + list(DATASET_METRICS.values())

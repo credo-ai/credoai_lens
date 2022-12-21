@@ -1,9 +1,9 @@
 
-Identity Verification
-=====================
+Identity Verification (Experimental)
+====================================
 
 
-Pair-wise-comparison-based identity verification evaluator for Credo AI
+Pair-wise-comparison-based identity verification evaluator for Credo AI (Experimental)
 
 This evaluator takes in identity verification data and
 provides functionality to perform performance and fairness assessment

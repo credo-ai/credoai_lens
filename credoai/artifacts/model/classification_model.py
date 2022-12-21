@@ -6,8 +6,8 @@ from credoai.utils.model_utils import validate_sklearn_like, validate_keras_clf
 
 import numpy as np
 
+from .constants_model import SKLEARN_LIKE_FRAMEWORKS
 
-PREDICT_PROBA_FRAMEWORKS = ["sklearn", "xgboost"]
 MLP_FRAMEWORKS = ["keras"]
 
 FRAMEWORK_VALIDATION_FUNCTIONS = {
@@ -42,7 +42,7 @@ class ClassificationModel(Model):
 
     def __init__(self, name: str, model_like=None, tags=None):
         super().__init__(
-            "Classification",
+            "CLASSIFICATION",
             ["predict", "predict_proba"],
             ["predict"],
             # TODO this will not work once we incorporate PyTorch
@@ -65,14 +65,19 @@ class ClassificationModel(Model):
             )
             global_logger.warning(message)
 
-    def _update_functionality(self):
+    def __post_init__(self):
         """Conditionally updates functionality based on framework"""
         # This needs to remain a big if-statement for now if we're going to keep
         # all classifiers in one class since we're making direct assignments to the class object
-        if self.model_info["framework"] in PREDICT_PROBA_FRAMEWORKS:
+        if self.model_info["framework"] in SKLEARN_LIKE_FRAMEWORKS:
             func = getattr(self, "predict_proba", None)
-            if func and len(self.model_like.classes_) == 2:
-                self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
+            if len(self.model_like.classes_) == 2:
+                self.type = "BINARY_CLASSIFICATION"
+                # if binary, replace probability array with one-dimensional vector
+                if func:
+                    self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
+            else:
+                self.type = "MULTICLASS_CLASSIFICATION"
 
         elif self.model_info["framework"] in MLP_FRAMEWORKS:
             # TODO change this to '__call__' when adding in general TF and PyTorch

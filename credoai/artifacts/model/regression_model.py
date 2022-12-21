@@ -19,7 +19,7 @@ class RegressionModel(Model):
     """
 
     def __init__(self, name: str, model_like=None, tags=None):
-        super().__init__("Regression", ["predict"], ["predict"], name, model_like, tags)
+        super().__init__("REGRESSION", ["predict"], ["predict"], name, model_like, tags)
 
 
 class DummyRegression:
