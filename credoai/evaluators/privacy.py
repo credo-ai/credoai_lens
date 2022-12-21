@@ -215,7 +215,7 @@ class Privacy(Evaluator):
         attack_score[["type", "subtype"]] = attack_score.type.str.split(
             "-", expand=True
         )
-        attack_score = [MetricContainer(attack_score, **self.get_container_info())]
+        attack_score = [MetricContainer(attack_score, **self.get_info())]
 
         return attack_score
 

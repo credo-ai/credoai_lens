@@ -104,7 +104,7 @@ class Security(Evaluator):
         res = {**self._extraction_attack(), **self._evasion_attack()}
         res = pd.DataFrame(list(res.items()), columns=["type", "value"])
         res[["type", "subtype"]] = res.type.str.split("-", expand=True)
-        self.results = [MetricContainer(res, **self.get_container_info())]
+        self.results = [MetricContainer(res, **self.get_info())]
         return self
 
     def _extraction_attack(self):

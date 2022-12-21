@@ -3,11 +3,11 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
+from connect.evidence import TableContainer
 from shap import Explainer, Explanation, kmeans
 
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
-from connect.evidence import TableContainer
 from credoai.utils.common import ValidationError
 
 
@@ -97,15 +97,13 @@ class ShapExplainer(Evaluator):
         ## Overall stats
         self._setup_shap()
         self.results = [
-            TableContainer(
-                self._get_overall_shap_contributions(), **self.get_container_info()
-            )
+            TableContainer(self._get_overall_shap_contributions(), **self.get_info())
         ]
 
         ## Sample specific results
         if self.samples_ind:
             ind_res = self._get_mult_sample_shapley_values()
-            self.results += [TableContainer(ind_res, **self.get_container_info())]
+            self.results += [TableContainer(ind_res, **self.get_info())]
         return self
 
     def _setup_shap(self):

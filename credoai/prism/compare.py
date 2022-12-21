@@ -1,13 +1,14 @@
 """Performs comparison between 2 pipelines"""
 from typing import Literal, Optional
-from credoai.evaluators.utils.validation import check_instance
-from connect.evidence.containers import MetricContainer
-from credoai.lens import Lens
 
-from credoai.utils import flatten_list
+from connect.evidence.containers import MetricContainer
+
+from credoai.evaluators.utils.validation import check_instance
+from credoai.lens import Lens
 from credoai.prism.comparators.metric_comparator import MetricComparator
-from credoai.utils.common import ValidationError
 from credoai.prism.task import Task
+from credoai.utils import flatten_list
+from credoai.utils.common import ValidationError
 
 
 class Compare(Task):
@@ -75,7 +76,7 @@ class Compare(Task):
         for step in pipesteps:
             for result in step.evaluator.results:
                 # Create the id property for each of the containers taking the Step identifier
-                result.id = step.identifier
+                result.id = step.id
         self.containers = flatten_list([x.evaluator.results for x in pipesteps])
         # Remove unsupported containers
         self.supported_results = [

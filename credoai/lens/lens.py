@@ -5,14 +5,14 @@ Main orchestration module handling running evaluators on AI artifacts
 from copy import deepcopy
 from dataclasses import dataclass
 from inspect import isclass
-import pandas as pd
 from typing import Dict, List, Optional, Tuple, Union
 
+import pandas as pd
 from connect.governance import Governance
 from joblib import Parallel, delayed
 
 from credoai.artifacts import Data, Model
-from credoai.evaluators.evaluator import Evaluator
+from credoai.evaluators.evaluator import ARTIFACT_LABELS, Evaluator
 from credoai.lens.pipeline_creator import PipelineCreator
 from credoai.utils import ValidationError, check_subset, flatten_list, global_logger
 
@@ -37,7 +37,7 @@ class PipelineStep:
         self.metadata["evaluator"] = self.evaluator.name
 
     @property
-    def identifier(self):
+    def id(self):
         eval_properties = self.evaluator.__dict__
         info_to_get = ["model", "assessment_data", "training_data", "data"]
         eval_info = pd.Series(
