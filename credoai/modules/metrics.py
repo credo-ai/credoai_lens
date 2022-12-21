@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
 
+from credoai.artifacts.model.constants_model import MODEL_TYPES
 from credoai.modules.constants_metrics import *
 from credoai.modules.constants_threshold_metrics import *
 from credoai.utils.common import ValidationError, humanize_label, wrap_list
@@ -137,7 +138,10 @@ def find_single_metric(metric_name, metric_category=None):
         )
     else:
         raise Exception(
-            f"Returned multiple metrics when searching using the provided metric name <{metric_name}> with metric category <{metric_category}>. Expected to find only one matching metric."
+            f"Returned multiple metrics when searching using the provided metric name <{metric_name}> "
+            f"with metric category <{metric_category}>. Expected to find only one matching metric. "
+            "Try being more specific with the metric categories passed or using find_metrics if "
+            "multiple metrics are desired."
         )
     return matched_metric
 
@@ -170,6 +174,8 @@ def process_metrics(metrics, metric_categories=None):
     metric_categories_to_include = MODEL_METRIC_CATEGORIES.copy()
     if metric_categories is not None:
         metric_categories_to_include += wrap_list(metric_categories)
+    else:
+        metric_categories_to_include += MODEL_TYPES
 
     for metric in metrics:
         if isinstance(metric, str):
