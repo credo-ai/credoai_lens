@@ -81,8 +81,14 @@ class ClassificationModel(Model):
                 self.__dict__["predict"] = lambda x: np.argmax(pred_func(x), axis=1)
                 if self.model_like.layers[-1].output_shape == (None, 2):
                     self.__dict__["predict_proba"] = lambda x: pred_func(x)[:, 1]
-                else:
+                elif (
+                    len(self.model_like.layers[-1].output_shape) == 2
+                    and self.model_like.layers[-1].output_shape[1] > 2
+                ):
                     self.__dict__["predict_proba"] = lambda x: pred_func(x)
+                else:
+                    pass
+                    # predict_proba is not valid
 
 
 class DummyClassifier:
