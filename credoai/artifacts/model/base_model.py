@@ -21,6 +21,9 @@ class Model(ABC):
         Class name.
     model_like : model_like
         A model or pipeline.
+    tags : dictionary, optional
+        Additional metadata to add to model
+        E.g., {'model_type': 'binary_classification'}
 
     """
 

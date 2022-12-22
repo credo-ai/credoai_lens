@@ -5,8 +5,6 @@ from sklearn.base import is_classifier, is_regressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils import multiclass
 
-import tensorflow as tf
-from tensorflow import keras
 from tensorflow.keras import layers
 
 
@@ -110,3 +108,14 @@ def validate_keras_clf(model_obj, model_info: dict):
         global_logger.warning(message)
         # TODO Add support for model-imposed argmax layer
         # https://stackoverflow.com/questions/56704669/keras-output-single-value-through-argmax
+
+
+def validate_dummy(model_like, _):
+    if model_like.model_like:
+        tmp_model_info = get_model_info(model_like.model_like)
+        if tmp_model_info["framework"] == "keras":
+            validate_keras_clf(model_like.model_like, tmp_model_info)
+        elif tmp_model_info["framework"] in ("sklearn", "xgboost"):
+            validate_sklearn_like(model_like.model_like, tmp_model_info)
+        else:
+            raise

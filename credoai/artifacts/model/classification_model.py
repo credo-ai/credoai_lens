@@ -2,20 +2,16 @@
 from .base_model import Model
 
 from credoai.utils import global_logger
-from credoai.utils.model_utils import validate_sklearn_like, validate_keras_clf
 
 import numpy as np
 
-from .constants_model import SKLEARN_LIKE_FRAMEWORKS
+from sklearn.utils import check_array
 
-MLP_FRAMEWORKS = ["keras"]
-
-FRAMEWORK_VALIDATION_FUNCTIONS = {
-    "sklearn": validate_sklearn_like,
-    "xgboost": validate_sklearn_like,
-    "keras": validate_keras_clf,
-    # check on tensorflow generic, given validation strictness
-}
+from .constants_model import (
+    SKLEARN_LIKE_FRAMEWORKS,
+    MLP_FRAMEWORKS,
+    FRAMEWORK_VALIDATION_FUNCTIONS,
+)
 
 
 class ClassificationModel(Model):
@@ -40,6 +36,9 @@ class ClassificationModel(Model):
             depends on the final-layer activation. If softmax, wrapper assumes return is a matrix with
             probability values (i.e., without argmax) similar to sklearn.predict_proba. If sigmoid, wrapper
             assumes return is a column vector with label predictions.
+    tags : optional
+        Additional metadata to add to model
+        E.g., {'model_type': 'binary_classification'}
     """
 
     def __init__(self, name: str, model_like=None, tags=None):
@@ -61,11 +60,9 @@ class ClassificationModel(Model):
                 self.model_like, self.model_info
             )
         except:
-            message = "Provided model is from unsupported framework. "
-            message += (
-                "Lens behavior with unsupported modeling frameworks is undefined."
-            )
-            global_logger.warning(message)
+            message = """Provided model is from unsupported framework. 
+            Lens behavior with unsupported modeling frameworks is undefined."""
+            global_logger.warning(message, message)
 
     def __post_init__(self):
         """Conditionally updates functionality based on framework"""
@@ -101,6 +98,11 @@ class ClassificationModel(Model):
                     pass
                     # predict_proba is not valid (for now)
 
+        elif self.model_info["framework"] == "credoai":
+            pass
+            # Functionality for DummyClassifier
+            # Predict and Predict_Proba should already be specified
+
 
 class DummyClassifier:
     """Class wrapper around classification model predictions
@@ -113,17 +115,39 @@ class DummyClassifier:
 
     Parameters
     ----------
-    predict_output : array
-        Array containing the output of a model's "predict" method
-    predict_proba_output : array
-        Array containing the output of a model's "predict_proba" method
+    name : str
+        Label of the model
+    model_like : model_like, optional
+        While predictions are pre-computed, the model object, itself, may be of use for
+        some evaluations (e.g. ModelProfiler).
+    predict_output : array, optional
+        Array containing per-sample class labels
+            Corresponds to sklearn-like `predict` output
+            For NN frameworks (Keras.predict, tf.__call__, torch.foward, etc.), this input assumes argmax
+            has been applied to the outputs so that they are discrete valued labels
+    predict_proba_output : array, optional
+        Array containing the per-sample class probabilities
+            Corresponds to sklearn-like `predict_proba` output
+            For NN frameworks (Keras.predict, etc.) this input assumes no post-processing after a
+            final-layer softmax (general) or sigmoid (binary only) activation
+
     """
 
     def __init__(
-        self, name: str, predict_output=None, predict_proba_output=None, tags=None
+        self,
+        name: str,
+        model_like=None,
+        predict_output=None,
+        predict_proba_output=None,
+        tags=None,
     ):
-        self.predict_output = predict_output
-        self.predict_proba_output = predict_proba_output
+        self.model_like = model_like
+        self.predict_output = check_array(
+            predict_output, ensure_2d=False, allow_nd=True
+        )
+        self.predict_proba_output = check_array(
+            predict_proba_output, ensure_2d=False, allow_nd=True
+        )
         self.name = name
         self.tags = tags
 
