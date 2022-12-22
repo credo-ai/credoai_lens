@@ -334,24 +334,16 @@ class DataFairness(Evaluator):
                 )
 
             # Compute the maximum difference/ratio between any two pairs of groups
-
-            def get_demo_parity(fun):
-                return (
-                    r.groupby(self.y.name)["ratio"]
-                    .apply(fun)
-                    .reset_index(name="value")
-                    .iloc[1:]
-                    .to_dict(orient="records")
-                )
-
             balance_results["demographic_parity-difference"] = get_demo_parity(
-                lambda x: np.max(x) - np.min(x)
+                r, self.y.name, "difference"
             )
             balance_results["demographic_parity-ratio"] = get_demo_parity(
-                lambda x: np.min(x) / np.max(x)
+                r, self.y.name, "ratio"
             )
         return balance_results
 
+
+from credoai.modules.constants_metrics import FAIRNESS_FUNCTIONS
 
 ############################################
 ## Evaluation helper functions
@@ -466,3 +458,35 @@ def _make_pipe(X: pd.DataFrame, categorical_features_keys: pd.Series) -> Pipelin
     pipe = Pipeline(steps=[("preprocessor", preprocessor), ("model", model)])
 
     return pipe
+
+
+def get_demo_parity(r: pd.DataFrame, target_name: str, fun: str) -> dict:
+    """
+    Calculates maximum difference/ratio between target categories.
+
+    Parameters
+    ----------
+    r : pd.DataFrame
+        Data grouped by sensitive feature and y, then  count of y over total
+        instances is calculated.
+    target_name : str
+        Name of y object
+    fun : str
+        Either "difference" or "ratio": indicates which calculatio to perform.
+
+    Returns
+    -------
+    dict
+        _description_
+    """
+    funcs = {
+        "difference": lambda x: np.max(x) - np.min(x),
+        "ratio": lambda x: np.min(x) / np.max(x),
+    }
+    return (
+        r.groupby(target_name)["ratio"]
+        .apply(funcs[fun])
+        .reset_index(name="value")
+        .iloc[1:]
+        .to_dict(orient="records")
+    )
