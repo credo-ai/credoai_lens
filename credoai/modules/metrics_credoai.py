@@ -506,3 +506,139 @@ def population_stability_index(
     )
 
     return np.sum(psi_values)
+
+def kl_divergence(p, q):
+    """
+    Calculates KL divergence of two discrete distributions
+
+    Parameters
+    ----------
+    p : list
+        first distribution
+    q : list
+        second distribution
+
+    Returns
+    -------
+    float
+        KL divergence
+
+    Examples
+    --------
+    >>> p = [.05, .1, .2, .05, .15, .25, .08, .12]
+    >>> q = [.30, .1, .2, .10, .10, .02, .08, .10]
+    >>> kl_divergence(p, q)
+    0.5898851816082963
+    """
+    if len(p) != len(q):
+        raise ValueError("`p` and `q` must have the same length.")
+
+    EPSILON = 1e-12
+    vals = []
+    for pi, qi in zip(p, q):
+        vals.append(pi * np.log((pi + EPSILON) / (qi + EPSILON)))
+
+    return sum(vals)
+
+
+def normalized_discounted_cumulative_kl_divergence(ranked_list, desired_proportions):
+    """
+    Calculates normalized discounted cumulative KL divergence (NDKL)
+
+    It is non-negative, with larger values indicating a greater divergence between the
+        desired and actual distributions of groups labels. It ranges  from 0 to inf
+        and the ideal value is 0 for fairness.
+
+    Parameters
+    ----------
+    ranked_list : list
+        Ranked list of items
+    desired_proportions : dict
+        The desired proportion for each group
+
+    Returns
+    -------
+    float
+        normalized discounted cumulative KL divergence
+
+    References
+    ----------
+    Geyik, Sahin Cem, Stuart Ambler, and Krishnaram Kenthapadi. "Fairness-aware ranking in search &
+        recommendation systems with application to linkedin talent search."
+        Proceedings of the 25th acm sigkdd international conference on knowledge discovery &
+        data mining. 2019.
+
+    Examples
+    --------
+    >>> ranked_list = ['female', 'male', 'male', 'female', 'male', 'male']
+    >>> desired_proportions = {'female': 0.6, 'male': 0.4}
+    >>> normalized_discounted_cumulative_kl_divergence(ranked_list, desired_proportions)
+    0.208096993149323
+    """
+    num_items = len(ranked_list)
+    Z = np.sum(1 / (np.log2(np.arange(1, num_items + 1) + 1)))
+
+    total = 0.0
+    for k in range(1, num_items + 1):
+        item_attr_k = list(ranked_list[:k])
+        item_distr = [
+            item_attr_k.count(attr) / len(item_attr_k)
+            for attr in desired_proportions.keys()
+        ]
+        total += (1 / np.log2(k + 1)) * kl_divergence(
+            item_distr, list(desired_proportions.values())
+        )
+
+    ndkl = (1 / Z) * total
+
+    return ndkl
+
+
+def skew_parity(items_list, desired_proportions, parity_type="difference"):
+    """
+    Calculates skew parity
+
+    max_skew vs min_skew, where skew is the proportion of the selected
+      items from a group over the desired proportion for that group.
+
+    Parameters
+    ----------
+    ranked_list : list
+        Ranked list of items
+    desired_proportions : dict
+        The desired proportion for each group
+    parity_type : type pf parity to use. Two options:
+        'difference' : `max_skew - min_skew`. It ranges from 0 to inf and the ideal value is 0.
+        'ratio' : `min_skew / max_skew`. It ranges from 0 to 1 and the ideal value is 1.
+
+    Returns
+    -------
+    float
+        skew parity difference
+
+    Examples
+    --------
+    >>> ranked_list = ['female', 'male', 'male', 'female', 'male', 'male']
+    >>> desired_proportions = {'female': 0.6, 'male': 0.4}
+    >>> skew_parity_difference(ranked_list, desired_proportions)
+    1.1111111111087035
+    """
+    EPSILON = 1e-12
+    groups, counts = np.unique(items_list, return_counts=True)
+    subset_proportions = dict(zip(groups, counts / len(items_list)))
+
+    skew = {}
+    for g in groups:
+        sk = (subset_proportions[g] + EPSILON) / (desired_proportions[g] + EPSILON)
+        skew[g] = sk
+
+    if parity_type == "difference":
+        parity = max(skew.values()) - min(skew.values())
+    elif parity_type == "ratio":
+        parity = min(skew.values()) / max(skew.values())
+    else:
+        raise ValueError(
+            f"Possible values of `parity_type` are 'difference' and 'ratio'. You provided {parity_type}"
+        )
+
+    return parity
