@@ -507,6 +507,7 @@ def population_stability_index(
 
     return np.sum(psi_values)
 
+
 def kl_divergence(p, q):
     """Calculates KL divergence of two discrete distributions
 
