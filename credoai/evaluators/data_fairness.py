@@ -324,7 +324,7 @@ class DataFairness(Evaluator):
                 balance_results["label_balance"] = label_balance
 
                 # Fairness metrics
-                r = (
+                sens_feat_y_counts = (
                     self.data.groupby([self.sensitive_features, self.y.name])
                     .agg({self.y.name: "count"})
                     .groupby(level=0)
@@ -335,10 +335,10 @@ class DataFairness(Evaluator):
 
             # Compute the maximum difference/ratio between any two pairs of groups
             balance_results["demographic_parity-difference"] = get_demo_parity(
-                r, self.y.name, "difference"
+                sens_feat_y_counts, self.y.name, "difference"
             )
             balance_results["demographic_parity-ratio"] = get_demo_parity(
-                r, self.y.name, "ratio"
+                sens_feat_y_counts, self.y.name, "ratio"
             )
         return balance_results
 
