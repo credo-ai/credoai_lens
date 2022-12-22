@@ -14,6 +14,8 @@ from credoai.evaluators.utils.validation import (
 )
 from credoai.modules.metrics import process_metrics
 
+import numpy as np
+
 
 class Performance(Evaluator):
     """
@@ -220,7 +222,7 @@ def create_confusion_matrix(y_true, y_pred):
         Estimated targets as returned by a classifier.
 
     """
-    labels = y_true.astype("category").cat.categories
+    labels = np.unique(y_true)
     confusion = confusion_matrix(y_true, y_pred, normalize="true", labels=labels)
     confusion_df = pd.DataFrame(confusion, index=labels.copy(), columns=labels)
     confusion_df.index.name = "true_label"
