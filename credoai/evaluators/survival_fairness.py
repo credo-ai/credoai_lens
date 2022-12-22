@@ -1,10 +1,8 @@
+from connect.evidence import TableContainer
+
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (
-    check_data_instance,
-    check_existence,
-)
-from connect.evidence import TableContainer
+from credoai.evaluators.utils.validation import check_data_instance, check_existence
 from credoai.modules import CoxPH
 from credoai.modules.stats_utils import columns_from_formula
 from credoai.utils import ValidationError
@@ -72,7 +70,7 @@ class SurvivalFairness(Evaluator):
         )
         sens_feat_label = {"sensitive_feature": self.sensitive_name}
         self.results = [
-            TableContainer(df, **self.get_container_info(labels=sens_feat_label))
+            TableContainer(df, **self.get_info(labels=sens_feat_label))
             for df in result_dfs
         ]
         return self

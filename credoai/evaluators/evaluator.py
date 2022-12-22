@@ -1,8 +1,17 @@
 from abc import ABC, abstractmethod
 
 from connect.evidence import EvidenceContainer
+
 from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError
+
+ARTIFACT_LABELS = {
+    "model": "model_name",
+    "data": "dataset_name",
+    "assessment_data": "assessment_dataset_name",
+    "training_data": "training_dataset_name",
+    "sensitive_features": "sensitive_feature",
+}
 
 
 class Evaluator(ABC):
@@ -105,7 +114,7 @@ class Evaluator(ABC):
         """
         return self
 
-    def get_container_info(self, labels: dict = None, metadata: dict = None):
+    def get_info(self, labels: dict = None, metadata: dict = None):
         """
         Expands the base labels and metadata used to populate evidences.
 
@@ -119,36 +128,33 @@ class Evaluator(ABC):
             Any extra info the user wants to associate to the evidences. Compared
             to labels these are not necessary for evidence identification, by default None.
         """
-        info = self._base_container_info()
+        info = self._base_info()
         if labels:
             info["labels"].update(labels)
         if metadata:
             info["metadata"].update(metadata)
         return info
 
-    def _base_container_info(self):
+    def _base_info(self):
         """Extract basic info to populate labels and metadata."""
         meta = {**self.metadata, **self._get_artifacts()}
         labels = {"evaluator": self.name}
-        if "dataset_type" in meta:
-            labels["dataset_type"] = meta["dataset_type"]
+        # transfer some metadata to labels
+        meta_to_label = ["dataset_type", "sensitive_feature"]
+        for key in meta_to_label:
+            if key in meta:
+                labels[key] = meta[key]
         return {"labels": labels, "metadata": meta}
 
     def _get_artifacts(self):
         """
         Extract artifacts that will be used by the evaluator.
 
-        The method also extract name info from the available artifacts.
+        The method also extracts name info from the available artifacts.
         """
         artifacts = {}
-        save_keys = {
-            "model": "model_name",
-            "data": "dataset_name",
-            "assessment_data": "assessment_dataset_name",
-            "training_data": "training_dataset_name",
-        }
         for k in self.artifact_keys:
-            save_key = save_keys.get(k, k)
+            save_key = ARTIFACT_LABELS.get(k, k)
             try:
                 artifacts[save_key] = self.__dict__[k].name
             except AttributeError:

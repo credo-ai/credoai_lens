@@ -5,11 +5,11 @@ import numpy as np
 from pandas import DataFrame, concat
 
 from connect.evidence.lens_evidence import ModelProfilerContainer
-from connect.evidence import TableContainer
+from pandas import DataFrame
+
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_existence
 from credoai.utils import ValidationError, global_logger
-
 
 USER_INFO_TEMPLATE = {
     "developed_by": None,
@@ -109,9 +109,7 @@ class ModelProfiler(Evaluator):
         res, labels = self._add_entries_labeling(res)
 
         # Package into evidence
-        self.results = [
-            ModelProfilerContainer(res, **self.get_container_info(labels=labels))
-        ]
+        self.results = [ModelProfilerContainer(res, **self.get_info(labels=labels))]
         return self
 
     @staticmethod

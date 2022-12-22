@@ -49,7 +49,7 @@ class DataProfiler(Evaluator):
     def evaluate(self):
         """Generates data profile reports"""
         profile = self._create_reporter()
-        results = DataProfilerContainer(profile, **self.get_container_info())
+        results = DataProfilerContainer(profile, **self.get_info())
         self.results = [results]
         return self
 

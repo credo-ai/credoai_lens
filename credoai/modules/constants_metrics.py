@@ -105,27 +105,28 @@ PROBABILITY_FUNCTIONS = {"average_precision_score", "roc_auc_score", "gini_coeff
 
 # *** Define Alternative Naming ***
 METRIC_EQUIVALENTS = {
+    "average_odds_difference": ["average_odds"],
+    "average_precision_score": ["average_precision"],
+    "demographic_parity_difference": ["statistical_parity", "demographic_parity"],
+    "demographic_parity_ratio": ["disparate_impact"],
+    "equal_opportunity_difference": ["equal_opportunity"],
+    "equalized_odds_difference": ["equalized_odds"],
     "false_positive_rate": ["fpr", "fallout_rate", "false_match_rate"],
     "false_negative_rate": ["fnr", "miss_rate", "false_non_match_rate"],
     "false_discovery_rate": ["fdr"],
-    "true_positive_rate": ["tpr", "recall_score", "recall", "sensitivity", "hit_rate"],
-    "true_negative_rate": ["tnr", "specificity"],
-    "precision_score": ["precision"],
-    "demographic_parity_difference": ["statistical_parity", "demographic_parity"],
-    "demographic_parity_ratio": ["disparate_impact"],
-    "average_odds_difference": ["average_odds"],
-    "equal_opportunity_difference": ["equal_opportunity"],
-    "equalized_odds_difference": ["equalized_odds"],
-    "mean_absolute_error": ["MAE"],
-    "mean_squared_error": ["MSE", "MSD", "mean_squared_deviation"],
-    "root_mean_squared_error": ["RMSE"],
-    "r2_score": ["r_squared", "r2"],
     "gini_coefficient": [
         "gini_index",
         "discriminatory_gini_index",
         "discriminatory_gini",
     ],
+    "mean_absolute_error": ["MAE"],
+    "mean_squared_error": ["MSE", "MSD", "mean_squared_deviation"],
     "population_stability_index": ["psi", "PSI"],
+    "precision_score": ["precision"],
+    "root_mean_squared_error": ["RMSE"],
+    "r2_score": ["r_squared", "r2"],
+    "true_positive_rate": ["tpr", "recall_score", "recall", "sensitivity", "hit_rate"],
+    "true_negative_rate": ["tnr", "specificity"],
 }
 
 # DATASET METRICS
