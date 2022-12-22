@@ -91,13 +91,6 @@ def check_requirements_deepchecks(self):
         )
 
 
-def check_for_nulls(obj, name):
-    message = f"Detected nulls in {name}"
-    if obj is not None:
-        if obj.isnull().values.any():
-            raise ValidationError(message)
-
-
 def check_artifact_for_nulls(obj, name):
     errors = []
     if obj.X is not None:
@@ -112,10 +105,4 @@ def check_artifact_for_nulls(obj, name):
 
     if len(errors) > 0:
         message = f"Detected null values in {name}, in attributes: {','.join(errors)}"
-        raise ValidationError(message)
-
-
-def check_model_type(obj, type):
-    if obj.type != type:
-        message = f"Model of type {obj.type}, expected: {type}"
         raise ValidationError(message)
