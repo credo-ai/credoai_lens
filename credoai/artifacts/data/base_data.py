@@ -190,11 +190,9 @@ class Data(ABC):
             if not hasattr(self.sensitive_features, "name"):
                 raise ValidationError("Feature Series should have a name attribute")
 
-    # @abstractmethod
     def _validate_X(self):
         pass
 
-    # @abstractmethod
     def _validate_y(self):
         pass
 
