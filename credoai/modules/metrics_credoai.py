@@ -508,8 +508,7 @@ def population_stability_index(
     return np.sum(psi_values)
 
 def kl_divergence(p, q):
-    """
-    Calculates KL divergence of two discrete distributions
+    """Calculates KL divergence of two discrete distributions
 
     Parameters
     ----------
@@ -542,8 +541,7 @@ def kl_divergence(p, q):
 
 
 def normalized_discounted_cumulative_kl_divergence(ranked_list, desired_proportions):
-    """
-    Calculates normalized discounted cumulative KL divergence (NDKL)
+    """Calculates normalized discounted cumulative KL divergence (NDKL)
 
     It is non-negative, with larger values indicating a greater divergence between the
         desired and actual distributions of groups labels. It ranges  from 0 to inf
@@ -595,8 +593,7 @@ def normalized_discounted_cumulative_kl_divergence(ranked_list, desired_proporti
 
 
 def skew_parity(items_list, desired_proportions, parity_type="difference"):
-    """
-    Calculates skew parity
+    """Calculates skew parity
 
     max_skew vs min_skew, where skew is the proportion of the selected
       items from a group over the desired proportion for that group.
