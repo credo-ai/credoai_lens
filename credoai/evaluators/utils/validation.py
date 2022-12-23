@@ -6,6 +6,10 @@ from credoai.artifacts.data.tabular_data import TabularData
 from credoai.artifacts.model.base_model import Model
 from credoai.utils.common import ValidationError
 
+##############################
+# Checking individual artifacts
+##############################
+
 
 def check_instance(obj, inst_type, message=None):
     if not message:
@@ -50,6 +54,28 @@ def check_existence(obj, name=None):
         raise ValidationError(message)
 
 
+def check_artifact_for_nulls(obj, name):
+    errors = []
+    if obj.X is not None:
+        if obj.X.isnull().values.any():
+            errors.append("X")
+    if obj.y is not None:
+        if obj.y.isnull().values.any():
+            errors.append("y")
+    if obj.sensitive_features is not None:
+        if obj.sensitive_features.isnull().values.any():
+            errors.append("sensitive_features")
+
+    if len(errors) > 0:
+        message = f"Detected null values in {name}, in attributes: {','.join(errors)}"
+        raise ValidationError(message)
+
+
+#################################
+# Checking evaluator requirements
+#################################
+
+
 def check_requirements_existence(self):
     for required_name in self.required_artifacts:
         check_existence(vars(self)[required_name], required_name)
@@ -89,20 +115,3 @@ def check_requirements_deepchecks(self):
         raise ValidationError(
             "Expected at least one valid artifact. None provided or all objects passed are otherwise invalid"
         )
-
-
-def check_artifact_for_nulls(obj, name):
-    errors = []
-    if obj.X is not None:
-        if obj.X.isnull().values.any():
-            errors.append("X")
-    if obj.y is not None:
-        if obj.y.isnull().values.any():
-            errors.append("y")
-    if obj.sensitive_features is not None:
-        if obj.sensitive_features.isnull().values.any():
-            errors.append("sensitive_features")
-
-    if len(errors) > 0:
-        message = f"Detected null values in {name}, in attributes: {','.join(errors)}"
-        raise ValidationError(message)

@@ -95,7 +95,7 @@ class ModelProfiler(Evaluator):
             self.results = [
                 TableContainer(
                     self._hack_results_into_table(res, basic),
-                    **self.get_container_info(),
+                    **self.get_info(),
                 )
             ]
             return self

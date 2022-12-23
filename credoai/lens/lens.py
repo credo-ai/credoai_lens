@@ -12,9 +12,15 @@ from connect.governance import Governance
 from joblib import Parallel, delayed
 
 from credoai.artifacts import Data, Model
-from credoai.evaluators.evaluator import ARTIFACT_LABELS, Evaluator
+from credoai.evaluators.evaluator import Evaluator
 from credoai.lens.pipeline_creator import PipelineCreator
-from credoai.utils import ValidationError, check_subset, flatten_list, global_logger
+from credoai.utils import (
+    ValidationError,
+    check_subset,
+    flatten_list,
+    global_logger,
+)
+from credoai.lens.lens_validation import *
 
 # Custom type
 Pipeline = List[Union[Evaluator, Tuple[Evaluator, str, dict]]]
@@ -115,9 +121,9 @@ class Lens:
             self.sens_feat_names = []
         self.n_jobs = n_jobs
         self._add_governance(governance)
+        self._validate()
         self._generate_pipeline(pipeline)
         # Can  pass pipeline directly
-        self._validate()
 
     def add(self, evaluator: Evaluator, metadata: dict = None):
         """
@@ -478,6 +484,12 @@ class Lens:
             if self.model.tags not in self.gov._unique_tags:
                 mes = f"Model tags: {self.model.tags} are not among the once found in the governance object: {self.gov._unique_tags}"
                 self.logger.warning(mes)
+
+        # Validate combination of model and data
+        if self.model is not None:
+            for data_artifact in [self.assessment_data, self.training_data]:
+                if data_artifact is not None:
+                    check_model_data_consistency(self.model, data_artifact)
 
     @staticmethod
     def _consume_pipeline_step(step):
