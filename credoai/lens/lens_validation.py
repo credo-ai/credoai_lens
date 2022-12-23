@@ -20,7 +20,7 @@ def check_model_data_consistency(model, data):
     # Keras always outputs numpy types (not Tensor or something else)
     if "predict" in model.__dict__.keys():
         try:
-            mini_pred, batch_size = check_model_output(model.predict, data)
+            mini_pred, batch_size = check_prediction_model_output(model.predict, data)
             if not mini_pred.size:
                 # results for all presently supported models are ndarray results
                 raise Exception("Empty return results from predict function.")
@@ -40,10 +40,12 @@ def check_model_data_consistency(model, data):
 
     if "predict_proba" in model.__dict__.keys():
         try:
-            mini_pred, batch_size = check_model_output(model.predict_proba, data)
+            mini_pred, batch_size = check_prediction_model_output(
+                model.predict_proba, data
+            )
             if not mini_pred.size:
                 # results for all presently supported models are ndarray results
-                raise Exception("Empty return results from predict function.")
+                raise Exception("Empty return results from predict_proba function.")
             if len(mini_pred.shape) > 1 and mini_pred.shape[1] > 1:
                 if np.sum(mini_pred[0]) != 1:
                     raise Exception(
@@ -56,15 +58,29 @@ def check_model_data_consistency(model, data):
                     )
         except Exception as e:
             raise ValidationError(
-                "Lens.model predictions do not match expected form implied by provided labels y.",
+                "Lens.model outputs do not match expected form implied by provided labels y.",
                 e,
             )
 
     if "compare" in model.__dict__.keys():
-        pass
+        try:
+            comps, batch_size = check_comparison_model_output(model.compare, data)
+            if type(comps) != list:
+                raise Exception(
+                    "Comparison function expected to produce output of type list."
+                )
+            if not comps:
+                # results are expected to be a list
+                raise Exception("Empty return results from compare function.")
+
+        except Exception as e:
+            raise ValidationError(
+                "Lens.model outputs do not match expected form implied by provided labels y.",
+                e,
+            )
 
 
-def check_model_output(fn, data, batch=1):
+def check_prediction_model_output(fn, data, batch=1):
     mini_pred = None
     batch_size = batch
     if isinstance(data.X, np.ndarray):
@@ -92,3 +108,17 @@ def check_model_output(fn, data, batch=1):
         mini_pred = fn(data.X[0])
 
     return mini_pred, batch_size
+
+
+def check_comparison_model_output(fn, data, batch=1):
+    comps = None
+    batch_size = batch
+    if isinstance(data.pairs, pd.DataFrame):
+        # should always pass for ComparisonData, based on checks in that wrapper. Nevertheless...
+        comps = fn(data.pairs.head(batch_size))
+    else:
+        message = "Input X is of unsupported type. Behavior is undefined. Proceed with caution"
+        global_logger.warning(message)
+        comps = fn(data.X[0])
+
+    return comps, batch_size
