@@ -32,6 +32,7 @@ jobs:
           CREDOAI_LENS_CONFIG_JSON_B64: ${{ secrets.CREDOAI_LENS_CONFIG_JSON_B64 }}
           CREDOAI_LENS_PLAN_URL: ${{ secrets.CREDOAI_LENS_PLAN_URL }}
         run: |
+          set -o pipefail
           scripts/test.sh | tee ./pytest-coverage.txt
       - name: my-artifact
         if: always()
