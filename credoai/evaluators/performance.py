@@ -87,7 +87,7 @@ class Performance(Evaluator):
         if threshold_metrics is not None:
             results += threshold_metrics
 
-        if "Classification" in self.model.type:
+        if "CLASSIFICATION" in self.model.type:
             results.append(self._create_confusion_container())
         self.results = results
         return self
