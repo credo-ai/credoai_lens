@@ -12,4 +12,3 @@ from .model.base_model import Model
 from .model.classification_model import ClassificationModel, DummyClassifier
 from .model.comparison_model import ComparisonModel, DummyComparisonModel
 from .model.regression_model import DummyRegression, RegressionModel
-from .model.keras_classification_model import KerasClassificationModel
