@@ -59,8 +59,12 @@ def check_subset(subset, superset):
     return True
 
 
+def check_pandas(array):
+    return isinstance(array, (pd.DataFrame, pd.Series))
+
+
 def check_array_like(array):
-    if isinstance(array, (pd.DataFrame, pd.Series)):
+    if check_pandas(array):
         pass
     else:
         try:
