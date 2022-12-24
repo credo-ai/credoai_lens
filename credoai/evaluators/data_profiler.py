@@ -2,6 +2,7 @@
 
 import matplotlib
 import pandas as pd
+from connect.evidence import TableContainer
 from connect.evidence.lens_evidence import DataProfilerContainer
 
 from credoai.artifacts.data.base_data import Data
@@ -54,12 +55,12 @@ class DataProfiler(Evaluator):
     def evaluate(self):
         """Generates data profile reports"""
         profile = create_report(self.data_to_profile, **self.profile_kwargs)
-        metadata = self.get_column_meta()
+        metadata = self._get_column_meta()
         results = DataProfilerContainer(profile, **self.get_info(metadata=metadata))
-        self.results = [results]
+        self.results = [results] + self._wrap_sensitive_counts()
         return self
 
-    def get_column_meta(self):
+    def _get_column_meta(self):
         metadata = {}
         if check_pandas(self.data.X):
             metadata["model_features"] = self.data.X.columns.tolist()
@@ -73,9 +74,27 @@ class DataProfiler(Evaluator):
             metadata["targets"] = self.data.y.columns.tolist()
         return metadata
 
+    def _wrap_sensitive_counts(self):
+        counts = sensitive_feature_counts(self.data)
+        if counts:
+            return [TableContainer(count) for count in counts]
 
-def create_report(data, **profile_kwargs):
+
+def create_report(df, **profile_kwargs):
     """Creates a pandas profiler report"""
     default_kwargs = {"title": "Dataset", "minimal": True}
     default_kwargs.update(profile_kwargs)
-    return ProfileReport(data, **default_kwargs)
+    return ProfileReport(df, **default_kwargs)
+
+
+def sensitive_feature_counts(data):
+    """Returns the sensitive feature distributions of a Data object"""
+    if data.sensitive_features is None:
+        return
+    sensitive_feature_distributions = []
+    for name, col in data.sensitive_features.items():
+        df = pd.concat([col.value_counts(), col.value_counts(normalize=True)], axis=1)
+        df.columns = ["Count", "Proportion"]
+        df.name = f"{name} Distribution"
+        sensitive_feature_distributions.append(df)
+    return sensitive_feature_distributions
