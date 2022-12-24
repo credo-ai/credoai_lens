@@ -2,14 +2,12 @@ import pandas as pd
 from connect.evidence import MetricContainer, TableContainer
 from sklearn.metrics import confusion_matrix
 
-from credoai.artifacts import (
-    TabularData,
-)
+from credoai.artifacts import ClassificationModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
+from credoai.utils.common import ValidationError
 from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
-    check_data_instance,
+    check_data_for_nulls,
     check_existence,
 )
 from credoai.modules.metrics import process_metrics
@@ -57,11 +55,15 @@ class Performance(Evaluator):
 
     def _validate_arguments(self):
         check_existence(self.metrics, "metrics")
-        try:
-            check_data_instance(self.assessment_data, TabularData)
-            check_artifact_for_nulls(self.assessment_data, "Data")
-        except:
-            pass
+        if self.assessment_data.X is None:
+            raise ValidationError(
+                "Prediction data X is required for Performance evaluations"
+            )
+        if self.assessment_data.y is None:
+            raise ValidationError("Labels y_true required for Performance evaluations")
+        check_data_for_nulls(
+            self.assessment_data, "Data", check_X=True, check_y=True, check_sens=False
+        )
 
     def _setup(self):
         # data variables
@@ -87,7 +89,7 @@ class Performance(Evaluator):
         if threshold_metrics is not None:
             results += threshold_metrics
 
-        if "CLASSIFICATION" in self.model.type:
+        if isinstance(self.model, ClassificationModel):
             results.append(self._create_confusion_container())
         self.results = results
         return self

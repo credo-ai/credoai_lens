@@ -18,7 +18,7 @@ from credoai.artifacts.data.tabular_data import TabularData
 from credoai.artifacts.model.classification_model import ClassificationModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
+    check_data_for_nulls,
     check_data_instance,
     check_model_instance,
     check_requirements_existence,
@@ -71,7 +71,7 @@ class Security(Evaluator):
         for ds in ["assessment_data", "training_data"]:
             artifact = vars(self)[ds]
             check_data_instance(artifact, TabularData, ds)
-            check_artifact_for_nulls(artifact, ds)
+            check_data_for_nulls(artifact, ds)
 
     def _setup(self):
         self.x_train = self.training_data.X.to_numpy()

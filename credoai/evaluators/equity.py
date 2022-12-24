@@ -10,7 +10,7 @@ from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
+    check_data_for_nulls,
     check_data_instance,
     check_existence,
 )
@@ -46,7 +46,7 @@ class DataEquity(Evaluator):
     def _validate_arguments(self):
         check_data_instance(self.data, TabularData)
         check_existence(self.data.sensitive_features, "sensitive_features")
-        check_artifact_for_nulls(self.data, "Data")
+        check_data_for_nulls(self.data, "Data")
 
     def _setup(self):
         self.sensitive_features = self.data.sensitive_feature
@@ -362,4 +362,4 @@ class ModelEquity(DataEquity):
     def _validate_arguments(self):
         check_data_instance(self.assessment_data, TabularData)
         check_existence(self.assessment_data.sensitive_features, "sensitive_features")
-        check_artifact_for_nulls(self.assessment_data, "Data")
+        check_data_for_nulls(self.assessment_data, "Data")
