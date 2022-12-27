@@ -100,7 +100,7 @@ class DataFairness(Evaluator):
         Runs the assessment process.
         """
         ##  Aggregate results from all subprocess
-        sensitive_feature_prediction_results = feature_inference_attack(
+        sensitive_feature_prediction_results = FeatureInferenceAttacker()(
             self.X, self.sensitive_features, self.categorical_features_keys
         )
         mi_results = self._calculate_mutual_information()
@@ -334,10 +334,10 @@ class DataFairness(Evaluator):
                 )
 
             # Compute the maximum difference/ratio between any two pairs of groups
-            balance_results["demographic_parity-difference"] = get_demo_parity(
+            balance_results["demographic_parity-difference"] = get_demographic_parity(
                 sens_feat_y_counts, self.y.name, "difference"
             )
-            balance_results["demographic_parity-ratio"] = get_demo_parity(
+            balance_results["demographic_parity-ratio"] = get_demographic_parity(
                 sens_feat_y_counts, self.y.name, "ratio"
             )
         return balance_results
@@ -354,125 +354,143 @@ from credoai.modules.constants_metrics import FAIRNESS_FUNCTIONS
 ############################################
 
 
-def feature_inference_attack(
-    X: pd.DataFrame, target: pd.Series, categorical_features_keys: pd.Series
-) -> dict:
-    """
-    Determines redundant encoding.
+class FeatureInferenceAttacker:
+    def __init__(self):
+        """
+        Class to infer a particular feature
 
-    A model is trained on the X features to predict the target.
-    The score, called "sensitive-feature-prediction-score" is a cross-validated ROC-AUC score.
-    We scale the score from typical ROC range of 0.5-1 to 0-1.
-    It quantifies the performance of this prediction.
-    A high score means the data collectively serves as a proxy.
+        A model is trained on the X features to predict the target.
+        The score, called "sensitive-feature-prediction-score" is a cross-validated ROC-AUC score.
+        We scale the score from typical ROC range of 0.5-1 to 0-1.
+        It quantifies the performance of this prediction.
+        A high score means the data collectively serves as a proxy.
 
-    Within the evaluator this is used to predict sensitive features from the dataset.
+        Within the evaluator this is used to predict sensitive features from the dataset.
+        """
 
-    Parameters
-    ----------
-    X : pd.DataFrame
-        Dataset used for the assessment
-    target : pd.Series
-        Feature we are trying to infer from X. In the evaluator this is sensitive features.
-    categorical_features_keys : pd.Series
-        Series describing which are the categorical variables in X
+    def __call__(
+        self, X: pd.DataFrame, target: pd.Series, categorical_features_keys: pd.Series
+    ):
+        """
+        Performs feature inference attack
 
-    Returns
-    -------
-    dict
-        Nested dictionary with all the results
-    """
-    results = {}
-    if is_categorical(target):
-        target = target.cat.codes
-    else:
-        target = target
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Dataset used for the assessment
+        target : pd.Series
+            Feature we are trying to infer from X. In the evaluator this is sensitive features.
+        categorical_features_keys : pd.Series
+            Series describing which are the categorical variables in X
 
-    pipe = _make_pipe(X, categorical_features_keys)
-    scorer = make_scorer(roc_auc_score, needs_proba=True, multi_class="ovo")
-    n_folds = max(2, min(len(X) // 5, 5))
-    cv_results = cross_val_score(
-        pipe,
-        X,
-        target,
-        cv=StratifiedKFold(n_folds),
-        scoring=scorer,
-        error_score="raise",
-    )
+        Returns
+        -------
+        dict
+            Nested dictionary with all the results
+        """
 
-    # Get feature importances by running once
-    pipe.fit(X, target)
-    model = pipe["model"]
-    preprocessor = pipe["preprocessor"]
-    col_names = ColumnTransformerUtil.get_ct_feature_names(preprocessor)
-    feature_importances = pd.Series(
-        model.feature_importances_, index=col_names
-    ).sort_values(ascending=False)
+        results = {}
+        if is_categorical(target):
+            target = target.cat.codes
+        else:
+            target = target
+        pipe = self._make_pipe(X, categorical_features_keys)
 
-    results["sensitive_feature-prediction_score"] = [
-        {"value": max(cv_results.mean() * 2 - 1, 0)}
-    ]  # move to 0-1 range
+        results = {
+            "sensitive_feature-prediction_score": [
+                {"value": self._pipe_scores(pipe, X, target)}
+            ],
+            "sensitive_feature-prediction_feature_importances": self._pipe_importance(
+                pipe, X, target
+            ),
+        }
+        return results
 
-    # Reformat feature importance
-    feature_importances = [
-        {"feat_name": k, "value": v} for k, v in feature_importances.to_dict().items()
-    ]
-    results["sensitive_feature-prediction_feature_importances"] = feature_importances
+    def _make_pipe(
+        self, X: pd.DataFrame, categorical_features_keys: pd.Series
+    ) -> Pipeline:
+        """
+        Makes a pipeline.
 
-    return results
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Dataset used for the assessment
+        categorical_features_keys : pd.Series
+            Series describing which are the categorical variables in X
 
+        Returns
+        -------
+        sklearn.pipeline
+            Pipeline of scaler and model transforms
+        """
+        categorical_features = categorical_features_keys.copy()
+        numeric_features = [x for x in X.columns if x not in categorical_features]
 
-def _make_pipe(X: pd.DataFrame, categorical_features_keys: pd.Series) -> Pipeline:
-    """
-    Makes a pipeline.
-
-    Parameters
-    ----------
-    X : pd.DataFrame
-        Dataset used for the assessment
-    categorical_features_keys : pd.Series
-        Series describing which are the categorical variables in X
-
-    Returns
-    -------
-    sklearn.pipeline
-        Pipeline of scaler and model transforms
-    """
-    categorical_features = categorical_features_keys.copy()
-    numeric_features = [x for x in X.columns if x not in categorical_features]
-
-    # Define features tansformers
-    categorical_transformer = OneHotEncoder(handle_unknown="ignore")
-
-    transformers = []
-    if len(categorical_features):
+        # Define features tansformers
         categorical_transformer = OneHotEncoder(handle_unknown="ignore")
-        transformers.append(("cat", categorical_transformer, categorical_features))
-    if len(numeric_features):
-        numeric_transformer = Pipeline(steps=[("scaler", StandardScaler())])
-        transformers.append(("num", numeric_transformer, numeric_features))
-    preprocessor = ColumnTransformer(transformers=transformers)
 
-    model = get_generic_classifier()
+        transformers = []
+        if len(categorical_features):
+            categorical_transformer = OneHotEncoder(handle_unknown="ignore")
+            transformers.append(("cat", categorical_transformer, categorical_features))
+        if len(numeric_features):
+            numeric_transformer = Pipeline(steps=[("scaler", StandardScaler())])
+            transformers.append(("num", numeric_transformer, numeric_features))
+        preprocessor = ColumnTransformer(transformers=transformers)
 
-    pipe = Pipeline(steps=[("preprocessor", preprocessor), ("model", model)])
+        model = get_generic_classifier()
 
-    return pipe
+        pipe = Pipeline(steps=[("preprocessor", preprocessor), ("model", model)])
+
+        return pipe
+
+    def _pipe_importance(self, pipe, X, target):
+        """Gets feature importances for pipeline"""
+        # Get feature importances by running once
+        pipe.fit(X, target)
+        model = pipe["model"]
+        preprocessor = pipe["preprocessor"]
+        col_names = ColumnTransformerUtil.get_ct_feature_names(preprocessor)
+        feature_importances = pd.Series(
+            model.feature_importances_, index=col_names
+        ).sort_values(ascending=False)
+
+        # Reformat feature importance
+        feature_importances = [
+            {"feat_name": k, "value": v}
+            for k, v in feature_importances.to_dict().items()
+        ]
+        return feature_importances
+
+    def _pipe_scores(self, pipe, X, target):
+        """Calculates average cross-validated scores for pipeline"""
+        scorer = make_scorer(roc_auc_score, needs_proba=True, multi_class="ovo")
+        n_folds = max(2, min(len(X) // 5, 5))
+        cv_results = cross_val_score(
+            pipe,
+            X,
+            target,
+            cv=StratifiedKFold(n_folds),
+            scoring=scorer,
+            error_score="raise",
+        )
+        return max(cv_results.mean() * 2 - 1, 0)
 
 
-def get_demo_parity(r: pd.DataFrame, target_name: str, fun: str) -> dict:
+def get_demographic_parity(df: pd.DataFrame, target_name: str, fun: str) -> dict:
     """
     Calculates maximum difference/ratio between target categories.
 
     Parameters
     ----------
-    r : pd.DataFrame
+    df : pd.DataFrame
         Data grouped by sensitive feature and y, then  count of y over total
         instances is calculated.
     target_name : str
         Name of y object
     fun : str
-        Either "difference" or "ratio": indicates which calculatio to perform.
+        Either "difference" or "ratio": indicates which calculation to perform.
 
     Returns
     -------
@@ -484,7 +502,7 @@ def get_demo_parity(r: pd.DataFrame, target_name: str, fun: str) -> dict:
         "ratio": lambda x: np.min(x) / np.max(x),
     }
     return (
-        r.groupby(target_name)["ratio"]
+        df.groupby(target_name)["ratio"]
         .apply(funcs[fun])
         .reset_index(name="value")
         .iloc[1:]
