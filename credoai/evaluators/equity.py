@@ -56,12 +56,15 @@ class DataEquity(Evaluator):
         return self
 
     def evaluate(self):
+        summary, parity_results = self._describe()
         outcome_distribution = self._outcome_distributions()
         overall_equity, posthoc_tests = self._get_formatted_stats()
 
         # Combine
         equity_containers = [
+            summary,
             outcome_distribution,
+            parity_results,
             overall_equity,
         ]
 
@@ -71,6 +74,45 @@ class DataEquity(Evaluator):
 
         self.results = equity_containers
         return self
+
+    def _describe(self):
+        """Create descriptive output"""
+        means = self.df.groupby(self.sensitive_features.name).mean()
+        results = {"summary": means}
+
+        summary = results["summary"]
+        results["sensitive_feature"] = self.sensitive_features.name
+        results["highest_group"] = summary[self.y.name].idxmax()
+        results["lowest_group"] = summary[self.y.name].idxmin()
+        results["demographic_parity_difference"] = (
+            summary[self.y.name].max() - summary[self.y.name].min()
+        )
+        results["demographic_parity_ratio"] = (
+            summary[self.y.name].min() / summary[self.y.name].max()
+        )
+
+        summary.name = f"Average Outcome Per Group"
+
+        # Format summary results
+        summary = TableContainer(
+            results["summary"],
+            **self.get_info(labels=self.labels),
+        )
+
+        # Format parity results
+        parity_results = pd.DataFrame(
+            [
+                {"type": k, "value": v}
+                for k, v in results.items()
+                if "demographic_parity" in k
+            ]
+        )
+        parity_results = MetricContainer(
+            parity_results,
+            **self.get_info(labels=self.labels),
+        )
+
+        return summary, parity_results
 
     def _outcome_distributions(self):
         out = TableContainer(
