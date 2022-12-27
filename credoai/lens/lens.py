@@ -74,7 +74,7 @@ class Lens:
         pipeline: Pipeline = None,
         governance: Governance = None,
         n_jobs: int = 1,
-    ) -> None:
+    ):
         """
         Initializer for the Lens class.
 
