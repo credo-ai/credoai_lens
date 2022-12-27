@@ -100,9 +100,8 @@ class DataFairness(Evaluator):
         Runs the assessment process.
         """
         ##  Aggregate results from all subprocess
-        sensitive_feature_prediction_results = FeatureInferenceAttacker()(
-            self.X, self.sensitive_features, self.categorical_features_keys
-        )
+        sensitive_feature_prediction_results = self._check_redundant_encoding()
+
         mi_results = self._calculate_mutual_information()
         balance_metrics = self._assess_balance_metrics()
         group_differences = self._group_differences()
@@ -115,6 +114,25 @@ class DataFairness(Evaluator):
             group_differences,
         )
         return self
+
+    def _check_redundant_encoding(self):
+        """Assesses whether the dataset 'redundantly encodes' the sensitive feature
+
+        Reundant encoding means that information of the sensitive feature is embedded in the
+        rest of the dataset. This means that sensitive feature information is contained
+        and therefore "leakable" to the trained model. This is a more robust measure of
+        sensitive feature proxy than looking at a single proxy feature, as information of
+        the sensitive feature may not exist on one dataset feature, but rather in the confluence
+        of many.
+
+        Reundant encoding is measured by performing a feature inference attack using the entire
+        dataset
+        """
+        results = FeatureInference()(
+            self.X, self.sensitive_features, self.categorical_features_keys
+        )
+        results = {f"sensitive_feature_inference_{k}": v for k, v in results.items()}
+        return results
 
     def _format_results(
         self,
@@ -343,8 +361,6 @@ class DataFairness(Evaluator):
         return balance_results
 
 
-from credoai.modules.constants_metrics import FAIRNESS_FUNCTIONS
-
 ############################################
 ## Evaluation helper functions
 
@@ -354,18 +370,16 @@ from credoai.modules.constants_metrics import FAIRNESS_FUNCTIONS
 ############################################
 
 
-class FeatureInferenceAttacker:
+class FeatureInference:
     def __init__(self):
         """
         Class to infer a particular feature
 
         A model is trained on the X features to predict the target.
-        The score, called "sensitive-feature-prediction-score" is a cross-validated ROC-AUC score.
+        The prediction is a cross-validated ROC-AUC score.
         We scale the score from typical ROC range of 0.5-1 to 0-1.
         It quantifies the performance of this prediction.
-        A high score means the data collectively serves as a proxy.
-
-        Within the evaluator this is used to predict sensitive features from the dataset.
+        A high score means the data collectively serves as a proxy for the target.
         """
 
     def __call__(
@@ -397,12 +411,8 @@ class FeatureInferenceAttacker:
         pipe = self._make_pipe(X, categorical_features_keys)
 
         results = {
-            "sensitive_feature-prediction_score": [
-                {"value": self._pipe_scores(pipe, X, target)}
-            ],
-            "sensitive_feature-prediction_feature_importances": self._pipe_importance(
-                pipe, X, target
-            ),
+            "scaled_ROC_score": [{"value": self._pipe_scores(pipe, X, target)}],
+            "feature_importances": self._pipe_importance(pipe, X, target),
         }
         return results
 
