@@ -238,38 +238,16 @@ class DataFairness(Evaluator):
         for col in self.categorical_features_keys:
             self.X[col] = self.X[col].astype("category").cat.codes
 
-        discrete_features = [
+        self.discrete_features = [
             True if col in self.categorical_features_keys else False
             for col in self.X.columns
         ]
 
         # Use the right mutual information methods based on the feature type of the sensitive attribute
         if is_categorical(self.sensitive_features):
-            sensitive_feature = self.sensitive_features.cat.codes
-            mi = mutual_info_classif(
-                self.X,
-                sensitive_feature,
-                discrete_features=discrete_features,
-                random_state=42,
-            )
-            ref = mutual_info_classif(
-                sensitive_feature.values[:, None],
-                sensitive_feature,
-                discrete_features=[True],
-                random_state=42,
-            )[0]
+            mi, ref = self._categorical_mi()
         else:
-            mi = mutual_info_regression(
-                self.X,
-                self.sensitive_features,
-                discrete_features=discrete_features,
-                random_state=42,
-            )
-            ref = mutual_info_regression(
-                self.sensitive_features.values[:, None],
-                self.sensitive_features,
-                random_state=42,
-            )[0]
+            mi, ref = self._numerical_mi()
 
         # Normalize the mutual information values, if requested
         mi = pd.Series(mi, index=self.X.columns)
@@ -299,6 +277,41 @@ class DataFairness(Evaluator):
             "proxy_mutual_information": mutual_information_results,
             "proxy_mutual_information-max": [{"value": max_proxy_value}],
         }
+
+    def _numerical_mi(self):
+        """Calculate mutual information for numerical features"""
+        mi = mutual_info_regression(
+            self.X,
+            self.sensitive_features,
+            discrete_features=self.discrete_features,
+            random_state=42,
+        )
+        ref = mutual_info_regression(
+            self.sensitive_features.values[:, None],
+            self.sensitive_features,
+            random_state=42,
+        )[0]
+
+        return mi, ref
+
+    def _categorical_mi(self):
+        """
+        Calculate mutual information for categorical features
+        """
+        sensitive_feature = self.sensitive_features.cat.codes
+        mi = mutual_info_classif(
+            self.X,
+            sensitive_feature,
+            discrete_features=self.discrete_features,
+            random_state=42,
+        )
+        ref = mutual_info_classif(
+            sensitive_feature.values[:, None],
+            sensitive_feature,
+            discrete_features=[True],
+            random_state=42,
+        )[0]
+        return mi, ref
 
     def _assess_balance_metrics(self):
         """
