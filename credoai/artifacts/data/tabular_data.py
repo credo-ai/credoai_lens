@@ -5,7 +5,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from credoai.utils.common import ValidationError, check_array_like
+from credoai.utils.common import ValidationError, check_array_like, check_pandas
 
 from .base_data import Data
 
@@ -59,6 +59,9 @@ class TabularData(Data):
         temp = pd.DataFrame(X)
         # Column names are converted to strings, to avoid mixed types
         temp.columns = temp.columns.astype("str")
+        # if X was not a pandas object, give it the index of sensitive features
+        if not check_pandas(X) and self.sensitive_features is not None:
+            temp.index = self.sensitive_features.index
         return temp
 
     def _process_y(self, y):
@@ -94,8 +97,8 @@ class TabularData(Data):
         """Validate processed X"""
         if len(self.X.columns) != len(set(self.X.columns)):
             raise ValidationError("X contains duplicate column names")
-        if len(self.X.index) != len(set(self.X.index)):
-            raise ValidationError("X's index cannot contain duplicates")
+        if not self.X.index.is_unique:
+            raise ValidationError("X's index must be unique")
 
     def _validate_processed_y(self):
         """Validate processed Y"""

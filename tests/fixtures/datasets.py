@@ -4,12 +4,12 @@ Contains all fixtures related to dataset creation.
 Any fixture added to the file will be immediately available due to
 addition of this module as plugin in the file `pytest.ini`.
 """
-from pytest import fixture
-from credoai.datasets import fetch_creditdefault, fetch_testdata
 from pandas import DataFrame, Series
-from sklearn.model_selection import train_test_split
+from pytest import fixture
 from sklearn import datasets
+from sklearn.model_selection import train_test_split
 
+from credoai.datasets import fetch_creditdefault, fetch_testdata
 
 ### Datasets definition ########################
 
@@ -90,8 +90,10 @@ def multiclass_data():
     iris = datasets.load_iris()
     X = iris.data
     y = iris.target
-    sensitive_features = Series(["B", "W"]).sample(
-        X.shape[0], replace=True, random_state=42
+    sensitive_features = (
+        Series(["B", "W"])
+        .sample(X.shape[0], replace=True, random_state=42)
+        .reset_index(drop=True)
     )
 
     (

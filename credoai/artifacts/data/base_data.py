@@ -2,14 +2,13 @@
 # Data is a lightweight wrapper that stores data
 import itertools
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Optional, Union
 
 import pandas as pd
 
-from credoai.utils.common import ValidationError
+from credoai.utils.common import ValidationError, check_pandas
 from credoai.utils.model_utils import type_of_target
-
-from copy import deepcopy
 
 
 class Data(ABC):
@@ -111,7 +110,7 @@ class Data(ABC):
             self.y = self._process_y(self.y)
         if self.sensitive_features is not None:
             self.sensitive_features = self._process_sensitive(
-                deepcopy(self.sensitive_features), sensitive_intersections
+                self.sensitive_features, sensitive_intersections
             )
 
     def _process_sensitive(self, sensitive_features, sensitive_intersections):
@@ -128,10 +127,10 @@ class Data(ABC):
 
         Returns
         -------
-        _type_
-            _description_
+        pd.DataFrame
+            dataframe of processed sensitive features
         """
-        df = pd.DataFrame(sensitive_features)
+        df = deepcopy(pd.DataFrame(sensitive_features))
         if len(df.columns) == 1 and isinstance(df.columns[0], int):
             df.columns = ["NA"]
         # add intersections if asked for
@@ -169,7 +168,7 @@ class Data(ABC):
     def _validate_sensitive(self):
         """Sensitive features validation"""
         # Validate the types
-        if not isinstance(self.sensitive_features, (pd.Series, pd.DataFrame)):
+        if not check_pandas(self.sensitive_features):
             raise ValidationError(
                 "Sensitive_feature type is '"
                 + type(self.sensitive_features).__name__
@@ -181,14 +180,19 @@ class Data(ABC):
                     "X and sensitive_features are not the same length. "
                     + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
                 )
-        if isinstance(self.X, (pd.Series, pd.DataFrame)) and not self.X.index.equals(
+        if check_pandas(self.X) and not self.X.index.equals(
             self.sensitive_features.index
         ):
             raise ValidationError("X and sensitive features must have the same index")
 
         if isinstance(self.sensitive_features, pd.Series):
             if not hasattr(self.sensitive_features, "name"):
-                raise ValidationError("Feature Series should have a name attribute")
+                raise ValidationError(
+                    "Sensitive Feature Series should have a name attribute"
+                )
+
+        if not self.sensitive_features.index.is_unique:
+            raise ValidationError("Sensitive Features index must be unique")
 
     def _validate_X(self):
         pass
