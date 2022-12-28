@@ -95,6 +95,16 @@ class DataFairness(Evaluator):
                 self.categorical_threshold
             )
 
+        # Encode categorical features
+        for col in self.categorical_features_keys:
+            self.X[col] = self.X[col].astype("category").cat.codes
+
+        # Locate discrete features in dataset
+        self.discrete_features = [
+            True if col in self.categorical_features_keys else False
+            for col in self.X.columns
+        ]
+
         return self
 
     def evaluate(self):
@@ -234,14 +244,6 @@ class DataFairness(Evaluator):
             Key: feature name
             Value: mutual information and considered feature type (categorical/continuous)
         """
-        # Encode categorical features
-        for col in self.categorical_features_keys:
-            self.X[col] = self.X[col].astype("category").cat.codes
-
-        self.discrete_features = [
-            True if col in self.categorical_features_keys else False
-            for col in self.X.columns
-        ]
 
         # Use the right mutual information methods based on the feature type of the sensitive attribute
         if is_categorical(self.sensitive_features):
@@ -256,20 +258,17 @@ class DataFairness(Evaluator):
 
         # Create the results
         mi = mi.sort_index().to_dict()
-        mutual_information_results = []
-        for k, v in mi.items():
-            if k in self.categorical_features_keys:
-                feature_type = "categorical"
-            else:
-                feature_type = "continuous"
+        mutual_information_results = [
+            {
+                "feat_name": k,
+                "value": v,
+                "feature_type": "categorical"
+                if k in self.categorical_features_keys
+                else "continuous",
+            }
+            for k, v in mi.items()
+        ]
 
-            mutual_information_results.append(
-                {
-                    "feat_name": k,
-                    "value": v,
-                    "feature_type": feature_type,
-                }
-            )
         # Get max value
         max_proxy_value = max([i["value"] for i in mutual_information_results])
 
