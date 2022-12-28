@@ -55,12 +55,8 @@ class Performance(Evaluator):
 
     def _validate_arguments(self):
         check_existence(self.metrics, "metrics")
-        if self.assessment_data.X is None:
-            raise ValidationError(
-                "Prediction data X is required for Performance evaluations"
-            )
-        if self.assessment_data.y is None:
-            raise ValidationError("Labels y_true required for Performance evaluations")
+        check_existence(self.assessment_data.X)
+        check_existence(self.assessment_data.y)
         check_data_for_nulls(
             self.assessment_data, "Data", check_X=True, check_y=True, check_sens=False
         )

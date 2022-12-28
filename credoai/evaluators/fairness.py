@@ -1,21 +1,15 @@
 from collections import defaultdict
-from typing import List
 
 import pandas as pd
 from connect.evidence import MetricContainer, TableContainer
 
-from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
 from credoai.evaluators.utils.validation import (
     check_data_for_nulls,
-    check_data_instance,
     check_existence,
 )
-from credoai.modules.constants_metrics import (
-    MODEL_METRIC_CATEGORIES,
-    THRESHOLD_METRIC_CATEGORIES,
-)
+from credoai.utils.common import check_pandas, ValidationError
 from credoai.modules.metrics import process_metrics
 
 
@@ -59,9 +53,18 @@ class ModelFairness(Evaluator):
 
     def _validate_arguments(self):
         check_existence(self.metrics, "metrics")
-        check_data_instance(self.data, TabularData)
-        check_existence(self.data.sensitive_features, "sensitive_features")
-        check_data_for_nulls(self.data, "Data")
+        check_existence(self.data.X, "X")
+        check_existence(self.data.y, "y")
+        if not check_pandas(self.data.sensitive_features):
+            raise ValidationError(
+                "Sensitive features must be a Pandas DataFrame or Series"
+            )
+        check_data_for_nulls(
+            self.data, "Data", check_X=True, check_y=True, check_sens=True
+        )
+        # check_data_instance(self.data, TabularData)
+        # check_existence(self.data.sensitive_features, "sensitive_features")
+        # check_data_for_nulls(self.data, "Data")
 
     def _setup(self):
         self.sensitive_features = self.data.sensitive_feature

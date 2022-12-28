@@ -237,7 +237,9 @@ class ModelEquity(DataEquity):
     def _validate_arguments(self):
         check_data_instance(self.assessment_data, TabularData)
         check_existence(self.assessment_data.sensitive_features, "sensitive_features")
-        check_artifact_for_nulls(self.assessment_data, "Data")
+        check_data_for_nulls(
+            self.assessment_data, "Data", check_X=True, check_y=True, check_sens=True
+        )
 
 
 ############################################
