@@ -1,4 +1,6 @@
 import warnings
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
 from itertools import combinations
 from typing import List, Optional
 
@@ -169,9 +171,7 @@ class DataFairness(Evaluator):
                 Key: name of feature
                 Value: standardized mean difference
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter(action="ignore", category=FutureWarning)
-            group_means = self.X.groupby(self.sensitive_features).mean()
+        group_means = self.X.groupby(self.sensitive_features).mean()
         std = self.X.std(numeric_only=True)
         diffs = {}
         for group1, group2 in combinations(group_means.index, 2):
@@ -295,43 +295,32 @@ class DataFairness(Evaluator):
         """
         balance_results = {}
 
+        from collections import Counter
+
         # Distribution of samples across groups
-        sample_balance = (
-            self.y.groupby(self.sensitive_features)
-            .agg(
-                count=(len),
-                percentage=(lambda x: 100.0 * len(x) / len(self.y)),
-            )
-            .reset_index()
-            .to_dict(orient="records")
-        )
-        balance_results["sample_balance"] = sample_balance
+        sens_feat_breakdown = Counter(self.sensitive_features)
+        total = len(self.sensitive_features)
+        balance_results["sample_balance"] = [
+            {"race": k, "count": v, "percentage": v * 100 / total}
+            for k, v in sens_feat_breakdown.items()
+        ]
 
         # only calculate demographic parity and label balance when there are a reasonable
         # number of categories
         if len(self.y.unique()) < MULTICLASS_THRESH:
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=FutureWarning)
-                # Distribution of samples across groups
-                label_balance = (
-                    self.data.groupby([self.sensitive_features, self.y.name])
-                    .size()
-                    .unstack(fill_value=0)
-                    .stack()
-                    .reset_index(name="count")
-                    .to_dict(orient="records")
-                )
-                balance_results["label_balance"] = label_balance
+            # Distribution of samples across groups
+            sens_feat_label = self.data[[self.y.name]]
+            sens_feat_label[self.sensitive_features.name] = self.sensitive_features
+            label_balance = sens_feat_label.value_counts().reset_index(name="count")
 
-                # Fairness metrics
-                sens_feat_y_counts = (
-                    self.data.groupby([self.sensitive_features, self.y.name])
-                    .agg({self.y.name: "count"})
-                    .groupby(level=0)
-                    .apply(lambda x: x / float(x.sum()))
-                    .rename({self.y.name: "ratio"}, inplace=False, axis=1)
-                    .reset_index(inplace=False)
-                )
+            balance_results["label_balance"] = label_balance.to_dict(orient="records")
+
+            # Fairness metrics
+            ## Get Ratio of total
+            label_balance["ratio"] = label_balance["count"] / label_balance.groupby(
+                self.sensitive_features.name
+            )["count"].transform("sum")
+            sens_feat_y_counts = label_balance.drop("count", axis=1)
 
             # Compute the maximum difference/ratio between any two pairs of groups
             balance_results["demographic_parity-difference"] = get_demographic_parity(
