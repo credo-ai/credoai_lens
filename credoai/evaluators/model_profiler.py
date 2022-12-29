@@ -92,10 +92,9 @@ class ModelProfiler(Evaluator):
         basic = self._get_basic_info()
         res = self._get_model_params()
         if "keras" in str(self.model_type):
-            # Hack for keras demo, TODO: remove when merging to dev
             self.results = [
                 TableContainer(
-                    self._hack_results_into_table(res, basic),
+                    self._generate_keras_results_table(res, basic),
                     **self.get_info(),
                 )
             ]
@@ -114,7 +113,7 @@ class ModelProfiler(Evaluator):
         return self
 
     @staticmethod
-    def _hack_results_into_table(res, basic):
+    def _generate_keras_results_table(res, basic):
         basic = DataFrame(basic, index=[0]).T
         opt_info = DataFrame(res["parameters"]["optimizer_info"], index=[0])
         opt_info.columns = [f"optimizer.{x}" for x in opt_info.columns]
