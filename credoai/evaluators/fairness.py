@@ -62,9 +62,6 @@ class ModelFairness(Evaluator):
         check_data_for_nulls(
             self.data, "Data", check_X=True, check_y=True, check_sens=True
         )
-        # check_data_instance(self.data, TabularData)
-        # check_existence(self.data.sensitive_features, "sensitive_features")
-        # check_data_for_nulls(self.data, "Data")
 
     def _setup(self):
         self.sensitive_features = self.data.sensitive_feature

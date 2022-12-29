@@ -20,7 +20,7 @@ from credoai.utils import (
     flatten_list,
     global_logger,
 )
-from credoai.lens.lens_validation import *
+from credoai.lens.lens_validation import check_model_data_consistency
 
 # Custom type
 Pipeline = List[Union[Evaluator, Tuple[Evaluator, str, dict]]]

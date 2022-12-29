@@ -15,7 +15,10 @@ from sklearn.metrics import pairwise
 from sklearn.preprocessing import StandardScaler
 
 from credoai.artifacts.data.tabular_data import TabularData
-from credoai.artifacts.model.classification_model import ClassificationModel
+from credoai.artifacts.model.classification_model import (
+    ClassificationModel,
+    DummyClassifier,
+)
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
     check_data_for_nulls,
@@ -67,7 +70,7 @@ class Security(Evaluator):
 
     def _validate_arguments(self):
         check_requirements_existence(self)
-        check_model_instance(self.model, ClassificationModel)
+        check_model_instance(self.model, (ClassificationModel, DummyClassifier))
         for ds in ["assessment_data", "training_data"]:
             artifact = vars(self)[ds]
             check_data_instance(artifact, TabularData, ds)

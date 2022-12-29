@@ -5,6 +5,7 @@ import numpy as np
 from pandas import DataFrame, concat
 
 from connect.evidence.lens_evidence import ModelProfilerContainer
+from connect.evidence import TableContainer
 from pandas import DataFrame
 
 from credoai.evaluators import Evaluator

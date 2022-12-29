@@ -16,7 +16,7 @@ from pandas import DataFrame
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
-from credoai.artifacts import ClassificationModel, TabularData
+from credoai.artifacts import ClassificationModel, TabularData, DummyClassifier
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
     check_data_for_nulls,
@@ -132,7 +132,7 @@ class Privacy(Evaluator):
         parent class.
         """
         check_requirements_existence(self)
-        check_model_instance(self.model, ClassificationModel)
+        check_model_instance(self.model, (ClassificationModel, DummyClassifier))
         for ds in ["assessment_data", "training_data"]:
             artifact = vars(self)[ds]
             check_data_instance(artifact, TabularData, ds)

@@ -16,6 +16,21 @@ from credoai.utils import global_logger
 
 
 def check_model_data_consistency(model, data):
+    """
+    This validation function serves to check the compatibility of a model and dataset provided to Lens.
+    For each outputting function (e.g., `predict`) supported by Lens, this validator checks
+    whether the model supports that function. If so, the validator applies the outputting function to
+    a small sample of the supplied dataset. The validator ensures the outputting function does not fail
+    and, depending on the nature of the outputting function, performs light checking to verify the outputs
+    (e.g. predictions) match the expected form, possibly including: data type and output shape.
+
+    Parameters
+    ----------
+    model : artifacts.Model or a subtype of artifacts.Model
+        A trained machine learning model wrapped as a Lens Model object
+    data : artifacts.Data or a subtype of artifacts.Data
+        The dataset that will be assessed by Lens evaluators, wrapped as a Lens Data object
+    """
     # check predict
     # Keras always outputs numpy types (not Tensor or something else)
     if "predict" in model.__dict__.keys():
@@ -80,7 +95,24 @@ def check_model_data_consistency(model, data):
             )
 
 
-def check_prediction_model_output(fn, data, batch=1):
+def check_prediction_model_output(fn, data, batch: int = 1):
+    """
+    Helper function for prediction-type models. For use with `check_model_data_consistency`.
+
+    This helper does the work of actually obtaining predictions (from `predict` or `predict_proba`;
+    flexible enough for future use with functions that have similar behavior) and verifying that the
+    outputs are consistent with expected outputs specified by the ground truth `data.y`.
+
+    Parameters
+    ----------
+    fn : function object
+        The prediction-generating function for the model passed to `check_model_data_consistency`
+    data : artifacts.Data or a subtype of artifacts.Data
+        The dataset that will be assessed by Lens evaluators, wrapped as a Lens Data object
+    batch : an integer
+        The size of the sample prediction. We do not perform prediction on the entire `data.X` object
+        since this could be large and computationally expensive.
+    """
     mini_pred = None
     batch_size = batch
     if isinstance(data.X, np.ndarray):
@@ -111,6 +143,22 @@ def check_prediction_model_output(fn, data, batch=1):
 
 
 def check_comparison_model_output(fn, data, batch=1):
+    """
+    Helper function for comparison-type models. For use with `check_model_data_consistency`.
+
+    This helper does the work of actually obtaining comparisons (from `compare`; flexible enough
+    for future use with functions that have similar behavior) to verify the function does not fail.
+
+    Parameters
+    ----------
+    fn : function object
+        The comparison-generating function for the model passed to `check_model_data_consistency`
+    data : artifacts.Data or a subtype of artifacts.Data
+        The dataset that will be assessed by Lens evaluators, wrapped as a Lens Data object
+    batch : an integer
+        The size of the sample prediction. We do not perform prediction on the entire `data.pairs`
+        object since this could be large and computationally expensive.
+    """
     comps = None
     batch_size = batch
     if isinstance(data.pairs, pd.DataFrame):
