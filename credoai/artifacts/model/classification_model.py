@@ -99,8 +99,13 @@ class ClassificationModel(Model):
                     # predict_proba is not valid (for now)
 
         elif self.model_info["framework"] == "credoai":
-            pass
             # Functionality for DummyClassifier
+            if self.model_like.model_like:
+                # If the dummy model has a model_like specified, reassign
+                # the classifier's model_like attribute to match the dummy's
+                # so that downstream evaluators (ModelProfiler) can use it
+                self.model_like = self.model_like.model_like
+
             # Predict and Predict_Proba should already be specified
 
 
