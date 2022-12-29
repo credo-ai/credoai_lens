@@ -7,6 +7,7 @@ addition of this module as plugin in the file `pytest.ini`.
 from pytest import fixture
 from credoai.artifacts.model.comparison_model import DummyComparisonModel
 from credoai.artifacts import (
+    Data,
     TabularData,
     ComparisonData,
     ClassificationModel,
@@ -15,6 +16,7 @@ from credoai.artifacts import (
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
+import tensorflow as tf
 
 
 ### Identity verification data/model artifacts ###
@@ -85,6 +87,43 @@ def classification_train_data(binary_data):
         X=train["X"],
         y=train["y"],
         sensitive_features=train["sensitive_features"],
+    )
+
+
+### Keras model/data artifacts (in memory) ########
+
+
+@fixture(scope="session")
+def keras_classification_model(mnist_data):
+    model = tf.keras.models.Sequential(
+        [
+            tf.keras.layers.Flatten(input_shape=(28, 28)),
+            tf.keras.layers.Dense(128, activation="relu"),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(10),
+        ]
+    )
+    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    model.compile(optimizer="adam", loss=loss_fn, metrics=["accuracy"])
+    model.fit(mnist_data["train"]["X"], mnist_data["train"]["y"])
+    credo_model = ClassificationModel("mnist_classifier", model)
+    return credo_model
+
+
+@fixture(scope="session")
+def keras_classification_assessment_data(mnist_data):
+    test = mnist_data["test"]
+    return Data(type="tensor", name="mnist-test", X=test["X"], y=test["y"])
+
+
+@fixture(scope="session")
+def keras_classification_train_data(mnist_data):
+    train = mnist_data["train"]
+    return Data(
+        type="tensor",
+        name="mnist-train",
+        X=train["X"],
+        y=train["y"],
     )
 
 
