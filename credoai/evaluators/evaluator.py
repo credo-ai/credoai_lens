@@ -138,7 +138,8 @@ class Evaluator(ABC):
     def _base_info(self):
         """Extract basic info to populate labels and metadata."""
         meta = {**self.metadata, **self._get_artifacts()}
-        labels = {"evaluator": self.name}
+        labels = {"evaluator": self.name,
+                  "source": "CredoAI_Lens"}
         # transfer some metadata to labels
         meta_to_label = ["dataset_type", "sensitive_feature"]
         for key in meta_to_label:
