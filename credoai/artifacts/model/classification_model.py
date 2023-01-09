@@ -30,12 +30,19 @@ class ClassificationModel(Model):
             `predict` function that returns an array containing model outputs for each sample.
             It can also optionally have a `predict_proba` function that returns array containing
             the class label probabilities for each sample.
+
             If the supplied model_like is from the sklearn or xgboost framework, `predict` is assumed
             to return a column vector with a single value for each sample (i.e. thresholded predictions).
+
             If the supplied model_like is from the Keras framework, the assumed form of `predict` outputs
-            depends on the final-layer activation. If softmax, wrapper assumes return is a matrix with
-            probability values (i.e., without argmax) similar to sklearn.predict_proba. If sigmoid, wrapper
-            assumes return is a column vector with label predictions.
+            depends on the final-layer activation.
+            If the final layer is softmax, this wrapper assumes the
+            return value is a is a matrix with shape (n_samples, n_classes) corresponding to probability
+            values (i.e., without argmax), similar to sklearn.predict_proba. The wrapper applies argmax
+            where necessary to obtain discrete labels.
+            If the final layer is sigmoid, this wrapper assumes the return value is an (n_samples, 1)
+            column vector with per-sample probabilities. The wrapper rounds (.5 as default threshold)
+            values where necessary to obtain discrete labels.
     tags : optional
         Additional metadata to add to model
         E.g., {'model_type': 'binary_classification'}
@@ -81,22 +88,31 @@ class ClassificationModel(Model):
         elif self.model_info["framework"] in MLP_FRAMEWORKS:
             # TODO change this to '__call__' when adding in general TF and PyTorch
             pred_func = getattr(self, "predict", None)
-            if pred_func:
-                if self.model_like.layers[-1].output_shape == (None, 1):
-                    self.__dict__["predict"] = pred_func
-                else:
-                    self.__dict__["predict"] = lambda x: np.argmax(pred_func(x), axis=1)
+            if self.model_like.layers[-1].output_shape == (None, 1):
+                # Assumes sigmoid -> probabilities need to be rounded
+                self.__dict__["predict"] = lambda x: pred_func(x).round()
+            else:
+                # Assumes softmax -> probabilities need to be argmaxed
+                self.__dict__["predict"] = lambda x: np.argmax(pred_func(x), axis=1)
 
-                if self.model_like.layers[-1].output_shape == (None, 2):
-                    self.__dict__["predict_proba"] = lambda x: pred_func(x)[:, 1]
-                elif (
-                    len(self.model_like.layers[-1].output_shape) == 2
-                    and self.model_like.layers[-1].output_shape[1] > 2
-                ):
-                    self.__dict__["predict_proba"] = pred_func
-                else:
-                    pass
-                    # predict_proba is not valid (for now)
+            if self.model_like.layers[-1].output_shape == (None, 2):
+                self.__dict__["predict_proba"] = lambda x: pred_func(x)[:, 1]
+            elif (
+                len(self.model_like.layers[-1].output_shape) == 2
+                and self.model_like.layers[-1].output_shape[1] == 1
+            ):
+                # Sigmoid -> needs to be (n_samples, ) to work with sklearn metrics
+                self.__dict__["predict_proba"] = lambda x: np.reshape(
+                    pred_func(x), (-1, 1)
+                )
+            elif (
+                len(self.model_like.layers[-1].output_shape) == 2
+                and self.model_like.layers[-1].output_shape[1] > 2
+            ):
+                self.__dict__["predict_proba"] = pred_func
+            else:
+                pass
+                # predict_proba is not valid (for now)
 
         elif self.model_info["framework"] == "credoai":
             # Functionality for DummyClassifier
