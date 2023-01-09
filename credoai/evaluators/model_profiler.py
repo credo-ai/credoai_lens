@@ -91,7 +91,7 @@ class ModelProfiler(Evaluator):
     def evaluate(self):
         basic = self._get_basic_info()
         res = self._get_model_params()
-        if "keras" in str(self.model_type):
+        if self.model.model_info["framework"] == "keras":
             self.results = [
                 TableContainer(
                     self._generate_keras_results_table(res, basic),
