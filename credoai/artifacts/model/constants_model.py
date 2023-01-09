@@ -13,6 +13,7 @@ MODEL_TYPES = [
     "COMPARISON",
 ]
 
+# Multilayer Perceptron
 MLP_FRAMEWORKS = ["keras"]
 
 FRAMEWORK_VALIDATION_FUNCTIONS = {

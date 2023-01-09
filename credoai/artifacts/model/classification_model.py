@@ -127,11 +127,11 @@ class ClassificationModel(Model):
 class DummyClassifier:
     """Class wrapper around classification model predictions
 
-    This class can be used when a classification model is not available but its outputs are.
-        The output include the array containing the predicted class labels and/or the array
-        containing the class labels probabilities.
-        Wrap the outputs with this class into a dummy classifier and pass it as
-        the model to `ClassificationModel`.
+    This class can be used when a classification model's outputs have been precomputed.
+    The output include the array containing the predicted class labels and/or the array
+    containing the class labels probabilities.
+    Wrap the outputs with this class into a dummy classifier and pass it as
+    the model to `ClassificationModel`.
 
     Parameters
     ----------
