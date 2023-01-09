@@ -61,7 +61,7 @@ class ClassificationModel(Model):
             )
         except:
             message = """Provided model is from unsupported framework. 
-            Lens behavior with unsupported modeling frameworks is undefined."""
+            Lens behavior has not been tested or assured with unsupported modeling frameworks."""
             global_logger.warning(message, message)
 
     def __post_init__(self):
