@@ -100,9 +100,10 @@ def init_lens_fairness(
 ):
     expected_results = DataFrame(
         {
-            "value": [0.11, 0.20, 0.90, 0.67, 0.98, 0.65, 0.59],
+            "value": [0.11, 0.90, 0.20, 0.90, 0.67, 0.98, 0.65, 0.59],
             "type": [
                 "skew_parity_difference",
+                "skew_parity_ratio",
                 "ndkl",
                 "demographic_parity_ratio",
                 "balance_ratio",
@@ -110,7 +111,7 @@ def init_lens_fairness(
                 "score_balance_ratio",
                 "relevance_parity_ratio",
             ],
-            "subtype": ["score"] * 7,
+            "subtype": ["score"] * 8,
         }
     )
     gov = Governance()
