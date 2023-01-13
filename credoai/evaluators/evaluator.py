@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from connect.evidence import EvidenceContainer
-
+from credoai import __version__ as version
 from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError
 
@@ -137,8 +137,12 @@ class Evaluator(ABC):
 
     def _base_info(self):
         """Extract basic info to populate labels and metadata."""
-        meta = {**self.metadata, **self._get_artifacts()}
-        labels = {"evaluator": self.name, "source": "CredoAI_Lens"}
+        meta = {
+            **self.metadata,
+            **self._get_artifacts(),
+            "source": f"CredoAILens_{version}",
+        }
+        labels = {"evaluator": self.name}
         # transfer some metadata to labels
         meta_to_label = ["dataset_type", "sensitive_feature"]
         for key in meta_to_label:
