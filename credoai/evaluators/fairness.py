@@ -55,10 +55,6 @@ class ModelFairness(Evaluator):
         check_existence(self.metrics, "metrics")
         check_existence(self.data.X, "X")
         check_existence(self.data.y, "y")
-        if not check_pandas(self.data.sensitive_features):
-            raise ValidationError(
-                "Sensitive features must be a Pandas DataFrame or Series"
-            )
         check_data_for_nulls(
             self.data, "Data", check_X=True, check_y=True, check_sens=True
         )

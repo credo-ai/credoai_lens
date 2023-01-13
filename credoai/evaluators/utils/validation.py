@@ -1,15 +1,15 @@
 ############# Validation related functionality ##################
 
-import pandas as pd
-import numpy as np
-import tensorflow as tf
 import inspect
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
 
 from credoai.artifacts.data.tabular_data import TabularData
 from credoai.artifacts.model.base_model import Model
-from credoai.utils.common import ValidationError
 from credoai.utils import global_logger
-
+from credoai.utils.common import ValidationError
 
 ##############################
 # Checking individual artifacts
@@ -51,11 +51,9 @@ def check_feature_presence(feature_name, df, name):
 def check_existence(obj, name=None):
     message = f"Missing object {name}"
     if isinstance(obj, (pd.DataFrame, pd.Series)):
-        if obj is None:
+        if obj.empty:
             raise ValidationError(message)
-        else:
-            return
-    if not obj:
+    elif obj is None or not obj:
         raise ValidationError(message)
 
 
