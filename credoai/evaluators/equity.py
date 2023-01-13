@@ -138,8 +138,8 @@ class DataEquity(Evaluator):
             statistics = self.continuous_stats()
 
         overall_equity = {
-            "test_statistic": statistics["test_type"],
-            "value": statistics["statistic"],
+            "statistic_type": statistics["test_type"],
+            "test_statistic": statistics["statistic"],
             "p_value": statistics["pvalue"],
             "significance_threshold": self.pvalue,
         }
