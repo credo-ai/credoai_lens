@@ -88,31 +88,32 @@ class ClassificationModel(Model):
         elif self.model_info["framework"] in MLP_FRAMEWORKS:
             # TODO change this to '__call__' when adding in general TF and PyTorch
             pred_func = getattr(self, "predict", None)
-            if self.model_like.layers[-1].output_shape == (None, 1):
-                # Assumes sigmoid -> probabilities need to be rounded
-                self.__dict__["predict"] = lambda x: pred_func(x).round()
-            else:
-                # Assumes softmax -> probabilities need to be argmaxed
-                self.__dict__["predict"] = lambda x: np.argmax(pred_func(x), axis=1)
+            if pred_func:
+                if self.model_like.layers[-1].output_shape == (None, 1):
+                    # Assumes sigmoid -> probabilities need to be rounded
+                    self.__dict__["predict"] = lambda x: pred_func(x).round()
+                else:
+                    # Assumes softmax -> probabilities need to be argmaxed
+                    self.__dict__["predict"] = lambda x: np.argmax(pred_func(x), axis=1)
 
-            if self.model_like.layers[-1].output_shape == (None, 2):
-                self.__dict__["predict_proba"] = lambda x: pred_func(x)[:, 1]
-            elif (
-                len(self.model_like.layers[-1].output_shape) == 2
-                and self.model_like.layers[-1].output_shape[1] == 1
-            ):
-                # Sigmoid -> needs to be (n_samples, ) to work with sklearn metrics
-                self.__dict__["predict_proba"] = lambda x: np.reshape(
-                    pred_func(x), (-1, 1)
-                )
-            elif (
-                len(self.model_like.layers[-1].output_shape) == 2
-                and self.model_like.layers[-1].output_shape[1] > 2
-            ):
-                self.__dict__["predict_proba"] = pred_func
-            else:
-                pass
-                # predict_proba is not valid (for now)
+                if self.model_like.layers[-1].output_shape == (None, 2):
+                    self.__dict__["predict_proba"] = lambda x: pred_func(x)[:, 1]
+                elif (
+                    len(self.model_like.layers[-1].output_shape) == 2
+                    and self.model_like.layers[-1].output_shape[1] == 1
+                ):
+                    # Sigmoid -> needs to be (n_samples, ) to work with sklearn metrics
+                    self.__dict__["predict_proba"] = lambda x: np.reshape(
+                        pred_func(x), (-1, 1)
+                    )
+                elif (
+                    len(self.model_like.layers[-1].output_shape) == 2
+                    and self.model_like.layers[-1].output_shape[1] > 2
+                ):
+                    self.__dict__["predict_proba"] = pred_func
+                else:
+                    pass
+                    # predict_proba is not valid (for now)
 
         elif self.model_info["framework"] == "credoai":
             # Functionality for DummyClassifier
