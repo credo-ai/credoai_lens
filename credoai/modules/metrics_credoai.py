@@ -618,7 +618,7 @@ def skew_parity(items_list, desired_proportions, parity_type="difference"):
     --------
     >>> ranked_list = ['female', 'male', 'male', 'female', 'male', 'male']
     >>> desired_proportions = {'female': 0.6, 'male': 0.4}
-    >>> skew_parity_difference(ranked_list, desired_proportions)
+    >>> skew_parity(ranked_list, desired_proportions)
     1.1111111111087035
     """
     EPSILON = 1e-12
