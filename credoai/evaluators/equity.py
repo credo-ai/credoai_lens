@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from connect.evidence import MetricContainer, TableContainer
+from connect.evidence import MetricContainer, TableContainer, StatisticTestContainer
 
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
@@ -138,12 +138,13 @@ class DataEquity(Evaluator):
             statistics = self.continuous_stats()
 
         overall_equity = {
-            "type": statistics["test_type"],
-            "value": statistics["statistic"],
+            "statistic_type": statistics["test_type"],
+            "test_statistic": statistics["statistic"],
             "p_value": statistics["pvalue"],
+            "significance_threshold": self.pvalue,
         }
 
-        overall_equity = MetricContainer(
+        overall_equity = StatisticTestContainer(
             pd.DataFrame(overall_equity, index=[0]), **self.get_info()
         )
 
