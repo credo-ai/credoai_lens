@@ -2,15 +2,17 @@ import pandas as pd
 from connect.evidence import MetricContainer, TableContainer
 from sklearn.metrics import confusion_matrix
 
-from credoai.artifacts import ClassificationModel, TabularData
+from credoai.artifacts import ClassificationModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
+from credoai.utils.common import ValidationError
 from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
-    check_data_instance,
+    check_data_for_nulls,
     check_existence,
 )
 from credoai.modules.metrics import process_metrics
+
+import numpy as np
 
 
 class Performance(Evaluator):
@@ -53,8 +55,11 @@ class Performance(Evaluator):
 
     def _validate_arguments(self):
         check_existence(self.metrics, "metrics")
-        check_data_instance(self.assessment_data, TabularData)
-        check_artifact_for_nulls(self.assessment_data, "Data")
+        check_existence(self.assessment_data.X)
+        check_existence(self.assessment_data.y)
+        check_data_for_nulls(
+            self.assessment_data, "Data", check_X=True, check_y=True, check_sens=False
+        )
 
     def _setup(self):
         # data variables
@@ -215,7 +220,7 @@ def create_confusion_matrix(y_true, y_pred):
         Estimated targets as returned by a classifier.
 
     """
-    labels = y_true.astype("category").cat.categories
+    labels = np.unique(y_true)
     confusion = confusion_matrix(y_true, y_pred, normalize="true", labels=labels)
     confusion_df = pd.DataFrame(confusion, index=labels.copy(), columns=labels)
     confusion_df.index.name = "true_label"

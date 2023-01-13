@@ -5,7 +5,7 @@ import pandas as pd
 import tensorflow as tf
 from art.attacks.evasion import HopSkipJump
 from art.attacks.extraction import CopycatCNN
-from art.estimators.classification import BlackBoxClassifier, KerasClassifier
+from art.estimators.classification import BlackBoxClassifier, TensorFlowV2Classifier
 from connect.evidence import MetricContainer
 from keras.layers import Dense
 from keras.models import Sequential
@@ -15,16 +15,17 @@ from sklearn.metrics import pairwise
 from sklearn.preprocessing import StandardScaler
 
 from credoai.artifacts.data.tabular_data import TabularData
-from credoai.artifacts.model.classification_model import ClassificationModel
+from credoai.artifacts.model.classification_model import (
+    ClassificationModel,
+    DummyClassifier,
+)
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
+    check_data_for_nulls,
     check_data_instance,
     check_model_instance,
     check_requirements_existence,
 )
-
-tf.compat.v1.disable_eager_execution()
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
@@ -69,11 +70,11 @@ class Security(Evaluator):
 
     def _validate_arguments(self):
         check_requirements_existence(self)
-        check_model_instance(self.model, ClassificationModel)
+        check_model_instance(self.model, (ClassificationModel, DummyClassifier))
         for ds in ["assessment_data", "training_data"]:
             artifact = vars(self)[ds]
             check_data_instance(artifact, TabularData, ds)
-            check_artifact_for_nulls(artifact, ds)
+            check_data_for_nulls(artifact, ds)
 
     def _setup(self):
         self.x_train = self.training_data.X.to_numpy()
@@ -101,10 +102,12 @@ class Security(Evaluator):
             Key: metric name
             Value: metric value
         """
+        # tf.compat.v1.disable_eager_execution()
         res = {**self._extraction_attack(), **self._evasion_attack()}
         res = pd.DataFrame(list(res.items()), columns=["type", "value"])
         res[["type", "subtype"]] = res.type.str.split("-", expand=True)
         self.results = [MetricContainer(res, **self.get_info())]
+        # tf.compat.v1.enable_eager_execution()
         return self
 
     def _extraction_attack(self):
@@ -133,8 +136,17 @@ class Security(Evaluator):
             classifier=self.victim_model, nb_epochs=5, nb_stolen=len_steal
         )
 
+        def my_train_step(model, images, labels):
+            return model.train_step((images, labels))
+
         thieved_model = self._get_model(x_steal.shape[1])
-        thieved_classifier = KerasClassifier(thieved_model)
+        thieved_classifier = TensorFlowV2Classifier(
+            thieved_model,
+            nb_classes=self.nb_classes,
+            input_shape=x_steal.shape[1],
+            loss_object=thieved_model.loss,
+            train_step=my_train_step,
+        )
 
         thieved_classifier = copycat.extract(
             x_steal, thieved_classifier=thieved_classifier

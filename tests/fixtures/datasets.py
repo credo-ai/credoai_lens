@@ -11,12 +11,29 @@ from sklearn.model_selection import train_test_split
 
 from credoai.datasets import fetch_creditdefault, fetch_testdata
 
+from tensorflow.keras.datasets.mnist import load_data as load_mnist
+
 ### Datasets definition ########################
 
 
 @fixture(scope="session")
 def binary_data():
     train_data, test_data = fetch_testdata(False, 1, 1)
+    return {"train": train_data, "test": test_data}
+
+
+@fixture(scope="session")
+def mnist_data():
+    (x_train, y_train), (x_test, y_test) = load_mnist()
+    x_train, x_test = x_train / 255.0, x_test / 255.0
+    x_train, x_test, y_train, y_test = (
+        x_train[:9600],
+        x_test[:640],
+        y_train[:9600],
+        y_test[:640],
+    )
+    train_data = {"X": x_train, "y": y_train}
+    test_data = {"X": x_test, "y": y_train}
     return {"train": train_data, "test": test_data}
 
 

@@ -17,7 +17,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
+    check_data_for_nulls,
     check_data_instance,
     check_existence,
 )
@@ -70,7 +70,7 @@ class DataFairness(Evaluator):
     def _validate_arguments(self):
         check_data_instance(self.data, TabularData)
         check_existence(self.data.sensitive_features, "sensitive_features")
-        check_artifact_for_nulls(self.data, "Data")
+        check_data_for_nulls(self.data, "Data")
 
     def _setup(self):
         self.data_to_eval = self.data  # Pick the only member

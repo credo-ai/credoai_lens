@@ -1,7 +1,6 @@
 """Abstract class for the data artifacts used by `Lens`"""
 # Data is a lightweight wrapper that stores data
 import itertools
-from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Optional, Union
 
@@ -11,7 +10,7 @@ from credoai.utils.common import ValidationError, check_pandas
 from credoai.utils.model_utils import type_of_target
 
 
-class Data(ABC):
+class Data:
     """Class wrapper around data-to-be-assessed
 
     Data is passed to Lens for certain assessments.
@@ -194,11 +193,9 @@ class Data(ABC):
         if not self.sensitive_features.index.is_unique:
             raise ValidationError("Sensitive Features index must be unique")
 
-    @abstractmethod
     def _validate_X(self):
         pass
 
-    @abstractmethod
     def _validate_y(self):
         pass
 

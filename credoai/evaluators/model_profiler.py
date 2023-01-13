@@ -1,6 +1,11 @@
+import re
 from typing import Optional
 
+import numpy as np
+from pandas import DataFrame, concat
+
 from connect.evidence.lens_evidence import ModelProfilerContainer
+from connect.evidence import TableContainer
 from pandas import DataFrame
 
 from credoai.evaluators import Evaluator
@@ -77,8 +82,8 @@ class ModelProfiler(Evaluator):
 
     def _setup(self):
         self.model_name = self.model.name
-        self.model = self.model.model_like
-        self.model_type = type(self.model)
+        self.model_internal = self.model.model_like
+        self.model_type = type(self.model_internal)
 
     def _validate_arguments(self):
         check_existence(self.model, "model")
@@ -86,6 +91,14 @@ class ModelProfiler(Evaluator):
     def evaluate(self):
         basic = self._get_basic_info()
         res = self._get_model_params()
+        if self.model.model_info["framework"] == "keras":
+            self.results = [
+                TableContainer(
+                    self._generate_keras_results_table(res, basic),
+                    **self.get_info(),
+                )
+            ]
+            return self
         # Add user generated info
         self.usr_model_info = {k: v for k, v in self.usr_model_info.items() if v}
         # Get a sample of the data
@@ -94,9 +107,27 @@ class ModelProfiler(Evaluator):
         res = {**basic, **res, **self.usr_model_info, **data_sample}
         # Format
         res, labels = self._add_entries_labeling(res)
+
         # Package into evidence
         self.results = [ModelProfilerContainer(res, **self.get_info(labels=labels))]
         return self
+
+    @staticmethod
+    def _generate_keras_results_table(res, basic):
+        basic = DataFrame(basic, index=[0]).T
+        opt_info = DataFrame(res["parameters"]["optimizer_info"], index=[0])
+        opt_info.columns = [f"optimizer.{x}" for x in opt_info.columns]
+        opt_info = opt_info.T
+        choose = ["total_parameters", "trainable_parameters"]
+        chosen = DataFrame(
+            {k: v for k, v in res["parameters"].items() if k in choose}, index=[0]
+        ).T
+
+        output = concat([basic, chosen, opt_info])
+        output = output.reset_index()
+        output.columns = ["parameters", "values"]
+        output.name = "model profile"
+        return output
 
     def _get_basic_info(self) -> dict:
         """
@@ -140,11 +171,55 @@ class ModelProfiler(Evaluator):
         """
         if "sklearn" in str(self.model_type):
             return self._get_sklearn_model_params()
-        else:
-            self.logger.info(
-                "Automatic model parameter inference not available for this model type."
+        if "keras" in str(self.model_type):
+            return self._get_keras_model_params()
+        self.logger.info(
+            "Automatic model parameter inference not available for this model type."
+        )
+        return {}
+
+    def _get_keras_model_params(self) -> dict:
+        trainable_parameters = int(
+            np.sum(
+                [np.prod(v.get_shape()) for v in self.model_internal.trainable_weights]
             )
-            return {}
+        )
+        non_trainable_parameters = int(
+            np.sum(
+                [
+                    np.prod(v.get_shape())
+                    for v in self.model_internal.non_trainable_weights
+                ]
+            )
+        )
+
+        total_parameters = trainable_parameters + non_trainable_parameters
+
+        opt_info = self.model_internal.optimizer.get_config()  # dict
+
+        network_structure = DataFrame(
+            [
+                (
+                    x.name,
+                    re.sub(r"[^a-zA-Z]", "", str(type(x)).split(".")[-1]),
+                    x.input_shape,
+                    x.output_shape,
+                    x.count_params(),
+                )
+                for x in self.model_internal.layers
+            ],
+            columns=["name", "layer_type", "input_shape", "output_shape", "parameters"],
+        )
+
+        return {
+            "parameters": {
+                "total_parameters": total_parameters,
+                "trainable_parameters": trainable_parameters,
+                "non_trainable_parameters": non_trainable_parameters,
+                "network_architecture": network_structure,
+                "optimizer_info": opt_info,
+            }
+        }
 
     def _get_sklearn_model_params(self) -> dict:
         """
@@ -155,11 +230,11 @@ class ModelProfiler(Evaluator):
         dict
             Dictionary of info about the model
         """
-        parameters = self.model.get_params()
+        parameters = self.model_internal.get_params()
         model_library = self.model_type.__name__
         library = "sklearn"
-        if hasattr(self.model, "feature_names_in_"):
-            feature_names = list(self.model.feature_names_in_)
+        if hasattr(self.model_internal, "feature_names_in_"):
+            feature_names = list(self.model_internal.feature_names_in_)
         else:
             feature_names = None
         return {

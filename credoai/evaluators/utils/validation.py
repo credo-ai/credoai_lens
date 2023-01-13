@@ -1,10 +1,19 @@
 ############# Validation related functionality ##################
 
-from pandas import DataFrame, Series
+import inspect
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
 
 from credoai.artifacts.data.tabular_data import TabularData
 from credoai.artifacts.model.base_model import Model
+from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
+
+##############################
+# Checking individual artifacts
+##############################
 
 
 def check_instance(obj, inst_type, message=None):
@@ -29,11 +38,11 @@ def check_model_instance(obj, inst_type, name="Model"):
 
 
 def check_feature_presence(feature_name, df, name):
-    if isinstance(df, DataFrame):
+    if isinstance(df, pd.DataFrame):
         if not feature_name in df.columns:
             message = f"Feature {feature_name} not found in dataframe {name}"
             raise ValidationError(message)
-    if isinstance(df, Series):
+    if isinstance(df, pd.Series):
         if not df.name == feature_name:
             message = f"Feature {feature_name} not found in series {name}"
             raise ValidationError(message)
@@ -41,12 +50,52 @@ def check_feature_presence(feature_name, df, name):
 
 def check_existence(obj, name=None):
     message = f"Missing object {name}"
-    if isinstance(obj, (DataFrame, Series)):
-        if obj is None:
+    if isinstance(obj, (pd.DataFrame, pd.Series)):
+        if obj.empty:
             raise ValidationError(message)
-        else:
-            return
-    if not obj:
+    elif obj is None or not obj:
+        raise ValidationError(message)
+
+
+def check_nulls_by_data_type(data):
+    nulls = False
+    if isinstance(data, (pd.DataFrame, pd.Series)):
+        nulls = data.isnull().to_numpy().any()
+    if isinstance(data, np.ndarray):
+        nulls = np.isnan(data).any()
+    if isinstance(data, tf.Tensor):
+        nulls = tf.reduce_any(tf.math.is_nan(data))
+    if isinstance(
+        data, (tf.data.Dataset, tf.keras.utils.Sequence)
+    ) or inspect.isgeneratorfunction(data):
+        message = """
+        Evaluator Validation: Checking for nulls in generator-based or mapped data is not currently
+        supported. Please be sure to sanitize your data. Downstream errors may arise due to nulls in 
+        image or other tensor data.
+        """
+        global_logger.warning(message)
+    return nulls
+
+
+#################################
+# Checking evaluator requirements
+#################################
+
+
+def check_data_for_nulls(obj, name, check_X=True, check_y=True, check_sens=True):
+    errors = []
+    if check_X and obj.X is not None:
+        if check_nulls_by_data_type(obj.X):
+            errors.append("X")
+    if check_y and obj.y is not None:
+        if check_nulls_by_data_type(obj.y):
+            errors.append("y")
+    if check_sens and obj.sensitive_features is not None:
+        if check_nulls_by_data_type(obj.sensitive_features):
+            errors.append("sensitive_features")
+
+    if len(errors) > 0:
+        message = f"Detected null values in {name}, in attributes: {','.join(errors)}"
         raise ValidationError(message)
 
 
@@ -89,33 +138,3 @@ def check_requirements_deepchecks(self):
         raise ValidationError(
             "Expected at least one valid artifact. None provided or all objects passed are otherwise invalid"
         )
-
-
-def check_for_nulls(obj, name):
-    message = f"Detected nulls in {name}"
-    if obj is not None:
-        if obj.isnull().values.any():
-            raise ValidationError(message)
-
-
-def check_artifact_for_nulls(obj, name):
-    errors = []
-    if obj.X is not None:
-        if obj.X.isnull().values.any():
-            errors.append("X")
-    if obj.y is not None:
-        if obj.y.isnull().values.any():
-            errors.append("y")
-    if obj.sensitive_features is not None:
-        if obj.sensitive_features.isnull().values.any():
-            errors.append("sensitive_features")
-
-    if len(errors) > 0:
-        message = f"Detected null values in {name}, in attributes: {','.join(errors)}"
-        raise ValidationError(message)
-
-
-def check_model_type(obj, type):
-    if obj.type != type:
-        message = f"Model of type {obj.type}, expected: {type}"
-        raise ValidationError(message)
