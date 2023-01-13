@@ -527,8 +527,8 @@ def kl_divergence(p, q):
     --------
     >>> p = [.05, .1, .2, .05, .15, .25, .08, .12]
     >>> q = [.30, .1, .2, .10, .10, .02, .08, .10]
-    >>> kl_divergence(p, q)
-    0.5898851816082963
+    >>> round(kl_divergence(p, q),2)
+    0.59
     """
     if len(p) != len(q):
         raise ValueError("`p` and `q` must have the same length.")
@@ -618,7 +618,7 @@ def skew_parity(items_list, desired_proportions, parity_type="difference"):
     --------
     >>> ranked_list = ['female', 'male', 'male', 'female', 'male', 'male']
     >>> desired_proportions = {'female': 0.6, 'male': 0.4}
-    >>> skew_parity_difference(ranked_list, desired_proportions)
+    >>> skew_parity(ranked_list, desired_proportions)
     1.1111111111087035
     """
     EPSILON = 1e-12

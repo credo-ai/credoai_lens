@@ -1,6 +1,6 @@
 absl-py>=1.0.0
 cloudpickle>=2.0.0
-credoai-connect>=0.0.2
+credoai-connect>=0.0.6
 fairlearn>=0.7.0
 json-api-doc>=0.15.0
 matplotlib>=3.0
