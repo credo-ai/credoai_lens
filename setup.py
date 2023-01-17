@@ -3,8 +3,8 @@
 # Copyright (C) 2021-2021 Credo AI
 import setuptools
 
-from credoai import __version__
-
+# get version
+exec(open("credoai/_version.py").read())
 DESCRIPTION = "Lens: comprehensive assessment framework for AI systems"
 DISTNAME = "credoai-lens"
 MAINTAINER = "Ian Eisenberg"
