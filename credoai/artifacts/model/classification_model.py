@@ -163,12 +163,14 @@ class DummyClassifier:
         tags=None,
     ):
         self.model_like = model_like
-        self.predict_output = check_array(
-            predict_output, ensure_2d=False, allow_nd=True
-        )
-        self.predict_proba_output = check_array(
-            predict_proba_output, ensure_2d=False, allow_nd=True
-        )
+        if predict_output is not None:
+            self.predict_output = check_array(
+                predict_output, ensure_2d=False, allow_nd=True
+            )
+        if predict_proba_output is not None:
+            self.predict_proba_output = check_array(
+                predict_proba_output, ensure_2d=False, allow_nd=True
+            )
         self.name = name
         self.tags = tags
 
