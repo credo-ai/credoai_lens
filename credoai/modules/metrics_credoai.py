@@ -640,3 +640,17 @@ def skew_parity(items_list, desired_proportions, parity_type="difference"):
         )
 
     return parity
+
+
+def gain_chart(y_true, y_prob, y_pred=None, threshold=0.5):
+    if y_pred is None:
+        y_pred = np.select(
+            [y_prob <= threshold, y_prob > threshold],
+            [np.zeros_like(y_prob), np.ones_like(y_prob)],
+        )
+
+    sort_indices = np.argsort(y_prob)
+
+    sorted_y_true = y_true[sort_indices]
+    sorted_y_prob = y_prob[sort_indices]
+    sorted_discrete_preds = y_pred[sort_indices]
