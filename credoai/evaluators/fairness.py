@@ -1,7 +1,9 @@
 from collections import defaultdict
+from typing import Optional
 
 import pandas as pd
 from connect.evidence import MetricContainer, TableContainer
+from credoai.artifacts import ClassificationModel
 
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
@@ -9,8 +11,8 @@ from credoai.evaluators.utils.validation import (
     check_data_for_nulls,
     check_existence,
 )
-from credoai.utils.common import check_pandas, ValidationError
 from credoai.modules.metrics import process_metrics
+from credoai.evaluators.performance import create_confusion_matrix
 
 
 class ModelFairness(Evaluator):
@@ -76,12 +78,14 @@ class ModelFairness(Evaluator):
         fairness_results = self.get_fairness_results()
         disaggregated_metrics = self.get_disaggregated_performance()
         disaggregated_thresh_results = self.get_disaggregated_threshold_performance()
+        confusion_matrix = self.get_confusion_matrix()
 
         results = []
         for result_obj in [
             fairness_results,
             disaggregated_metrics,
             disaggregated_thresh_results,
+            confusion_matrix,
         ]:
             if result_obj is not None:
                 try:
@@ -118,6 +122,22 @@ class ModelFairness(Evaluator):
             self.y_prob,
             self.y_true,
             self.sensitive_features,
+        )
+
+    def get_confusion_matrix(self) -> Optional[TableContainer]:
+        """
+        Create confusion matrix if the model is a classification model.
+
+        Returns
+        -------
+        Optional[TableContainer]
+            Table container containing the confusion matrix
+        """
+        if not isinstance(self.model, ClassificationModel):
+            return None
+
+        return TableContainer(
+            create_confusion_matrix(self.y_true, self.y_pred), **self.get_info()
         )
 
     def get_disaggregated_performance(self):
