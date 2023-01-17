@@ -5,4 +5,3 @@ pytest-watch>=4.2
 responses>=0.21.0
 pytest-mock>=3.8
 pytest-assume>=2.4.3
-git+https://github.com/credo-ai/credoai_connect#develop

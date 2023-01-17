@@ -1,10 +1,10 @@
 import requests
-import credoai
 from credoai.utils import global_logger
+from connect._version import __version__
 
 
 def validate_version():
-    current_version = credoai.__version__
+    current_version = __version__
 
     package = "credoai-lens"  # replace with the package you want to check
     response = requests.get(f"https://pypi.org/pypi/{package}/json")
