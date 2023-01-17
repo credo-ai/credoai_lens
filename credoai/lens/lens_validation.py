@@ -9,6 +9,8 @@ import inspect
 from credoai.utils.common import ValidationError
 from credoai.utils import global_logger
 
+from credoai.artifacts import DummyClassifier, DummyRegression
+
 
 ###############################################
 # Checking artifact interactions (model + data)
@@ -34,52 +36,68 @@ def check_model_data_consistency(model, data):
     # check predict
     # Keras always outputs numpy types (not Tensor or something else)
     if "predict" in model.__dict__.keys() and data.y is not None and data.X is not None:
-        try:
-            mini_pred, batch_size = check_prediction_model_output(model.predict, data)
-            if not mini_pred.size:
-                # results for all presently supported models are ndarray results
-                raise Exception("Empty return results from predict function.")
-            if isinstance(data.y, np.ndarray) and (
-                mini_pred.shape != data.y[:batch_size].shape
-            ):
-                raise Exception("Predictions have mismatched shape from provided y")
-            if isinstance(data.y, pd.Series) and (
-                mini_pred.shape != data.y.head(batch_size).shape
-            ):
-                raise Exception("Predictions have mismatched shape from provided y")
-        except Exception as e:
-            raise ValidationError(
-                "Lens.model predictions do not match expected form implied by provided labels y.",
-                e,
-            )
+        if isinstance(model.model_like, (DummyClassifier, DummyRegression)):
+            preds = model.predict()
+            if preds.shape != data.y.shape:
+                raise ValidationError(
+                    "Dummy model output shape does not match provided ground truth output shape."
+                )
+        else:
+            try:
+                mini_pred, batch_size = check_prediction_model_output(
+                    model.predict, data
+                )
+                if not mini_pred.size:
+                    # results for all presently supported models are ndarray results
+                    raise Exception("Empty return results from predict function.")
+                if isinstance(data.y, np.ndarray) and (
+                    mini_pred.shape != data.y[:batch_size].shape
+                ):
+                    raise Exception("Predictions have mismatched shape from provided y")
+                if isinstance(data.y, pd.Series) and (
+                    mini_pred.shape != data.y.head(batch_size).shape
+                ):
+                    raise Exception("Predictions have mismatched shape from provided y")
+            except Exception as e:
+                raise ValidationError(
+                    "Lens.model predictions do not match expected form implied by provided labels y.",
+                    e,
+                )
 
     if (
         "predict_proba" in model.__dict__.keys()
         and data.y is not None
         and data.X is not None
     ):
-        try:
-            mini_pred, batch_size = check_prediction_model_output(
-                model.predict_proba, data
-            )
-            if not mini_pred.size:
-                # results for all presently supported models are ndarray results
-                raise Exception("Empty return results from predict_proba function.")
-            if len(mini_pred.shape) > 1 and mini_pred.shape[1] > 1:
-                if np.sum(mini_pred[0]) != 1:
-                    raise Exception(
-                        "`predict_proba` outputs invalid. Per-sample outputs should sum to 1."
-                    )
-            else:
-                if mini_pred[0] >= 1:
-                    raise Exception(
-                        "`predict_proba` outputs invalid. Binary outputs should be <= 1."
-                    )
-        except Exception as e:
-            raise ValidationError(
-                "Lens.model outputs do not match expected form implied by provided labels y.",
-                e,
-            )
+        if isinstance(model.model_like, (DummyClassifier)):
+            preds = model.predict()
+            if preds.shape != data.y.shape:
+                raise ValidationError(
+                    "Dummy model output shape does not match provided ground truth output shape."
+                )
+        else:
+            try:
+                mini_pred, batch_size = check_prediction_model_output(
+                    model.predict_proba, data
+                )
+                if not mini_pred.size:
+                    # results for all presently supported models are ndarray results
+                    raise Exception("Empty return results from predict_proba function.")
+                if len(mini_pred.shape) > 1 and mini_pred.shape[1] > 1:
+                    if np.sum(mini_pred[0]) != 1:
+                        raise Exception(
+                            "`predict_proba` outputs invalid. Per-sample outputs should sum to 1."
+                        )
+                else:
+                    if mini_pred[0] >= 1:
+                        raise Exception(
+                            "`predict_proba` outputs invalid. Binary outputs should be <= 1."
+                        )
+            except Exception as e:
+                raise ValidationError(
+                    "Lens.model outputs do not match expected form implied by provided labels y.",
+                    e,
+                )
 
     if "compare" in model.__dict__.keys() and data.pairs is not None:
         try:

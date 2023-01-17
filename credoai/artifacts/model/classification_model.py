@@ -167,15 +167,19 @@ class DummyClassifier:
             self.predict_output = check_array(
                 predict_output, ensure_2d=False, allow_nd=True
             )
+            self.__dict__["predict"] = lambda x=None: self.predict_output
+
         if predict_proba_output is not None:
             self.predict_proba_output = check_array(
                 predict_proba_output, ensure_2d=False, allow_nd=True
             )
+            self.__dict__["predict_proba"] = lambda x=None: self.predict_proba_output
+
         self.name = name
         self.tags = tags
 
-    def predict(self, X=None):
-        return self.predict_output
+    # def predict(self, X=None):
+    #     return self.predict_output
 
-    def predict_proba(self, X=None):
-        return self.predict_proba_output
+    # def predict_proba(self, X=None):
+    #     return self.predict_proba_output
