@@ -2,6 +2,7 @@ import requests
 from credoai.utils import global_logger
 from connect._version import __version__
 
+
 def validate_version():
     current_version = __version__
 
