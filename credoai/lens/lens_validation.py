@@ -81,7 +81,7 @@ def check_model_data_consistency(model, data):
                 e,
             )
 
-    if "compare" in model.__dict__.keys() and data.comps is not None:
+    if "compare" in model.__dict__.keys() and data.pairs is not None:
         try:
             comps, batch_size = check_comparison_model_output(model.compare, data)
             if type(comps) != list:
