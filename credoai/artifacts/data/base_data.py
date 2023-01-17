@@ -1,15 +1,16 @@
 """Abstract class for the data artifacts used by `Lens`"""
 # Data is a lightweight wrapper that stores data
 import itertools
-from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Optional, Union
 
 import pandas as pd
-from credoai.utils.common import ValidationError
+
+from credoai.utils.common import ValidationError, check_pandas
 from credoai.utils.model_utils import type_of_target
 
 
-class Data(ABC):
+class Data:
     """Class wrapper around data-to-be-assessed
 
     Data is passed to Lens for certain assessments.
@@ -46,7 +47,10 @@ class Data(ABC):
         sensitive_features=None,
         sensitive_intersections: Union[bool, list] = False,
     ):
-        self.name = name
+        if isinstance(name, str):
+            self.name = name
+        else:
+            raise ValidationError("{Name} must be a string")
         self.X = X
         self.y = y
         self.sensitive_features = sensitive_features
@@ -122,10 +126,12 @@ class Data(ABC):
 
         Returns
         -------
-        _type_
-            _description_
+        pd.DataFrame
+            dataframe of processed sensitive features
         """
-        df = pd.DataFrame(sensitive_features)
+        df = deepcopy(pd.DataFrame(sensitive_features))
+        if len(df.columns) == 1 and isinstance(df.columns[0], int):
+            df.columns = ["NA"]
         # add intersections if asked for
         features = df.columns
         if sensitive_intersections is False or len(features) == 1:
@@ -161,7 +167,7 @@ class Data(ABC):
     def _validate_sensitive(self):
         """Sensitive features validation"""
         # Validate the types
-        if not isinstance(self.sensitive_features, (pd.Series, pd.DataFrame)):
+        if not check_pandas(self.sensitive_features):
             raise ValidationError(
                 "Sensitive_feature type is '"
                 + type(self.sensitive_features).__name__
@@ -173,20 +179,23 @@ class Data(ABC):
                     "X and sensitive_features are not the same length. "
                     + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
                 )
-        if isinstance(self.X, (pd.Series, pd.DataFrame)) and not self.X.index.equals(
+        if check_pandas(self.X) and not self.X.index.equals(
             self.sensitive_features.index
         ):
             raise ValidationError("X and sensitive features must have the same index")
 
         if isinstance(self.sensitive_features, pd.Series):
             if not hasattr(self.sensitive_features, "name"):
-                raise ValidationError("Feature Series should have a name attribute")
+                raise ValidationError(
+                    "Sensitive Feature Series should have a name attribute"
+                )
 
-    @abstractmethod
+        if not self.sensitive_features.index.is_unique:
+            raise ValidationError("Sensitive Features index must be unique")
+
     def _validate_X(self):
         pass
 
-    @abstractmethod
     def _validate_y(self):
         pass
 
@@ -206,7 +215,7 @@ class Data(ABC):
         pass
 
     def _validate_processed_sensitive(self):
-        """VAlidation of processed sensitive features"""
+        """Validation of processed sensitive features"""
         for col_name, col in self.sensitive_features.iteritems():
             unique_values = col.unique()
             if len(unique_values) == 1:

@@ -1,17 +1,28 @@
+from connect.evidence import TableContainer
+
 from credoai.artifacts import TabularData
 from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
-    check_data_instance,
-    check_existence,
-)
-from credoai.evidence import TableContainer
+from credoai.evaluators.utils.validation import check_data_instance, check_existence
 from credoai.modules import CoxPH
 from credoai.modules.stats_utils import columns_from_formula
 from credoai.utils import ValidationError
 
 
 class SurvivalFairness(Evaluator):
+    """
+    Calculate Survival fairness (Experimental)
+
+    Parameters
+    ----------
+        CoxPh_kwargs : _type_, optional
+            _description_, by default None
+        confounds : _type_, optional
+            _description_, by default None
+
+    """
+
+    required_artifacts = ["model", "assessment_data", "sensitive_feature"]
+
     def __init__(self, CoxPh_kwargs=None, confounds=None):
         if CoxPh_kwargs is None:
             CoxPh_kwargs = {"duration_col": "duration", "event_col": "event"}
@@ -19,21 +30,22 @@ class SurvivalFairness(Evaluator):
         self.confounds = confounds
         self.stats = []
 
-    required_artifacts = ["model", "assessment_data", "sensitive_feature"]
-
-    def evaluate(self):
-        self._run_survival_analyses()
-        result_dfs = (
-            self._get_summaries()
-            + self._get_expected_survival()
-            + self._get_survival_curves()
-        )
-        sens_feat_label = {"sensitive_feature": self.sensitive_name}
-        self.results = [
-            TableContainer(df, **self.get_container_info(labels=sens_feat_label))
-            for df in result_dfs
-        ]
-        return self
+    def _validate_arguments(self):
+        check_data_instance(self.assessment_data, TabularData)
+        check_existence(self.assessment_data.sensitive_features, "sensitive_features")
+        # check for columns existences
+        expected_columns = None
+        if self.confounds:
+            expected_columns = set(self.confounds)
+        if "formula" in self.coxPh_kwargs:
+            expected_columns |= columns_from_formula(self.coxPh_kwargs["formula"])
+            expected_columns -= {"predictions", "predicted_probabilities"}
+        if expected_columns is not None:
+            missing_columns = expected_columns.difference(self.assessment_data.X)
+            if missing_columns:
+                raise ValidationError(
+                    f"Columns supplied to CoxPh formula not found in data. Columns are: {missing_columns}"
+                )
 
     def _setup(self):
         self.y_pred = self.model.predict(self.assessment_data.X)
@@ -47,6 +59,20 @@ class SurvivalFairness(Evaluator):
             self.survival_df["predicted_probabilities"] = self.y_prob
         except:
             self.y_prob = None
+        return self
+
+    def evaluate(self):
+        self._run_survival_analyses()
+        result_dfs = (
+            self._get_summaries()
+            + self._get_expected_survival()
+            + self._get_survival_curves()
+        )
+        sens_feat_label = {"sensitive_feature": self.sensitive_name}
+        self.results = [
+            TableContainer(df, **self.get_info(labels=sens_feat_label))
+            for df in result_dfs
+        ]
         return self
 
     def _run_survival_analyses(self):
@@ -69,23 +95,6 @@ class SurvivalFairness(Evaluator):
             cph = CoxPH()
             cph.fit(self.survival_df, **run_kwargs)
             self.stats.append(cph)
-
-    def _validate_arguments(self):
-        check_data_instance(self.assessment_data, TabularData)
-        check_existence(self.assessment_data.sensitive_features, "sensitive_features")
-        # check for columns existences
-        expected_columns = None
-        if self.confounds:
-            expected_columns = set(self.confounds)
-        if "formula" in self.coxPh_kwargs:
-            expected_columns |= columns_from_formula(self.coxPh_kwargs["formula"])
-            expected_columns -= {"predictions", "predicted_probabilities"}
-        if expected_columns is not None:
-            missing_columns = expected_columns.difference(self.assessment_data.X)
-            if missing_columns:
-                raise ValidationError(
-                    f"Columns supplied to CoxPh formula not found in data. Columns are: {missing_columns}"
-                )
 
     def _get_expected_survival(self):
         return [s.expected_survival() for s in self.stats]

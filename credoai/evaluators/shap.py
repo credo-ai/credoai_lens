@@ -3,12 +3,12 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
+from connect.evidence import TableContainer
+from shap import Explainer, Explanation, kmeans
+
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
-from credoai.evidence import TableContainer
 from credoai.utils.common import ValidationError
-
-from shap import Explainer, Explanation, kmeans
 
 
 class ShapExplainer(Evaluator):
@@ -17,6 +17,7 @@ class ShapExplainer(Evaluator):
     leveraging the SHAP package.
 
     It supports 2 types of assessments:
+
     1. Overall statistics of the shap values across all samples: mean and mean(|x|)
     2. Individual shapley values for a list of samples
 
@@ -28,11 +29,12 @@ class ShapExplainer(Evaluator):
     value, the calculation of the shap values is still performed on the full dataset.
 
     Two strategies for down sampling are provided:
-        1. Random sampling (the default strategy): the amount of samples can be specified
-            by the user.
-        2. Kmeans: summarizes a dataset with k mean centroids, weighted by the number of
-            data points they each represent. The amount of centroids can also be specified
-            by the user.
+
+    1. Random sampling (the default strategy): the amount of samples can be specified
+       by the user.
+    2. Kmeans: summarizes a dataset with k mean centroids, weighted by the number of
+       data points they each represent. The amount of centroids can also be specified
+       by the user.
 
     There is no consensus on the optimal down sampling approach. For reference, see this
     conversation: https://github.com/slundberg/shap/issues/1018
@@ -64,7 +66,11 @@ class ShapExplainer(Evaluator):
         If True, use SHAP kmeans to create a data summary to serve as background data for the
         SHAP explainer using 50 centroids by default. If an int is provided,
         that will be used as the number of centroids. If False, random sampling will take place.
+
+
     """
+
+    required_artifacts = ["assessment_data", "model"]
 
     def __init__(
         self,
@@ -72,18 +78,6 @@ class ShapExplainer(Evaluator):
         background_samples: int = 100,
         background_kmeans: Union[bool, int] = False,
     ):
-        """
-
-        Parameters
-        ----------
-        samples_ind : Optional[List[int]], optional
-            _description_, by default None
-        background_samples : int, optional
-            _description_, by default 100
-        background_kmeans : Union[bool, int], optional
-            _description_, by default False
-        """
-
         super().__init__()
         self.samples_ind = samples_ind
         self._validate_samples_ind()
@@ -91,29 +85,25 @@ class ShapExplainer(Evaluator):
         self.background_kmeans = background_kmeans
         self.classes = [None]
 
-    required_artifacts = ["assessment_data", "model"]
+    def _validate_arguments(self):
+        check_requirements_existence(self)
 
     def _setup(self):
         self.X = self.assessment_data.X
         self.model = self.model
         return self
 
-    def _validate_arguments(self):
-        check_requirements_existence(self)
-
     def evaluate(self):
         ## Overall stats
         self._setup_shap()
         self.results = [
-            TableContainer(
-                self._get_overall_shap_contributions(), **self.get_container_info()
-            )
+            TableContainer(self._get_overall_shap_contributions(), **self.get_info())
         ]
 
         ## Sample specific results
         if self.samples_ind:
             ind_res = self._get_mult_sample_shapley_values()
-            self.results += [TableContainer(ind_res, **self.get_container_info())]
+            self.results += [TableContainer(ind_res, **self.get_info())]
         return self
 
     def _setup_shap(self):

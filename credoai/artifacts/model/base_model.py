@@ -21,6 +21,9 @@ class Model(ABC):
         Class name.
     model_like : model_like
         A model or pipeline.
+    tags : dictionary, optional
+        Additional metadata to add to model
+        E.g., {'model_type': 'binary_classification'}
 
     """
 
@@ -36,11 +39,13 @@ class Model(ABC):
         self.type = type
         self.name = name
         self.model_like = model_like
-        self.tags = tags
-        self.model_info = get_model_info(model_like)
-        self._validate(necessary_functions)
-        self._build(possible_functions)
-        self._update_functionality()
+        self.tags = tags or {}
+        self._process_model(model_like, necessary_functions, possible_functions)
+        self.__post_init__()
+
+    def __post_init__(self):
+        """Optional custom functionality to call after Base Model init"""
+        pass
 
     @property
     def tags(self):
@@ -51,6 +56,13 @@ class Model(ABC):
         if not isinstance(value, dict) and value is not None:
             raise ValidationError("Tags must be of type dictionary")
         self._tags = value
+
+    def _process_model(self, model_like, necessary_functions, possible_functions):
+        self.model_info = get_model_info(model_like)
+        self._validate_framework()
+        self._validate_callables(necessary_functions)
+        self._build(possible_functions)
+        return self
 
     def _build(self, function_names: List[str]):
         """
@@ -64,9 +76,16 @@ class Model(ABC):
         for key in function_names:
             self._add_functionality(key)
 
-    def _validate(self, function_names: List[str]):
+    def _validate_framework(self):
         """
-        Checks the the necessary methods are available in model_like
+        Optional check to determine whether model is from supported framework.
+        WARNS if unsupported framework (does not RAISE).
+        """
+        pass
+
+    def _validate_callables(self, function_names: List[str]):
+        """
+        Checks that the necessary methods are available in model_like
 
         Parameters
         ----------
@@ -88,7 +107,3 @@ class Model(ABC):
         func = getattr(self.model_like, key, None)
         if func:
             self.__dict__[key] = func
-
-    def _update_functionality(self):
-        """Optional framework specific functionality update"""
-        pass

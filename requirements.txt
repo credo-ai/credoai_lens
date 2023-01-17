@@ -1,5 +1,6 @@
 absl-py>=1.0.0
 cloudpickle>=2.0.0
+credoai-connect>=0.0.7
 fairlearn>=0.7.0
 json-api-doc>=0.15.0
 matplotlib>=3.0
@@ -30,13 +31,6 @@ deepchecks>=0.9.1
 
 # required for RankingFairness evaluator
 finsfairauditing>=0.0.2
-
-# required for dev
-pytest>=6.2.5
-pytest-cov>=3.0.0
-pytest-watch>=4.2
-responses>=0.21.0
-pytest-mock>=3.8
 
 # required for NLP evaluator
 # joblib>=0.14.1

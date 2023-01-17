@@ -1,14 +1,13 @@
-# imports for example data and model training
-from credoai.datasets import fetch_creditdefault
+"""
+Tests the functionality in the quickstart notebook.
+"""
+
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
 from credoai.artifacts import ClassificationModel, TabularData
-from credoai.evaluators import (
-    ModelFairness,
-    Performance,
-    Privacy,
-)
+from credoai.datasets import fetch_creditdefault
+from credoai.evaluators import ModelFairness, Performance, Privacy
 from credoai.lens import Lens
 
 

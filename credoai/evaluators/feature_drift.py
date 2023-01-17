@@ -1,32 +1,34 @@
 """Feature Drift evaluator"""
+import pandas as pd
+from connect.evidence import MetricContainer, TableContainer
+
 from credoai.artifacts import ClassificationModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
-from credoai.evidence import MetricContainer
-from credoai.evidence.containers import TableContainer
-from credoai.modules.credoai_metrics import population_stability_index
-from pandas import DataFrame, Series
+from credoai.modules.metrics_credoai import population_stability_index
 
 
 class FeatureDrift(Evaluator):
     """
-    Measure Feature Drift using population stability index.
+    Measure Feature Drift using population stability index. (Experimental)
 
     This evaluator measures feature drift in:
 
     1. Model prediction: the prediction for the assessment dataset is compared
-        to the prediction for the training dataset.
-        In the case of classifiers, the prediction is performed with predict proba if available.
-        If it is not available, the prediction is treated like a categorical variable, see the
-        processing of categorical variables in the item below.
+       to the prediction for the training dataset.
+       In the case of classifiers, the prediction is performed with predict proba if available.
+       If it is not available, the prediction is treated like a categorical variable, see the
+       processing of categorical variables in the item below.
 
     2. Dataset features: 1 to 1 comparison across all features for the datasets. This is also
-    referred to as "characteristic stability index" (CSI).
-        - Numerical features are directly fed into the population_stability_index metric, and
-        binned according to the parameters specified at init time.
-        - Categorical features percentage distribution is manually calculated. The % amount of
-        samples per each class is calculated and then fed into the population_stability_index metric.
-        The percentage flag in the metric is set to True, to bypass the internal binning process.
+       referred to as "characteristic stability index" (CSI). Features are processed depending
+       on their type:
+
+       - Numerical features are directly fed into the population_stability_index metric, and
+         binned according to the parameters specified at init time.
+       - Categorical features percentage distribution is manually calculated. The % amount of
+         samples per each class is calculated and then fed into the population_stability_index metric.
+         The percentage flag in the metric is set to True, to bypass the internal binning process.
 
 
     Parameters
@@ -41,6 +43,8 @@ class FeatureDrift(Evaluator):
         by default False
     """
 
+    required_artifacts = {"model", "assessment_data", "training_data"}
+
     def __init__(self, buckets: int = 10, buckettype="bins", csi_calculation=False):
 
         self.bucket_number = buckets
@@ -48,8 +52,6 @@ class FeatureDrift(Evaluator):
         self.csi_calculation = csi_calculation
         self.percentage = False
         super().__init__()
-
-    required_artifacts = {"model", "assessment_data", "training_data"}
 
     def _validate_arguments(self):
         check_requirements_existence(self)
@@ -78,13 +80,13 @@ class FeatureDrift(Evaluator):
 
     def evaluate(self):
         prediction_psi = self._calculate_psi_on_prediction()
-        self.results = [MetricContainer(prediction_psi, **self.get_container_info())]
+        self.results = [MetricContainer(prediction_psi, **self.get_info())]
         if self.csi_calculation:
             csi = self._calculate_csi()
-            self.results.append(TableContainer(csi, **self.get_container_info()))
+            self.results.append(TableContainer(csi, **self.get_info()))
         return self
 
-    def _calculate_psi_on_prediction(self) -> DataFrame:
+    def _calculate_psi_on_prediction(self) -> pd.DataFrame:
         """
         Calculate the psi index on the model prediction.
 
@@ -100,10 +102,12 @@ class FeatureDrift(Evaluator):
             buckets=self.bucket_number,
             buckettype=self.buckettype,
         )
-        res = DataFrame({"value": psi, "type": "population_stability_index"}, index=[0])
+        res = pd.DataFrame(
+            {"value": psi, "type": "population_stability_index"}, index=[0]
+        )
         return res
 
-    def _calculate_csi(self) -> DataFrame:
+    def _calculate_csi(self) -> pd.DataFrame:
         """
         Calculate psi for all the columns in the dataframes.
 
@@ -122,14 +126,14 @@ class FeatureDrift(Evaluator):
                 psis[col_name] = population_stability_index(train, assess, True)
             else:
                 psis[col_name] = population_stability_index(train_data, assess_data)
-        psis = DataFrame.from_dict(psis, orient="index")
+        psis = pd.DataFrame.from_dict(psis, orient="index")
         psis = psis.reset_index()
         psis.columns = ["feature_names", "value"]
         psis.name = "Characteristic Stability Index"
         return psis
 
     @staticmethod
-    def _create_bin_percentage(train: Series, assess: Series) -> tuple:
+    def _create_bin_percentage(train: pd.Series, assess: pd.Series) -> tuple:
         """
         In case of categorical values proceed to count the instances
         of each class and divide by the total amount of samples to get

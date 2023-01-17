@@ -7,11 +7,20 @@ from dataclasses import dataclass
 from inspect import isclass
 from typing import Dict, List, Optional, Tuple, Union
 
+import pandas as pd
+from connect.governance import Governance
+from joblib import Parallel, delayed
+
 from credoai.artifacts import Data, Model
 from credoai.evaluators.evaluator import Evaluator
-from credoai.governance import Governance
 from credoai.lens.pipeline_creator import PipelineCreator
-from credoai.utils import ValidationError, check_subset, flatten_list, global_logger
+from credoai.utils import (
+    ValidationError,
+    check_subset,
+    flatten_list,
+    global_logger,
+)
+from credoai.lens.lens_validation import check_model_data_consistency
 
 # Custom type
 Pipeline = List[Union[Evaluator, Tuple[Evaluator, str, dict]]]
@@ -33,6 +42,27 @@ class PipelineStep:
         self.evaluator.metadata = self.metadata
         self.metadata["evaluator"] = self.evaluator.name
 
+    @property
+    def id(self):
+        eval_properties = self.evaluator.__dict__
+        info_to_get = ["model", "assessment_data", "training_data", "data"]
+        eval_info = pd.Series(
+            [
+                eval_properties.get(x).name if eval_properties.get(x) else "NA"
+                for x in info_to_get
+            ],
+            index=info_to_get,
+        )
+
+        # Assign data to the correct dataset
+        if eval_info.data != "NA":
+            eval_info.loc[self.metadata["dataset_type"]] = eval_info.data
+        eval_info = eval_info.drop("data").to_list()
+
+        id = [self.metadata.get("evaluator", "NA")] + eval_info
+        id.append(self.metadata.get("sensitive_feature", "NA"))
+        return "~".join(id)
+
     def check_match(self, metadata):
         """
         Return true if metadata is a subset of pipeline step's metadata
@@ -49,7 +79,8 @@ class Lens:
         training_data: Data = None,
         pipeline: Pipeline = None,
         governance: Governance = None,
-    ) -> None:
+        n_jobs: int = 1,
+    ):
         """
         Initializer for the Lens class.
 
@@ -72,6 +103,10 @@ class Lens:
             Lens and the Credo AI Platform. Specifically, evidence requirements taken from
             policy packs defined on the platform will configure Lens, and evidence created by
             Lens can be exported to the platform.
+        n_jobs : integer, optional
+            Number of evaluator jobs to run in parallel.
+            Uses joblib Parallel construct with multiprocessing backend.
+            Specifying n_jobs = -1 will use all available processors.
         """
         self.model = model
         self.assessment_data = assessment_data
@@ -84,10 +119,11 @@ class Lens:
             self.sens_feat_names = list(self.assessment_data.sensitive_features)
         else:
             self.sens_feat_names = []
+        self.n_jobs = n_jobs
         self._add_governance(governance)
+        self._validate()
         self._generate_pipeline(pipeline)
         # Can  pass pipeline directly
-        self._validate()
 
     def add(self, evaluator: Evaluator, metadata: dict = None):
         """
@@ -171,12 +207,19 @@ class Lens:
         """
         if self.pipeline == []:
             raise RuntimeError("No evaluators were added to the pipeline.")
-        for step in self.pipeline:
-            self.logger.info(f"Running evaluation for step: {step}")
-            step.evaluator.evaluate()
+
+        # Run evaluators in parallel. Shared object (self.pipeline) necessitates writing
+        # results to intermediate object evaluator_results
+        evaluator_results = Parallel(n_jobs=self.n_jobs, verbose=100)(
+            delayed(step.evaluator.evaluate)() for step in self.pipeline
+        )
+
+        # Write intermediate evaluator results back into self.pipeline for later processing
+        for idx, evaluator in enumerate(evaluator_results):
+            self.pipeline[idx].evaluator = evaluator
         return self
 
-    def send_to_governance(self, overwrite_governance=False):
+    def send_to_governance(self, overwrite_governance=True):
         """
         Parameters
         ---------
@@ -280,7 +323,7 @@ class Lens:
         pipeline_results = [
             {
                 "metadata": step.metadata,
-                "results": [r.df for r in step.evaluator.results],
+                "results": [r.data for r in step.evaluator.results],
             }
             for step in pipeline_subset
         ]
@@ -288,11 +331,11 @@ class Lens:
 
     def print_results(self):
         results = self.get_results()
-        for key, val in results.items():
-            print(f"Evaluator: {key}\n")
-            for i in val:
-                print(i)
-                print()
+        for result_grouping in results:
+            for key, val in result_grouping["metadata"].items():
+                print(f"{key.capitalize()}: {val}")
+            for val in result_grouping["results"]:
+                print(f"{val}\n")
             print()
 
     def set_governance(self, governance: Governance):
@@ -329,8 +372,15 @@ class Lens:
         if governance is None:
             return
         self.gov = governance
+        artifact_args = {}
+        if self.training_data:
+            artifact_args["training_dataset"] = self.training_data.name
+        if self.assessment_data:
+            artifact_args["assessment_dataset"] = self.assessment_data.name
         if self.model:
-            self.gov.set_artifacts(self.model, self.training_data, self.assessment_data)
+            artifact_args["model"] = self.model.name
+            artifact_args["model_tags"] = self.model.tags
+            self.gov.set_artifacts(**artifact_args)
 
     def _cycle_add_through_ds_feat(
         self,
@@ -434,6 +484,12 @@ class Lens:
             if self.model.tags not in self.gov._unique_tags:
                 mes = f"Model tags: {self.model.tags} are not among the once found in the governance object: {self.gov._unique_tags}"
                 self.logger.warning(mes)
+
+        # Validate combination of model and data
+        if self.model is not None:
+            for data_artifact in [self.assessment_data, self.training_data]:
+                if data_artifact is not None:
+                    check_model_data_consistency(self.model, data_artifact)
 
     @staticmethod
     def _consume_pipeline_step(step):

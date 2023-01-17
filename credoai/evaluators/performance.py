@@ -1,19 +1,18 @@
 import pandas as pd
-from credoai.artifacts import TabularData
+from connect.evidence import MetricContainer, TableContainer
+from sklearn.metrics import confusion_matrix
+
+from credoai.artifacts import ClassificationModel
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
+from credoai.utils.common import ValidationError
 from credoai.evaluators.utils.validation import (
-    check_artifact_for_nulls,
-    check_data_instance,
+    check_data_for_nulls,
     check_existence,
 )
-from credoai.evidence import MetricContainer, TableContainer
-from credoai.modules.metric_constants import (
-    MODEL_METRIC_CATEGORIES,
-    THRESHOLD_METRIC_CATEGORIES,
-)
-from credoai.modules.metrics import Metric, find_metrics
-from credoai.utils.common import ValidationError
+from credoai.modules.metrics import process_metrics
+
+import numpy as np
 
 
 class Performance(Evaluator):
@@ -22,9 +21,10 @@ class Performance(Evaluator):
 
     This evaluator calculates overall performance metrics.
     Handles any metric that can be calculated on a set of ground truth labels and predictions,
-    e.g., binary classification, multiclass classification, regression.
+    e.g., binary classification, multi class classification, regression.
 
     This module takes in a set of metrics and provides functionality to:
+
     - calculate the metrics
     - create disaggregated metrics
 
@@ -51,9 +51,15 @@ class Performance(Evaluator):
         # assign variables
         self.metrics = metrics
         self.metric_frames = {}
-        self.performance_metrics = None
-        self.prob_metrics = None
-        self.failed_metrics = None
+        self.processed_metrics = None
+
+    def _validate_arguments(self):
+        check_existence(self.metrics, "metrics")
+        check_existence(self.assessment_data.X)
+        check_existence(self.assessment_data.y)
+        check_data_for_nulls(
+            self.assessment_data, "Data", check_X=True, check_y=True, check_sens=False
+        )
 
     def _setup(self):
         # data variables
@@ -70,24 +76,18 @@ class Performance(Evaluator):
         """
         Run performance base module
         """
-        self._results = []
+        results = []
         overall_metrics = self.get_overall_metrics()
         threshold_metrics = self.get_overall_threshold_metrics()
 
         if overall_metrics is not None:
-            self._results.append(
-                MetricContainer(overall_metrics, **self.get_container_info())
-            )
+            results.append(overall_metrics)
         if threshold_metrics is not None:
-            for _, threshold_metric in threshold_metrics.iterrows():
-                metric = threshold_metric.threshold_metric
-                threshold_metric.value.name = "threshold_dependent_performance"
-                self._results.append(
-                    TableContainer(
-                        threshold_metric.value,
-                        **self.get_container_info({"metric_type": metric}),
-                    )
-                )
+            results += threshold_metrics
+
+        if isinstance(self.model, ClassificationModel):
+            results.append(self._create_confusion_container())
+        self.results = results
         return self
 
     def update_metrics(self, metrics, replace=True):
@@ -106,18 +106,12 @@ class Performance(Evaluator):
             self.metrics = metrics
         else:
             self.metrics += metrics
-        (
-            self.performance_metrics,
-            self.prob_metrics,
-            self.threshold_metrics,
-            self.failed_metrics,
-        ) = self._process_metrics(self.metrics)
+
+        self.processed_metrics, _ = process_metrics(self.metrics, self.model.type)
 
         dummy_sensitive = pd.Series(["NA"] * len(self.y_true), name="NA")
         self.metric_frames = setup_metric_frames(
-            self.performance_metrics,
-            self.prob_metrics,
-            self.threshold_metrics,
+            self.processed_metrics,
             self.y_pred,
             self.y_prob,
             self.y_true,
@@ -154,11 +148,15 @@ class Performance(Evaluator):
             for name, metric_frame in self.metric_frames.items()
             if name != "thresh"
         ]
-        if overall_metrics:
-            output_series = (
-                pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
-            )
-            return output_series.reset_index().rename({"index": "type"}, axis=1)
+        if not overall_metrics:
+            return
+
+        output_series = (
+            pd.concat(overall_metrics, axis=0).rename(index="value").to_frame()
+        )
+        output_series = output_series.reset_index().rename({"index": "type"}, axis=1)
+
+        return MetricContainer(output_series, **self.get_info())
 
     def get_overall_threshold_metrics(self):
         """Return performance metrics for each group
@@ -169,80 +167,65 @@ class Performance(Evaluator):
             The overall performance metrics
         """
         # retrieve overall metrics for one of the sensitive features only as they are the same
-        if self.threshold_metrics and 'thresh' in self.metric_frames:
-            threshold_results = (
-                pd.concat([self.metric_frames["thresh"].overall], axis=0)
-                .rename(index="value")
-                .to_frame()
+        if not "thresh" in self.metric_frames:
+            return
+
+        threshold_results = (
+            pd.concat([self.metric_frames["thresh"].overall], axis=0)
+            .rename(index="value")
+            .to_frame()
+        )
+        threshold_results = threshold_results.reset_index().rename(
+            {"index": "threshold_metric"}, axis=1
+        )
+        threshold_results.name = "threshold_metric_performance"
+
+        results = []
+        for _, threshold_metric in threshold_results.iterrows():
+            metric = threshold_metric.threshold_metric
+            threshold_metric.value.name = "threshold_dependent_performance"
+            results.append(
+                TableContainer(
+                    threshold_metric.value,
+                    **self.get_info({"metric_type": metric}),
+                )
             )
-            threshold_results = threshold_results.reset_index().rename(
-                {"index": "threshold_metric"}, axis=1
-            )
-            threshold_results.name = "threshold_metric_performance"
-            return threshold_results
 
-    def _process_metrics(self, metrics):
-        """Separates metrics
+        return results
 
-        Parameters
-        ----------
-        metrics : Union[List[Metric, str]]
-            list of metrics to use. These can be Metric objects
-            (see credoai.modules.metrics.py), or strings.
-            If strings, they will be converted to Metric objects
-            as appropriate, using find_metrics()
+    def _create_confusion_container(self):
+        confusion_container = TableContainer(
+            create_confusion_matrix(self.y_true, self.y_pred),
+            **self.get_info(),
+        )
+        return confusion_container
 
-        Returns
-        -------
-        Separate dictionaries and lists of metrics
-        """
-        # separate metrics
-        failed_metrics = []
-        performance_metrics = {}
-        prob_metrics = {}
-        threshold_metrics = {}
-        for metric in metrics:
-            if isinstance(metric, str):
-                metric_name = metric
-                metric = find_metrics(metric, MODEL_METRIC_CATEGORIES)
-                if len(metric) == 1:
-                    metric = metric[0]
-                elif len(metric) == 0:
-                    raise Exception(
-                        f"Returned no metrics when searching using the provided metric name <{metric_name}>. Expected to find one matching metric."
-                    )
-                else:
-                    raise Exception(
-                        f"Returned multiple metrics when searching using the provided metric name <{metric_name}>. Expected to find only one matching metric."
-                    )
-            else:
-                metric_name = metric.name
-            if not isinstance(metric, Metric):
-                raise ValidationError(
-                    "Specified metric is not of type credoai.metric.Metric"
-                )
-            if metric.metric_category == "FAIRNESS":
-                self.logger.info(
-                    f"fairness metric, {metric_name}, unused by PerformanceModule"
-                )
-                pass
-            elif metric.metric_category in MODEL_METRIC_CATEGORIES:
-                if metric.takes_prob:
-                    if metric.metric_category in THRESHOLD_METRIC_CATEGORIES:
-                        threshold_metrics[metric_name] = metric
-                    else:
-                        prob_metrics[metric_name] = metric
-                else:
-                    performance_metrics[metric_name] = metric
-            else:
-                self.logger.warning(
-                    f"{metric_name} failed to be used by FairnessModule"
-                )
-                failed_metrics.append(metric_name)
 
-        return (performance_metrics, prob_metrics, threshold_metrics, failed_metrics)
+############################################
+## Evaluation helper functions
 
-    def _validate_arguments(self):
-        check_existence(self.metrics, "metrics")
-        check_data_instance(self.assessment_data, TabularData)
-        check_artifact_for_nulls(self.assessment_data, "Data")
+## Helper functions create evidences
+## to be passed to .evaluate to be wrapped
+## by evidence containers
+############################################
+def create_confusion_matrix(y_true, y_pred):
+    """Create a confusion matrix as a dataframe
+
+    Parameters
+    ----------
+    y_true : pd.Series of shape (n_samples,)
+        Ground truth (correct) target values.
+
+    y_pred : array-like of shape (n_samples,)
+        Estimated targets as returned by a classifier.
+
+    """
+    labels = np.unique(y_true)
+    confusion = confusion_matrix(y_true, y_pred, normalize="true", labels=labels)
+    confusion_df = pd.DataFrame(confusion, index=labels.copy(), columns=labels)
+    confusion_df.index.name = "true_label"
+    confusion_df = confusion_df.reset_index().melt(
+        id_vars=["true_label"], var_name="predicted_label"
+    )
+    confusion_df.name = "Confusion Matrix"
+    return confusion_df

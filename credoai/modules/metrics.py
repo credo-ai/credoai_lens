@@ -2,9 +2,10 @@ import re
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
 
-from credoai.modules.metric_constants import *
-from credoai.modules.threshold_metric_constants import *
-from credoai.utils.common import ValidationError, humanize_label
+from credoai.artifacts.model.constants_model import MODEL_TYPES
+from credoai.modules.constants_metrics import *
+from credoai.modules.constants_threshold_metrics import *
+from credoai.utils.common import ValidationError, humanize_label, wrap_list
 
 
 @dataclass
@@ -109,7 +110,9 @@ def find_metrics(metric_name, metric_category=None):
     metric_name : str
         metric name to search for
     metric_category : str or list, optional
-        category or list of categories to constrain search to, by default None
+        category or list of metric categories to constrain search to. The list
+        of metric categories is stored in modules.constants_metrics.METRIC_CATEGORIES,
+        by default None
 
     Returns
     -------
@@ -124,10 +127,84 @@ def find_metrics(metric_name, metric_category=None):
     return matched_metrics
 
 
+def find_single_metric(metric_name, metric_category=None):
+    """As find_metrics, but enforce expectation that a single metric is returned"""
+    matched_metric = find_metrics(metric_name, metric_category)
+    if len(matched_metric) == 1:
+        matched_metric = matched_metric[0]
+    elif len(matched_metric) == 0:
+        raise Exception(
+            f"Returned no metrics when searching using the provided metric name <{metric_name}> with metric category <{metric_category}>. Expected to find one matching metric."
+        )
+    else:
+        raise Exception(
+            f"Returned multiple metrics when searching using the provided metric name <{metric_name}> "
+            f"with metric category <{metric_category}>. Expected to find only one matching metric. "
+            "Try being more specific with the metric categories passed or using find_metrics if "
+            "multiple metrics are desired."
+        )
+    return matched_metric
+
+
+def process_metrics(metrics, metric_categories=None):
+    """Converts a list of metrics or strings into a standardized form
+
+    The standardized form is a dictionary of str: Metric, where the str represent
+    a metric name.
+
+    Parameters
+    ----------
+    metrics: list
+        List of strings or Metrics
+    metric_categories: str or list
+        One or more metric categories to use to constrain string-based metric search
+        (see modules.metrics.find_single_metric). The list
+        of metric categories is stored in modules.constants_metrics.METRIC_CATEGORIES
+
+    Returns
+    -------
+    processed_metrics: dict
+        Standardized dictionary of metrics. Generally used to pass to
+        evaluators.utils.fairlearn.setup_metric_frames
+    fairness_metrics: dict
+        Standardized dictionary of fairness metrics. Used for certain evaluator functions
+    """
+    processed_metrics = {}
+    fairness_metrics = {}
+    metric_categories_to_include = MODEL_METRIC_CATEGORIES.copy()
+    if metric_categories is not None:
+        metric_categories_to_include += wrap_list(metric_categories)
+    else:
+        metric_categories_to_include += MODEL_TYPES
+
+    for metric in metrics:
+        if isinstance(metric, str):
+            metric_name = metric
+            metric = find_single_metric(metric, metric_categories_to_include)
+        else:
+            metric_name = metric.name
+        if not isinstance(metric, Metric):
+            raise ValidationError(
+                "Specified metric is not of type credoai.metric.Metric"
+            )
+        if metric.metric_category == "FAIRNESS":
+            fairness_metrics[metric_name] = metric
+        else:
+            processed_metrics[metric_name] = metric
+    return processed_metrics, fairness_metrics
+
+
 # Convert To List of Metrics
 BINARY_CLASSIFICATION_METRICS = metrics_from_dict(
     BINARY_CLASSIFICATION_FUNCTIONS,
-    "BINARY_CLASSIFICATION",
+    "binary_classification",
+    PROBABILITY_FUNCTIONS,
+    METRIC_EQUIVALENTS,
+)
+
+MULTICLASS_CLASSIFICATION_METRICS = metrics_from_dict(
+    MULTICLASS_CLASSIFICATION_FUNCTIONS,
+    "MULTICLASS_CLASSIFICATION",
     PROBABILITY_FUNCTIONS,
     METRIC_EQUIVALENTS,
 )
@@ -168,6 +245,7 @@ METRIC_NAMES = (
 
 ALL_METRICS = (
     list(BINARY_CLASSIFICATION_METRICS.values())
+    + list(MULTICLASS_CLASSIFICATION_METRICS.values())
     + list(THRESHOLD_VARYING_METRICS.values())
     + list(FAIRNESS_METRICS.values())
     + list(DATASET_METRICS.values())

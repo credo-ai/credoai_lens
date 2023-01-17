@@ -1,8 +1,16 @@
+"""
+EXPERIMENTAL! Testing results of evaluator runs against
+pre-saved results.
+
+Currently skipped.
+"""
 import os
 import pickle
 from abc import ABC
 
 import pytest
+from pandas import testing
+
 from credoai.artifacts import ClassificationModel, TabularData
 from credoai.evaluators import (
     DataEquity,
@@ -17,7 +25,6 @@ from credoai.evaluators import (
 )
 from credoai.evaluators.utils.utils import name2evaluator
 from credoai.lens import Lens
-from pandas import testing
 
 SUPORTED_EVALUATORS = ["Performance", "ModelFairness"]
 FROZEN_METRICS = ["false_negative_rate", "average_precision_score"]

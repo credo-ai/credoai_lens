@@ -5,16 +5,8 @@ import pandas as pd
 import tensorflow as tf
 from art.attacks.evasion import HopSkipJump
 from art.attacks.extraction import CopycatCNN
-from art.estimators.classification import BlackBoxClassifier, KerasClassifier
-from credoai.artifacts.data.tabular_data import TabularData
-from credoai.artifacts.model.classification_model import ClassificationModel
-from credoai.evaluators import Evaluator
-from credoai.evaluators.utils.validation import (check_artifact_for_nulls,
-                                                 check_data_instance,
-                                                 check_model_instance,
-                                                 check_requirements_existence)
-from credoai.evidence import MetricContainer
-from credoai.utils.common import NotRunError
+from art.estimators.classification import BlackBoxClassifier, TensorFlowV2Classifier
+from connect.evidence import MetricContainer
 from keras.layers import Dense
 from keras.models import Sequential
 from keras.utils.np_utils import to_categorical
@@ -22,16 +14,36 @@ from sklearn import metrics as sk_metrics
 from sklearn.metrics import pairwise
 from sklearn.preprocessing import StandardScaler
 
-tf.compat.v1.disable_eager_execution()
+from credoai.artifacts.data.tabular_data import TabularData
+from credoai.artifacts.model.classification_model import (
+    ClassificationModel,
+    DummyClassifier,
+)
+from credoai.evaluators import Evaluator
+from credoai.evaluators.utils.validation import (
+    check_data_for_nulls,
+    check_data_instance,
+    check_model_instance,
+    check_requirements_existence,
+)
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
 class Security(Evaluator):
-    """Security module for Credo AI.
+    """
+    Security module for Credo AI. (Experimental)
 
-    This module takes in classification model and data and
-     provides functionality to perform security assessment
+    This module takes in classification model and data and provides functionality
+    to perform security assessment.
+
+    The evaluator tests security of the model, by performing 2 types of attacks
+    (click on the links for more details):
+
+    1. `Evasion Attack`_: attempts to create a set of samples that will be
+       misclassified by the model
+    2. `Extraction Attack`_: attempts to infer enough information from the model
+       prediction to train a substitutive model.
 
     Parameters
     ----------
@@ -47,9 +59,22 @@ class Security(Evaluator):
         The test features
     y_test : pandas.Series
         The test outcome labels
+
+    .. _Evasion Attack: https://adversarial-robustness-toolbox.readthedocs.
+       io/en/latest/modules/attacks/evasion.html#hopskipjump-attack
+    .. _Extraction Attack: https://adversarial-robustness-toolbox.readthedocs.
+       io/en/latest/modules/attacks/extraction.html#copycat-cnn
     """
 
     required_artifacts = {"model", "assessment_data", "training_data"}
+
+    def _validate_arguments(self):
+        check_requirements_existence(self)
+        check_model_instance(self.model, (ClassificationModel, DummyClassifier))
+        for ds in ["assessment_data", "training_data"]:
+            artifact = vars(self)[ds]
+            check_data_instance(artifact, TabularData, ds)
+            check_data_for_nulls(artifact, ds)
 
     def _setup(self):
         self.x_train = self.training_data.X.to_numpy()
@@ -67,16 +92,9 @@ class Security(Evaluator):
         np.random.seed(10)
         return self
 
-    def _validate_arguments(self):
-        check_requirements_existence(self)
-        check_model_instance(self.model, ClassificationModel)
-        for ds in ["assessment_data", "training_data"]:
-            artifact = vars(self)[ds]
-            check_data_instance(artifact, TabularData, ds)
-            check_artifact_for_nulls(artifact, ds)
-
     def evaluate(self):
-        """Runs the assessment process
+        """
+        Runs the assessment process
 
         Returns
         -------
@@ -84,17 +102,20 @@ class Security(Evaluator):
             Key: metric name
             Value: metric value
         """
+        # tf.compat.v1.disable_eager_execution()
         res = {**self._extraction_attack(), **self._evasion_attack()}
         res = pd.DataFrame(list(res.items()), columns=["type", "value"])
         res[["type", "subtype"]] = res.type.str.split("-", expand=True)
-        self.results = [MetricContainer(res, **self.get_container_info())]
+        self.results = [MetricContainer(res, **self.get_info())]
+        # tf.compat.v1.enable_eager_execution()
         return self
 
     def _extraction_attack(self):
-        """Model extraction security attack
+        """
+        Model extraction security attack
 
         In model extraction, the adversary only has access to the prediction API of a target model
-            which she queries to extract information about the model internals and train a substitute model.
+        which she queries to extract information about the model internals and train a substitute model.
 
         Returns
         -------
@@ -115,8 +136,17 @@ class Security(Evaluator):
             classifier=self.victim_model, nb_epochs=5, nb_stolen=len_steal
         )
 
+        def my_train_step(model, images, labels):
+            return model.train_step((images, labels))
+
         thieved_model = self._get_model(x_steal.shape[1])
-        thieved_classifier = KerasClassifier(thieved_model)
+        thieved_classifier = TensorFlowV2Classifier(
+            thieved_model,
+            nb_classes=self.nb_classes,
+            input_shape=x_steal.shape[1],
+            loss_object=thieved_model.loss,
+            train_step=my_train_step,
+        )
 
         thieved_classifier = copycat.extract(
             x_steal, thieved_classifier=thieved_classifier
@@ -145,7 +175,8 @@ class Security(Evaluator):
         return metrics
 
     def _get_model(self, input_dim):
-        """Creates a sequential binary classification model
+        """
+        Creates a sequential binary classification model
 
         Parameters
         ----------
@@ -173,7 +204,8 @@ class Security(Evaluator):
         return model
 
     def _evasion_attack(self, nsamples=10, distance_threshold=0.1):
-        """Model evasion security attack
+        """
+        Model evasion security attack
 
         In model evasion, the adversary only has access to the prediction API of a target model
             which she queries to create minimally-perturbed samples that get misclassified
@@ -234,7 +266,8 @@ class Security(Evaluator):
         adver_sample_scaled,
         distance_threshold=0.1,
     ):
-        """Calculates evasion success rate
+        """
+        Calculates evasion success rate
 
         Parameters
         ----------
@@ -276,8 +309,10 @@ class Security(Evaluator):
             return 0
 
     def _predict_binary_class_matrix(self, x):
-        """`predict` that returns a binary class matrix
+        """
+        `predict` that returns a binary class matrix
 
+        Parameters
         ----------
         x : features array
             shape (nb_inputs, nb_features)
