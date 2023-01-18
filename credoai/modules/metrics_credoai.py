@@ -642,50 +642,28 @@ def skew_parity(items_list, desired_proportions, parity_type="difference"):
     return parity
 
 
-def credo_gain_chart(y_true, y_prob, y_pred=None, threshold=0.5):
-    if y_pred is None:
-        y_pred = np.select(
-            [y_prob <= threshold, y_prob > threshold],
-            [np.zeros_like(y_prob), np.ones_like(y_prob)],
-        )
-
-    print(y_pred)
-
-    sort_indices = np.argsort(y_prob)  # ascending order
+def credo_gain_chart(y_true, y_prob):
+    sort_indices = np.argsort(y_prob)[::-1]  # descending order
+    total_events = np.sum(y_true)
 
     sorted_y_true = y_true[sort_indices]
-    sorted_y_prob = y_prob[sort_indices]
-    sorted_y_pred = y_pred[sort_indices]
 
     chunked_y_true = np.array_split(sorted_y_true, 10)
-    chunked_y_prob = np.array_split(sorted_y_prob, 10)
-    chunked_y_pred = np.array_split(sorted_y_pred, 10)
 
     cumulative_samples = np.zeros(10)
-    cumulative_true = np.zeros(10)
-    cumulative_tp = np.zeros(10)
-    cumulative_tp_rate = np.zeros(10)
+    cumulative_events = np.zeros(10)
+    cumulative_ratio = np.zeros(10)
 
     for i in range(10):
         cumulative_samples[i] = len(np.hstack(chunked_y_true[: i + 1]))
-        cumulative_true[i] = np.sum(np.hstack(chunked_y_true[: i + 1]))
-        cumulative_tp[i] = accuracy_score(
-            np.hstack(chunked_y_true[: i + 1]),
-            np.hstack(chunked_y_pred[: i + 1]),
-            normalize=False,
-        )
-        cumulative_tp_rate[i] = accuracy_score(
-            np.hstack(chunked_y_true[: i + 1]),
-            np.hstack(chunked_y_pred[: i + 1]),
-            normalize=True,
-        )
+        cumulative_events[i] = np.sum(np.hstack(chunked_y_true[: i + 1]))
+        cumulative_ratio[i] = cumulative_events[i] / total_events
 
     return pd.DataFrame(
         {
             "Decile": np.arange(10) + 1,
             "Cumulative Samples": cumulative_samples,
-            "Cumulative Positive Events": cumulative_true,
-            "Cumulative Capture (Count)": cumulative_tp,
-            "Cumulative Capture (Ratio)": cumulative_tp_rate,
+            "Cumulative Events": cumulative_events,
+            "Cumulative Gain": cumulative_ratio,
         }
     )
