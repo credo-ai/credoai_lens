@@ -163,23 +163,17 @@ class DummyClassifier:
         tags=None,
     ):
         self.model_like = model_like
-        if predict_output is not None:
-            self.predict_output = check_array(
-                predict_output, ensure_2d=False, allow_nd=True
-            )
-            self.__dict__["predict"] = lambda x=None: self.predict_output
-
-        if predict_proba_output is not None:
-            self.predict_proba_output = check_array(
-                predict_proba_output, ensure_2d=False, allow_nd=True
-            )
-            self.__dict__["predict_proba"] = lambda x=None: self.predict_proba_output
-
+        self._build_functionality("predict", predict_output)
+        self._build_functionality("predict_proba", predict_proba_output)
         self.name = name
         self.tags = tags
 
-    # def predict(self, X=None):
-    #     return self.predict_output
+    def _wrap_array(self, array):
+        return lambda X=None: array
+        # Keeping X as an optional argument to maintain potential backward compatibility
+        # Some uses of DummyClassifier may use predict() with no argument
 
-    # def predict_proba(self, X=None):
-    #     return self.predict_proba_output
+    def _build_functionality(self, function_name, array):
+        if array is not None:
+            array = check_array(array, ensure_2d=False, allow_nd=True)
+            self.__dict__[function_name] = self._wrap_array(array)
