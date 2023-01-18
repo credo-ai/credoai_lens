@@ -128,17 +128,37 @@ class ModelFairness(Evaluator):
         """
         Create confusion matrix if the model is a classification model.
 
+        This returns a confusion matrix for each subgroup within a sensitive feature.
+
         Returns
         -------
         Optional[TableContainer]
-            Table container containing the confusion matrix
+            Table container containing the confusion matrix. A single table is created in
+            which one of the columns (sens_feat_group) contains the label to separate the
+            the sensitive feature subgroup.
+
         """
         if not isinstance(self.model, ClassificationModel):
             return None
 
-        return TableContainer(
-            create_confusion_matrix(self.y_true, self.y_pred), **self.get_info()
+        df = pd.DataFrame(
+            {
+                "y_true": self.y_true,
+                "y_pred": self.y_pred,
+                "sens_feat": self.sensitive_features,
+            }
         )
+
+        cm_disag = []
+        for group in df.groupby("sens_feat"):
+            cm = create_confusion_matrix(group[1].y_true, group[1].y_pred)
+            cm["sens_feat_group"] = group[0]
+            cm_disag.append(cm)
+
+        cm_disag = pd.concat(cm_disag, ignore_index=True)
+        cm_disag.name = "disaggregated_confusion_matrix"
+
+        return TableContainer(cm_disag, **self.get_info())
 
     def get_disaggregated_performance(self):
         """
