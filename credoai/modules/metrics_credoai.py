@@ -667,7 +667,6 @@ def credo_gain_chart(y_true, y_prob, bins=10):
             "Cumulative Samples": cumulative_samples,
             "Cumulative Events": cumulative_events,
             "Cumulative Gain": cumulative_ratio,
-            "Lift": lift
+            "Lift": lift,
         }
     )
-
