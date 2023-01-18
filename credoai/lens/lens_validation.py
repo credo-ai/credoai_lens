@@ -9,6 +9,8 @@ import inspect
 from credoai.utils.common import ValidationError
 from credoai.utils import global_logger
 
+from credoai.artifacts import DummyClassifier, DummyRegression
+
 
 ###############################################
 # Checking artifact interactions (model + data)
@@ -39,14 +41,16 @@ def check_model_data_consistency(model, data):
             if not mini_pred.size:
                 # results for all presently supported models are ndarray results
                 raise Exception("Empty return results from predict function.")
-            if isinstance(data.y, np.ndarray) and (
-                mini_pred.shape != data.y[:batch_size].shape
-            ):
-                raise Exception("Predictions have mismatched shape from provided y")
-            if isinstance(data.y, pd.Series) and (
-                mini_pred.shape != data.y.head(batch_size).shape
-            ):
-                raise Exception("Predictions have mismatched shape from provided y")
+            if len(mini_pred.shape) > 1:
+                # check that output size per sample matches up
+                if isinstance(data.y, np.ndarray) and (
+                    mini_pred.shape[1:] != data.y.shape[1:]
+                ):
+                    raise Exception("Predictions have mismatched shape from provided y")
+                elif isinstance(data.y, pd.Series) and (
+                    mini_pred.shape[1:] != data.y.head(batch_size).shape[1:]
+                ):
+                    raise Exception("Predictions have mismatched shape from provided y")
         except Exception as e:
             raise ValidationError(
                 "Lens.model predictions do not match expected form implied by provided labels y.",
