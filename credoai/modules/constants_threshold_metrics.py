@@ -9,6 +9,7 @@ from credoai.modules.metrics_credoai import (
     credo_det_curve,
     credo_pr_curve,
     credo_roc_curve,
+    credo_gain_chart,
 )
 
 """
@@ -22,9 +23,10 @@ can easily be read by the Credo AI Platform.
 
 # MODEL METRICS
 THRESHOLD_PROBABILITY_FUNCTIONS = {
-    "roc_curve": credo_roc_curve,
-    "precision_recall_curve": credo_pr_curve,
     "det_curve": credo_det_curve,
+    "gain_chart": credo_gain_chart,
+    "precision_recall_curve": credo_pr_curve,
+    "roc_curve": credo_roc_curve,
 }
 
 # Included for consistency relative to Metric and constants_metrics.py

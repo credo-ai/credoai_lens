@@ -36,7 +36,7 @@ TEST_METRICS = [
     ["average_precision_score"],
     ["false_negative_rate", "average_precision_score"],
     ["precision_score", "equal_opportunity"],
-    ["roc_curve"],
+    ["roc_curve", "gain_chart"],
     ["false_negative_rate", "average_precision_score", "equal_opportunity"],
 ]
 TEST_METRICS_IDS = [

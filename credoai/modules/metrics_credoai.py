@@ -640,3 +640,33 @@ def skew_parity(items_list, desired_proportions, parity_type="difference"):
         )
 
     return parity
+
+
+def credo_gain_chart(y_true, y_prob, bins=10):
+    sort_indices = np.argsort(y_prob)[::-1]  # descending order
+    total_events = np.sum(y_true)
+    overall_rate = np.mean(y_true)
+
+    sorted_y_true = y_true[sort_indices]
+
+    chunked_y_true = np.array_split(sorted_y_true, bins)
+
+    cumulative_samples = np.zeros(bins)
+    cumulative_events = np.zeros(bins)
+    cumulative_ratio = np.zeros(bins)
+    lift = np.zeros(bins)
+
+    for i in range(bins):
+        cumulative_samples[i] = len(np.hstack(chunked_y_true[: i + 1]))
+        cumulative_events[i] = np.sum(np.hstack(chunked_y_true[: i + 1]))
+        cumulative_ratio[i] = cumulative_events[i] / total_events
+        lift[i] = (cumulative_events[i] / cumulative_samples[i]) / overall_rate
+    return pd.DataFrame(
+        {
+            "Decile": np.arange(bins) + 1,
+            "Cumulative Samples": cumulative_samples,
+            "Cumulative Events": cumulative_events,
+            "Cumulative Gain": cumulative_ratio,
+            "Lift": lift,
+        }
+    )
