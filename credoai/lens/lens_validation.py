@@ -9,6 +9,8 @@ import inspect
 from credoai.utils.common import ValidationError
 from credoai.utils import global_logger
 
+from credoai.artifacts import DummyClassifier, DummyRegression
+
 
 ###############################################
 # Checking artifact interactions (model + data)
@@ -33,27 +35,33 @@ def check_model_data_consistency(model, data):
     """
     # check predict
     # Keras always outputs numpy types (not Tensor or something else)
-    if "predict" in model.__dict__.keys():
+    if "predict" in model.__dict__.keys() and data.y is not None and data.X is not None:
         try:
             mini_pred, batch_size = check_prediction_model_output(model.predict, data)
             if not mini_pred.size:
                 # results for all presently supported models are ndarray results
                 raise Exception("Empty return results from predict function.")
-            if isinstance(data.y, np.ndarray) and (
-                mini_pred.shape != data.y[:batch_size].shape
-            ):
-                raise Exception("Predictions have mismatched shape from provided y")
-            if isinstance(data.y, pd.Series) and (
-                mini_pred.shape != data.y.head(batch_size).shape
-            ):
-                raise Exception("Predictions have mismatched shape from provided y")
+            if len(mini_pred.shape) > 1:
+                # check that output size per sample matches up
+                if isinstance(data.y, np.ndarray) and (
+                    mini_pred.shape[1:] != data.y.shape[1:]
+                ):
+                    raise Exception("Predictions have mismatched shape from provided y")
+                elif isinstance(data.y, pd.Series) and (
+                    mini_pred.shape[1:] != data.y.head(batch_size).shape[1:]
+                ):
+                    raise Exception("Predictions have mismatched shape from provided y")
         except Exception as e:
             raise ValidationError(
                 "Lens.model predictions do not match expected form implied by provided labels y.",
                 e,
             )
 
-    if "predict_proba" in model.__dict__.keys():
+    if (
+        "predict_proba" in model.__dict__.keys()
+        and data.y is not None
+        and data.X is not None
+    ):
         try:
             mini_pred, batch_size = check_prediction_model_output(
                 model.predict_proba, data
@@ -77,7 +85,7 @@ def check_model_data_consistency(model, data):
                 e,
             )
 
-    if "compare" in model.__dict__.keys():
+    if "compare" in model.__dict__.keys() and data.pairs is not None:
         try:
             comps, batch_size = check_comparison_model_output(model.compare, data)
             if type(comps) != list:
@@ -165,8 +173,8 @@ def check_comparison_model_output(fn, data, batch=1):
         # should always pass for ComparisonData, based on checks in that wrapper. Nevertheless...
         comps = fn(data.pairs.head(batch_size))
     else:
-        message = "Input X is of unsupported type. Behavior is undefined. Proceed with caution"
+        message = "Input pairs are of unsupported type. Behavior is undefined. Proceed with caution"
         global_logger.warning(message)
-        comps = fn(data.X[0])
+        comps = fn(data.pairs[:batch_size])
 
     return comps, batch_size

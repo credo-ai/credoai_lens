@@ -1,7 +1,9 @@
 from collections import defaultdict
+from typing import Optional
 
 import pandas as pd
 from connect.evidence import MetricContainer, TableContainer
+from credoai.artifacts import ClassificationModel
 
 from credoai.evaluators import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
@@ -9,8 +11,8 @@ from credoai.evaluators.utils.validation import (
     check_data_for_nulls,
     check_existence,
 )
-from credoai.utils.common import check_pandas, ValidationError
 from credoai.modules.metrics import process_metrics
+from credoai.evaluators.performance import create_confusion_matrix
 
 
 class ModelFairness(Evaluator):
@@ -76,12 +78,14 @@ class ModelFairness(Evaluator):
         fairness_results = self.get_fairness_results()
         disaggregated_metrics = self.get_disaggregated_performance()
         disaggregated_thresh_results = self.get_disaggregated_threshold_performance()
+        confusion_matrix = self.get_confusion_matrix()
 
         results = []
         for result_obj in [
             fairness_results,
             disaggregated_metrics,
             disaggregated_thresh_results,
+            confusion_matrix,
         ]:
             if result_obj is not None:
                 try:
@@ -119,6 +123,42 @@ class ModelFairness(Evaluator):
             self.y_true,
             self.sensitive_features,
         )
+
+    def get_confusion_matrix(self) -> Optional[TableContainer]:
+        """
+        Create confusion matrix if the model is a classification model.
+
+        This returns a confusion matrix for each subgroup within a sensitive feature.
+
+        Returns
+        -------
+        Optional[TableContainer]
+            Table container containing the confusion matrix. A single table is created in
+            which one of the columns (sens_feat_group) contains the label to separate the
+            the sensitive feature subgroup.
+
+        """
+        if not isinstance(self.model, ClassificationModel):
+            return None
+
+        df = pd.DataFrame(
+            {
+                "y_true": self.y_true,
+                "y_pred": self.y_pred,
+                "sens_feat": self.sensitive_features,
+            }
+        )
+
+        cm_disag = []
+        for group in df.groupby("sens_feat"):
+            cm = create_confusion_matrix(group[1].y_true, group[1].y_pred)
+            cm["sens_feat_group"] = group[0]
+            cm_disag.append(cm)
+
+        cm_disag = pd.concat(cm_disag, ignore_index=True)
+        cm_disag.name = "disaggregated_confusion_matrix"
+
+        return TableContainer(cm_disag, **self.get_info())
 
     def get_disaggregated_performance(self):
         """
