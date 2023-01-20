@@ -92,9 +92,15 @@ class ClassificationModel(Model):
                 if self.model_like.layers[-1].output_shape == (None, 1):
                     # Assumes sigmoid -> probabilities need to be rounded
                     self.__dict__["predict"] = lambda x: pred_func(x).round()
+                    # Single-output sigmoid is binary by definition
+                    self.type = "BINARY_CLASSIFICATION"
                 else:
                     # Assumes softmax -> probabilities need to be argmaxed
                     self.__dict__["predict"] = lambda x: np.argmax(pred_func(x), axis=1)
+                    if self.model_like.layers[-1].output_shape[1] == 2:
+                        self.type = "BINARY_CLASSIFICATION"
+                    else:
+                        self.type = "MULTICLASS_CLASSIFICATION"
 
                 if self.model_like.layers[-1].output_shape == (None, 2):
                     self.__dict__["predict_proba"] = lambda x: pred_func(x)[:, 1]
