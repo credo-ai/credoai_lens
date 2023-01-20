@@ -122,6 +122,10 @@ class ClassificationModel(Model):
             # the classifier's model_like attribute to match the dummy's
             # so that downstream evaluators (ModelProfiler) can use it
 
+            self.type = self.model_like.type
+            # DummyClassifier model type is set in the constructor based on whether it
+            # is binary or multiclass
+
             # Predict and Predict_Proba should already be specified
 
 
@@ -141,6 +145,13 @@ class DummyClassifier:
     model_like : model_like, optional
         While predictions are pre-computed, the model object, itself, may be of use for
         some evaluations (e.g. ModelProfiler).
+    binary_clf : bool, optional, default = True
+        Type of classification model.
+            Used when wrapping with ClassificationModel.
+            If binary == True, ClassificationModel.type will be set to `BINARY_CLASSIFICATION',
+            which enables use of binary metrics.
+            If binary == False, ClassificationModel.type will be set to 'MULTICLASS_CLASSIFICATION',
+            and use those metrics.
     predict_output : array, optional
         Array containing per-sample class labels
             Corresponds to sklearn-like `predict` output
@@ -158,6 +169,7 @@ class DummyClassifier:
         self,
         name: str,
         model_like=None,
+        binary_clf=True,
         predict_output=None,
         predict_proba_output=None,
         tags=None,
@@ -167,6 +179,9 @@ class DummyClassifier:
         self._build_functionality("predict_proba", predict_proba_output)
         self.name = name
         self.tags = tags
+        self.type = (
+            "BINARY_CLASSIFICATION" if binary_clf else "MULTICLASS_CLASSIFICATION"
+        )
 
     def _wrap_array(self, array):
         return lambda X=None: array
