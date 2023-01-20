@@ -123,7 +123,8 @@ class ClassificationModel(Model):
 
         elif self.model_info["framework"] == "credoai":
             # Functionality for DummyClassifier
-            self.model_like = getattr(self.model_like, "model_like", None)
+            if self.model_like.model_like is not None:
+                self.model_like = self.model_like.model_like
             # If the dummy model has a model_like specified, reassign
             # the classifier's model_like attribute to match the dummy's
             # so that downstream evaluators (ModelProfiler) can use it
