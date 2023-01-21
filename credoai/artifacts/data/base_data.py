@@ -6,6 +6,7 @@ from typing import Optional, Union
 
 import pandas as pd
 
+from credoai.utils import global_logger
 from credoai.utils.common import ValidationError, check_pandas
 from credoai.utils.model_utils import type_of_target
 
@@ -217,9 +218,23 @@ class Data:
     def _validate_processed_sensitive(self):
         """Validation of processed sensitive features"""
         for col_name, col in self.sensitive_features.iteritems():
+            # validate unique
             unique_values = col.unique()
             if len(unique_values) == 1:
                 raise ValidationError(
                     f"Sensitive Feature column {col_name} must have more "
                     f"than one unique value. Only found one value: {unique_values[0]}"
                 )
+            # validate number in each group
+            for group, value in col.value_counts().iteritems():
+                if value < 10:
+                    global_logger.warning(
+                        f"Very few ({value}) records were found for {group} under sensitive feature {col_name}."
+                    )
+            # validate variance in y
+            if self.y is not None:
+                for group, value in self.y.groupby(col).std().iteritems():
+                    if value == 0:
+                        global_logger.warning(
+                            f"Zero variance in the outcome variable detected for {group} under sensitive feature {col_name}."
+                        )
