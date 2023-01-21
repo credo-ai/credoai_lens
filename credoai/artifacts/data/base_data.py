@@ -233,10 +233,12 @@ class Data:
                     )
             # validate variance in y
             if self.y is not None:
-                for group, value in self.y.groupby(col).std().iteritems():
-                    if value == 0:
-                        global_logger.warning(
-                            "%s\n%s",
-                            f"Dataset Issue! Zero variance in the outcome variable detected for {group} under sensitive feature {col_name}.",
-                            "\tDownstream evaluators may fail or not perform as expected.",
-                        )
+                y = pd.DataFrame(self.y)
+                for outcome, outcome_col in y.iteritems():
+                    for group, value in outcome_col.groupby(col).std().iteritems():
+                        if value == 0:
+                            global_logger.warning(
+                                "%s\n%s",
+                                f"Dataset Issue! Zero variance in the outcome ({outcome}) detected for {group} under sensitive feature {col_name}.",
+                                "\tDownstream evaluators may fail or not perform as expected.",
+                            )
