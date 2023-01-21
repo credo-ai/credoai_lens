@@ -229,7 +229,7 @@ class Data:
             for group, value in col.value_counts().iteritems():
                 if value < 10:
                     global_logger.warning(
-                        f"Very few ({value}) records were found for {group} under sensitive feature {col_name}."
+                        f"Dataset Issue! Very few ({value}) records were found for {group} under sensitive feature {col_name}."
                     )
             # validate variance in y
             if self.y is not None:
@@ -237,6 +237,6 @@ class Data:
                     if value == 0:
                         global_logger.warning(
                             "%s\n%s",
-                            f"Zero variance in the outcome variable detected for {group} under sensitive feature {col_name}.",
+                            f"Dataset Issue! Zero variance in the outcome variable detected for {group} under sensitive feature {col_name}.",
                             "\tDownstream evaluators may fail or not perform as expected.",
                         )
