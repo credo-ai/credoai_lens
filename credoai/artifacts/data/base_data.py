@@ -236,5 +236,7 @@ class Data:
                 for group, value in self.y.groupby(col).std().iteritems():
                     if value == 0:
                         global_logger.warning(
-                            f"Zero variance in the outcome variable detected for {group} under sensitive feature {col_name}."
+                            "%s\n%s",
+                            f"Zero variance in the outcome variable detected for {group} under sensitive feature {col_name}.",
+                            "\tDownstream evaluators may fail or not perform as expected.",
                         )
