@@ -69,7 +69,7 @@ class ClassificationModel(Model):
         except:
             message = """Provided model is from unsupported framework. 
             Lens behavior has not been tested or assured with unsupported modeling frameworks."""
-            global_logger.warning(message, message)
+            global_logger.warning(message)
 
     def __post_init__(self):
         """Conditionally updates functionality based on framework"""
@@ -92,9 +92,15 @@ class ClassificationModel(Model):
                 if self.model_like.layers[-1].output_shape == (None, 1):
                     # Assumes sigmoid -> probabilities need to be rounded
                     self.__dict__["predict"] = lambda x: pred_func(x).round()
+                    # Single-output sigmoid is binary by definition
+                    self.type = "BINARY_CLASSIFICATION"
                 else:
                     # Assumes softmax -> probabilities need to be argmaxed
                     self.__dict__["predict"] = lambda x: np.argmax(pred_func(x), axis=1)
+                    if self.model_like.layers[-1].output_shape[1] == 2:
+                        self.type = "BINARY_CLASSIFICATION"
+                    else:
+                        self.type = "MULTICLASS_CLASSIFICATION"
 
                 if self.model_like.layers[-1].output_shape == (None, 2):
                     self.__dict__["predict_proba"] = lambda x: pred_func(x)[:, 1]
@@ -117,10 +123,15 @@ class ClassificationModel(Model):
 
         elif self.model_info["framework"] == "credoai":
             # Functionality for DummyClassifier
-            self.model_like = getattr(self.model_like, "model_like", None)
+            if self.model_like.model_like is not None:
+                self.model_like = self.model_like.model_like
             # If the dummy model has a model_like specified, reassign
             # the classifier's model_like attribute to match the dummy's
             # so that downstream evaluators (ModelProfiler) can use it
+
+            self.type = self.model_like.type
+            # DummyClassifier model type is set in the constructor based on whether it
+            # is binary or multiclass
 
             # Predict and Predict_Proba should already be specified
 
@@ -141,6 +152,13 @@ class DummyClassifier:
     model_like : model_like, optional
         While predictions are pre-computed, the model object, itself, may be of use for
         some evaluations (e.g. ModelProfiler).
+    binary_clf : bool, optional, default = True
+        Type of classification model.
+            Used when wrapping with ClassificationModel.
+            If binary == True, ClassificationModel.type will be set to `BINARY_CLASSIFICATION',
+            which enables use of binary metrics.
+            If binary == False, ClassificationModel.type will be set to 'MULTICLASS_CLASSIFICATION',
+            and use those metrics.
     predict_output : array, optional
         Array containing per-sample class labels
             Corresponds to sklearn-like `predict` output
@@ -158,6 +176,7 @@ class DummyClassifier:
         self,
         name: str,
         model_like=None,
+        binary_clf=True,
         predict_output=None,
         predict_proba_output=None,
         tags=None,
@@ -167,6 +186,9 @@ class DummyClassifier:
         self._build_functionality("predict_proba", predict_proba_output)
         self.name = name
         self.tags = tags
+        self.type = (
+            "BINARY_CLASSIFICATION" if binary_clf else "MULTICLASS_CLASSIFICATION"
+        )
 
     def _wrap_array(self, array):
         return lambda X=None: array

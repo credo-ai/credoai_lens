@@ -55,7 +55,6 @@ class ModelFairness(Evaluator):
 
     def _validate_arguments(self):
         check_existence(self.metrics, "metrics")
-        check_existence(self.data.X, "X")
         check_existence(self.data.y, "y")
         check_data_for_nulls(
             self.data, "Data", check_X=True, check_y=True, check_sens=True
