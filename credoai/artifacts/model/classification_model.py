@@ -84,7 +84,7 @@ class ClassificationModel(Model):
         """Conditionally updates functionality based on framework"""
         # This needs to remain a big if-statement for now if we're going to keep
         # all classifiers in one class since we're making direct assignments to the class object
-        framework_like = getattr(self.model_like, frameworks_like, None)
+        framework_like = getattr(self.model_like, "frameworks_like", None)
 
         if self.model_info["framework"] in SKLEARN_LIKE_FRAMEWORKS:
             func = getattr(self, "predict_proba", None)
