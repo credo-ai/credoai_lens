@@ -125,8 +125,8 @@ def check_prediction_model_output(fn, data, batch: int = 1):
     batch_size = batch
     if isinstance(data.X, np.ndarray):
         mini_pred = fn(np.reshape(data.X[0], (1, -1)))
-    elif isinstance(data.X, pd.DataFrame):
-        mini_pred = fn(data.X.head(1))
+    elif isinstance(data.X, (pd.DataFrame, pd.Series)):
+        mini_pred = fn(data.X.head(batch))
     elif isinstance(data.X, tf.Tensor):
         mini_pred = fn(data.X)
     elif isinstance(data.X, tf.data.Dataset) or inspect.isgeneratorfunction(data.X):

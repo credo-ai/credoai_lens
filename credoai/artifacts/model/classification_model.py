@@ -43,6 +43,15 @@ class ClassificationModel(Model):
             If the final layer is sigmoid, this wrapper assumes the return value is an (n_samples, 1)
             column vector with per-sample probabilities. The wrapper rounds (.5 as default threshold)
             values where necessary to obtain discrete labels.
+
+            For custom model_like objects, users may optionally specify a `frameworks_like` attribute
+            of type list. frameworks_like serves as a flag to enable expected functionality to carry over
+            from an external framework to Lens. Presently frameworks_like = ["sklearn"] is supported and
+            serves as a flag to notify Lens that model_like respects sklearn's predict and (if appropriate)
+            predict_proba API. Future functionality: 'tensorflow' and 'pytorch' will also be supported, as
+            well as combinations: e.g. frameworks_like = ['sklearn', 'pytorch'] signals to Lens that
+            model_like supports both a `forward` function and the `predict` and (where appropriate) `predict_proba`.
+
     tags : optional
         Additional metadata to add to model
         E.g., {'model_type': 'binary_classification'}
@@ -75,6 +84,8 @@ class ClassificationModel(Model):
         """Conditionally updates functionality based on framework"""
         # This needs to remain a big if-statement for now if we're going to keep
         # all classifiers in one class since we're making direct assignments to the class object
+        framework_like = getattr(self.model_like, frameworks_like, None)
+
         if self.model_info["framework"] in SKLEARN_LIKE_FRAMEWORKS:
             func = getattr(self, "predict_proba", None)
             if len(self.model_like.classes_) == 2:
@@ -134,6 +145,18 @@ class ClassificationModel(Model):
             # is binary or multiclass
 
             # Predict and Predict_Proba should already be specified
+
+        if framework_like:
+            if "sklearn" in framework_like:
+                func = getattr(self, "predict_proba", None)
+                if len(self.model_like.classes_) == 2:
+                    self.type = "BINARY_CLASSIFICATION"
+                    # if binary, replace probability array with one-dimensional vector
+                    if func:
+                        self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
+                else:
+                    self.type = "MULTICLASS_CLASSIFICATION"
+            # Future: pytorch and tensorflow support
 
 
 class DummyClassifier:
