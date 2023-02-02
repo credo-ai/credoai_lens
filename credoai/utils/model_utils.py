@@ -30,7 +30,7 @@ def get_model_info(model):
     try:
         framework = model.__class__.__module__.split(".")[0]
     except AttributeError:
-        framework = None
+        framework = getattr(model, "framework_like", None)
     try:
         name = model.__class__.__name__
     except AttributeError:
