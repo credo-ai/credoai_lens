@@ -1,7 +1,8 @@
+import inspect
 import os
 import pkgutil
 
-from credoai.evaluators import Evaluator
+from credoai.evaluators.evaluator import Evaluator
 
 
 def name2evaluator(evaluator_name):
@@ -21,21 +22,31 @@ def all_subclasses(cls):
 
 
 def list_evaluators_exhaustive():
-    """List all defined evaluators"""
+    """List all defined evaluation modules"""
     evaluator_path = os.path.dirname(os.path.dirname(__file__))
     return pkgutil.iter_modules([evaluator_path])
 
 
 def list_evaluators():
-    """List subset of all defined assessments where the module is importable"""
+    """List subset of all defined evaluators where the module is importable"""
     evaluators = list(list_evaluators_exhaustive())
     importer = evaluators[0][0]
-    usable_evaluators = []
+    # get loadable modules
+    usable_modules = []
     for evaluator in evaluators:
         module = importer.find_module(evaluator[1])
         try:
-            module.load_module()
-            usable_evaluators.append(evaluator[1])
+            m = module.load_module()
+            usable_modules.append((evaluator[1], m))
         except ModuleNotFoundError:
+            pass
+    # get evaluators from loadable modules
+    usable_evaluators = []
+    for module in usable_modules:
+        try:
+            for m in inspect.getmembers(module[1], inspect.isclass):
+                if m[1].__module__ == module[0] and isinstance(m[1](), Evaluator):
+                    usable_evaluators.append(m)
+        except:
             pass
     return usable_evaluators
