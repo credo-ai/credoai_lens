@@ -1,18 +1,14 @@
+import numpy as np
 import pandas as pd
 from connect.evidence import MetricContainer, TableContainer
 from sklearn.metrics import confusion_matrix
 
 from credoai.artifacts import ClassificationModel
-from credoai.evaluators import Evaluator
+from credoai.evaluators.evaluator import Evaluator
 from credoai.evaluators.utils.fairlearn import setup_metric_frames
-from credoai.utils.common import ValidationError
-from credoai.evaluators.utils.validation import (
-    check_data_for_nulls,
-    check_existence,
-)
+from credoai.evaluators.utils.validation import check_data_for_nulls, check_existence
 from credoai.modules.metrics import process_metrics
-
-import numpy as np
+from credoai.utils.common import ValidationError
 
 
 class Performance(Evaluator):

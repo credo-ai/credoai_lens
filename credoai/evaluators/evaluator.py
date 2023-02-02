@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from connect.evidence import EvidenceContainer
+
 from credoai import __version__ as version
 from credoai.utils import global_logger
 from credoai.utils.common import NotRunError, ValidationError

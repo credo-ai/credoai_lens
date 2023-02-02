@@ -15,7 +15,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from credoai.artifacts import TabularData
-from credoai.evaluators import Evaluator
+from credoai.evaluators.evaluator import Evaluator
 from credoai.evaluators.utils.validation import (
     check_data_for_nulls,
     check_data_instance,
