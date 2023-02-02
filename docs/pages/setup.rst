@@ -10,11 +10,20 @@ The latest stable release or development release can be installed from PyPI.
 **Pip**
 
 Lens is on PyPi and can be installed using pip. The below will install the latest stable release
-of the package.
+of the package. 
 
 ::
 
    pip install credoai-lens
+
+.. note::
+   The above installation only supports core functionality, which excludes
+   experimental features and heavier-weight evaluators like the Security and Privacy Evaluators, 
+   which rely on tensorflow. To install all functionality, use the "full" installation below.
+
+::
+
+   pip install credoai-lens[full]
 
 The latest development version can also be installed directly from github.
 
