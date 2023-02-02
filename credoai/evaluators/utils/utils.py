@@ -38,7 +38,7 @@ def list_evaluators():
         try:
             m = module.load_module()
             usable_modules.append((evaluator[1], m))
-        except ModuleNotFoundError:
+        except (ModuleNotFoundError, ImportError):
             pass
     # get evaluators from loadable modules
     usable_evaluators = []
