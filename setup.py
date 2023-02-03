@@ -34,9 +34,14 @@ with open("docs/requirements.txt") as f:
     doc_requirements = [line.strip() for line in f]
 
 dev_requirements += doc_requirements
-full_requirements = extras_requirements + dev_requirements
+full_requirements = extras_requirements
+all_requirements = full_requirements + dev_requirements
 
-EXTRAS_REQUIRES = {"dev": dev_requirements, "full": full_requirements}
+EXTRAS_REQUIRES = {
+    "dev": dev_requirements,
+    "full": full_requirements,
+    "all": all_requirements,
+}
 
 
 CLASSIFIERS = [
