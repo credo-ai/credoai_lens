@@ -147,7 +147,7 @@ def check_prediction_model_output(fn, data, batch: int = 1):
         global_logger.warning(message)
         mini_pred = fn(data.X[0])
 
-    return mini_pred, batch_size
+    return np.array(mini_pred), batch_size
 
 
 def check_comparison_model_output(fn, data, batch=1):
