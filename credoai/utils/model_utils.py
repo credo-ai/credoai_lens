@@ -28,7 +28,9 @@ def get_generic_classifier():
 def get_model_info(model):
     """Returns basic information about model info"""
     try:
-        framework = model.__class__.__module__.split(".")[0]
+        framework = getattr(model, "framework_like", None)
+        if not framework:
+            framework = model.__class__.__module__.split(".")[0]
     except AttributeError:
         framework = None
     try:
