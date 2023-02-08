@@ -43,6 +43,14 @@ class ClassificationModel(Model):
             If the final layer is sigmoid, this wrapper assumes the return value is an (n_samples, 1)
             column vector with per-sample probabilities. The wrapper rounds (.5 as default threshold)
             values where necessary to obtain discrete labels.
+
+            For custom model_like objects, users may optionally specify a `framework_like` attribute
+            of type string. framework_like serves as a flag to enable expected functionality to carry over
+            from an external framework to Lens. Presently "sklearn", "xgboost", and "keras" are supported.
+            The former two serve as a flags to notify Lens that model_like respects sklearn's predict API
+            (and the predict_proba API, if relevant). The latter serves as a flag to Lens that model_like
+            respects Keras's predict API with either a sigmoid or softmax final layer.
+
     tags : optional
         Additional metadata to add to model
         E.g., {'model_type': 'binary_classification'}
@@ -75,6 +83,7 @@ class ClassificationModel(Model):
         """Conditionally updates functionality based on framework"""
         # This needs to remain a big if-statement for now if we're going to keep
         # all classifiers in one class since we're making direct assignments to the class object
+
         if self.model_info["framework"] in SKLEARN_LIKE_FRAMEWORKS:
             func = getattr(self, "predict_proba", None)
             if len(self.model_like.classes_) == 2:
