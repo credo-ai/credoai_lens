@@ -5,8 +5,5 @@ tensorflow==2.10.0; sys_platform != 'darwin'
 adversarial-robustness-toolbox>=1.10.1
 torch>=1.12.1
 
-# required for SurvivalFairness evaluator
-lifelines>=0.27.3
-
 # required for Deepchecks evaluator
 deepchecks>=0.9.1

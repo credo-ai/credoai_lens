@@ -2,6 +2,7 @@ absl-py>=1.0.0
 cloudpickle>=2.0.0
 credoai-connect>=0.0.7
 fairlearn>=0.7.0
+lifelines>=0.27.3 # required for SurvivalAnalysis evaluator
 json-api-doc>=0.15.0
 matplotlib>=3.0
 nest_asyncio>=1.5.4

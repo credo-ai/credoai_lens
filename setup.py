@@ -35,13 +35,8 @@ with open("docs/requirements.txt") as f:
 
 dev_requirements += doc_requirements
 full_requirements = extras_requirements
-all_requirements = full_requirements + dev_requirements
 
-EXTRAS_REQUIRES = {
-    "dev": dev_requirements,
-    "full": full_requirements,
-    "all": all_requirements,
-}
+EXTRAS_REQUIRES = {"dev": dev_requirements, "full": full_requirements}
 
 
 CLASSIFIERS = [

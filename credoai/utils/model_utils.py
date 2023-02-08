@@ -1,11 +1,15 @@
 import warnings
-from credoai.utils import global_logger
 
 from sklearn.base import is_classifier, is_regressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils import multiclass
 
-from tensorflow.keras import layers
+from credoai.utils import global_logger
+
+try:
+    from tensorflow.keras import layers
+except ImportError:
+    pass
 
 
 def get_generic_classifier():
