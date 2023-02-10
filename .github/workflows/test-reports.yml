@@ -44,6 +44,7 @@ jobs:
           pip install pytest pytest-cov genbadge
           pip install tensorflow
           pip install -r requirements.txt
+          pip install -r requirements-extras.txt
           pip install -r requirements-dev.txt
       - name: Run tests
         env:
