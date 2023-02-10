@@ -3,7 +3,7 @@ import pandas as pd
 from connect.evidence import MetricContainer, StatisticTestContainer, TableContainer
 
 from credoai.artifacts import TabularData
-from credoai.evaluators import Evaluator
+from credoai.evaluators.evaluator import Evaluator
 from credoai.evaluators.utils.validation import (
     check_data_for_nulls,
     check_data_instance,

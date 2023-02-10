@@ -6,7 +6,7 @@ import pandas as pd
 from connect.evidence import TableContainer
 from shap import Explainer, Explanation, kmeans
 
-from credoai.evaluators import Evaluator
+from credoai.evaluators.evaluator import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_existence
 from credoai.utils.common import ValidationError
 

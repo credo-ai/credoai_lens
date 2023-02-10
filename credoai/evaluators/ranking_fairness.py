@@ -6,19 +6,19 @@ from connect.evidence import MetricContainer, TableContainer
 from finsfairauditing import fins
 
 from credoai.artifacts import TabularData
-from credoai.evaluators import Evaluator
+from credoai.evaluators.evaluator import Evaluator
 from credoai.evaluators.utils.validation import (
     check_data_for_nulls,
     check_data_instance,
     check_existence,
     check_feature_presence,
 )
-from credoai.utils.common import ValidationError
-from credoai.utils.dataset_utils import empirical_distribution_curve
 from credoai.modules.metrics_credoai import (
     normalized_discounted_cumulative_kl_divergence,
     skew_parity,
 )
+from credoai.utils.common import ValidationError
+from credoai.utils.dataset_utils import empirical_distribution_curve
 
 EPSILON = 1e-12
 METRIC_SUBSET = [

@@ -2,13 +2,11 @@ import re
 from typing import Optional
 
 import numpy as np
+from connect.evidence import TableContainer
+from connect.evidence.lens_evidence import ModelProfilerContainer
 from pandas import DataFrame, concat
 
-from connect.evidence.lens_evidence import ModelProfilerContainer
-from connect.evidence import TableContainer
-from pandas import DataFrame
-
-from credoai.evaluators import Evaluator
+from credoai.evaluators.evaluator import Evaluator
 from credoai.evaluators.utils.validation import check_existence
 from credoai.utils import ValidationError, global_logger
 

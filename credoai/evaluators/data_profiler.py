@@ -6,7 +6,7 @@ from connect.evidence import TableContainer
 from connect.evidence.lens_evidence import DataProfilerContainer
 
 from credoai.artifacts.data.base_data import Data
-from credoai.evaluators import Evaluator
+from credoai.evaluators.evaluator import Evaluator
 from credoai.evaluators.utils import check_data_instance
 from credoai.utils.common import ValidationError, check_pandas
 
