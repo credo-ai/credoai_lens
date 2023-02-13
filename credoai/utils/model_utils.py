@@ -1,11 +1,15 @@
 import warnings
-from credoai.utils import global_logger
 
 from sklearn.base import is_classifier, is_regressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils import multiclass
 
-from tensorflow.keras import layers
+from credoai.utils import global_logger
+
+try:
+    from tensorflow.keras import layers
+except ImportError:
+    pass
 
 
 def get_generic_classifier():
@@ -28,7 +32,9 @@ def get_generic_classifier():
 def get_model_info(model):
     """Returns basic information about model info"""
     try:
-        framework = model.__class__.__module__.split(".")[0]
+        framework = getattr(model, "framework_like", None)
+        if not framework:
+            framework = model.__class__.__module__.split(".")[0]
     except AttributeError:
         framework = None
     try:

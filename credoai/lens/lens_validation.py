@@ -1,16 +1,16 @@
+import numpy as np
 import pandas as pd
 
-import numpy as np
-
-import tensorflow as tf
+try:
+    tf_exists = True
+    import tensorflow as tf
+except ImportError:
+    tf_exists = False
 
 import inspect
 
-from credoai.utils.common import ValidationError
 from credoai.utils import global_logger
-
-from credoai.artifacts import DummyClassifier, DummyRegression
-
+from credoai.utils.common import ValidationError
 
 ###############################################
 # Checking artifact interactions (model + data)
@@ -103,7 +103,7 @@ def check_model_data_consistency(model, data):
             )
 
 
-def check_prediction_model_output(fn, data, batch: int = 1):
+def check_prediction_model_output(fn, data, batch_in: int = 1):
     """
     Helper function for prediction-type models. For use with `check_model_data_consistency`.
 
@@ -122,16 +122,18 @@ def check_prediction_model_output(fn, data, batch: int = 1):
         since this could be large and computationally expensive.
     """
     mini_pred = None
-    batch_size = batch
+    batch_out = batch_in
     if isinstance(data.X, np.ndarray):
         mini_pred = fn(np.reshape(data.X[0], (1, -1)))
-    elif isinstance(data.X, pd.DataFrame):
-        mini_pred = fn(data.X.head(1))
-    elif isinstance(data.X, tf.Tensor):
+    elif isinstance(data.X, (pd.DataFrame, pd.Series)):
+        mini_pred = fn(data.X.head(batch_in))
+    elif tf_exists and isinstance(data.X, tf.Tensor):
         mini_pred = fn(data.X)
-    elif isinstance(data.X, tf.data.Dataset) or inspect.isgeneratorfunction(data.X):
+    elif (
+        tf_exists and isinstance(data.X, tf.data.Dataset)
+    ) or inspect.isgeneratorfunction(data.X):
         one_batch = next(iter(data.X))
-        batch_size = len(one_batch)
+        batch_out = len(one_batch)
         if len(one_batch) >= 2:
             # batch is tuple
             # includes y and possibly weights; X is first
@@ -139,18 +141,18 @@ def check_prediction_model_output(fn, data, batch: int = 1):
         else:
             # batch only contains X
             mini_pred = fn(one_batch)
-    elif isinstance(data.X, tf.keras.utils.Sequence):
+    elif tf_exists and isinstance(data.X, tf.keras.utils.Sequence):
         mini_pred = fn(data.X.__getitem__(0))
-        batch_size = len(mini_pred)
+        batch_out = len(mini_pred)
     else:
         message = "Input X is of unsupported type. Behavior is undefined. Proceed with caution"
         global_logger.warning(message)
         mini_pred = fn(data.X[0])
 
-    return mini_pred, batch_size
+    return np.array(mini_pred), batch_out
 
 
-def check_comparison_model_output(fn, data, batch=1):
+def check_comparison_model_output(fn, data, batch_in=1):
     """
     Helper function for comparison-type models. For use with `check_model_data_consistency`.
 
@@ -168,13 +170,13 @@ def check_comparison_model_output(fn, data, batch=1):
         object since this could be large and computationally expensive.
     """
     comps = None
-    batch_size = batch
+    batch_out = batch_in
     if isinstance(data.pairs, pd.DataFrame):
         # should always pass for ComparisonData, based on checks in that wrapper. Nevertheless...
-        comps = fn(data.pairs.head(batch_size))
+        comps = fn(data.pairs.head(batch_in))
     else:
         message = "Input pairs are of unsupported type. Behavior is undefined. Proceed with caution"
         global_logger.warning(message)
-        comps = fn(data.pairs[:batch_size])
+        comps = fn(data.pairs[:batch_in])
 
-    return comps, batch_size
+    return comps, batch_out

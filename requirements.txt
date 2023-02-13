@@ -2,6 +2,7 @@ absl-py>=1.0.0
 cloudpickle>=2.0.0
 credoai-connect>=0.0.7
 fairlearn>=0.7.0
+lifelines>=0.27.3 # required for SurvivalAnalysis evaluator
 json-api-doc>=0.15.0
 matplotlib>=3.0
 nest_asyncio>=1.5.4
@@ -10,31 +11,13 @@ python-dotenv>=0.19.2
 requests>=2.25.1
 scikit-learn>=0.24
 scipy>=1.8.1
-tensorflow-macos==2.10.0; sys_platform == 'darwin'
-tensorflow==2.10.0; sys_platform != 'darwin'
 
 # required for reporting
 pandas_profiling==3.3.0
 
-# required for Privacy and Security evaluators
-adversarial-robustness-toolbox>=1.10.1
-torch>=1.12.1
-
-# required for SurvivalFairness evaluator
-lifelines>=0.27.3
-
 # required for ShapExplainer evaluator
 shap>=0.41.0
 
-# required for Deepchecks evaluator
-deepchecks>=0.9.1
-
 # required for RankingFairness evaluator
 finsfairauditing>=0.0.2
-
-# required for NLP evaluator
-# joblib>=0.14.1
-# sentence-transformers>=2.1.0
-# transformers>=4.0.0
-# google-api-python-client>=1.12.8
 

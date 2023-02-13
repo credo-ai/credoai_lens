@@ -1,13 +1,20 @@
 import requests
-from credoai.utils import global_logger
+
 from credoai._version import __version__
+from credoai.utils import global_logger
 
 
 def validate_version():
     current_version = __version__
 
     package = "credoai-lens"  # replace with the package you want to check
-    response = requests.get(f"https://pypi.org/pypi/{package}/json")
+    try:
+        response = requests.get(f"https://pypi.org/pypi/{package}/json")
+    except requests.ConnectionError:
+        global_logger.info(
+            "No internet connection. Cannot determine whether Credo AI Lens version is up-to-date"
+        )
+        return
     latest_version = response.json()["info"]["version"]
 
     on_latest = current_version == latest_version

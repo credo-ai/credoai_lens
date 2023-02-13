@@ -16,8 +16,8 @@ from pandas import DataFrame
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
-from credoai.artifacts import ClassificationModel, TabularData, DummyClassifier
-from credoai.evaluators import Evaluator
+from credoai.artifacts import ClassificationModel, DummyClassifier, TabularData
+from credoai.evaluators.evaluator import Evaluator
 from credoai.evaluators.utils.validation import (
     check_data_for_nulls,
     check_data_instance,

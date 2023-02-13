@@ -4,7 +4,12 @@ import inspect
 
 import numpy as np
 import pandas as pd
-import tensorflow as tf
+
+try:
+    tf_exists = True
+    import tensorflow as tf
+except ImportError:
+    tf_exists = False
 
 from credoai.artifacts.data.tabular_data import TabularData
 from credoai.artifacts.model.base_model import Model
@@ -63,10 +68,10 @@ def check_nulls_by_data_type(data):
         nulls = data.isnull().to_numpy().any()
     if isinstance(data, np.ndarray):
         nulls = np.isnan(data).any()
-    if isinstance(data, tf.Tensor):
+    if tf_exists and isinstance(data, tf.Tensor):
         nulls = tf.reduce_any(tf.math.is_nan(data))
-    if isinstance(
-        data, (tf.data.Dataset, tf.keras.utils.Sequence)
+    if (
+        tf_exists and isinstance(data, (tf.data.Dataset, tf.keras.utils.Sequence))
     ) or inspect.isgeneratorfunction(data):
         message = """
         Evaluator Validation: Checking for nulls in generator-based or mapped data is not currently

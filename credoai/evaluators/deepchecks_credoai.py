@@ -4,7 +4,7 @@ from connect.evidence.deepchecks_evidence import DeepchecksContainer
 from deepchecks.core import BaseCheck
 from deepchecks.tabular import Dataset, Suite
 
-from credoai.evaluators import Evaluator
+from credoai.evaluators.evaluator import Evaluator
 from credoai.evaluators.utils.validation import check_requirements_deepchecks
 from credoai.modules.constants_deepchecks import DEFAULT_CHECKS
 
