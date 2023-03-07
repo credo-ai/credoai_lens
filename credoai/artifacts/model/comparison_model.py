@@ -19,16 +19,13 @@ class ComparisonModel(Model):
             returns a list containing the similarity scores for each pair.
             Example input and output: [[sd1,sd2], [sd1,td3], [td3,td8]] --> [98, 4, 91]
             Type of data sample is decided by this `compare` function and refelcted in `ComparisonData` object
+    tags : optional
+        Additional metadata to add to model
+        E.g., {'model_type': 'binary_classification'}
     """
 
-    def __init__(self, name: str, model_like=None):
-        super().__init__(
-            "COMPARISON",
-            ["compare"],
-            ["compare"],
-            name,
-            model_like,
-        )
+    def __init__(self, name: str, model_like=None, tags=None):
+        super().__init__("COMPARISON", ["compare"], ["compare"], name, model_like, tags)
 
 
 class DummyComparisonModel:

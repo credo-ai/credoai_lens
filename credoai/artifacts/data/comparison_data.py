@@ -39,7 +39,7 @@ class ComparisonData(Data):
     """
 
     def __init__(self, name: str, pairs=None, subjects_sensitive_features=None):
-        super().__init__("ComparisonData", name)
+        super().__init__("Comparison", name)
         self.pairs = pairs
         self.subjects_sensitive_features = subjects_sensitive_features
         self._validate_pairs()

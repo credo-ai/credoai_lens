@@ -1,0 +1,3 @@
+[submodule "credoai/evaluators/evals"]
+	path = credoai/evaluators/evals
+	url = https://github.com/anthropics/evals.git
