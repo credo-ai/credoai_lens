@@ -27,7 +27,8 @@ class LLM_Score(Evaluator):
     Parameters
     ----------
     assessment_functions : dict, optional
-        keys are names of the assessment functions and values are custom callable assessment functions.
+        Additional ways of assessing the generated responses.
+        Keys are names of the assessment functions and values are custom callable assessment functions.
         Each assessment function must take in a string and return a float.
     use_perspective_api : bool or list
         if True, use Perspective API to assess the generated responses. By default, LLM_Score will
