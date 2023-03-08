@@ -12,5 +12,4 @@ from .model.base_model import Model
 from .model.classification_model import ClassificationModel, DummyClassifier
 from .model.comparison_model import ComparisonModel, DummyComparisonModel
 from .model.generative_text_model import GenText
-from .model.openai_adapters import OpenAIAdapter
 from .model.regression_model import DummyRegression, RegressionModel
