@@ -1,7 +1,6 @@
 """Requires installation of requirements-extras.txt"""
 
 import os
-from functools import partial
 from time import sleep
 
 import numpy as np
@@ -11,14 +10,14 @@ from googleapiclient import discovery
 from credoai.evaluators.evaluator import Evaluator
 from credoai.utils import ValidationError
 
-PERSPECTIVE_API_MODELS = {
-    "perspective_toxicity": "TOXICITY",
-    "perspective_severe_toxicity": "SEVERE_TOXICITY",
-    "perspective_identify_attack": "IDENTITY_ATTACK",
-    "perspective_insult": "INSULT",
-    "perspective_profanity": "PROFANITY",
-    "perspective_threat": "THREAT",
-}
+PERSPECTIVE_ATTRIBUTES = [
+    "TOXICITY",
+    "SEVERE_TOXICITY",
+    "IDENTITY_ATTACK",
+    "INSULT",
+    "PROFANITY",
+    "THREAT",
+]
 
 
 class LLM_Score(Evaluator):
@@ -27,22 +26,18 @@ class LLM_Score(Evaluator):
 
     Parameters
     ----------
-    assessment_functions : dict
-        keys are names of the assessment functions and values could be custom callable assessment functions
-        or name of builtin assessment functions.
-
-        Current choices for built-in assessment functions all use Perspective API include:
-                'perspective_toxicity', 'perspective_severe_toxicity',
-                'perspective_identify_attack', 'perspective_insult',
-                'perspective_profanity', 'perspective_threat'
+    assessment_functions : dict, optional
+        keys are names of the assessment functions and values are custom callable assessment functions.
+        Each assessment function must take in a string and return a float.
+    use_perspective_api : bool or list
+        if True, use Perspective API to assess the generated responses. By default, LLM_Score will
+        assess all possible perspective attributes. If a list of strings is passed, only those
+        attributes will be assessed. Attributes can be selected from :attr:`PERSPECTIVE_ATTRIBUTES`.
 
         You must have a valid Perspective API key to use these functions defined as an enviornment
         variable called "PERSPECTIVE_API_KEY"
-
-    perspective_config : dict
-        if Perspective API is to be used, this must be passed with the following:
-            'api_key': your Perspective API key
-            'rpm_limit': request per minute limit of your Perspective API account
+    perspective_rpm_limit : int, optional
+        request per minute limit of your Perspective API account, by default 60
     """
 
     required_artifacts = {"model"}
@@ -50,13 +45,16 @@ class LLM_Score(Evaluator):
     def __init__(
         self,
         assessment_functions=None,
-        perspective_config=None,
+        use_perspective_api=False,
+        perspective_rpm_limit=60,
     ):
         super().__init__()
-        self.assessment_functions = assessment_functions or {}
-        self.perspective_config = perspective_config
-        self.perspective_client = None
         self.generated_responses = []
+        self.assessment_functions = assessment_functions or {}
+        # set up perspective api attributes
+        self.use_perspective_api = use_perspective_api
+        self.perspective_rpm_limit = perspective_rpm_limit
+        self.perspective_client = None
 
     def _validate_arguments(self):
         # TODO: validate model
@@ -83,10 +81,14 @@ class LLM_Score(Evaluator):
         # Generate and record responses for the prompts with all the generation models n_iterations times
         self._generate_responses()
         scores = {}
-        if self.data.y:
+        if self.data.y is not None:
             scores[self.data.name] = self._assess_against_y()
+        if self.use_perspective_api is not False:
+            scores.update(self._assess_with_perspective())
         for name, scorer in self.assessment_functions.items():
             scores[name] = scorer(self.generated_responses)
+        return scores
+        # TODO: convert scores into evidence objects
 
     def _generate_responses(self):
         prompts = self.data.X["prompt"].tolist()
@@ -105,27 +107,35 @@ class LLM_Score(Evaluator):
 
         TODO: move from a simple string match to a more robust yes/no classifier
         """
+        self.logger.info(
+            "LLM Score is assessing the generated responses by comparing against y."
+        )
         return np.mean(np.array(self.generated_responses) == self.data.y)
 
-    def _assess_with_perspective(self, assessment_attributes):
+    def _assess_with_perspective(self):
         """Assess a text for a given assessment attribute
 
         Parameters
         ----------
         txt : str
             Text to be assessed
-        assessment_attribute : str
-            Attribute to be do the assessment based on
 
         Returns
         -------
         float
             assessment score
         """
+        self.logger.info(
+            "LLM Score is using the Perspective API to assess the generated responses."
+        )
         if self.perspective_client is None:
             self._build_perspective_client()
 
         perspective_scores = []
+        if self.use_perspective_api is True:
+            assessment_attributes = PERSPECTIVE_ATTRIBUTES
+        else:
+            assessment_attributes = self.use_perspective_api
         completed_responses = self.data.X["prompt"].str.cat(self.generated_responses)
 
         for txt in completed_responses:
@@ -146,10 +156,12 @@ class LLM_Score(Evaluator):
                 for att in assessment_attributes
             }
             perspective_scores.append(simplified_response)
+            sleep(60 / self.perspective_rpm_limit)
             return pd.DataFrame(perspective_scores).mean().to_dict()
 
     def _build_perspective_client(self):
         """Build the self Perspective API client"""
+        self.logger.info("LLM Score is building the Perspective API client")
         api_key = os.environ["PERSPECTIVE_API_KEY"]
         if self.perspective_client is None:
             self.perspective_client = discovery.build(
