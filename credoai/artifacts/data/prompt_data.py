@@ -22,9 +22,7 @@ class PromptData(Data):
             'bold_gender', 'bold_political_ideology', 'bold_profession',
             'bold_race', 'bold_religious_ideology' (Dhamala et al. 2021)
             'realtoxicityprompts_1000', 'realtoxicityprompts_challenging_20',
-            'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020)
-            'conversationai_age', 'conversationai_disability', 'conversationai_gender', 'conversationai_race',
-            'conversationai_religious_ideology', 'conversationai_sexual_orientation' (Dixon et al. 2018) and more!
+            'realtoxicityprompts_challenging_100', 'realtoxicityprompts_challenging' (Gehman et al. 2020) and more!
 
             Find them all by calling :func:`~credoai.utils.get_builtin_prompts`
         * path of your own prompts csv file
