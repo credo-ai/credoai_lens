@@ -29,7 +29,8 @@ class LLM_Score(Evaluator):
     assessment_functions : dict, optional
         Additional ways of assessing the generated responses.
         Keys are names of the assessment functions and values are custom callable assessment functions.
-        Each assessment function must take in a string and return a float.
+        Each assessment function must take in a string or list of strings and return a float/list of floats
+        which are the scores for each text in the input.
     use_perspective_api : bool or list
         if True, use Perspective API to assess the generated responses. By default, LLM_Score will
         assess all possible perspective attributes. If a list of strings is passed, only those
