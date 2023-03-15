@@ -7,3 +7,6 @@ torch>=1.12.1
 
 # required for Deepchecks evaluator
 deepchecks>=0.9.1
+
+google-api-python-client>=2.80.0
+openai>=0.26.5
