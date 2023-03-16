@@ -297,21 +297,14 @@ def ks_statistic(y_true, y_pred) -> float:
 
 
 def ks_statistic_binary(y_true, y_pred) -> float:
-    """Performs the two-sample Kolmogorov-Smirnov test (two-sided)
-
-    The test compares the underlying continuous distributions F(x) and G(x) of two independent samples.
-    The null hypothesis is that the two distributions are identical, F(x)=G(x)
-    If the KS statistic is small or the p-value is high,
-    then we cannot reject the null hypothesis in favor of the alternative.
-
-    For practical purposes, if the statistic value is higher than the critical value, the two distributions are different.
+    """Performs the two-sample Kolmogorov-Smirnov test for binary classifiers (two-sided)
 
     Parameters
     ----------
     y_true : array-like
         Ground truth (correct) labels.
     y_pred : array-like
-        Predicted labels :math:`h(X)` returned by the classifier.
+        Predicted probabilities returned by the classifier.
 
     Returns
     -------
