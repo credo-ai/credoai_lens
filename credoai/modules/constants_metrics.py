@@ -134,7 +134,8 @@ METRIC_EQUIVALENTS = {
     "r2_score": ["r_squared", "r2"],
     "true_positive_rate": ["tpr", "recall_score", "recall", "sensitivity", "hit_rate"],
     "true_negative_rate": ["tnr", "specificity"],
-    "target_ks_statistic": ["ks_score_regression"],
+    "target_ks_statistic": ["ks_score_regression", "ks_score"],
+    "ks_score_binary": ["ks_score"],
 }
 
 # DATASET METRICS
