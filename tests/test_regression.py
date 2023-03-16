@@ -19,7 +19,7 @@ from credoai.evaluators import (
     ModelProfiler,
 )
 
-TEST_METRICS = [["r2_score"]]
+TEST_METRICS = [["r2_score", "ks_score_regression"]]
 TEST_METRICS_IDS = ["regression_metric"]
 
 

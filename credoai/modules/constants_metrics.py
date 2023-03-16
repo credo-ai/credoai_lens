@@ -16,6 +16,7 @@ from credoai.modules.metrics_credoai import (
     false_omission_rate,
     gini_coefficient_discriminatory,
     ks_statistic,
+    ks_statistic_binary,
     multiclass_confusion_metrics,
 )
 
@@ -63,6 +64,7 @@ BINARY_CLASSIFICATION_FUNCTIONS = {
     "true_negative_rate": fl_metrics.true_negative_rate,
     "true_positive_rate": fl_metrics.true_positive_rate,
     "underprediction": fl_metrics._mean_underprediction,
+    "ks_score_binary": ks_statistic_binary,
 }
 
 # Define Multiclass classification name mapping.
@@ -101,7 +103,12 @@ FAIRNESS_FUNCTIONS = {
 
 
 # Define functions that require probabilities ***
-PROBABILITY_FUNCTIONS = {"average_precision_score", "roc_auc_score", "gini_coefficient"}
+PROBABILITY_FUNCTIONS = {
+    "average_precision_score",
+    "roc_auc_score",
+    "gini_coefficient",
+    "ks_score_binary",
+}
 
 # *** Define Alternative Naming ***
 METRIC_EQUIVALENTS = {
@@ -127,6 +134,7 @@ METRIC_EQUIVALENTS = {
     "r2_score": ["r_squared", "r2"],
     "true_positive_rate": ["tpr", "recall_score", "recall", "sensitivity", "hit_rate"],
     "true_negative_rate": ["tnr", "specificity"],
+    "target_ks_statistic": ["ks_score_regression"],
 }
 
 # DATASET METRICS
