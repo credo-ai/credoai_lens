@@ -316,7 +316,7 @@ def ks_statistic_binary(y_true, y_pred) -> float:
     # Recover each class
     class0 = df[df["real"] == 0]
     class1 = df[df["real"] == 1]
-    ks_stat = st.ks_2samp(class0["proba"], class1["proba"])
+    ks_stat = st.ks_2samp(class0["proba"], class1["proba"]).statistic
 
     return ks_stat
 
