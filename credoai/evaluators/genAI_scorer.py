@@ -20,17 +20,42 @@ PERSPECTIVE_ATTRIBUTES = [
 ]
 
 
+def assessment_function_no_baseline(callable, prepend_prompts=False, kwargs={}):
+    # wonder if I can make a template like this work...
+    pass
+
+
 class LLM_Score(Evaluator):
     """
-    This module assesses language generation models based on various prompts and assessment attributes
+    This module assesses language generation models based on various prompts and assessment attributes.
+    This evaluator generates responses using lens.data.X['prompts']. The responses are evaluated by the
+    the specified assessment functions. Scorers should return a floating point number and can be either
+    unary operators, accepting only the responses (e.g., myScorer(responses) -> score) or binary
+    operators, accepting a benchmark for responses (e.g., myScorer(responses, y) -> score).
 
     Parameters
     ----------
-    assessment_functions : dict, optional
-        Additional ways of assessing the generated responses.
-        Keys are names of the assessment functions and values are custom callable assessment functions.
-        Each assessment function must take in a string or list of strings and return a float/list of floats
-        which are the scores for each text in the input.
+    assessment_functions_no_baseline : dict, optional
+        Allows specification of arbitrary scoring functions that take as input a set of strings
+         and return floating point scores. E.g., myScorer(responses) -> score
+        Input dictionary should be of the form:
+            {'callable': <scorer function object>, 'prepend_prompts': <Bool>, kwargs' : <arguments dict>}
+        The callable-scorer pair is required and must take as input a list of strings and return a float.
+        If prepend_prompts is true, prepend the prompts `self.data.X['prompts']` to the responses to be
+        scored. If it is not provided, prompts are not prepended by default.
+        The kwargs key is optional. It enables passing additional parameters to the scorer, such as
+        API keys and rate limit parameters for API-based scorers.
+    assessment_functions_w_baseline : dict, optional
+        Allows specification of scoring functions that take as input a set of string prompts and a baseline
+         dataset corresponding to expected outputs. Function must return a floating point score.
+         E.g., myScorer(prompts, y) -> score
+        Input dictionary should be of the form:
+            {'callable': <scorer function object>, 'prepend_prompts': <Bool>, kwargs' : <arguments dict>}
+        The callable-scorer pair is required and must take as input a list of strings and return a float.
+        If prepend_prompts is true, prepend the prompts `self.data.X['prompts']` to the responses to be
+        scored. If it is not provided, prompts are not prepended by default.
+        The kwargs key is optional. It enables passing additional parameters to the scorer, such as
+        API keys and rate limit parameters for API-based scorers.
     use_perspective_api : bool or list
         if True, use Perspective API to assess the generated responses. By default, LLM_Score will
         assess all possible perspective attributes. If a list of strings is passed, only those
@@ -46,24 +71,35 @@ class LLM_Score(Evaluator):
 
     def __init__(
         self,
-        assessment_functions=None,
-        use_perspective_api=False,
-        perspective_rpm_limit=60,
+        assessment_functions_no_baseline={},
+        assessment_functions_w_baseline={}
+        # use_perspective_api=False,
+        # perspective_rpm_limit=60,
     ):
         super().__init__()
         self.generated_responses = []
-        self.assessment_functions = assessment_functions or {}
+        self.assessment_functions_no_baseline = assessment_functions_no_baseline
+        self.assessment_functions_w_baseline = assessment_functions_w_baseline
         # set up perspective api attributes
-        self.use_perspective_api = use_perspective_api
-        self.perspective_rpm_limit = perspective_rpm_limit
-        self.perspective_client = None
+        # self.use_perspective_api = use_perspective_api
+        # self.perspective_rpm_limit = perspective_rpm_limit
+        # self.perspective_client = None
 
     def _validate_arguments(self):
         # TODO: validate model
 
+        # TODO: check to make sure y is valid if baseline scorer used
+
         # type validation of scorers
-        if not isinstance(self.assessment_functions, dict):
-            raise ValidationError("'assessment_functions' values must be of type dict.")
+        if not isinstance(self.assessment_functions_no_baseline, dict):
+            raise ValidationError(
+                "'assessment_functions_no_baseline' values must be of type dict."
+            )
+
+        if not isinstance(self.assessment_functions_w_baseline, dict):
+            raise ValidationError(
+                "'assessment_functions_w_baseline' values must be of type dict."
+            )
 
     def _setup(self):
         # Perform prerun checks
@@ -79,26 +115,36 @@ class LLM_Score(Evaluator):
         """
         Run performance base module
         """
-
-        # Generate and record responses for the prompts with all the generation models n_iterations times
         self._generate_responses()
+
         scores = {}
-        if self.data.y is not None:
-            scores[self.data.name] = self._assess_against_y()
-        if self.use_perspective_api is not False:
-            scores.update(self._assess_with_perspective())
-        for name, scorer in self.assessment_functions.items():
-            scores[name] = scorer(self.generated_responses)
-        return scores
+
+        for name, function_spec in self.assessment_functions_no_baseline.items():
+            if function_spec.get("prepend_prompts", False):
+                self.generated_responses = self.data.X["prompt"].str.cat(
+                    self.generated_responses
+                )
+
+            kwargs = function_spec.get("kwargs", {})
+            scores[name] = function_spec["callable"](self.generated_responses, **kwargs)
+
+        for name, function_spec in self.assessment_functions_w_baseline.items():
+            if function_spec.get("prepend_prompts", False):
+                self.generated_responses = self.data.X["prompt"].str.cat(
+                    self.generated_responses
+                )
+
+            kwargs = function_spec.get("kwargs", {})
+            scores[name] = function_spec["callable"](
+                self.generated_responses, y=self.data.y, **kwargs
+            )
+
         # TODO: convert scores into evidence objects
+        return scores
 
     def _generate_responses(self):
         prompts = self.data.X["prompt"].tolist()
-        n = 20
-        responses = []
-        for i in range(0, len(prompts), n):
-            responses += self.model.generate(prompts[i : i + n])
-        self.generated_responses = responses
+        self.generated_responses = self.model.generate(prompts)
 
     def _assess_against_y(self):
         """Assess the generated responses against target response
@@ -113,66 +159,6 @@ class LLM_Score(Evaluator):
             "LLM Score is assessing the generated responses by comparing against y."
         )
         return np.mean(np.array(self.generated_responses) == self.data.y)
-
-    def _assess_with_perspective(self):
-        """Assess a text for a given assessment attribute
-
-        Parameters
-        ----------
-        txt : str
-            Text to be assessed
-
-        Returns
-        -------
-        float
-            assessment score
-        """
-        self.logger.info(
-            "LLM Score is using the Perspective API to assess the generated responses."
-        )
-        if self.perspective_client is None:
-            self._build_perspective_client()
-
-        perspective_scores = []
-        if self.use_perspective_api is True:
-            assessment_attributes = PERSPECTIVE_ATTRIBUTES
-        else:
-            assessment_attributes = self.use_perspective_api
-        completed_responses = self.data.X["prompt"].str.cat(self.generated_responses)
-
-        for txt in completed_responses:
-            analyze_request = {
-                "comment": {"text": txt},
-                "requestedAttributes": {att: {} for att in assessment_attributes},
-                "languages": ["en"],
-            }
-            response = (
-                self.perspective_client.comments()
-                .analyze(body=analyze_request)
-                .execute()
-            )
-            simplified_response = {
-                f"perspective_{att}": response["attributeScores"][att]["summaryScore"][
-                    "value"
-                ]
-                for att in assessment_attributes
-            }
-            perspective_scores.append(simplified_response)
-            sleep(60 / self.perspective_rpm_limit)
-            return pd.DataFrame(perspective_scores).mean().to_dict()
-
-    def _build_perspective_client(self):
-        """Build the self Perspective API client"""
-        self.logger.info("LLM Score is building the Perspective API client")
-        api_key = os.environ["PERSPECTIVE_API_KEY"]
-        if self.perspective_client is None:
-            self.perspective_client = discovery.build(
-                "commentanalyzer",
-                "v1alpha1",
-                developerKey=api_key,
-                discoveryServiceUrl="https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1",
-                cache_discovery=False,
-            )
 
     def _perform_prerun_checks(self):
         """Checks the provided configurations and the generation and assessment functions
@@ -239,3 +225,62 @@ class LLM_Score(Evaluator):
                         + test_response
                         + "'"
                     )
+
+
+def build_perspective_client(logger):
+    """Build the self Perspective API client"""
+    logger.info("LLM Score is building the Perspective API client")
+    api_key = os.environ["PERSPECTIVE_API_KEY"]
+    return discovery.build(
+        "commentanalyzer",
+        "v1alpha1",
+        developerKey=api_key,
+        discoveryServiceUrl="https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1",
+        cache_discovery=False,
+    )
+
+
+def _assess_with_perspective(self):
+    """Assess a text for a given assessment attribute
+
+    Parameters
+    ----------
+    txt : str
+        Text to be assessed
+
+    Returns
+    -------
+    float
+        assessment score
+    """
+    self.logger.info(
+        "LLM Score is using the Perspective API to assess the generated responses."
+    )
+    if self.perspective_client is None:
+        self._build_perspective_client()
+
+    perspective_scores = []
+    if self.use_perspective_api is True:
+        assessment_attributes = PERSPECTIVE_ATTRIBUTES
+    else:
+        assessment_attributes = self.use_perspective_api
+    completed_responses = self.data.X["prompt"].str.cat(self.generated_responses)
+
+    for txt in completed_responses:
+        analyze_request = {
+            "comment": {"text": txt},
+            "requestedAttributes": {att: {} for att in assessment_attributes},
+            "languages": ["en"],
+        }
+        response = (
+            self.perspective_client.comments().analyze(body=analyze_request).execute()
+        )
+        simplified_response = {
+            f"perspective_{att}": response["attributeScores"][att]["summaryScore"][
+                "value"
+            ]
+            for att in assessment_attributes
+        }
+        perspective_scores.append(simplified_response)
+        sleep(60 / self.perspective_rpm_limit)
+        return pd.DataFrame(perspective_scores).mean().to_dict()
