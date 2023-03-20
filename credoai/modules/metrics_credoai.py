@@ -269,7 +269,7 @@ def equal_opportunity_difference(
 
 
 def ks_statistic(y_true, y_pred) -> float:
-    """Performs the two-sample Kolmogorov-Smirnov test (two-sided)
+    """Performs the two-sample Kolmogorov-Smirnov test (two-sided) for a regression model.
 
     The test compares the underlying continuous distributions F(x) and G(x) of two independent samples.
     The null hypothesis is that the two distributions are identical, F(x)=G(x)
@@ -297,7 +297,7 @@ def ks_statistic(y_true, y_pred) -> float:
 
 
 def ks_statistic_binary(y_true, y_pred) -> float:
-    """Performs the two-sample Kolmogorov-Smirnov test for binary classifiers (two-sided)
+    """Performs the two-sample Kolmogorov-Smirnov test (two-sided) for binary classifiers.
 
     Parameters
     ----------
