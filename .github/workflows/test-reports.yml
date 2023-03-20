@@ -26,7 +26,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
       - name: GitHub Slug Action
-        uses: rlespinasse/github-slug-action@v4.4.0
+        uses: rlespinasse/github-slug-action@v4.4.1
         with:
           prefix: CI_
       - name: Install AWS CLI
