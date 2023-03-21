@@ -20,7 +20,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - 
 	* - :ref:`average_precision_score<average_precision_score>`
 	  - performance
-	  - 
+	  - average_precision
 	* - :ref:`balanced_accuracy_score<balanced_accuracy_score>`
 	  - performance
 	  - 
@@ -29,7 +29,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - 
 	* - :ref:`demographic_parity_difference<demographic_parity_difference>`
 	  - fairness
-	  - demographic_parity, statistical_parity
+	  - statistical_parity, demographic_parity
 	* - :ref:`demographic_parity_ratio<demographic_parity_ratio>`
 	  - fairness
 	  - disparate_impact
@@ -59,16 +59,22 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - fdr
 	* - :ref:`false_negative_rate<false_negative_rate>`
 	  - performance
-	  - miss_rate, false_non_match_rate, fnr
+	  - miss_rate, fnr, false_non_match_rate
 	* - :ref:`false_omission_rate<false_omission_rate>`
 	  - performance
 	  - 
 	* - :ref:`false_positive_rate<false_positive_rate>`
 	  - performance
-	  - fallout_rate, false_match_rate, fpr
+	  - fpr, false_match_rate, fallout_rate
+	* - :ref:`gain_chart<gain_chart>`
+	  - 
+	  - 
 	* - :ref:`gini_coefficient<gini_coefficient>`
 	  - 
-	  - discriminatory_gini_index, discriminatory_gini, gini_index
+	  - discriminatory_gini, discriminatory_gini_index, gini_index
+	* - :ref:`ks_score_binary<ks_score_binary>`
+	  - 
+	  - ks_score
 	* - :ref:`matthews_correlation_coefficient<matthews_correlation_coefficient>`
 	  - performance
 	  - 
@@ -95,7 +101,7 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - 
 	* - :ref:`mean_squared_error<mean_squared_error>`
 	  - performance
-	  - mean_squared_deviation, MSE, MSD
+	  - MSD, mean_squared_deviation, MSE
 	* - :ref:`mean_squared_log_error<mean_squared_log_error>`
 	  - performance
 	  - 
@@ -140,13 +146,13 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 	  - 
 	* - :ref:`target_ks_statistic<target_ks_statistic>`
 	  - performance
-	  - 
+	  - ks_score_regression, ks_score
 	* - :ref:`true_negative_rate<true_negative_rate>`
 	  - performance
 	  - specificity, tnr
 	* - :ref:`true_positive_rate<true_positive_rate>`
 	  - performance
-	  - sensitivity, hit_rate, recall, tpr, recall_score
+	  - recall_score, sensitivity, recall, tpr, hit_rate
 	* - :ref:`underprediction<underprediction>`
 	  - performance
 	  - 
@@ -170,6 +176,8 @@ Average_Precision_Score
 Average precision summarizes a precision-recall curve as the weighted mean of precisions achieved at each threshold, with the increase in recall from the previous threshold used as the weight.
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html>`__
+
+**Other known names**: average_precision
 
 Balanced_Accuracy_Score
 -----------------------
@@ -196,7 +204,7 @@ Demographic parity difference should be ideally 0.
 
 **Source**: `click here <https://fairlearn.org/v0.4.6/api_reference/fairlearn.metrics.html#fairlearn.metrics.demographic_parity_difference>`__
 
-**Other known names**: demographic_parity, statistical_parity
+**Other known names**: statistical_parity, demographic_parity
 
 Demographic_Parity_Ratio
 ------------------------
@@ -302,7 +310,7 @@ False negative rate  is defined as follows:
 
 **Source**: `click here <https://fairlearn.org/v0.4.6/api_reference/fairlearn.metrics.html#fairlearn.metrics.false_negative_rate>`__
 
-**Other known names**: miss_rate, false_non_match_rate, fnr
+**Other known names**: miss_rate, fnr, false_non_match_rate
 
 False_Omission_Rate
 -------------------
@@ -328,14 +336,64 @@ False positive rate is defined as follows:
 
 **Source**: `click here <https://fairlearn.org/v0.4.6/api_reference/fairlearn.metrics.html#fairlearn.metrics.false_positive_rate>`__
 
-**Other known names**: fallout_rate, false_match_rate, fpr
+**Other known names**: fpr, false_match_rate, fallout_rate
+
+Gain_Chart
+----------
+
+
 
 Gini_Coefficient
 ----------------
 
+Returns the Gini Coefficient of a discriminatory model
 
+    NOTE: There are two popular, yet distinct metrics known as the 'gini coefficient'.
 
-**Other known names**: discriminatory_gini_index, discriminatory_gini, gini_index
+    The value calculated by this function provides a summary statistic for the Cumulative Accuracy Profile (CAP) curve.
+    This notion of Gini coefficient (or Gini index) is a _discriminatory_ metric. It helps characterize the ordinal
+    relationship between predictions made by a model and the ground truth values for each sample.
+
+    This metric has a linear relationship with the area under the receiver operating characteristic curve:
+        :math:`G = 2*AUC - 1`
+
+    See https://towardsdatascience.com/using-the-gini-coefficient-to-evaluate-the-performance-of-credit-score-models-59fe13ef420
+    for more details.
+
+    Parameters
+    ----------
+    y_true : array-like
+        Ground truth (correct) labels.
+    y_prob : array-like
+        Predicted probabilities returned by a call to the model's `predict_proba()` function.
+
+    Returns
+    -------
+    float
+        Discriminatory Gini Coefficient
+    
+
+**Other known names**: discriminatory_gini, discriminatory_gini_index, gini_index
+
+Ks_Score_Binary
+---------------
+
+Performs the two-sample Kolmogorov-Smirnov test (two-sided) for binary classifiers.
+
+    Parameters
+    ----------
+    y_true : array-like
+        Ground truth (correct) labels.
+    y_pred : array-like
+        Predicted probabilities returned by the classifier.
+
+    Returns
+    -------
+    float
+        KS statistic value
+    
+
+**Other known names**: ks_score
 
 Matthews_Correlation_Coefficient
 --------------------------------
@@ -404,7 +462,7 @@ Mean square error is the expected value of the squared (quadratic) error or loss
 
 **Source**: `click here <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html>`__
 
-**Other known names**: mean_squared_deviation, MSE, MSD
+**Other known names**: MSD, mean_squared_deviation, MSE
 
 Mean_Squared_Log_Error
 ----------------------
@@ -525,7 +583,9 @@ If the KS statistic is small or the p-value is high, then we cannot reject the n
 
 For practical purposes, if the statistic value is higher than `the critical value <https://sparky.rice.edu//astr360/kstest.pdf>`__, the two distributions are different.
 
-**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/metrics/metrics_credoai.py>`__
+**Source**: `click here <https://github.com/credo-ai/credoai_lens/blob/develop/credoai/modules/metrics_credoai.py>`__
+
+**Other known names**: ks_score_regression, ks_score
 
 True_Negative_Rate
 ------------------
@@ -547,7 +607,7 @@ True Positive Rate (also called sensitivity, recall, or hit rate) refers to the 
 
 **Source**: `click here <https://fairlearn.org/v0.5.0/api_reference/fairlearn.metrics.html#fairlearn.metrics.true_positive_rate>`__
 
-**Other known names**: sensitivity, hit_rate, recall, tpr, recall_score
+**Other known names**: recall_score, sensitivity, recall, tpr, hit_rate
 
 Underprediction
 ---------------

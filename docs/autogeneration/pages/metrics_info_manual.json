@@ -158,7 +158,7 @@
         "32": "https:\/\/scikit-learn.org\/stable\/modules\/generated\/sklearn.metrics.mean_squared_error.html",
         "33": "https:\/\/fairlearn.org\/v0.5.0\/api_reference\/fairlearn.metrics.html#fairlearn.metrics.selection_rate",
         "34": "https:\/\/github.com\/credo-ai\/credoai_lens\/blob\/develop\/credoai\/modules\/dataset_modules\/dataset_fairness.py",
-        "35": "https:\/\/github.com\/credo-ai\/credoai_lens\/blob\/develop\/credoai\/metrics\/metrics_credoai.py",
+        "35": "https:\/\/github.com\/credo-ai\/credoai_lens\/blob\/develop\/credoai\/modules\/metrics_credoai.py",
         "36": "https:\/\/fairlearn.org\/v0.5.0\/api_reference\/fairlearn.metrics.html#fairlearn.metrics.true_negative_rate",
         "37": "https:\/\/fairlearn.org\/v0.5.0\/api_reference\/fairlearn.metrics.html#fairlearn.metrics.true_positive_rate",
         "38": "https:\/\/github.com\/fairlearn\/fairlearn\/blob\/main\/fairlearn\/metrics\/_mean_predictions.py"
