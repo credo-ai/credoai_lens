@@ -34,7 +34,7 @@ class PromptData(Data):
         Number of prompts to use. If None, all prompts are used.
     """
 
-    def __init__(self, prompts: str, name: str, size: int = 0):
+    def __init__(self, prompts: str, name: str = "", size: int = 0):
         if not name:
             name = prompts
         super().__init__("Prompt", name)

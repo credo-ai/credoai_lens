@@ -12,7 +12,8 @@ class GenText(Model):
     name : str
         Label of the model
     model_like
-        A model conforming that defines a "generate" method.
+        A model conforming that defines a "generate" method. Lens assumes that generate takes a List of prompts
+        as input and outputs a corresponding list of responses.
         See :py:mod:`credoai.artifacts.model.openai_adapters` for an example of a model_like object
         using openai's api.
     """
