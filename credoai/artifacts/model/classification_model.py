@@ -210,7 +210,7 @@ class DummyClassifier:
             if isinstance(array, pd.Series):
                 if not len(array):
                     raise Exception("Provided series for y_pred or y_prob is empty")
-                if array.isinf().any():
+                if np.issubdtype(array, np.number) and np.isinf(array).any():
                     raise Exception(
                         "Provided series for y_pred or y_prob contains infinite values"
                     )
