@@ -235,7 +235,7 @@ class Data:
             if self.y is not None:
                 y = pd.DataFrame(self.y)
                 for outcome, outcome_col in y.iteritems():
-                    for group, value in outcome_col.groupby(col).std().iteritems():
+                    for group, value in outcome_col.groupby(col).nunique().iteritems():
                         if value == 0:
                             global_logger.warning(
                                 "%s\n%s",
