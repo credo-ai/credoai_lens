@@ -236,7 +236,7 @@ class Data:
                 y = pd.DataFrame(self.y)
                 for outcome, outcome_col in y.iteritems():
                     for group, value in outcome_col.groupby(col).nunique().iteritems():
-                        if value == 0:
+                        if value < 2:
                             global_logger.warning(
                                 "%s\n%s",
                                 f"Dataset Issue! Zero variance in the outcome ({outcome}) detected for {group} under sensitive feature {col_name}.",
