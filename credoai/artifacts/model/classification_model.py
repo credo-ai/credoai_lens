@@ -88,10 +88,17 @@ class ClassificationModel(Model):
         if self.model_info["framework"] in SKLEARN_LIKE_FRAMEWORKS:
             func = getattr(self, "predict_proba", None)
             if len(self.model_like.classes_) == 2:
-                self.type = "BINARY_CLASSIFICATION"
-                # if binary, replace probability array with one-dimensional vector
-                if func:
-                    self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
+                if all(self.model_like.classes_ == [0, 1]):
+                    self.type = "BINARY_CLASSIFICATION"
+                    # if binary, replace probability array with one-dimensional vector
+                    if func:
+                        self.__dict__["predict_proba"] = lambda x: func(x)[:, 1]
+                else:
+                    self.type = "MULTICLASS_CLASSIFICATION"
+                    message = f"\nThe model was considered of type {self.type}.\n"
+                    message += f"Classes detected: {list(self.model_like.classes_)}\n"
+                    message += f"Expected for binary classification: [0, 1]"
+                    global_logger.warning(message)
             else:
                 self.type = "MULTICLASS_CLASSIFICATION"
 
