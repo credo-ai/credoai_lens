@@ -64,7 +64,7 @@ class ModelFairness(Evaluator):
         if hasattr(self.model, "predict_proba"):
             self.y_prob = self.model.predict_proba(self.data.X)
         else:
-            self.y_prob = (None,)
+            self.y_prob = None
         self.update_metrics(self.metrics)
 
     def evaluate(self):

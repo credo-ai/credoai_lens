@@ -4,6 +4,7 @@ from .base_model import Model
 from credoai.utils import global_logger
 
 import numpy as np
+import pandas as pd
 
 from sklearn.utils import check_array
 
@@ -206,5 +207,13 @@ class DummyClassifier:
 
     def _build_functionality(self, function_name, array):
         if array is not None:
-            array = check_array(array, ensure_2d=False, allow_nd=True)
+            if isinstance(array, pd.Series):
+                if not len(array):
+                    raise Exception("Provided series for y_pred or y_prob is empty")
+                if array.dtype is np.number and np.isinf(array).any():
+                    raise Exception(
+                        "Provided series for y_pred or y_prob contains infinite values"
+                    )
+            else:
+                array = check_array(array, ensure_2d=False, allow_nd=True)
             self.__dict__[function_name] = self._wrap_array(array)

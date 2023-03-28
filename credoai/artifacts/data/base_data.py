@@ -5,6 +5,7 @@ from copy import deepcopy
 from typing import Optional, Union
 
 import pandas as pd
+import numpy as np
 
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError, check_pandas
@@ -235,8 +236,8 @@ class Data:
             if self.y is not None:
                 y = pd.DataFrame(self.y)
                 for outcome, outcome_col in y.iteritems():
-                    for group, value in outcome_col.groupby(col).std().iteritems():
-                        if value == 0:
+                    for group, value in outcome_col.groupby(col).nunique().iteritems():
+                        if not np.all(value):
                             global_logger.warning(
                                 "%s\n%s",
                                 f"Dataset Issue! Zero variance in the outcome ({outcome}) detected for {group} under sensitive feature {col_name}.",
