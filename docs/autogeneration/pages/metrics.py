@@ -23,7 +23,10 @@ Custom metrics are supported by using the `Metric` class, which can be used to w
 
 
 def create_metric_recap(row):
-    parts = [create_title(row.metric_name, "section", False), row.description]
+    description = row.description
+    if not row.description and row.doc() is not None:
+        description = row.doc()
+    parts = [create_title(row.metric_name, "section", False), description]
     if row.url:
         parts += [f"\n**Source**: `click here <{row.url}>`__"]
     if row.synonyms:

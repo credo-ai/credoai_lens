@@ -1,5 +1,5 @@
 tensorflow-macos==2.10.0; sys_platform == 'darwin'
-tensorflow==2.10.0; sys_platform != 'darwin'
+tensorflow==2.11.1; sys_platform != 'darwin'
 
 # required for Privacy and Security evaluators
 adversarial-robustness-toolbox>=1.10.1
