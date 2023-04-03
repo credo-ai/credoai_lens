@@ -269,7 +269,7 @@ def equal_opportunity_difference(
 
 
 def ks_statistic(y_true, y_pred) -> float:
-    """Performs the two-sample Kolmogorov-Smirnov test (two-sided)
+    """Performs the two-sample Kolmogorov-Smirnov test (two-sided) for a regression model.
 
     The test compares the underlying continuous distributions F(x) and G(x) of two independent samples.
     The null hypothesis is that the two distributions are identical, F(x)=G(x)
@@ -292,6 +292,31 @@ def ks_statistic(y_true, y_pred) -> float:
     """
 
     ks_stat = st.ks_2samp(y_true, y_pred).statistic
+
+    return ks_stat
+
+
+def ks_statistic_binary(y_true, y_pred) -> float:
+    """Performs the two-sample Kolmogorov-Smirnov test (two-sided) for binary classifiers.
+
+    Parameters
+    ----------
+    y_true : array-like
+        Ground truth (correct) labels.
+    y_pred : array-like
+        Predicted probabilities returned by the classifier.
+
+    Returns
+    -------
+    float
+        KS statistic value
+    """
+
+    df = pd.DataFrame({"real": y_true, "proba": y_pred})
+    # Recover each class
+    class0 = df[df["real"] == 0]
+    class1 = df[df["real"] == 1]
+    ks_stat = st.ks_2samp(class0["proba"], class1["proba"]).statistic
 
     return ks_stat
 

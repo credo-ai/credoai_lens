@@ -12,6 +12,8 @@ import inspect
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
 
+TOLERANCE = 1e-8
+
 ###############################################
 # Checking artifact interactions (model + data)
 ###############################################
@@ -70,7 +72,8 @@ def check_model_data_consistency(model, data):
                 # results for all presently supported models are ndarray results
                 raise Exception("Empty return results from predict_proba function.")
             if len(mini_pred.shape) > 1 and mini_pred.shape[1] > 1:
-                if np.sum(mini_pred[0]) != 1:
+                # Adding tolerance to account for rounding errors.
+                if abs(1 - np.sum(mini_pred[0])) >= TOLERANCE:
                     raise Exception(
                         "`predict_proba` outputs invalid. Per-sample outputs should sum to 1."
                     )
