@@ -73,8 +73,14 @@ class Model(ABC):
         function_names : List[str]
             List of possible methods to be imported from model_like
         """
+        at_least_one_valid = False
         for key in function_names:
-            self._add_functionality(key)
+            at_least_one_valid = at_least_one_valid or self._add_functionality(key)
+
+        if not at_least_one_valid:
+            raise ValidationError(
+                f"None of the possible functions {function_names} is valid for supplied model."
+            )
 
     def _validate_framework(self):
         """
@@ -83,7 +89,7 @@ class Model(ABC):
         """
         pass
 
-    def _validate_callables(self, function_names: List[str]):
+    def _validate_callables(self, function_names: list[str]):
         """
         Checks that the necessary methods are available in model_like
 
@@ -107,3 +113,4 @@ class Model(ABC):
         func = getattr(self.model_like, key, None)
         if func:
             self.__dict__[key] = func
+            return True

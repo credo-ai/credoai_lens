@@ -60,11 +60,8 @@ class ClassificationModel(Model):
     def __init__(self, name: str, model_like=None, tags=None):
         super().__init__(
             "CLASSIFICATION",
-            ["predict", "predict_proba"],
-            ["predict"],
-            # TODO this will not work once we incorporate PyTorch
-            # PyTorch allows callables and Module.forward()
-            # predict not required
+            ["predict", "predict_proba", "call", "forward"],
+            [],
             name,
             model_like,
             tags,
@@ -79,6 +76,22 @@ class ClassificationModel(Model):
             message = """Provided model is from unsupported framework. 
             Lens behavior has not been tested or assured with unsupported modeling frameworks."""
             global_logger.warning(message)
+
+    # def _validate_callables(self, function_names: list[str]):
+    #     """
+    #     Overridden _validate_callables function.
+    #     This function enables us to enforce the presence of a `predict` function for classification models,
+    #     but privileges Tensorflow and Pytorch models, which can be classification-style but do not require
+    #     `predict` functions in their respective APIs.
+    #     """
+    #     try:
+    #         super()._validate_callables(function_names)
+    #     except Exception as msg:
+    #         if (
+    #             msg == "Model-like must have a predict function"
+    #             and self.model_info["framework"] not in MLP_FRAMEWORKS
+    #         ):
+    #             raise msg
 
     def __post_init__(self):
         """Conditionally updates functionality based on framework"""
@@ -102,41 +115,18 @@ class ClassificationModel(Model):
             else:
                 self.type = "MULTICLASS_CLASSIFICATION"
 
-        elif self.model_info["framework"] in MLP_FRAMEWORKS:
-            # TODO change this to '__call__' when adding in general TF and PyTorch
-            pred_func = getattr(self, "predict", None)
-            if pred_func:
-                if self.model_like.layers[-1].output_shape == (None, 1):
-                    # Assumes sigmoid -> probabilities need to be rounded
-                    self.__dict__["predict"] = lambda x: pred_func(x).round()
-                    # Single-output sigmoid is binary by definition
-                    self.type = "BINARY_CLASSIFICATION"
-                else:
-                    # Assumes softmax -> probabilities need to be argmaxed
-                    self.__dict__["predict"] = lambda x: np.argmax(pred_func(x), axis=1)
-                    if self.model_like.layers[-1].output_shape[1] == 2:
-                        self.type = "BINARY_CLASSIFICATION"
-                    else:
-                        self.type = "MULTICLASS_CLASSIFICATION"
-
-                if self.model_like.layers[-1].output_shape == (None, 2):
-                    self.__dict__["predict_proba"] = lambda x: pred_func(x)[:, 1]
-                elif (
-                    len(self.model_like.layers[-1].output_shape) == 2
-                    and self.model_like.layers[-1].output_shape[1] == 1
-                ):
-                    # Sigmoid -> needs to be (n_samples, ) to work with sklearn metrics
-                    self.__dict__["predict_proba"] = lambda x: np.reshape(
-                        pred_func(x), (-1, 1)
-                    )
-                elif (
-                    len(self.model_like.layers[-1].output_shape) == 2
-                    and self.model_like.layers[-1].output_shape[1] > 2
-                ):
-                    self.__dict__["predict_proba"] = pred_func
-                else:
-                    pass
-                    # predict_proba is not valid (for now)
+        elif self.model_info["framework"] == "keras":
+            (
+                self.__dict__["predict"],
+                self.__dict__["predict_proba"],
+                self.type,
+            ) = handle_keras(self.model_like)
+        elif self.model_info["framework"] == "torch":
+            (
+                self.__dict__["predict"],
+                self.__dict__["predict_proba"],
+                self.type,
+            ) = handle_torch(self.model_like)
 
         elif self.model_info["framework"] == "credoai":
             # Functionality for DummyClassifier
@@ -151,6 +141,57 @@ class ClassificationModel(Model):
             # is binary or multiclass
 
             # Predict and Predict_Proba should already be specified
+        elif "predict" not in self.__dict__:
+            raise Exception(
+                "`predict` function required for custom model {self.name}. None specified."
+            )
+
+
+def handle_keras(model_like):
+    predict_obj = None
+    predict_proba_obj = None
+    clf_type = "BINARY_CLASSIFICATION"
+
+    pred_func = getattr(model_like, "predict", getattr(model_like, "call"))
+
+    if model_like.layers[-1].output_shape == (None, 1):
+        # Assumes sigmoid -> probabilities need to be rounded
+        predict_obj = lambda x: pred_func(x).round()
+        # Single-output sigmoid is binary by definition
+        clf_type = "BINARY_CLASSIFICATION"
+    else:
+        # Assumes softmax -> probabilities need to be argmaxed
+        predict_obj = lambda x: np.argmax(pred_func(x), axis=1)
+        if model_like.layers[-1].output_shape[1] == 2:
+            clf_type = "BINARY_CLASSIFICATION"
+        else:
+            clf_type = "MULTICLASS_CLASSIFICATION"
+
+    if model_like.layers[-1].output_shape == (None, 2):
+        predict_proba_obj = lambda x: pred_func(x)[:, 1]
+    elif (
+        len(model_like.layers[-1].output_shape) == 2
+        and model_like.layers[-1].output_shape[1] == 1
+    ):
+        # Sigmoid -> needs to be (n_samples, ) to work with sklearn metrics
+        predict_proba_obj = lambda x: np.reshape(pred_func(x), (-1, 1))
+    elif (
+        len(model_like.layers[-1].output_shape) == 2
+        and model_like.layers[-1].output_shape[1] > 2
+    ):
+        predict_proba_obj = pred_func
+    else:
+        pass
+        # predict_proba is not valid (for now) --> this would correspond to multi-dimensional outputs or something similarly weird
+
+    return predict_obj, predict_proba_obj, clf_type
+
+
+def handle_torch(model_like):
+    predict_obj = None
+    predict_proba_obj = None
+    clf_type = "BINARY_CLASSIFICATION"
+    return predict_obj, predict_proba_obj, clf_type
 
 
 class DummyClassifier:

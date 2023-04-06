@@ -1,6 +1,12 @@
 """Model artifact wrapping any regression model"""
 from .base_model import Model
 
+from .constants_model import (
+    SKLEARN_LIKE_FRAMEWORKS,
+    MLP_FRAMEWORKS,
+    FRAMEWORK_VALIDATION_FUNCTIONS,
+)
+
 
 class RegressionModel(Model):
     """Class wrapper around classification model to be assessed
@@ -19,7 +25,14 @@ class RegressionModel(Model):
     """
 
     def __init__(self, name: str, model_like=None, tags=None):
-        super().__init__("REGRESSION", ["predict"], ["predict"], name, model_like, tags)
+        super().__init__(
+            "REGRESSION", ["predict", "call", "forward"], [], name, model_like, tags
+        )
+
+    def __post_init__(self):
+        if self.model_info["framework"] in MLP_FRAMEWORKS:
+            pass
+            # replace call/forward with predict
 
 
 class DummyRegression:

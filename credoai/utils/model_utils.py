@@ -116,6 +116,10 @@ def validate_keras_clf(model_obj, model_info: dict):
         # https://stackoverflow.com/questions/56704669/keras-output-single-value-through-argmax
 
 
+def validate_torch_clf(model_obj, model_info: dict):
+    pass
+
+
 def validate_dummy(model_like, _):
     if model_like.model_like:
         tmp_model_info = get_model_info(model_like.model_like)

@@ -1,6 +1,8 @@
 from credoai.utils.model_utils import (
     validate_sklearn_like,
     validate_keras_clf,
+    validate_tf_clf,
+    validate_torch_clf,
     validate_dummy,
 )
 
@@ -14,12 +16,13 @@ MODEL_TYPES = [
 ]
 
 # Multilayer Perceptron
-MLP_FRAMEWORKS = ["keras"]
+MLP_FRAMEWORKS = ["keras", "torch"]
 
 FRAMEWORK_VALIDATION_FUNCTIONS = {
     "sklearn": validate_sklearn_like,
     "xgboost": validate_sklearn_like,
     "keras": validate_keras_clf,
+    "torch": validate_torch_clf,
     "credoai": validate_dummy,
     # check on tensorflow generic, given validation strictness
 }
