@@ -8,6 +8,13 @@ import pandas as pd
 
 from sklearn.utils import check_array
 
+try:
+    import torch
+except ImportError:
+    print(
+        "Torch not loaded. Torch models will not be wrapped properly if supplied to ClassificationModel"
+    )
+
 from .constants_model import (
     SKLEARN_LIKE_FRAMEWORKS,
     MLP_FRAMEWORKS,
@@ -28,7 +35,7 @@ class ClassificationModel(Model):
         Label of the model
     model_like : model_like
         A binary or multi-class classification model or pipeline. It must have a
-            `predict` function that returns an array containing model outputs for each sample.
+            `predict`-like function that returns an array containing model outputs for each sample.
             It can also optionally have a `predict_proba` function that returns array containing
             the class label probabilities for each sample.
 
@@ -36,7 +43,7 @@ class ClassificationModel(Model):
             to return a column vector with a single value for each sample (i.e. thresholded predictions).
 
             If the supplied model_like is from the Keras framework, the assumed form of `predict` outputs
-            depends on the final-layer activation.
+            depends on the final-layer activation. *Only Keras Sequential-type models are supported at this time.*
             If the final layer is softmax, this wrapper assumes the
             return value is a is a matrix with shape (n_samples, n_classes) corresponding to probability
             values (i.e., without argmax), similar to sklearn.predict_proba. The wrapper applies argmax
@@ -44,6 +51,26 @@ class ClassificationModel(Model):
             If the final layer is sigmoid, this wrapper assumes the return value is an (n_samples, 1)
             column vector with per-sample probabilities. The wrapper rounds (.5 as default threshold)
             values where necessary to obtain discrete labels.
+
+            If the supplied model_like is a PyTorch model, *the user must specify the final layer activation
+            of the model via a class attribute `output_activation` of type string.* Supported values for
+            classification are "softmax" and "sigmoid"
+            For exmaple,
+            class NeuralNetwork(nn.Module):
+                def __init__(self):
+                    ...
+                    self.linear_relu_stack = nn.Sequential(
+                        ...
+                        nn.Softmax(),
+                    )
+                    self.output_activation = "softmax"
+
+                def forward(self, x):
+                    ...
+                    logits = self.linear_relu_stack(x)
+                    return logits
+            If no `output_activation` string is specified, Lens assumes "sigmoid" and outputs a warning.
+            TODO put in rest of details about this or that output shape
 
             For custom model_like objects, users may optionally specify a `framework_like` attribute
             of type string. framework_like serves as a flag to enable expected functionality to carry over
@@ -76,22 +103,6 @@ class ClassificationModel(Model):
             message = """Provided model is from unsupported framework. 
             Lens behavior has not been tested or assured with unsupported modeling frameworks."""
             global_logger.warning(message)
-
-    # def _validate_callables(self, function_names: list[str]):
-    #     """
-    #     Overridden _validate_callables function.
-    #     This function enables us to enforce the presence of a `predict` function for classification models,
-    #     but privileges Tensorflow and Pytorch models, which can be classification-style but do not require
-    #     `predict` functions in their respective APIs.
-    #     """
-    #     try:
-    #         super()._validate_callables(function_names)
-    #     except Exception as msg:
-    #         if (
-    #             msg == "Model-like must have a predict function"
-    #             and self.model_info["framework"] not in MLP_FRAMEWORKS
-    #         ):
-    #             raise msg
 
     def __post_init__(self):
         """Conditionally updates functionality based on framework"""
@@ -191,6 +202,47 @@ def handle_torch(model_like):
     predict_obj = None
     predict_proba_obj = None
     clf_type = "BINARY_CLASSIFICATION"
+
+    pred_func = getattr(model_like, "forward", None)
+    if pred_func is None:
+        raise ValueError("Model should have a `forward` method to perform predictions.")
+
+    output_activation = getattr(model_like, "output_activation", "sigmoid")
+    if output_activation not in {"sigmoid", "softmax"}:
+        logging.warning(
+            "Invalid output activation function provided. Using sigmoid as the default activation function."
+        )
+        output_activation = "sigmoid"
+
+    with torch.no_grad():
+        dummy_input = torch.randn(1, *model_like.input_shape)
+        output = model_like(dummy_input)
+
+    output_shape = output.shape
+
+    if output_activation == "sigmoid" and output_shape[-1] == 1:
+        predict_obj = lambda x: torch.round(torch.sigmoid(pred_func(x))).numpy()
+        clf_type = "BINARY_CLASSIFICATION"
+    elif output_activation == "softmax":
+        predict_obj = lambda x: torch.argmax(
+            torch.softmax(pred_func(x), dim=-1), dim=-1
+        ).numpy()
+        clf_type = (
+            "BINARY_CLASSIFICATION"
+            if output_shape[-1] == 2
+            else "MULTICLASS_CLASSIFICATION"
+        )
+
+    if output_activation == "sigmoid" and output_shape[-1] == 1:
+        predict_proba_obj = lambda x: torch.sigmoid(pred_func(x)).numpy()
+    elif output_activation == "softmax":
+        if output_shape[-1] == 2:
+            predict_proba_obj = lambda x: torch.softmax(pred_func(x), dim=-1).numpy()[
+                :, 1
+            ]
+        else:
+            predict_proba_obj = lambda x: torch.softmax(pred_func(x), dim=-1).numpy()
+
     return predict_obj, predict_proba_obj, clf_type
 
 

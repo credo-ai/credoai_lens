@@ -1,7 +1,6 @@
 from credoai.utils.model_utils import (
     validate_sklearn_like,
     validate_keras_clf,
-    validate_tf_clf,
     validate_torch_clf,
     validate_dummy,
 )

@@ -58,6 +58,9 @@ def check_existence(obj, name=None):
     if isinstance(obj, (pd.DataFrame, pd.Series)):
         if obj.empty:
             raise ValidationError(message)
+    elif isinstance(obj, np.ndarray):
+        if not any(obj):
+            raise ValidationError(message)
     elif obj is None or not obj:
         raise ValidationError(message)
 

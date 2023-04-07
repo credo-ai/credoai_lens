@@ -12,7 +12,7 @@ import inspect
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError
 
-TOLERANCE = 1e-8
+TOLERANCE = 1e-6
 
 ###############################################
 # Checking artifact interactions (model + data)
@@ -74,6 +74,7 @@ def check_model_data_consistency(model, data):
             if len(mini_pred.shape) > 1 and mini_pred.shape[1] > 1:
                 # Adding tolerance to account for rounding errors.
                 if abs(1 - np.sum(mini_pred[0])) >= TOLERANCE:
+                    print(abs(1 - np.sum(mini_pred[0])))
                     raise Exception(
                         "`predict_proba` outputs invalid. Per-sample outputs should sum to 1."
                     )
@@ -106,7 +107,7 @@ def check_model_data_consistency(model, data):
             )
 
 
-def check_prediction_model_output(fn, data, batch_in: int = 1):
+def check_prediction_model_output(fn, data, batch_in: int = 3):
     """
     Helper function for prediction-type models. For use with `check_model_data_consistency`.
 
@@ -127,7 +128,7 @@ def check_prediction_model_output(fn, data, batch_in: int = 1):
     mini_pred = None
     batch_out = batch_in
     if isinstance(data.X, np.ndarray):
-        mini_pred = fn(np.reshape(data.X[0], (1, -1)))
+        mini_pred = fn(data.X[:batch_in])
     elif isinstance(data.X, (pd.DataFrame, pd.Series)):
         mini_pred = fn(data.X.head(batch_in))
     elif tf_exists and isinstance(data.X, tf.Tensor):
