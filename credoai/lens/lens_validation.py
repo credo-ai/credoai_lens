@@ -7,6 +7,12 @@ try:
 except ImportError:
     tf_exists = False
 
+try:
+    torch_exists = True
+    import torch
+except ImportError:
+    torch_exists = False
+
 import inspect
 
 from credoai.utils import global_logger
@@ -147,6 +153,9 @@ def check_prediction_model_output(fn, data, batch_in: int = 3):
             mini_pred = fn(one_batch)
     elif tf_exists and isinstance(data.X, tf.keras.utils.Sequence):
         mini_pred = fn(data.X.__getitem__(0))
+        batch_out = len(mini_pred)
+    elif torch_exists and isinstance(data.X, torch.utils.data.dataloader.DataLoader):
+        mini_pred = fn(next(iter(data.X))[0])
         batch_out = len(mini_pred)
     else:
         message = "Input X is of unsupported type. Behavior is undefined. Proceed with caution"

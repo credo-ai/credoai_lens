@@ -52,7 +52,8 @@ class ClassificationModel(Model):
             column vector with per-sample probabilities. The wrapper rounds (.5 as default threshold)
             values where necessary to obtain discrete labels.
 
-            If the supplied model_like is a PyTorch model, *the user must specify the final layer activation
+            If the supplied model_like is a PyTorch model, *the user must specify the expected input shape
+            via a class attribute `input_shape` of type tuple, and the activation function for the  final layer
             of the model via a class attribute `output_activation` of type string.* Supported values for
             classification are "softmax" and "sigmoid"
             For exmaple,
@@ -221,12 +222,36 @@ def handle_torch(model_like):
     output_shape = output.shape
 
     if output_activation == "sigmoid" and output_shape[-1] == 1:
-        predict_obj = lambda x: torch.round(torch.sigmoid(pred_func(x))).numpy()
+
+        def pred(x):
+            if isinstance(x, torch.utils.data.dataloader.DataLoader):
+                preds = []
+                for data, _ in x:
+                    preds.append(torch.round(torch.sigmoid(pred_func(data))).numpy())
+                return np.concatenate(preds, axis=0)
+            else:
+                return torch.round(torch.sigmoid(pred_func(torch.tensor(x)))).numpy()
+
+        predict_obj = pred
         clf_type = "BINARY_CLASSIFICATION"
     elif output_activation == "softmax":
-        predict_obj = lambda x: torch.argmax(
-            torch.softmax(pred_func(x), dim=-1), dim=-1
-        ).numpy()
+
+        def pred(x):
+            if isinstance(x, torch.utils.data.dataloader.DataLoader):
+                preds = []
+                for data, _ in x:
+                    preds.append(
+                        torch.argmax(
+                            torch.softmax(pred_func(data), dim=-1), dim=-1
+                        ).numpy()
+                    )
+                return np.concatenate(preds, axis=0)
+            else:
+                return torch.argmax(
+                    torch.softmax(pred_func(torch.tensor(x)), dim=-1), dim=-1
+                ).numpy()
+
+        predict_obj = pred
         clf_type = (
             "BINARY_CLASSIFICATION"
             if output_shape[-1] == 2
@@ -234,14 +259,56 @@ def handle_torch(model_like):
         )
 
     if output_activation == "sigmoid" and output_shape[-1] == 1:
-        predict_proba_obj = lambda x: torch.sigmoid(pred_func(x)).numpy()
+
+        def pred_prob(x):
+            if isinstance(x, torch.utils.data.dataloader.DataLoader):
+                probs = []
+                for data, _ in x:
+                    probs.append(torch.sigmoid(pred_func(data)).numpy())
+                return np.concatenate(probs, axis=0)
+            else:
+                return torch.sigmoid(pred_func(torch.tensor(x))).numpy()
+
+        predict_proba_obj = pred_prob
     elif output_activation == "softmax":
         if output_shape[-1] == 2:
-            predict_proba_obj = lambda x: torch.softmax(pred_func(x), dim=-1).numpy()[
-                :, 1
-            ]
+
+            def pred_prob(x):
+                if isinstance(x, torch.utils.data.dataloader.DataLoader):
+                    probs = []
+                    for data, _ in x:
+                        probs.append(
+                            torch.softmax(pred_func(data), dim=-1)
+                            .detach()
+                            .numpy()[:, 1]
+                        )
+                    return np.concatenate(probs, axis=0)
+                else:
+                    return (
+                        torch.softmax(pred_func(torch.tensor(x)), dim=-1)
+                        .detach()
+                        .numpy()[:, 1]
+                    )
+
+            predict_proba_obj = pred_prob
         else:
-            predict_proba_obj = lambda x: torch.softmax(pred_func(x), dim=-1).numpy()
+
+            def pred_prob(x):
+                if isinstance(x, torch.utils.data.dataloader.DataLoader):
+                    probs = []
+                    for data, _ in x:
+                        probs.append(
+                            torch.softmax(pred_func(data), dim=-1).detach().numpy()
+                        )
+                    return np.concatenate(probs, axis=0)
+                else:
+                    return (
+                        torch.softmax(pred_func(torch.tensor(x)), dim=-1)
+                        .detach()
+                        .numpy()
+                    )
+
+            predict_proba_obj = pred_prob
 
     return predict_obj, predict_proba_obj, clf_type
 

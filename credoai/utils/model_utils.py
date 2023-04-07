@@ -35,6 +35,8 @@ def get_model_info(model):
         framework = getattr(model, "framework_like", None)
         if not framework:
             framework = model.__class__.__module__.split(".")[0]
+            if model.__class__.__module__ == "__main__":
+                framework = type(model).__bases__[0].__module__.split(".")[0]
     except AttributeError:
         framework = None
     try:

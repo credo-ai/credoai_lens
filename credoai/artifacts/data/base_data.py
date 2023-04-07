@@ -46,6 +46,7 @@ class Data:
         name: str,
         X=None,
         y=None,
+        dataloader=None,
         sensitive_features=None,
         sensitive_intersections: Union[bool, list] = False,
     ):
@@ -55,6 +56,7 @@ class Data:
             raise ValidationError("{Name} must be a string")
         self.X = X
         self.y = y
+        self.dataloader = dataloader
         self.sensitive_features = sensitive_features
         self._validate_inputs()
         self._process_inputs(sensitive_intersections)
@@ -105,10 +107,19 @@ class Data:
         return data
 
     def _process_inputs(self, sensitive_intersections):
-        if self.X is not None:
-            self.X = self._process_X(self.X)
-        if self.y is not None:
-            self.y = self._process_y(self.y)
+        if self.dataloader is not None:
+            labels_list = []
+            for _, labels in self.dataloader:
+                labels_list.append(labels.numpy())
+            self.y = np.concatenate(labels_list, axis=0)
+            # self.X will be sorted out in the predict functions
+            # This does not support any sort of data analysis like profiling!!
+            self.X = self.dataloader
+        else:
+            if self.X is not None:
+                self.X = self._process_X(self.X)
+            if self.y is not None:
+                self.y = self._process_y(self.y)
         if self.sensitive_features is not None:
             self.sensitive_features = self._process_sensitive(
                 self.sensitive_features, sensitive_intersections
@@ -159,6 +170,8 @@ class Data:
 
     def _validate_inputs(self):
         """Basic input validation"""
+        if self.dataloader is not None and (self.X is not None or self.y is not None):
+            raise ValidationError("Either pass (X, y) or a DataLoader, not both.")
         if self.X is not None:
             self._validate_X()
         if self.y is not None:
