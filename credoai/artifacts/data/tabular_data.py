@@ -44,7 +44,12 @@ class TabularData(Data):
         sensitive_intersections: Union[bool, list] = False,
     ):
         super().__init__(
-            "Tabular", name, X, y, sensitive_features, sensitive_intersections
+            "Tabular",
+            name=name,
+            X=X,
+            y=y,
+            sensitive_features=sensitive_features,
+            sensitive_intersections=sensitive_intersections,
         )
 
     def copy(self):

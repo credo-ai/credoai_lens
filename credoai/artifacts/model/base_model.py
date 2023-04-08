@@ -75,7 +75,7 @@ class Model(ABC):
         """
         at_least_one_valid = False
         for key in function_names:
-            at_least_one_valid = at_least_one_valid or self._add_functionality(key)
+            at_least_one_valid = self._add_functionality(key) or at_least_one_valid
 
         if not at_least_one_valid:
             raise ValidationError(
