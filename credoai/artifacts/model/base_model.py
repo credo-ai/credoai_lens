@@ -89,7 +89,7 @@ class Model(ABC):
         """
         pass
 
-    def _validate_callables(self, function_names: list[str]):
+    def _validate_callables(self, function_names: List[str]):
         """
         Checks that the necessary methods are available in model_like
 
