@@ -3,7 +3,7 @@ tensorflow==2.11.1; sys_platform != 'darwin'
 
 # required for Privacy and Security evaluators
 adversarial-robustness-toolbox>=1.10.1
-torch>=1.12.1
+torch>=2
 
 # required for Deepchecks evaluator
 deepchecks>=0.9.1
