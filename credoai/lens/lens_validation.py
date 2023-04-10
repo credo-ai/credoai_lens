@@ -80,7 +80,6 @@ def check_model_data_consistency(model, data):
             if len(mini_pred.shape) > 1 and mini_pred.shape[1] > 1:
                 # Adding tolerance to account for rounding errors.
                 if abs(1 - np.sum(mini_pred[0])) >= TOLERANCE:
-                    print(abs(1 - np.sum(mini_pred[0])))
                     raise Exception(
                         "`predict_proba` outputs invalid. Per-sample outputs should sum to 1."
                     )
