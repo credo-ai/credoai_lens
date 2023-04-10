@@ -132,13 +132,13 @@ class ClassificationModel(Model):
                 self.__dict__["predict"],
                 self.__dict__["predict_proba"],
                 self.type,
-            ) = handle_keras(self.model_like)
+            ) = clf_handle_keras(self.model_like)
         elif self.model_info["framework"] == "torch":
             (
                 self.__dict__["predict"],
                 self.__dict__["predict_proba"],
                 self.type,
-            ) = handle_torch(self.model_like)
+            ) = clf_handle_torch(self.model_like)
 
         elif self.model_info["framework"] == "credoai":
             # Functionality for DummyClassifier
@@ -153,13 +153,16 @@ class ClassificationModel(Model):
             # is binary or multiclass
 
             # Predict and Predict_Proba should already be specified
-        elif "predict" not in self.__dict__:
+
+        # This check is newly necessary, since `predict` is no longer required in the validation step
+        # but _a_ predict function is needed by the end of initialization.
+        if "predict" not in self.__dict__:
             raise Exception(
                 "`predict` function required for custom model {self.name}. None specified."
             )
 
 
-def handle_keras(model_like):
+def clf_handle_keras(model_like):
     predict_obj = None
     predict_proba_obj = None
     clf_type = "BINARY_CLASSIFICATION"
@@ -199,7 +202,7 @@ def handle_keras(model_like):
     return predict_obj, predict_proba_obj, clf_type
 
 
-def handle_torch(model_like):
+def clf_handle_torch(model_like):
     predict_obj = None
     predict_proba_obj = None
     clf_type = "BINARY_CLASSIFICATION"

@@ -7,6 +7,13 @@ from .constants_model import (
     FRAMEWORK_VALIDATION_FUNCTIONS,
 )
 
+try:
+    import torch
+except ImportError:
+    print(
+        "Torch not loaded. Torch models will not be wrapped properly if supplied to ClassificationModel"
+    )
+
 
 class RegressionModel(Model):
     """Class wrapper around classification model to be assessed
@@ -20,8 +27,12 @@ class RegressionModel(Model):
     name : str
         Label of the model
     model_like : model_like
-        A continuous output regression model or pipeline. It must have a
-            `predict` function that returns array containing the predicted outcomes for each sample.
+        A continuous output regression model or pipeline.
+            Model must have a `predict`-like function which returns an np.ndarray containing predicted outcomes.
+            Sklearn, Keras-based models supported natively and Lens uses their predict functions.
+            Torch-based models: If the user has defined a `predict` function, Lens uses that. Otherwise,
+            Lens will attempt to use the `forward` function.
+            All other models must have a `predict` function specified.
     """
 
     def __init__(self, name: str, model_like=None, tags=None):
@@ -30,9 +41,35 @@ class RegressionModel(Model):
         )
 
     def __post_init__(self):
-        if self.model_info["framework"] in MLP_FRAMEWORKS:
-            pass
-            # replace call/forward with predict
+        """Conditionally updates functionality based on framework"""
+        # SKlearn and Keras both have built-in predict functions and so we don't need special handling
+        if self.model_info["framework"] == "torch":
+            if not hasattr(self, "predict"):
+                # If user has custom-specified a predict function, we will ignore `forward`
+                self.__dict__["predict"] = reg_handle_torch(self.model_like)
+
+        elif self.model_info["framework"] == "credoai":
+            # Functionality for DummyRegression
+            if self.model_like.model_like is not None:
+                self.model_like = self.model_like.model_like
+            # If the dummy model has a model_like specified, reassign
+            # the model_like attribute to match the dummy's
+            # so that downstream evaluators (ModelProfiler) can use it
+
+        # This check is newly necessary, since `predict` is no longer required in the validation step
+        # but _a_ predict function is needed by the end of initialization.
+        if "predict" not in self.__dict__:
+            raise Exception(
+                "`predict` function required for custom model {self.name}. None specified."
+            )
+
+
+def reg_handle_torch(model_like):
+    pred_func = getattr(model_like, "forward", None)
+    if pred_func is None:
+        raise ValueError("Model should have a `forward` method to perform predictions.")
+
+    return pred_func
 
 
 class DummyRegression:

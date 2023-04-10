@@ -38,6 +38,7 @@ class Data:
         Whether to add intersections of sensitive features. If True, add all possible
         intersections. If list, only create intersections from specified sensitive features.
         If False, no intersections will be created. Defaults False
+    dataloader : TODO
     """
 
     def __init__(
@@ -46,9 +47,9 @@ class Data:
         name: str,
         X=None,
         y=None,
-        dataloader=None,
         sensitive_features=None,
         sensitive_intersections: Union[bool, list] = False,
+        dataloader=None,
     ):
         if isinstance(name, str):
             self.name = name
