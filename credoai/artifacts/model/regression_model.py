@@ -7,6 +7,8 @@ from .constants_model import (
     FRAMEWORK_VALIDATION_FUNCTIONS,
 )
 
+from utils.model_utils import reg_handle_torch
+
 try:
     import torch
 except ImportError:
@@ -31,7 +33,7 @@ class RegressionModel(Model):
             Model must have a `predict`-like function which returns an np.ndarray containing predicted outcomes.
             Sklearn, Keras-based models supported natively and Lens uses their predict functions.
             Torch-based models: If the user has defined a `predict` function, Lens uses that. Otherwise,
-            Lens will attempt to use the `forward` function.
+                Lens will attempt to use the `forward` function.
             All other models must have a `predict` function specified.
     """
 
@@ -62,14 +64,6 @@ class RegressionModel(Model):
             raise Exception(
                 "`predict` function required for custom model {self.name}. None specified."
             )
-
-
-def reg_handle_torch(model_like):
-    pred_func = getattr(model_like, "forward", None)
-    if pred_func is None:
-        raise ValueError("Model should have a `forward` method to perform predictions.")
-
-    return pred_func
 
 
 class DummyRegression:
