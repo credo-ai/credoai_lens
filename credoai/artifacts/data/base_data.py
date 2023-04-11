@@ -11,6 +11,13 @@ from credoai.utils import global_logger
 from credoai.utils.common import ValidationError, check_pandas
 from credoai.utils.model_utils import type_of_target
 
+try:
+    import torch
+except ImportError:
+    print(
+        "Torch not loaded. Torch models will not be wrapped properly if supplied to ClassificationModel"
+    )
+
 
 class Data:
     """Class wrapper around data-to-be-assessed
@@ -38,7 +45,11 @@ class Data:
         Whether to add intersections of sensitive features. If True, add all possible
         intersections. If list, only create intersections from specified sensitive features.
         If False, no intersections will be created. Defaults False
-    dataloader : TODO
+    dataloader : torch.utils.data.DataLoader, optional
+        DataLoader object for PyTorch models, which provides an iterable over the given dataset.
+        If provided, DataLoader will be used to extract labels and features will be passed to the model
+        for predictions during the assessment. This option is specifically designed for compatibility
+        with PyTorch models, and it doesn't support any sort of data analysis like profiling.
     """
 
     def __init__(
@@ -109,13 +120,7 @@ class Data:
 
     def _process_inputs(self, sensitive_intersections):
         if self.dataloader is not None:
-            labels_list = []
-            for _, labels in self.dataloader:
-                labels_list.append(labels.numpy())
-            self.y = np.concatenate(labels_list, axis=0)
-            # self.X will be sorted out in the predict functions
-            # This does not support any sort of data analysis like profiling!!
-            self.X = self.dataloader
+            self._process_dataloader()
         else:
             if self.X is not None:
                 self.X = self._process_X(self.X)
@@ -169,6 +174,18 @@ class Data:
     def _process_y(self, y):
         return y
 
+    def _process_dataloader(self):
+        if self.y is not None:
+            pass
+        else:
+            labels_list = []
+            for _, labels in self.dataloader:
+                labels_list.append(labels.numpy())
+            self.y = np.concatenate(labels_list, axis=0)
+            # self.X will be sorted out in the predict functions
+            # This does not support any sort of data analysis like profiling!!
+        self.X = self.dataloader
+
     def _validate_inputs(self):
         """Basic input validation"""
         if self.dataloader is not None and (self.X is not None or self.y is not None):
@@ -179,6 +196,8 @@ class Data:
             self._validate_y()
         if self.sensitive_features is not None:
             self._validate_sensitive()
+        if self.dataloader is not None:
+            self._validate_dataloader()
 
     def _validate_sensitive(self):
         """Sensitive features validation"""
@@ -209,6 +228,12 @@ class Data:
         if not self.sensitive_features.index.is_unique:
             raise ValidationError("Sensitive Features index must be unique")
 
+    def _validate_dataloader(self):
+        if not isinstance(self.dataloader, torch.utils.data.DataLoader):
+            raise ValidationError(
+                f"`dataloader` must be of type torch.utils.data.DataLoader. Supplied dataloader is of type {type(self.dataloader)}"
+            )
+
     def _validate_X(self):
         pass
 
@@ -221,6 +246,8 @@ class Data:
             self._validate_processed_X()
         if self.y is not None:
             self._validate_processed_y()
+        if self.dataloader is not None:
+            self._validate_processed_dataloader()
         if self.sensitive_features is not None:
             self._validate_processed_sensitive()
 
@@ -228,6 +255,9 @@ class Data:
         pass
 
     def _validate_processed_y(self):
+        pass
+
+    def _validate_processed_dataloader(self):
         pass
 
     def _validate_processed_sensitive(self):
