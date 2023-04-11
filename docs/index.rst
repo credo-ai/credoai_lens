@@ -16,8 +16,8 @@
    :width: 400
 
 Lens is an AI Assessment Framework that helps you evaluate your AI system on a variety of dimensions
-including Fairness, Performance, Security and more. This library aims to make evaluating disparate impact,
-calculating SHAP values, or profiling your dataset as easy as calculating the accuracy of your model.
+including Fairness, Performance, Security and more. These evaluations are an important step 
+in developing and deploying AI systems responsibly.
 
 Lens is part of the Credo AI suite of products, and is easily integrated into a comprehensive 
 AI Governance process when paired with `Credo AI's Platform <https://www.credo.ai/>`_. See
@@ -98,7 +98,7 @@ Model
    Lens as a whole is framework-agnostic.
 
 Data
-   Data ins Lens is another type of AI artifact that wraps a dataset. Different data classes
+   Data in Lens is another type of AI artifact that wraps a dataset. Different data classes
    support different types of data (e.g. ``TabularData``). When passed to Lens, Data can either be
    labeled "training_data" or "assessment_data". The latter will be used for assessments of the model,
    while the former is passed when assessments of the training data itself is desired, or some
