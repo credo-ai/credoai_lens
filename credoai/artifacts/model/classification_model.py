@@ -9,16 +9,9 @@ import pandas as pd
 
 from sklearn.utils import check_array
 
-try:
-    import torch
-except ImportError:
-    print(
-        "Torch not loaded. Torch models will not be wrapped properly if supplied to ClassificationModel"
-    )
 
 from .constants_model import (
     SKLEARN_LIKE_FRAMEWORKS,
-    MLP_FRAMEWORKS,
     FRAMEWORK_VALIDATION_FUNCTIONS,
 )
 
@@ -72,7 +65,8 @@ class ClassificationModel(Model):
                     logits = self.linear_relu_stack(x)
                     return logits
             If no `output_activation` string is specified, Lens assumes "sigmoid" and outputs a warning.
-            TODO put in rest of details about this or that output shape
+            The model `input_shape` is required for validation and to allow Lens to automatically determine
+            the expected output shape (e.g. discrete value predictions vs. probabilities).
 
             For custom model_like objects, users may optionally specify a `framework_like` attribute
             of type string. framework_like serves as a flag to enable expected functionality to carry over

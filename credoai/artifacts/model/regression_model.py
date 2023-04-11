@@ -1,12 +1,6 @@
 """Model artifact wrapping any regression model"""
 from .base_model import Model
 
-from .constants_model import (
-    SKLEARN_LIKE_FRAMEWORKS,
-    MLP_FRAMEWORKS,
-    FRAMEWORK_VALIDATION_FUNCTIONS,
-)
-
 from utils.model_utils import reg_handle_torch
 
 try:

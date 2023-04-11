@@ -7,6 +7,8 @@ import numpy as np
 
 from credoai.utils import global_logger
 
+from credoai.utils.common import ValidationError
+
 try:
     from tensorflow.keras import layers
 except ImportError:
@@ -130,7 +132,33 @@ def validate_keras_clf(model_obj, model_info: dict):
 
 
 def validate_torch_clf(model_obj, model_info: dict):
-    pass
+    if not issubclass(model_obj.__class__, torch.nn.Module):
+        message = "Only torch.nn.Module subclasses are supported at this time. "
+        message += "Using other PyTorch model architectures have undefined behavior."
+        global_logger.warning(message)
+
+    if not hasattr(model_obj, "input_shape") or not isinstance(
+        model_obj.input_shape, tuple
+    ):
+        message = (
+            "Expected PyTorch model to have an `input_shape` attribute of type tuple. "
+        )
+        message += "Please specify the expected input shape for your PyTorch model."
+        raise ValidationError(message)
+
+    if not hasattr(model_obj, "output_activation"):
+        message = "Expected PyTorch model to have an `output_activation` attribute. "
+        message += "Supported output activations are 'softmax' and 'sigmoid'. "
+        message += "Assuming 'sigmoid' as default."
+        model_obj.output_activation = "sigmoid"
+        global_logger.warning(message)
+
+    if model_obj.output_activation not in ["softmax", "sigmoid"]:
+        message = "Unsupported output activation for PyTorch model. "
+        message += (
+            "Only 'softmax' and 'sigmoid' activations are supported at this time."
+        )
+        raise ValidationError(message)
 
 
 def validate_dummy(model_like, _):
