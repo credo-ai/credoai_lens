@@ -15,11 +15,24 @@
 .. image:: _static/images/credo_ai-lens.png
    :width: 400
 
-Lens is an AI Assessment Framework. With a focus on responsible AI (RAI), Lens makes
-comprehensive AI assessment streamlined, structured and interpretable to diverse audiences. Lens
-aims to be the single entrypoint to a broad ecosystem of open source assessment
-tools. It is especially useful as part of your AI Governance process
-when paired with `Credo AI's Platform <https://www.credo.ai/>`_.
+Lens is an AI Assessment Framework that helps you evaluate your AI system on a variety of dimensions
+including Fairness, Performance, Security and more. This library aims to make evaluating disparate impact,
+calculating SHAP values, or profiling your dataset as easy as calculating the accuracy of your model.
+
+Lens is part of the Credo AI suite of products, and is easily integrated into a comprehensive 
+AI Governance process when paired with `Credo AI's Platform <https://www.credo.ai/>`_. See
+our `blog on Lens <https://www.credo.ai/blog/credo-ai-lens-tm-the-ultimate-open-source-framework-for-responsible-ai-assessments>`_
+for more information.
+
+**Example Capabilities**
+
+.. raw:: html
+
+     <i class="far fa-check-circle" style="color: #7B03C9;"></i>  <b>Performance:</b> assess model performance according to user-specified metrics and disaggregates the information across sensitive features.<br>
+     <i class="far fa-check-circle" style="color: #7B03C9;"></i>  <b>Equity:</b> assess the equality of model outcomes across a sensitive feature.<br>
+     <i class="far fa-check-circle" style="color: #7B03C9;"></i>  <b>Fairness:</b> assess how a sensitive feature relates to other features in the dataset (i.e., proxy detection) and how model performance varies based on the sensitive feature.<br>
+     <i class="far fa-check-circle" style="color: #7B03C9;"></i>  <b>Explainability:</b> assessment of the feature importance for a model based on <a href="https://shap.readthedocs.io/en/latest/index.html">SHAP</a> values.<br>
+     <i class="far fa-check-circle" style="color: #7B03C9;"></i>  <b>Data Profiling:</b> provides descriptive statistics about a dataset.
 
 
 Getting started
