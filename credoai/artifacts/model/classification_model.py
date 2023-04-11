@@ -97,6 +97,7 @@ class ClassificationModel(Model):
         )
 
     def _validate_framework(self):
+        """Validates the model framework and logs a warning if unsupported."""
         try:
             FRAMEWORK_VALIDATION_FUNCTIONS[self.model_info["framework"]](
                 self.model_like, self.model_info
@@ -111,6 +112,7 @@ class ClassificationModel(Model):
         # This needs to remain a big if-statement for now if we're going to keep
         # all classifiers in one class since we're making direct assignments to the class object
 
+        # Handle sklearn-like frameworks
         if self.model_info["framework"] in SKLEARN_LIKE_FRAMEWORKS:
             func = getattr(self, "predict_proba", None)
             if len(self.model_like.classes_) == 2:
@@ -128,12 +130,15 @@ class ClassificationModel(Model):
             else:
                 self.type = "MULTICLASS_CLASSIFICATION"
 
+        # Handle Keras models
         elif self.model_info["framework"] == "keras":
             (
                 self.__dict__["predict"],
                 self.__dict__["predict_proba"],
                 self.type,
             ) = clf_handle_keras(self.model_like)
+
+        # Handle PyTorch models
         elif self.model_info["framework"] == "torch":
             (
                 self.__dict__["predict"],
@@ -141,6 +146,7 @@ class ClassificationModel(Model):
                 self.type,
             ) = clf_handle_torch(self.model_like)
 
+        # Handle Lens DummyClassifier models
         elif self.model_info["framework"] == "credoai":
             # Functionality for DummyClassifier
             if self.model_like.model_like is not None:
@@ -155,8 +161,7 @@ class ClassificationModel(Model):
 
             # Predict and Predict_Proba should already be specified
 
-        # This check is newly necessary, since `predict` is no longer required in the validation step
-        # but _a_ predict function is needed by the end of initialization.
+        # Ensure predict function is specified for custom models
         if "predict" not in self.__dict__:
             raise Exception(
                 "`predict` function required for custom model {self.name}. None specified."
@@ -218,11 +223,16 @@ class DummyClassifier:
         )
 
     def _wrap_array(self, array):
+        """Wraps the array into a lambda function that ignores its input and returns the array."""
         return lambda X=None: array
         # Keeping X as an optional argument to maintain potential backward compatibility
         # Some uses of DummyClassifier may use predict() with no argument
 
     def _build_functionality(self, function_name, array):
+        """
+        Builds a function with the given name and wraps the provided array using the _wrap_array method.
+        The created function will be added to the class instance dictionary.
+        """
         if array is not None:
             if isinstance(array, pd.Series):
                 if not len(array):
