@@ -43,10 +43,12 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.napoleon",
     "sphinx_autodoc_typehints",  # needs to be AFTER napoleon
+    "sphinx_fontawesome",
     "sphinx_rtd_theme",
     "nbsphinx",
     "sphinx_exec_code",
 ]
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -147,6 +149,7 @@ html_theme = "furo"
 html_static_path = ["_static"]
 html_css_files = [
     "css/custom.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css",
 ]
 
 # -- Generating pages ---------------------------------------------------

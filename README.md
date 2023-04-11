@@ -37,10 +37,9 @@ The latest stable release (and required dependencies) can be installed from PyPI
 pip install credoai-lens
 ```
 
-Additional installation instructions can be found in our [setup documentation](https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html)
+Additional installation instructions can be found in our [setup documentation](https://credoai-lens.readthedocs.io/en/stable/pages/setup.html)
 
 ## Getting Started
-
 To get started, see the [quickstart demo](https://credoai-lens.readthedocs.io/en/stable/notebooks/quickstart.html).
 
 If you are using the Credo AI Governance App, also check out the [governance integration demo](https://credoai-lens.readthedocs.io/en/stable/notebooks/governance_integration.html).
