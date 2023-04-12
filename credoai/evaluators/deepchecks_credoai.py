@@ -27,6 +27,21 @@ class Deepchecks(Evaluator):
     be used in preference to deepchecks, since output formats of other evaluators is generally
     consistent, while this deepchecks evaluator outputs results in a highly structured JSON format.
 
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass **at least one** of the following artifacts when instantiating the evaluator:
+
+        - model: :class:`credoai.artifacts.Model` or :class:`credoai.artifacts.RegressionModel`
+        - assessment_data: :class:`credoai.artifacts.TabularData`
+            The assessment data to evaluate. Assessment data is used to calculate metrics
+            on the model.
+        - training_data: :class:`credoai.artifacts.TabularData`
+            The training data to evaluate. The training data was used to tran the model
+
 
     Parameters
     ----------
