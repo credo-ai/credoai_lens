@@ -30,6 +30,15 @@ class DataProfiler(Evaluator):
     ----------
     profile_kwargs
         Potential arguments to be passed to pandas_profiling.ProfileReport
+
+    Required Artifacts
+    ------------------
+    Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+    handles evaluator setup. However, if you are using the evaluator directly, you
+    will need to pass the following artifacts when instantiating the evaluator:
+
+    data : TabularData
+        The data to evaluate, which must include a sensitive feature
     """
 
     required_artifacts = {"data"}

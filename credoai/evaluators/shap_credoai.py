@@ -52,6 +52,16 @@ class ShapExplainer(Evaluator):
     No restriction on feature type is imposed by the evaluator, so user discretion in the
     interpretation of shap values for categorical variables is advised.
 
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        - model: :class:`credoai.artifacts.Model`
+        - assessment_data: :class:`credoai.artifacts.TabularData`
 
     Parameters
     ----------
@@ -70,7 +80,7 @@ class ShapExplainer(Evaluator):
 
     """
 
-    required_artifacts = ["assessment_data", "model"]
+    required_artifacts = ["model", "assessment_data"]
 
     def __init__(
         self,

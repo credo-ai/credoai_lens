@@ -44,7 +44,18 @@ class DataFairness(Evaluator):
     - group differences of features
     - evaluates whether features in the dataset are proxies for the sensitive feature
     - whether the entire dataset can be seen as a proxy for the sensitive feature
-      (i.e., the sensitive feature is "redundantly encoded")
+    (i.e., the sensitive feature is "redundantly encoded")
+
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        - data: :class:`credoai.artifacts.TabularData`
+            The data to evaluate, which must include a sensitive feature
 
     Parameters
     ----------
@@ -52,7 +63,7 @@ class DataFairness(Evaluator):
         Names of the categorical features
     categorical_threshold : float
         Parameter for automatically identifying categorical columns. See
-        `credoai.utils.common.is_categorical`
+        :class:`credoai.utils.common.is_categorical` for more details.
     """
 
     required_artifacts = {"data", "sensitive_feature"}

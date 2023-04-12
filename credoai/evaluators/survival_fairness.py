@@ -12,6 +12,19 @@ class SurvivalFairness(Evaluator):
     """
     Calculate Survival fairness (Experimental)
 
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        - model: :class:`credoai.artifacts.Model`
+        - assessment_data: :class:`credoai.artifacts.TabularData`
+            Assessment data must have sensitive features
+        - training_data: :class:`credoai.artifacts.TabularData`
+
     Parameters
     ----------
         CoxPh_kwargs : _type_, optional

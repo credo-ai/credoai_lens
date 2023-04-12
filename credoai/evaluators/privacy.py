@@ -88,6 +88,18 @@ class Privacy(Evaluator):
     * `Membership Inference BlackBox Rule Based`_: Use a simple rule based approach to assess if some records
       were used for the model training.
 
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        - model: :class:`credoai.artifacts.Model`
+        - assessment_data: :class:`credoai.artifacts.TabularData`
+        - training_data: :class:`credoai.artifacts.TabularData`
+
     Parameters
     ----------
     attack_feature : Union[str, int, None], optional
