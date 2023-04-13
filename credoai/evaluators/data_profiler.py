@@ -104,6 +104,12 @@ def sensitive_feature_counts(data):
     for name, col in data.sensitive_features.items():
         df = pd.concat([col.value_counts(), col.value_counts(normalize=True)], axis=1)
         df.columns = ["Count", "Proportion"]
+
+        df.reset_index(inplace=True)  # Reset the index and make it a column
+        df.rename(
+            columns={"index": f"{name}"}, inplace=True
+        )  # Rename the index column to the appropriate name
+
         df.name = f"{name} Distribution"
         sensitive_feature_distributions.append(df)
     return sensitive_feature_distributions
