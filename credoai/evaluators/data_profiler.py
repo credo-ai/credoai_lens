@@ -86,7 +86,13 @@ class DataProfiler(Evaluator):
     def _wrap_sensitive_counts(self):
         counts = sensitive_feature_counts(self.data)
         if counts:
-            return [TableContainer(count) for count in counts]
+            ret_list = []
+            for count in counts:
+                added_labels = {"sensitive_feature": count.columns[0]}
+                ret_list.append(
+                    TableContainer(count, **self.get_info(labels=added_labels))
+                )
+            return ret_list
 
 
 def create_report(df, **profile_kwargs):
