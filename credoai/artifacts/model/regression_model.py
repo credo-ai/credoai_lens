@@ -1,7 +1,7 @@
 """Model artifact wrapping any regression model"""
 from .base_model import Model
 
-from utils.model_utils import reg_handle_torch
+from credoai.utils.model_utils import reg_handle_torch
 
 try:
     import torch

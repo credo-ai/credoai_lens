@@ -2,7 +2,7 @@
 from .base_model import Model
 
 from credoai.utils import global_logger
-from utils.model_utils import clf_handle_keras, clf_handle_torch
+from credoai.utils.model_utils import clf_handle_keras, clf_handle_torch
 
 import numpy as np
 import pandas as pd
