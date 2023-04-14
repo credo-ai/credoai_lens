@@ -173,6 +173,24 @@ def validate_dummy(model_like, _):
 
 
 def reg_handle_torch(model_like):
+    """
+    Handles registration of PyTorch models for prediction.
+
+    This function checks if the given model has a forward method to perform predictions and
+    returns it if found. The forward method is used to generate predictions in PyTorch models.
+
+    Parameters
+    model_like : torch.nn.Module
+    PyTorch model object to be registered for prediction.
+
+    Returns
+    function
+    The forward method of the provided PyTorch model object.
+
+    Raises
+    ValueError
+    If the provided model object does not have a forward method.
+    """
     pred_func = getattr(model_like, "forward", None)
     if pred_func is None:
         raise ValueError("Model should have a `forward` method to perform predictions.")
@@ -181,6 +199,29 @@ def reg_handle_torch(model_like):
 
 
 def clf_handle_keras(model_like):
+    """
+    Handles registration of Keras classifiers for prediction.
+
+    This function identifies the type of classifier (binary or multiclass) based on the
+    output shape of the last layer in the model. It returns the appropriate prediction functions
+    and the classifier type.
+
+    Parameters
+    model_like : keras.Model
+    Keras model object to be registered for prediction.
+
+    Returns
+    tuple
+    A tuple containing the following elements:
+    - predict_obj (function): Prediction function for generating class labels.
+    - predict_proba_obj (function): Prediction function for generating class probabilities.
+    - clf_type (str): Type of classifier, either "BINARY_CLASSIFICATION" or "MULTICLASS_CLASSIFICATION".
+
+    Notes
+    Assumes that the last layer's activation function is either 'sigmoid' for binary classification
+    or 'softmax' for multiclass classification.
+    Currently does not support multi-dimensional outputs or other complex classification tasks.
+    """
     predict_obj = None
     predict_proba_obj = None
     clf_type = "BINARY_CLASSIFICATION"
@@ -221,6 +262,30 @@ def clf_handle_keras(model_like):
 
 
 def clf_handle_torch(model_like):
+    """
+    Handles registration of PyTorch classifiers for prediction.
+
+    This function identifies the type of classifier (binary or multiclass) based on the
+    output shape of the last layer in the model and the specified output activation function.
+    It returns the appropriate prediction functions and the classifier type.
+
+    Parameters
+    model_like : torch.nn.Module or custom class inheriting from torch.nn.Module
+    PyTorch model object to be registered for prediction.
+
+    Returns
+    tuple
+    A tuple containing the following elements:
+    - predict_obj (function): Prediction function for generating class labels.
+    - predict_proba_obj (function): Prediction function for generating class probabilities.
+    - clf_type (str): Type of classifier, either "BINARY_CLASSIFICATION" or "MULTICLASS_CLASSIFICATION".
+
+    Notes
+    Assumes that the last layer's activation function is either 'sigmoid' for binary classification
+    or 'softmax' for multiclass classification.
+    Supports both ndarray and DataLoader input types for prediction functions.
+    Currently does not support multi-dimensional outputs or other complex classification tasks.
+    """
     predict_obj = None
     predict_proba_obj = None
     clf_type = "BINARY_CLASSIFICATION"
