@@ -116,6 +116,6 @@ def sensitive_feature_counts(data):
             columns={"index": f"{name}"}, inplace=True
         )  # Rename the index column to the appropriate name
 
-        df.name = f"{name} Distribution"
+        df.name = "Sensitive Feature Distribution"
         sensitive_feature_distributions.append(df)
     return sensitive_feature_distributions
