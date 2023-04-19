@@ -5,7 +5,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from credoai.utils.common import ValidationError, check_array_like, check_pandas
+from credoai.utils.common import ValidationError, check_pandas, validate_array_like
 
 from .base_data import Data
 
@@ -87,11 +87,11 @@ class TabularData(Data):
         return y
 
     def _validate_X(self):
-        check_array_like(self.X)
+        validate_array_like(self.X)
 
     def _validate_y(self):
         """Validation of Y inputs"""
-        check_array_like(self.y)
+        validate_array_like(self.y)
         if self.X is not None and (len(self.X) != len(self.y)):
             raise ValidationError(
                 "X and y are not the same length. "

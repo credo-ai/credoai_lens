@@ -69,10 +69,16 @@ def check_array_like(array):
     else:
         try:
             check_array(array, ensure_2d=False)
-        except ValueError:
-            raise ValidationError(
-                "Expected array-like (e.g., list, numpy array, pandas series/dataframe"
-            )
+        except:
+            return False
+    return True
+
+
+def validate_array_like(array):
+    if check_array_like(array) == False:
+        raise ValidationError(
+            "Expected array-like (e.g., list, numpy array, pandas series/dataframe"
+        )
 
 
 def get_project_root() -> Path:

@@ -4,29 +4,19 @@ import itertools
 from copy import deepcopy
 from typing import Optional, Union
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from credoai.utils import global_logger
-from credoai.utils.common import ValidationError, check_pandas
+from credoai.utils.common import ValidationError, check_array_like, check_pandas
 from credoai.utils.model_utils import type_of_target
-
-try:
-    import torch
-except ImportError:
-    print(
-        "Torch not loaded. Torch models will not be wrapped properly if supplied to ClassificationModel"
-    )
 
 
 class Data:
     """Class wrapper around data-to-be-assessed
-
     Data is passed to Lens for certain assessments.
-
     Data serves as an adapter between datasets
     and the evaluators in Lens.
-
     Parameters
     -------------
     type : str
@@ -45,11 +35,6 @@ class Data:
         Whether to add intersections of sensitive features. If True, add all possible
         intersections. If list, only create intersections from specified sensitive features.
         If False, no intersections will be created. Defaults False
-    dataloader : torch.utils.data.DataLoader, optional
-        DataLoader object for PyTorch models, which provides an iterable over the given dataset.
-        If provided, DataLoader will be used to extract labels and features will be passed to the model
-        for predictions during the assessment. This option is specifically designed for compatibility
-        with PyTorch models, and it doesn't support any sort of data analysis like profiling.
     """
 
     def __init__(
@@ -60,7 +45,6 @@ class Data:
         y=None,
         sensitive_features=None,
         sensitive_intersections: Union[bool, list] = False,
-        dataloader=None,
     ):
         if isinstance(name, str):
             self.name = name
@@ -68,7 +52,6 @@ class Data:
             raise ValidationError("{Name} must be a string")
         self.X = X
         self.y = y
-        self.dataloader = dataloader
         self.sensitive_features = sensitive_features
         self._validate_inputs()
         self._process_inputs(sensitive_intersections)
@@ -79,7 +62,6 @@ class Data:
     def active_sens_feat(self):
         """
         Defines which sensitive feature an evaluator will be working on.
-
         In combination with the property sensitive_feature this effectively creates
         a view of a specific artifact.
         """
@@ -91,7 +73,6 @@ class Data:
     def active_sens_feat(self, value: str):
         """
         Sets the active_sens_feat value.
-
         Parameters
         ----------
         value : str
@@ -103,7 +84,6 @@ class Data:
     def sensitive_feature(self):
         """
         Reveals the sensitive feature defined by active_sens_feat.
-
         This is generally called from within an evaluator, when it is working
         on a single sensitive feature.
         """
@@ -119,13 +99,10 @@ class Data:
         return data
 
     def _process_inputs(self, sensitive_intersections):
-        if self.dataloader is not None:
-            self._process_dataloader()
-        else:
-            if self.X is not None:
-                self.X = self._process_X(self.X)
-            if self.y is not None:
-                self.y = self._process_y(self.y)
+        if self.X is not None:
+            self.X = self._process_X(self.X)
+        if self.y is not None:
+            self.y = self._process_y(self.y)
         if self.sensitive_features is not None:
             self.sensitive_features = self._process_sensitive(
                 self.sensitive_features, sensitive_intersections
@@ -134,7 +111,6 @@ class Data:
     def _process_sensitive(self, sensitive_features, sensitive_intersections):
         """
         Formats sensitive features
-
         Parameters
         ----------
         sensitive_features :
@@ -142,7 +118,6 @@ class Data:
             in a dataframe is accepted.
         sensitive_intersections : Bool
             Indicates whether to create intersections among sensitive features.
-
         Returns
         -------
         pd.DataFrame
@@ -174,30 +149,14 @@ class Data:
     def _process_y(self, y):
         return y
 
-    def _process_dataloader(self):
-        if self.y is not None:
-            pass
-        else:
-            labels_list = []
-            for _, labels in self.dataloader:
-                labels_list.append(labels.numpy())
-            self.y = np.concatenate(labels_list, axis=0)
-            # self.X will be sorted out in the predict functions
-            # This does not support any sort of data analysis like profiling!!
-        self.X = self.dataloader
-
     def _validate_inputs(self):
         """Basic input validation"""
-        if self.dataloader is not None and (self.X is not None or self.y is not None):
-            raise ValidationError("Either pass (X, y) or a DataLoader, not both.")
         if self.X is not None:
             self._validate_X()
         if self.y is not None:
             self._validate_y()
         if self.sensitive_features is not None:
             self._validate_sensitive()
-        if self.dataloader is not None:
-            self._validate_dataloader()
 
     def _validate_sensitive(self):
         """Sensitive features validation"""
@@ -208,12 +167,11 @@ class Data:
                 + type(self.sensitive_features).__name__
                 + "' but the required type is either pd.DataFrame or pd.Series"
             )
-        if self.X is not None:
-            if len(self.X) != len(self.sensitive_features):
-                raise ValidationError(
-                    "X and sensitive_features are not the same length. "
-                    + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
-                )
+        if check_array_like(self.X) and len(self.X) != len(self.sensitive_features):
+            raise ValidationError(
+                "X and sensitive_features are not the same length. "
+                + f"X Length: {len(self.X)}, sensitive_features Length: {len(self.y)}"
+            )
         if check_pandas(self.X) and not self.X.index.equals(
             self.sensitive_features.index
         ):
@@ -228,12 +186,6 @@ class Data:
         if not self.sensitive_features.index.is_unique:
             raise ValidationError("Sensitive Features index must be unique")
 
-    def _validate_dataloader(self):
-        if not isinstance(self.dataloader, torch.utils.data.DataLoader):
-            raise ValidationError(
-                f"`dataloader` must be of type torch.utils.data.DataLoader. Supplied dataloader is of type {type(self.dataloader)}"
-            )
-
     def _validate_X(self):
         pass
 
@@ -246,8 +198,6 @@ class Data:
             self._validate_processed_X()
         if self.y is not None:
             self._validate_processed_y()
-        if self.dataloader is not None:
-            self._validate_processed_dataloader()
         if self.sensitive_features is not None:
             self._validate_processed_sensitive()
 
@@ -255,9 +205,6 @@ class Data:
         pass
 
     def _validate_processed_y(self):
-        pass
-
-    def _validate_processed_dataloader(self):
         pass
 
     def _validate_processed_sensitive(self):
