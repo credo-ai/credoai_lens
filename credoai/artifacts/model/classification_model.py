@@ -1,19 +1,13 @@
 """Model artifact wrapping any classification model"""
-from .base_model import Model
+import numpy as np
+import pandas as pd
+from sklearn.utils import check_array
 
 from credoai.utils import global_logger
 from credoai.utils.model_utils import clf_handle_keras, clf_handle_torch
 
-import numpy as np
-import pandas as pd
-
-from sklearn.utils import check_array
-
-
-from .constants_model import (
-    SKLEARN_LIKE_FRAMEWORKS,
-    FRAMEWORK_VALIDATION_FUNCTIONS,
-)
+from .base_model import Model
+from .constants_model import FRAMEWORK_VALIDATION_FUNCTIONS, SKLEARN_LIKE_FRAMEWORKS
 
 
 class ClassificationModel(Model):
@@ -142,23 +136,19 @@ class ClassificationModel(Model):
 
         # Handle Lens DummyClassifier models
         elif self.model_info["framework"] == "credoai":
-            # Functionality for DummyClassifier
+            # Functionality for DummyRegression
+            # If the dummy model has a model_like specified, reassign
+            # the model_like attribute to match the dummy's
+            # so that downstream evaluators (ModelProfiler) can use it
             if self.model_like.model_like is not None:
                 self.model_like = self.model_like.model_like
-            # If the dummy model has a model_like specified, reassign
-            # the classifier's model_like attribute to match the dummy's
-            # so that downstream evaluators (ModelProfiler) can use it
 
             self.type = self.model_like.type
-            # DummyClassifier model type is set in the constructor based on whether it
-            # is binary or multiclass
-
-            # Predict and Predict_Proba should already be specified
 
         # Ensure predict function is specified for custom models
         if "predict" not in self.__dict__:
             raise Exception(
-                "`predict` function required for custom model {self.name}. None specified."
+                "`predict` function required for model {self.name}. None specified."
             )
 
 

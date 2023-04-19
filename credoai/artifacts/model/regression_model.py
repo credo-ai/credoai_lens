@@ -1,7 +1,7 @@
 """Model artifact wrapping any regression model"""
-from .base_model import Model
-
 from credoai.utils.model_utils import reg_handle_torch
+
+from .base_model import Model
 
 try:
     import torch
@@ -46,17 +46,17 @@ class RegressionModel(Model):
 
         elif self.model_info["framework"] == "credoai":
             # Functionality for DummyRegression
-            if self.model_like.model_like is not None:
-                self.model_like = self.model_like.model_like
             # If the dummy model has a model_like specified, reassign
             # the model_like attribute to match the dummy's
             # so that downstream evaluators (ModelProfiler) can use it
+            if self.model_like.model_like is not None:
+                self.model_like = self.model_like.model_like
 
         # This check is newly necessary, since `predict` is no longer required in the validation step
         # but _a_ predict function is needed by the end of initialization.
         if "predict" not in self.__dict__:
             raise Exception(
-                "`predict` function required for custom model {self.name}. None specified."
+                "`predict` function required for model {self.name}. None specified."
             )
 
 
@@ -75,7 +75,8 @@ class DummyRegression:
         Array containing the output of a model's "predict" method
     """
 
-    def __init__(self, name: str, predict_output=None, tags=None):
+    def __init__(self, name: str, model_like=None, predict_output=None, tags=None):
+        self.model_like = model_like
         self.predict_output = predict_output
         self.name = name
         self.tags = tags

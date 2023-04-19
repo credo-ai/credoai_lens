@@ -1,12 +1,11 @@
 import warnings
 
+import numpy as np
 from sklearn.base import is_classifier, is_regressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils import multiclass
-import numpy as np
 
 from credoai.utils import global_logger
-
 from credoai.utils.common import ValidationError
 
 try:
@@ -174,7 +173,7 @@ def validate_dummy(model_like, _):
 
 def reg_handle_torch(model_like):
     """
-    Handles registration of PyTorch models for prediction.
+    Handles registration of PyTorch regression models for prediction.
 
     This function checks if the given model has a forward method to perform predictions and
     returns it if found. The forward method is used to generate predictions in PyTorch models.
@@ -307,9 +306,11 @@ def clf_handle_torch(model_like):
 
     output_shape = output.shape
 
+    # determine the prediction function, which is based on the output activation.
     if output_activation == "sigmoid" and output_shape[-1] == 1:
 
         def pred(x):
+            # dataloaders are iterable, so we need to iterate over them
             if isinstance(x, torch.utils.data.dataloader.DataLoader):
                 preds = []
                 for data, _ in x:
@@ -325,6 +326,7 @@ def clf_handle_torch(model_like):
         def pred(x):
             if isinstance(x, torch.utils.data.dataloader.DataLoader):
                 preds = []
+                # dataloaders are iterable, so we need to iterate over them
                 for data, _ in x:
                     preds.append(
                         torch.argmax(
@@ -344,6 +346,7 @@ def clf_handle_torch(model_like):
             else "MULTICLASS_CLASSIFICATION"
         )
 
+    # determine the prediction proba function, which is based on the output activation.
     if output_activation == "sigmoid" and output_shape[-1] == 1:
 
         def pred_prob(x):
