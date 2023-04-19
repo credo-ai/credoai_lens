@@ -15,10 +15,14 @@ from .base_data import Data
 
 
 class PytorchData(Data):
-    """Class wrapper around tabular data
+    """Class wrapper around Pytorch data
 
-    TabularData serves as an adapter between tabular datasets
-    and the evaluators in Lens. TabularData processes X
+    Pytorch serves as an adapter between pytorch dataloaders
+    and the evaluators in Lens.
+
+    Lens dataset evaluator functionality (e.g. DataFairness, DataProfiling) is dependent on
+    loading your data into memory, which this class does not do. If you want to use those
+    evaluators consider passing your entire dataset (or batches) to the relevant evaluators.
 
     Parameters
     -------------
@@ -28,7 +32,7 @@ class PytorchData(Data):
         DataLoader object for PyTorch models, which provides an iterable over the given dataset.
         If provided, DataLoader will be used to extract labels and features will be passed to the model
         for predictions during the assessment. This option is specifically designed for compatibility
-        with PyTorch models, and it doesn't support any sort of data analysis like profiling.
+        with PyTorch models, and it doesn't support data analysis like data profiling.
     sensitive_features : pd.Series, pd.DataFrame, optional
         Sensitive Features, which will be used for disaggregating performance
         metrics. This can be the feature you want to perform segmentation analysis on, or
