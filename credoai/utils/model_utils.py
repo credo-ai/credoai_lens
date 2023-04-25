@@ -286,6 +286,7 @@ def clf_handle_torch(model_like):
     predict_obj = None
     predict_proba_obj = None
     clf_type = "BINARY_CLASSIFICATION"
+    device = next(model_like.parameters()).device
 
     pred_func = getattr(model_like, "forward", None)
     if pred_func is None:
@@ -299,7 +300,7 @@ def clf_handle_torch(model_like):
         output_activation = "sigmoid"
 
     with torch.no_grad():
-        dummy_input = torch.randn(1, *model_like.input_shape)
+        dummy_input = torch.randn(1, *model_like.input_shape).to(device)
         output = model_like(dummy_input)
 
     output_shape = output.shape

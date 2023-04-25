@@ -26,6 +26,7 @@ class NeuralNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(512, 10),
         )
+        self.output_activation = "softmax"
         self.input_shape = (28, 28)
 
     def forward(self, x):
