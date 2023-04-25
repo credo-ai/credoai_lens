@@ -13,7 +13,8 @@ URL = ""
 LICENSE = ""
 DOWNLOAD_URL = "https://github.com/credo-ai/credoai_lens"
 VERSION = __version__
-PYTHON_REQUIRES = ">=3.8"
+PYTHON_REQUIRES = ">=3.8, <3.11"
+
 
 # Fetch ReadMe
 with open("README.md", "r") as fh:
@@ -44,6 +45,7 @@ CLASSIFIERS = [
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Operating System :: OS Independent",
 ]
@@ -58,7 +60,6 @@ PACKAGE_DATA = {
 
 
 if __name__ == "__main__":
-
     import sys
 
     from setuptools import setup
