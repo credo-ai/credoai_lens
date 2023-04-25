@@ -8,10 +8,9 @@ from pandas import DataFrame, Series
 from pytest import fixture
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
-
-from credoai.datasets import fetch_creditdefault, fetch_testdata
-
 from tensorflow.keras.datasets.mnist import load_data as load_mnist
+
+from credoai.demo_assets import fetch_creditdefault, fetch_testdata
 
 ### Datasets definition ########################
 

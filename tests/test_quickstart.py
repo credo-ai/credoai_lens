@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
 from credoai.artifacts import ClassificationModel, TabularData
-from credoai.datasets import fetch_creditdefault
+from credoai.demo_assets import fetch_creditdefault
 from credoai.evaluators import ModelFairness, Performance, Privacy
 from credoai.lens import Lens
 

@@ -50,15 +50,14 @@ CLASSIFIERS = [
 
 PACKAGE_DATA = {
     "credoai": [
-        "datasets/*",
-        "datasets/static/nlp_generator_analyzer/persisted_models/*",
-        "datasets/static/nlp_generator_analyzer/prompts/*",
+        "demo_assets/*",
+        "demo_assets/static/nlp_generator_analyzer/persisted_models/*",
+        "demo_assets/static/nlp_generator_analyzer/prompts/*",
     ]
 }
 
 
 if __name__ == "__main__":
-
     import sys
 
     from setuptools import setup

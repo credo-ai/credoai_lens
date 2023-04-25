@@ -43,12 +43,10 @@ def get_model_info(model):
     try:
         framework = getattr(model, "framework_like", None)
         if not framework:
-            framework = model.__class__.__module__.split(".")[0]
-            # Chunk below covers custom model classes.
-            # It enables us to cover cases like torch.nn.Module, where the parent class is structured
-            # but the user-specified class won't have a proper "framework"
-            if model.__class__.__module__ == "__main__":
-                framework = type(model).__bases__[0].__module__.split(".")[0]
+            if model.__class__.__bases__[0].__module__.startswith("torch"):
+                framework = "torch"
+            else:
+                framework = model.__class__.__module__.split(".")[0]
     except AttributeError:
         framework = None
     try:
@@ -74,7 +72,7 @@ def type_of_target(target):
 #############################################
 # Validation Functions for Various Model Types
 #############################################
-def validate_sklearn_like(model_obj, model_info: dict):
+def validate_sklearn_like(model_obj, model_info: dict = None):
     pass
 
 
@@ -130,7 +128,7 @@ def validate_keras_clf(model_obj, model_info: dict):
         # https://stackoverflow.com/questions/56704669/keras-output-single-value-through-argmax
 
 
-def validate_torch_clf(model_obj, model_info: dict):
+def validate_torch_clf(model_obj, model_info: dict = None):
     if not issubclass(model_obj.__class__, torch.nn.Module):
         message = "Only torch.nn.Module subclasses are supported at this time. "
         message += "Using other PyTorch model architectures have undefined behavior."
