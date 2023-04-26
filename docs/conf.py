@@ -102,7 +102,7 @@ autodoc_mock_imports += [
     "nest_asyncio",
     "numpy",
     "pandas",
-    "pandas_profiling",
+    "ydata_profiling",
     "scipy",
     "scipy.stats",
     "seaborn",
