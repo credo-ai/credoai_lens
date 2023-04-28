@@ -7,6 +7,3 @@ torch>=1.12.1
 
 # required for Deepchecks evaluator
 deepchecks>=0.9.1
-
-# required for SurvivalAnalysis evaluator
-lifelines>=0.27.3 
