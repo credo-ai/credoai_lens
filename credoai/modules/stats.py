@@ -58,7 +58,7 @@ class CoxPH:
     def _get_prediction_data(self):
         columns = columns_from_formula(self.fit_kwargs.get("formula"))
         df = pd.DataFrame(
-            list(product(*[i.unique() for _, i in self.data[columns].iteritems()])),
+            list(product(*[i.unique() for _, i in self.data[columns].items()])),
             columns=columns,
         )
         return df
