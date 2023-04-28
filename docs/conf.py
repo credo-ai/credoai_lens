@@ -119,6 +119,7 @@ autodoc_mock_imports += [
     "tempfile",
     "tensorflow",
     "transformers",
+    "typing_extensions",
 ]
 
 # copy button properties

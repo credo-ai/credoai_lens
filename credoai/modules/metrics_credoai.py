@@ -1,7 +1,6 @@
 """Custom metrics defined by Credo AI"""
 
 from functools import partial
-from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -10,6 +9,7 @@ from fairlearn.metrics import make_derived_metric, true_positive_rate
 from sklearn import metrics as sk_metrics
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.utils import check_consistent_length
+from typing_extensions import Literal
 
 
 def multiclass_confusion_metrics(y_true, y_pred, metric=None, average="weighted"):
