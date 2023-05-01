@@ -4,7 +4,8 @@ from itertools import combinations, product
 import numpy as np
 import pandas as pd
 from lifelines import CoxPHFitter
-from scipy.stats import chi2_contingency, f_oneway, tukey_hsd
+from scipy.stats import chi2_contingency, f_oneway
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
 from credoai.modules.stats_utils import columns_from_formula
 from credoai.utils import global_logger
@@ -188,7 +189,9 @@ class OneWayAnova:
             "pvalue": overall_test.pvalue,
         }
         if run_posthoc and results["pvalue"] < self.pvalue:
-            results["significant_posthoc_tests"] = self._posthoc_tests()
+            results["significant_posthoc_tests"] = self._posthoc_tests(
+                df[outcome_col], df[outcome_col]
+            )
         return results
 
     def _setup(self, df, grouping_col, outcome_col):
@@ -197,21 +200,22 @@ class OneWayAnova:
         labels = np.array(group_lists.index)
         self.data = {"groups": group_lists, "labels": labels}
 
-    def _posthoc_tests(self):
+    def _posthoc_tests(self, outcome_col, grouping_col):
         """Run Tukey HSD posthoc tests on each label"""
         posthoc_tests = []
-        r = tukey_hsd(*self.data["groups"].values)
-        sig_compares = r.pvalue < self.pvalue
-        for indices in zip(*np.where(sig_compares)):
-            specific_labels = np.take(self.data["labels"], indices)
-            statistic = r.statistic[indices]
-            posthoc_tests.append(
-                {
-                    "test_type": "tukey_hsd",
-                    "comparison": specific_labels,
-                    "statistic": statistic,
-                    "pvalue": r.pvalue[indices],
-                    "significance_threshold": self.pvalue,
-                }
-            )
+
+        results = pairwise_tukeyhsd(outcome_col, grouping_col)
+        results_df = pd.DataFrame(
+            {
+                "test_type": "tukey_hsd",
+                "pvalue": results.pvalues,
+                "statistic": results.meandiffs,
+                "reject": results.reject,
+                "comparison": list(combinations(results.groupsunique, 2)),
+                "significance_threshold": self.pvalue,
+            }
+        )
+        results_df = results_df[results_df["reject"] == True]
+        posthoc_tests = results_df.to_dict(orient="records")
+
         return sorted(posthoc_tests, key=lambda x: x["pvalue"])

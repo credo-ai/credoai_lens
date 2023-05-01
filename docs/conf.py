@@ -116,6 +116,7 @@ autodoc_mock_imports += [
     "sklearn.utils",
     "sklearn.utils.multiclass",
     "sentence_transformers",
+    "statsmodels.stats.multicomp",
     "tempfile",
     "tensorflow",
     "transformers",

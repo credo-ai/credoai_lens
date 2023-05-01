@@ -4,6 +4,7 @@ matplotlib>=3.0
 requests>=2.25.1
 scikit-learn>=0.24
 scipy>=1.7.3
+statsmodels>=0.13.5
 typing_extensions>=4.3.0
 
 # required for SurvivalAnalysis evaluator
