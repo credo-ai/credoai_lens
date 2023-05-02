@@ -1,4 +1,4 @@
-credoai-connect>=0.0.7
+credoai-connect>=0.1.2
 fairlearn>=0.7.0
 matplotlib>=3.0
 requests>=2.25.1
