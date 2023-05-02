@@ -73,7 +73,6 @@ class DataFairness(Evaluator):
         categorical_features_keys: Optional[List[str]] = None,
         categorical_threshold: float = 0.05,
     ):
-
         self.categorical_features_keys = categorical_features_keys
         self.categorical_threshold = categorical_threshold
         super().__init__()
@@ -231,7 +230,7 @@ class DataFairness(Evaluator):
         if is_categorical(self.sensitive_features, threshold=threshold):
             self.sensitive_features = self.sensitive_features.astype("category")
         cat_cols = []
-        for name, column in self.X.iteritems():
+        for name, column in self.X.items():
             if is_categorical(column, threshold=threshold):
                 cat_cols.append(name)
         return cat_cols

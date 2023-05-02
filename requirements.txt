@@ -1,16 +1,14 @@
-absl-py>=1.0.0
-cloudpickle>=2.0.0
 credoai-connect>=0.0.7
 fairlearn>=0.7.0
-lifelines>=0.27.3 # required for SurvivalAnalysis evaluator
-json-api-doc>=0.15.0
 matplotlib>=3.0
-nest_asyncio>=1.5.4
-protobuf~=3.19.0
-python-dotenv>=0.19.2
 requests>=2.25.1
 scikit-learn>=0.24
-scipy>=1.8.1
+scipy>=1.7.3
+statsmodels>=0.13.5
+typing_extensions>=4.3.0
+
+# required for SurvivalAnalysis evaluator
+lifelines>=0.27.3 
 
 # required for reporting
 ydata-profiling >= 4.0.0

@@ -70,7 +70,6 @@ nbsphinx_allow_errors = True  # Continue through Jupyter errors
 nbsphinx_execute = "never"  # do not execute jupyter notebooks
 
 autodoc_mock_imports += [
-    "absl",
     "art",
     "art.attacks.evasion",
     "art.attacks.extraction",
@@ -78,18 +77,15 @@ autodoc_mock_imports += [
     "art.attacks.inference.membership_inference",
     "art.estimators.classification",
     "art.estimators.classification.scikitlearn",
-    "cloudpickle",
     "deepchecks",
     "deepchecks.core",
     "deepchecks.tabular",
-    "dotenv",
     "fairlearn",
     "fairlearn.metrics",
     "finsfairauditing",
     "googleapiclient",
     "ipywidgets",
     "joblib",
-    "json_api_doc",
     "keras",
     "keras.layers",
     "keras.models",
@@ -99,7 +95,6 @@ autodoc_mock_imports += [
     "matplotlib.backends",
     "matplotlib.pyplot",
     "matplotlib.ticker",
-    "nest_asyncio",
     "numpy",
     "pandas",
     "ydata_profiling",
@@ -121,9 +116,11 @@ autodoc_mock_imports += [
     "sklearn.utils",
     "sklearn.utils.multiclass",
     "sentence_transformers",
+    "statsmodels.stats.multicomp",
     "tempfile",
     "tensorflow",
     "transformers",
+    "typing_extensions",
 ]
 
 # copy button properties
