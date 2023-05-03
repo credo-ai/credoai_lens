@@ -596,7 +596,7 @@ def normalized_discounted_cumulative_kl_divergence(ranked_list, desired_proporti
     --------
     >>> ranked_list = ['female', 'male', 'male', 'female', 'male', 'male']
     >>> desired_proportions = {'female': 0.6, 'male': 0.4}
-    >>> normalized_discounted_cumulative_kl_divergence(ranked_list, desired_proportions)
+    >>> round(normalized_discounted_cumulative_kl_divergence(ranked_list, desired_proportions), 15)
     0.208096993149323
     """
     num_items = len(ranked_list)
