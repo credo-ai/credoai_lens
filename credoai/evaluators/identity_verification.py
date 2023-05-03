@@ -31,6 +31,17 @@ class IdentityVerification(Evaluator):
     This evaluator takes in identity verification data and
     provides functionality to perform performance and fairness assessment
 
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        model: :class:`credoai.artifacts.ComparisonModel`
+        assessment_data: :class:`credoai.artifacts.ComparisonData`
+
     Parameters
     ----------
     pairs : pd.DataFrame of shape (n_pairs, 4)

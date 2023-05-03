@@ -4,10 +4,11 @@ Sphinx mkd formatting functinality.
 This library contains all the utility functions necessacry to format
 content in a suitable way for a sphinx rst file.
 """
-from typing import List, Literal, Optional
+from re import finditer
+from typing import List, Optional
 
 from pandas import DataFrame, Series, concat
-from re import finditer
+from typing_extensions import Literal
 
 
 def create_title(

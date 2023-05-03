@@ -13,4 +13,4 @@ Parameters
 dataset_name: str
     Name of the dataset
 profile_kwargs
-    Potential arguments to be passed to pandas_profiling.ProfileReport
+    Potential arguments to be passed to ydata_profiling.ProfileReport

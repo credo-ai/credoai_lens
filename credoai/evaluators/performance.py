@@ -24,6 +24,17 @@ class Performance(Evaluator):
     - calculate the metrics
     - create disaggregated metrics
 
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        - model: :class:`credoai.artifacts.Model`
+        - assessment_data: :class:`credoai.artifacts.TabularData`
+
     Parameters
     ----------
     metrics : List-like

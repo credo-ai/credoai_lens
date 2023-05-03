@@ -43,10 +43,12 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.napoleon",
     "sphinx_autodoc_typehints",  # needs to be AFTER napoleon
+    "sphinx_fontawesome",
     "sphinx_rtd_theme",
     "nbsphinx",
     "sphinx_exec_code",
 ]
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -68,7 +70,6 @@ nbsphinx_allow_errors = True  # Continue through Jupyter errors
 nbsphinx_execute = "never"  # do not execute jupyter notebooks
 
 autodoc_mock_imports += [
-    "absl",
     "art",
     "art.attacks.evasion",
     "art.attacks.extraction",
@@ -76,18 +77,15 @@ autodoc_mock_imports += [
     "art.attacks.inference.membership_inference",
     "art.estimators.classification",
     "art.estimators.classification.scikitlearn",
-    "cloudpickle",
     "deepchecks",
     "deepchecks.core",
     "deepchecks.tabular",
-    "dotenv",
     "fairlearn",
     "fairlearn.metrics",
     "finsfairauditing",
     "googleapiclient",
     "ipywidgets",
     "joblib",
-    "json_api_doc",
     "keras",
     "keras.layers",
     "keras.models",
@@ -97,10 +95,9 @@ autodoc_mock_imports += [
     "matplotlib.backends",
     "matplotlib.pyplot",
     "matplotlib.ticker",
-    "nest_asyncio",
     "numpy",
     "pandas",
-    "pandas_profiling",
+    "ydata_profiling",
     "scipy",
     "scipy.stats",
     "seaborn",
@@ -119,9 +116,11 @@ autodoc_mock_imports += [
     "sklearn.utils",
     "sklearn.utils.multiclass",
     "sentence_transformers",
+    "statsmodels.stats.multicomp",
     "tempfile",
     "tensorflow",
     "transformers",
+    "typing_extensions",
 ]
 
 # copy button properties
@@ -147,6 +146,7 @@ html_theme = "furo"
 html_static_path = ["_static"]
 html_css_files = [
     "css/custom.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css",
 ]
 
 # -- Generating pages ---------------------------------------------------

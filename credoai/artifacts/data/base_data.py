@@ -4,8 +4,8 @@ import itertools
 from copy import deepcopy
 from typing import Optional, Union
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from credoai.utils import global_logger
 from credoai.utils.common import ValidationError, check_pandas
@@ -218,7 +218,7 @@ class Data:
 
     def _validate_processed_sensitive(self):
         """Validation of processed sensitive features"""
-        for col_name, col in self.sensitive_features.iteritems():
+        for col_name, col in self.sensitive_features.items():
             # validate unique
             unique_values = col.unique()
             if len(unique_values) == 1:
@@ -227,7 +227,7 @@ class Data:
                     f"than one unique value. Only found one value: {unique_values[0]}"
                 )
             # validate number in each group
-            for group, value in col.value_counts().iteritems():
+            for group, value in col.value_counts().items():
                 if value < 10:
                     global_logger.warning(
                         f"Dataset Issue! Very few ({value}) records were found for {group} under sensitive feature {col_name}."
@@ -235,8 +235,8 @@ class Data:
             # validate variance in y
             if self.y is not None:
                 y = pd.DataFrame(self.y)
-                for outcome, outcome_col in y.iteritems():
-                    for group, value in outcome_col.groupby(col).nunique().iteritems():
+                for outcome, outcome_col in y.items():
+                    for group, value in outcome_col.groupby(col).nunique().items():
                         if not np.all(value):
                             global_logger.warning(
                                 "%s\n%s",

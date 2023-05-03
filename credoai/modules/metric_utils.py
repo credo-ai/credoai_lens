@@ -1,20 +1,21 @@
 import textwrap
 from collections import defaultdict
 
-from credoai.modules.metrics import ALL_METRICS, MODEL_METRIC_CATEGORIES
 from pandas import DataFrame
+
+from credoai.modules.metrics import ALL_METRICS, METRIC_CATEGORIES
 
 
 def list_metrics(verbose=True):
     metrics = defaultdict(set)
     for metric in ALL_METRICS:
-        if metric.metric_category in MODEL_METRIC_CATEGORIES:
+        if metric.metric_category in METRIC_CATEGORIES:
             metrics[metric.metric_category] |= metric.equivalent_names
     if verbose:
         for key, val in metrics.items():
             metric_str = textwrap.fill(
                 ", ".join(sorted(list(val))),
-                width=50,
+                width=80,
                 initial_indent="\t",
                 subsequent_indent="\t",
             )

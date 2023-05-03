@@ -11,8 +11,8 @@ from credoai.evaluators.utils import check_data_instance
 from credoai.utils.common import ValidationError, check_pandas
 
 backend = matplotlib.get_backend()
-# load pands profiler, which sets backend to Agg
-from pandas_profiling import ProfileReport
+# load ydata profiler, which sets backend to Agg
+from ydata_profiling import ProfileReport
 
 matplotlib.use(backend)
 
@@ -29,7 +29,16 @@ class DataProfiler(Evaluator):
     Parameters
     ----------
     profile_kwargs
-        Potential arguments to be passed to pandas_profiling.ProfileReport
+        Potential arguments to be passed to ydata_profiling.ProfileReport
+
+    Required Artifacts
+    ------------------
+    Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+    handles evaluator setup. However, if you are using the evaluator directly, you
+    will need to pass the following artifacts when instantiating the evaluator:
+
+    data : TabularData
+        The data to evaluate, which must include a sensitive feature
     """
 
     required_artifacts = {"data"}

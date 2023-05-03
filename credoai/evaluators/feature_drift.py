@@ -30,6 +30,18 @@ class FeatureDrift(Evaluator):
          samples per each class is calculated and then fed into the population_stability_index metric.
          The percentage flag in the metric is set to True, to bypass the internal binning process.
 
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        - model: :class:`credoai.artifacts.Model`
+        - assessment_data: :class:`credoai.artifacts.TabularData`
+        - training_data: :class:`credoai.artifacts.TabularData`
+
 
     Parameters
     ----------

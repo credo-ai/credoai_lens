@@ -26,6 +26,19 @@ class DataEquity(Evaluator):
     - Proportion (Bounded [0-1] continuous outcome): outcome is transformed to logits, then
       proceed as normal for continuous
 
+    Required Artifacts
+    ------------------
+    **Required Artifacts**
+
+    Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+    handles evaluator setup. However, if you are using the evaluator directly, you
+    will need to pass the following artifacts when instantiating the evaluator:
+
+    - data: :class:`credoai.artifacts.TabularData`
+        The data to evaluate for equity (based on the outcome variable). Must
+        have sensitive feature defined.
+
+
     Parameters
     ----------
     p_value : float
@@ -190,13 +203,27 @@ class ModelEquity(DataEquity):
     Evaluates the equity of a model's predictions.
 
     This evaluator assesses whether model predictions are distributed equally across a sensitive
-    feature. Depending on the kind of outcome, different tests will be performed.
+    feature. Depending on the kind of outcome, different tests will be performed:
 
-    * Discrete: chi-squared contingency tests,
+    - Discrete: chi-squared contingency tests,
       followed by bonferronni corrected posthoc chi-sq tests
-    * Continuous: One-way ANOVA, followed by Tukey HSD posthoc tests
-    * Proportion (Bounded [0-1] continuous outcome): outcome is transformed to logits, then
+    - Continuous: One-way ANOVA, followed by Tukey HSD posthoc tests
+    - Proportion (Bounded [0-1] continuous outcome): outcome is transformed to logits, then
       proceed as normal for continuous
+
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        - model: :class:`credoai.artifacts.Model`
+        - assessment_data: :class:`credoai.artifacts.TabularData`
+            The assessment data to use to create model predictions and evaluate
+            the equity of the model. Must have sensitive features.
+
 
     Parameters
     ----------

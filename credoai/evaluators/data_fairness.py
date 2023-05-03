@@ -44,7 +44,18 @@ class DataFairness(Evaluator):
     - group differences of features
     - evaluates whether features in the dataset are proxies for the sensitive feature
     - whether the entire dataset can be seen as a proxy for the sensitive feature
-      (i.e., the sensitive feature is "redundantly encoded")
+    (i.e., the sensitive feature is "redundantly encoded")
+
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        - data: :class:`credoai.artifacts.TabularData`
+            The data to evaluate, which must include a sensitive feature
 
     Parameters
     ----------
@@ -52,7 +63,7 @@ class DataFairness(Evaluator):
         Names of the categorical features
     categorical_threshold : float
         Parameter for automatically identifying categorical columns. See
-        `credoai.utils.common.is_categorical`
+        :class:`credoai.utils.common.is_categorical` for more details.
     """
 
     required_artifacts = {"data", "sensitive_feature"}
@@ -62,7 +73,6 @@ class DataFairness(Evaluator):
         categorical_features_keys: Optional[List[str]] = None,
         categorical_threshold: float = 0.05,
     ):
-
         self.categorical_features_keys = categorical_features_keys
         self.categorical_threshold = categorical_threshold
         super().__init__()
@@ -220,7 +230,7 @@ class DataFairness(Evaluator):
         if is_categorical(self.sensitive_features, threshold=threshold):
             self.sensitive_features = self.sensitive_features.astype("category")
         cat_cols = []
-        for name, column in self.X.iteritems():
+        for name, column in self.X.items():
             if is_categorical(column, threshold=threshold):
                 cat_cols.append(name)
         return cat_cols

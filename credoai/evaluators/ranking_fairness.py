@@ -41,7 +41,8 @@ class RankingFairness(Evaluator):
     """
     Ranking fairness evaluator for Credo AI (Experimental)
 
-    This module takes in ranking results and provides functionality to perform fairness assessment
+    This module takes in ranking results (an outcome column of scores representing the ranking
+    of items or people) and provides functionality to perform fairness assessment
     The results should include rankings, sensitive features, and optionally, scores.
 
     The scores that the evaluator can calculate are:
@@ -93,17 +94,21 @@ class RankingFairness(Evaluator):
       The x axis is scores and the y axis is cumulative probabilities (ranges from 0 to 1)
       It is useful for a visual examination of the distribution of scores for the different groups.
 
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        - data: :class:`credoai.artifacts.TabularData`
+            A dataset with rankings. The y variable should be a dataframe or series with
+            a "rankings" column (int) and (optionally) a "scores" column (int or float).
+            The data must also have sensitive features.
+
     Parameters
     ----------
-    sensitive_features : pandas.Series
-        A series of the sensitive feature labels (e.g., "male", "female") which should
-        be used to create subgroups
-    rankings : pandas.Series of type int
-        The computed ranks
-        It should be passed to TabularData's y argument with the column name `rankings`
-    scores : pandas.Series of type int or float, Optional
-        A series of the scores
-        It should be passed to TabularData's y argument with the column name `scores`
     k: int, Optional
         The top k items are considered as the selected subset
         If not provided, the top 50% of the items are considered as selected

@@ -22,6 +22,17 @@ class ModelFairness(Evaluator):
     Handles any metric that can be calculated on a set of ground truth labels and predictions,
     e.g., binary classification, multiclass classification, regression.
 
+    Required Artifacts
+    ------------------
+        **Required Artifacts**
+
+        Generally artifacts are passed directly to :class:`credoai.lens.Lens`, which
+        handles evaluator setup. However, if you are using the evaluator directly, you
+        will need to pass the following artifacts when instantiating the evaluator:
+
+        - model: :class:`credoai.artifacts.Model` or :class:`credoai.artifacts.RegressionModel`
+        - data: :class:`credoai.artifacts.TabularData`
+            The data to use for fairness evaluation. Must include a sensitive feature.
 
     Parameters
     ----------
