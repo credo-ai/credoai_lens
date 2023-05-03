@@ -13,13 +13,17 @@ on:
 jobs:
   run-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
-      - name: Set up python
-        uses: actions/setup-python@v2
+        uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -36,12 +40,13 @@ jobs:
           set -o pipefail
           scripts/test.sh | tee ./pytest-coverage.txt
       - name: my-artifact
-        if: always()
+        if: always() && !env.ACT
         uses: actions/upload-artifact@v3
         with:
           name: pytest-coverage
           path: ./pytest-coverage.txt
       - name: Pytest coverage comment
+        if: always() && !env.ACT
         uses: MishaKav/pytest-coverage-comment@main
         with:
           pytest-coverage-path: ./pytest-coverage.txt
