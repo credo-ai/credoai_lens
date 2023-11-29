@@ -6,6 +6,8 @@
 
 --------------------------------------
 
+:warning: **_DEPRECATION WARNING:_** This project is no longer maintained.
+
 # Lens by Credo AI - Responsible AI Assessment Framework
 
 Lens is a comprehensive assessment framework for AI systems. 
